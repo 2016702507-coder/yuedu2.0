@@ -73,6 +73,17 @@ jobs:
             echo "Placeholder written"
           fi
 
+      - name: Show package layout
+        run: |
+          echo "=== Packages/ 目录 ==="
+          ls -la Packages/ || true
+          echo "=== 本地包定义 ==="
+          cat Packages/SwiftSoup/Package.swift || true
+          echo "=== 工程里的本地包引用 ==="
+          grep -n 'XCLocalSwiftPackageReference' Yuedu-Reader.xcodeproj/project.pbxproj || true
+          echo "=== Package.resolved ==="
+          python3 -c "import json;d=json.load(open('Yuedu-Reader.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved'));print(len(d['pins']));print([i['identity'] for i in d['pins']])" || true
+
       - name: Resolve Swift packages (with retry)
         run: |
           for i in 1 2 3; do
@@ -94,6 +105,8 @@ jobs:
           done
           echo "===== 依赖解析连续 3 次失败，完整错误 ====="
           grep -n 'error:' resolve.log | head -40
+          echo "===== 冲突类错误 ====="
+          grep -n -i 'conflict\|multiple packages\|unique across' resolve.log | head -30
           tail -60 resolve.log
           exit 1
 
