@@ -61,24 +61,11 @@ jobs:
           fi
           echo "源码版本校验通过"
 
-      # 关键修补：旁路 ChapterTitleDesignerView 中的复杂嵌套闭包，彻底阻断编译器 IRGen 崩溃
-      - name: Patch ChapterTitleDesigner IRGen Bug
-        run: |
-          echo "=== 应用 ChapterTitleDesigner 编译器防崩溃补丁 ==="
-          FILE="Modules/Features/Reader/ChapterTitleDesignerView.swift"
-          if [ -f "$FILE" ]; then
-            cat << 'EOF' > "$FILE"
-          import SwiftUI
-
-          public struct ChapterTitleDesignerView: View {
-              public init() {}
-              public var body: some View {
-                  Text("Chapter Title Designer")
-              }
-          }
-          EOF
-            echo "成功重写 $FILE 为基础安全视图"
-          fi
+      # 说明：原流程里的 "Patch ChapterTitleDesigner IRGen Bug" 步骤已删除。
+      # 它把 ChapterTitleDesignerView.swift 覆盖成空壳，而同文件第 17 行定义的
+      # enum ChapterTitleLayerAccessibleAction 是 ChapterTitleDesignerCanvas.swift
+      # 第 347/382 行要用的类型，覆盖后必然报 "cannot find type"。
+      # 编译器崩溃已由下面的 -Onone 组合解决，不需要这个步骤。
 
       # 选用具备对应 SDK 的最新 Xcode
       - name: Pick newest Xcode
@@ -147,7 +134,8 @@ jobs:
             echo "EXTRA_SWIFT_FLAGS=" >> "$GITHUB_ENV"
           fi
 
-      # 编译产物：加入防崩溃选项
+      # 已验证有效：-Onone + incremental + -disable-llvm-optzns
+      # 可完全绕开 swift-frontend 的 IRGen SmallVector 崩溃
       - name: Build (unsigned, device)
         run: |
           set -o pipefail
@@ -171,11 +159,15 @@ jobs:
             VALIDATE_PRODUCT=NO \
             -skipPackagePluginValidation \
             -skipMacroValidation \
-            build | tee build.log | grep -E 'error:|warning:|BUILD FAILED|CompileSwift|Linking' | tail -40
+            build > build.log 2>&1
 
-          if [ ${PIPESTATUS[0]} -ne 0 ]; then
-            echo "===== 编译失败，打印完整错误日志 ====="
-            tail -100 build.log
+          RC=$?
+          tail -25 build.log
+          if [ $RC -ne 0 ]; then
+            echo "===== 编译失败，错误摘要 ====="
+            grep -n 'error:' build.log | head -60
+            echo "===== 失败命令 ====="
+            awk '/The following build commands failed:/,0' build.log | head -20
             exit 1
           fi
           echo "BUILD_DIR=build-out" >> "$GITHUB_ENV"
