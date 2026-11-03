@@ -43,6 +43,8 @@ jobs:
             fi
           done
           xcodebuild -version
+          echo "--- installed iOS SDKs ---"
+          xcodebuild -showsdks | grep -i iphone
 
       - name: Generate placeholder GoogleService-Info.plist
         run: |
@@ -70,9 +72,11 @@ jobs:
           set -o pipefail
           xcodebuild \
             -project Yuedu-Reader.xcodeproj \
-            -scheme Yuedu-Reader \
+            -target "yuedu app" \
             -configuration Release \
             -sdk iphoneos \
+            ARCHS=arm64 \
+            ONLY_ACTIVE_ARCH=NO \
             -derivedDataPath build \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGN_IDENTITY="" \
