@@ -11,6 +11,14 @@ jobs:
   build:
     runs-on: macos-15
     timeout-minutes: 240
+    env:
+      # —— 改成你自己签名证书的 App ID（必须是「精确 ID」，不能带 * ）——
+      # 证书里 application-identifier 形如 9963E87NZP.com.xxx.yyy，
+      # 点号后面那段就是要填在这里的值。留空表示不改包名。
+      SIGN_BUNDLE_ID: com.QpPL.pEorsl
+      # 精确 App ID 下，扩展的 bundle id 必须是「主 App id + 前缀」，签不出来，
+      # 留着必然卡在启动校验上，所以打包时直接移除 PlugIns。
+      DROP_EXTENSIONS: "1"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -387,6 +395,14 @@ jobs:
             if [ "$disopt" = "yes" ]; then
               extra_flags="\$(inherited) -Xfrontend -disable-llvm-optzns"
             fi
+            # strip 只能在「已链接完成的产物」上做。上一版把
+            #   STRIP_INSTALLED_PRODUCT=YES / COPY_PHASE_STRIP=YES / DEPLOYMENT_POSTPROCESSING=YES
+            # 打进构建参数，Xcode 于是对编译中间产物 .o 也执行 Strip；而 .o 里仍带重定位项，
+            # strip 必须失败：
+            #   strip: error: symbols referenced by relocation entries that can't be stripped
+            #   in .../third-party-IsAppEncrypted.o   (GoogleUtilities / Firebase)
+            # 这四个开关现在全部显式置 NO。瘦身改到「打包」步骤，只对最终 Mach-O 做，
+            # 而且失败不影响产物。
             xcodebuild \
               -project Yuedu-Reader.xcodeproj \
               -scheme Yuedu-Reader \
@@ -408,10 +424,10 @@ jobs:
               SWIFT_ENABLE_BATCH_MODE="$batch" \
               OTHER_SWIFT_FLAGS="$extra_flags" \
               DEBUG_INFORMATION_FORMAT=dwarf-with-dsym \
-              COPY_PHASE_STRIP=YES \
-              STRIP_INSTALLED_PRODUCT=YES \
-              STRIP_STYLE=all \
-              DEPLOYMENT_POSTPROCESSING=YES \
+              COPY_PHASE_STRIP=NO \
+              STRIP_INSTALLED_PRODUCT=NO \
+              STRIP_STYLE=non-global \
+              DEPLOYMENT_POSTPROCESSING=NO \
               VALIDATE_PRODUCT=NO \
               -skipPackagePluginValidation \
               -skipMacroValidation \
@@ -458,6 +474,17 @@ jobs:
               return 0
             fi
             echo "----- $name 失败 -----"
+            # strip 打到了未链接的 .o 上（构建参数里开了 STRIP_INSTALLED_PRODUCT 之类）。
+            # 这不是源码问题，但换优化级别重试同样会失败，所以立即停并说清楚。
+            if grep -q 'strip: error: symbols referenced by relocation entries' "build-$name.log" 2>/dev/null; then
+              echo "===== strip 阶段失败：Strip 作用到了编译中间产物 .o 上 ====="
+              grep -n 'strip: error:' "build-$name.log" 2>/dev/null | head -10 || true
+              echo "说明：.o 尚未链接、仍带重定位项，strip 必然报错。"
+              echo "修复方向：构建参数里 STRIP_INSTALLED_PRODUCT / COPY_PHASE_STRIP /"
+              echo "          DEPLOYMENT_POSTPROCESSING 必须为 NO，瘦身只对最终 Mach-O 做。"
+              cp "build-$name.log" build.log
+              return 2
+            fi
             local errs
             errs=$(grep -c 'error:' "build-$name.log" 2>/dev/null || true)
             if [ "${errs:-0}" -gt 0 ]; then
@@ -509,7 +536,7 @@ jobs:
         run: |
           set -eo pipefail
           if [ -z "${BUILD_DIR:-}" ]; then
-            for d in build-nobatch-a build-nobatch-b build-batch build-out; do
+            for d in build-opt build-opt-size build-nobatch-a build-nobatch-b build-batch build-fallback build-out; do
               if [ -d "$d/Build/Products" ]; then BUILD_DIR="$d"; break; fi
             done
           fi
@@ -555,6 +582,65 @@ jobs:
             exit 1
           fi
           echo "产物结构校验通过（无 debug dylib，主二进制 ${MAIN_SIZE} 字节）"
+
+          # —— 对齐签名证书的 App ID ——
+          # iOS 启动时会拿描述文件里 application-identifier（格式 TEAMID.包名）的
+          # 包名部分，与 CFBundleIdentifier 逐字比对；不一致就由 amfid 直接终止进程，
+          # 表现正是「点开图标立刻回桌面」，而安装照样能成功。
+          # 所以先把包名改成证书对应的 App ID，签名工具读到的就是这个值。
+          if [ -n "${SIGN_BUNDLE_ID:-}" ]; then
+            OLD_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/Info.plist" 2>/dev/null || true)
+            if [ "$OLD_ID" != "$SIGN_BUNDLE_ID" ]; then
+              /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier $SIGN_BUNDLE_ID" "$APP/Info.plist"
+              # PlistBuddy 可能改写格式，强制回二进制（签名工具对大包更认二进制 plist）
+              plutil -convert binary1 "$APP/Info.plist"
+              echo "CFBundleIdentifier: $OLD_ID -> $SIGN_BUNDLE_ID"
+            fi
+            FINAL_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/Info.plist" 2>/dev/null || true)
+            if [ "$FINAL_ID" != "$SIGN_BUNDLE_ID" ]; then
+              echo "!! bundle id 改写失败（当前 $FINAL_ID，期望 $SIGN_BUNDLE_ID）"
+              exit 1
+            fi
+            echo "bundle id 已对齐证书：$FINAL_ID"
+          else
+            echo "SIGN_BUNDLE_ID 为空，保持原包名"
+          fi
+
+          # 精确 App ID 的证书签不了扩展（扩展 id 必须带主 App 前缀），
+          # 留着会在启动校验时被拒，因此按开关移除。
+          if [ "${DROP_EXTENSIONS:-0}" = "1" ] && [ -d "$APP/PlugIns" ]; then
+            echo "移除扩展（精确 App ID 无法签名扩展）："
+            ls "$APP/PlugIns" 2>/dev/null || true
+            rm -rf "$APP/PlugIns"
+          fi
+
+          # —— 可选瘦身：只对「已链接完成的最终 Mach-O」做 ——
+          # -O 编译后本该落到 30MB 上下，正常不需要这一步。只有明显超标时
+          # 才 strip 一次（签名工具对超大二进制容易签残），且任何失败都不终止：
+          # 结构完整 > 体积。
+          if [ "${MAIN_SIZE:-0}" -gt 83886080 ]; then
+            echo "主二进制偏大（${MAIN_SIZE} 字节），尝试剥离符号…"
+            cp "$MAIN_BIN" "$MAIN_BIN.bak"
+            OK=1
+            xcrun strip -Sx "$MAIN_BIN" >/dev/null 2>&1 || OK=0
+            NEW_SIZE=$(stat -f%z "$MAIN_BIN" 2>/dev/null || echo 0)
+            if [ "${NEW_SIZE:-0}" -lt 1048576 ]; then OK=0; fi
+            if [ "$OK" -eq 1 ]; then
+              # 注意不要写 `otool -l | grep -q`：pipefail 下 grep 提前退出会让
+              # otool 收到 SIGPIPE，管道整体返回非零，导致误判为「找不到 LC_MAIN」。
+              LC_MAIN_HITS=$(xcrun otool -l "$MAIN_BIN" 2>/dev/null | grep -c LC_MAIN || true)
+              if [ "${LC_MAIN_HITS:-0}" -eq 0 ]; then OK=0; fi
+            fi
+            if [ "$OK" -eq 0 ]; then
+              echo "!! strip 失败或结果异常，回滚为原始二进制"
+              cp "$MAIN_BIN.bak" "$MAIN_BIN"
+              NEW_SIZE=$MAIN_SIZE
+            fi
+            rm -f "$MAIN_BIN.bak"
+            echo "strip 后主二进制: ${NEW_SIZE} 字节"
+          else
+            echo "主二进制体积正常（<80MB），跳过 strip"
+          fi
 
           rm -rf Payload && mkdir -p Payload
           cp -R "$APP" Payload/
