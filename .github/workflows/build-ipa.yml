@@ -53,15 +53,14 @@ jobs:
           check Modules/Core/ReaderCore/CoreText/HTMLAttributedStringBuilder.swift '@unchecked Sendable' "ElementNode Sendable"
           check Modules/Features/AI/AIRelationshipMapView.swift 'let step: Double' "AIRelationshipMapView 拆分"
           check Modules/Features/Explore/PublicLibrary/PublicLibraryBookSheet.swift 'let opacity: Double' "PublicLibrary 运算符拆分"
-          check Modules/Features/Reader/ReaderViewportReporting.swift 'YUEDU_HAS_RESERVED_REGIONS' "ReservedRegion 隔离"
+          check Modules/Features/Reader/ReaderViewportReporting.swift 'toWindow' "ReservedRegion 隔离"
           check Modules/Services/Works/WorkIndexService.swift 'let seriesValue' "WorkIndex 类型标注"
           echo "缺失修复项: $MISSING"
           if [ "$MISSING" -gt 0 ]; then
             echo ""
             echo "!! 源码是旧版本，修复未生效 !!"
             echo "请：删除仓库中所有旧 zip，只保留最新的 Yuedu-reader-2.0-source.zip，再重跑"
-            echo "当前仓库 zip："
-            ls -la *.zip 2>/dev/null || echo "(无 zip，说明源码直接放在根目录且未更新)"
+            ls -la *.zip 2>/dev/null || echo "(无 zip)"
             exit 1
           fi
           echo "源码版本校验通过"
@@ -142,7 +141,6 @@ jobs:
           done
           echo "===== 依赖解析连续 3 次失败，完整错误 ====="
           grep -n 'error:' resolve.log | head -40
-          echo "===== 全部冲突类错误 ====="
           grep -n -i 'conflict\|multiple packages\|unique across' resolve.log | head -30
           tail -60 resolve.log
           exit 1
@@ -158,11 +156,13 @@ jobs:
             echo "SDK 不含 ReservedRegion，该项功能降级为空实现"
             echo "EXTRA_SWIFT_FLAGS=" >> "$GITHUB_ENV"
           fi
+          echo "COMPILATION_MODE=incremental" >> "$GITHUB_ENV"
 
       - name: Build (unsigned, device)
         run: |
           set -o pipefail
           echo "EXTRA_SWIFT_FLAGS=$EXTRA_SWIFT_FLAGS"
+          echo "COMPILATION_MODE=$COMPILATION_MODE"
           xcodebuild \
             -project Yuedu-Reader.xcodeproj \
             -scheme Yuedu-Reader \
@@ -176,11 +176,16 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             SWIFT_TREAT_WARNINGS_AS_ERRORS=NO \
             SWIFT_ACTIVE_COMPILATION_CONDITIONS="\$(inherited) $EXTRA_SWIFT_FLAGS" \
+            SWIFT_COMPILATION_MODE=$COMPILATION_MODE \
             -skipPackagePluginValidation \
             -skipMacroValidation \
             build > build.log 2>&1 || {
               echo "===== 编译失败，错误摘要如下 ====="
               grep -n 'error:' build.log | head -60
+              if [ "$(grep -c 'error:' build.log)" -eq 0 ]; then
+                echo "(没有 error: 行，检查是否编译器崩溃)"
+                grep -n -A3 'Please submit a bug report\|Stack dump\|While emitting IR' build.log | head -30
+              fi
               echo "===== 失败命令 ====="
               awk '/The following build commands failed:/,0' build.log | head -30
               exit 1
