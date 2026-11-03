@@ -73,10 +73,10 @@ jobs:
           fi
           echo "源码版本校验通过"
 
-      # 选择最新的可用 Xcode
-      - name: Pick newest Xcode (26 preferred)
+      # 选择可用的 Xcode（优先 26，若无则使用系统最新稳定版）
+      - name: Pick Xcode
         run: |
-          ls /Applications | grep -i xcode
+          ls -d /Applications/Xcode*.app || true
           BEST=""
           BEST_V=0
           for x in /Applications/Xcode*.app; do
@@ -94,7 +94,6 @@ jobs:
           echo "选中 $BEST"
           sudo xcode-select -s "$BEST"
           xcodebuild -version
-          echo "--- installed iOS SDKs ---"
           xcodebuild -showsdks | grep -i iphone
 
       - name: Generate placeholder GoogleService-Info.plist
@@ -166,15 +165,16 @@ jobs:
             echo "EXTRA_SWIFT_FLAGS=" >> "$GITHUB_ENV"
           fi
 
-      # 编译产物：使用 -Onone 与 -Xllvm -disable-llvm-optzns 绕过 IRGen 崩溃
+      # 修复了 set -e 导致重试中断的问题，并采用稳妥的增量编译策略
       - name: Build (unsigned, device)
         run: |
-          set -o pipefail
+          # 关键：暂时关闭非零退出，确保循环能够顺利降级换挡重试
+          set +e
           echo "EXTRA_SWIFT_FLAGS=$EXTRA_SWIFT_FLAGS"
 
           build_with() {
-            local name="$1" mode="$2" opt="$3" extra_flags="$4"
-            echo "----- 尝试组合: $name (mode=$mode opt=$opt extra=$extra_flags) -----"
+            local name="$1" mode="$2" opt="$3"
+            echo "----- 尝试组合: $name (mode=$mode opt=$opt) -----"
             xcodebuild \
               -project Yuedu-Reader.xcodeproj \
               -scheme Yuedu-Reader \
@@ -190,52 +190,67 @@ jobs:
               SWIFT_ACTIVE_COMPILATION_CONDITIONS="\$(inherited) $EXTRA_SWIFT_FLAGS" \
               SWIFT_COMPILATION_MODE="$mode" \
               SWIFT_OPTIMIZATION_LEVEL="$opt" \
-              OTHER_SWIFT_FLAGS="\$(inherited) $extra_flags" \
               VALIDATE_PRODUCT=NO \
               -skipPackagePluginValidation \
               -skipMacroValidation \
               build > "build-$name.log" 2>&1
+            return $?
           }
 
           attempt() {
-            local name="$1" mode="$2" opt="$3" extra_flags="$4"
-            if build_with "$name" "$mode" "$opt" "$extra_flags"; then
+            local name="$1" mode="$2" opt="$3"
+            build_with "$name" "$mode" "$opt"
+            local build_res=$?
+            if [ $build_res -eq 0 ]; then
               echo "编译成功（$name）"
               echo "BUILD_DIR=build-$name" >> "$GITHUB_ENV"
               cp "build-$name.log" build.log
               tail -20 "build-$name.log"
               return 0
             fi
+
             echo "----- $name 失败，判断失败类型 -----"
             if [ "$(grep -c 'error:' "build-$name.log")" -gt 0 ]; then
-              echo "===== 真实编译错误，停止重试 ====="
+              echo "===== 真实编译错误，停止换挡 ====="
               grep -n 'error:' "build-$name.log" | head -60
               awk '/The following build commands failed:/,0' "build-$name.log" | head -30
               cp "build-$name.log" build.log
               return 2
             fi
-            echo "===== 编译器崩溃（IRGen/SIL），准备降级 ====="
+
+            echo "===== 编译器崩溃（IRGen/SIL），自动换挡尝试下一组 ====="
             grep -n -A3 'While emitting IR\|Stack dump\|PLEASE submit a bug report' "build-$name.log" | head -20
             return 1
           }
 
-          # 优先使用带 LLVM 优化保护的 Onone 策略，绕过 Swift 6.2.4 的代码生成 Bug
-          for combo in "Onone-safe|incremental|-Onone|-Xllvm -disable-llvm-optzns" "Onone|wholemodule|-Onone|" "O|wholemodule|-O|"; do
-            IFS='|' read -r name mode opt extra_flags <<< "$combo"
-            attempt "$name" "$mode" "$opt" "$extra_flags"
+          SUCCESS=0
+          # 策略说明：
+          # 1. Onone-inc: 增量单文件编译，不合并 IR 模块，有效避开整体发射时的 IRGen 编译器崩溃
+          # 2. Onone: 全模块但不优化
+          # 3. O: 默认 release 优化
+          for combo in "Onone-inc|incremental|-Onone" "Onone|wholemodule|-Onone" "O|wholemodule|-O"; do
+            IFS='|' read -r name mode opt <<< "$combo"
+            attempt "$name" "$mode" "$opt"
             rc=$?
-            if [ "$rc" -eq 0 ]; then exit 0; fi
-            if [ "$rc" -eq 2 ]; then exit 1; fi
+            if [ "$rc" -eq 0 ]; then
+              SUCCESS=1
+              break
+            elif [ "$rc" -eq 2 ]; then
+              echo "遇到源码层面的具体代码报错，不再重试。"
+              exit 1
+            fi
           done
 
-          echo "===== 所有编译组合均未能通过 ====="
-          cp build-Onone-safe.log build.log
-          exit 1
+          if [ "$SUCCESS" -ne 1 ]; then
+            echo "===== 全部组合均未能编译成功，附上最后日志 ====="
+            cp build-Onone-inc.log build.log 2>/dev/null || true
+            exit 1
+          fi
 
       - name: Package unsigned IPA
         run: |
           if [ -z "$BUILD_DIR" ]; then
-            for d in build-Onone-safe build-Onone build-O build; do
+            for d in build-Onone-inc build-Onone build-O build; do
               if [ -d "$d/Build/Products" ]; then BUILD_DIR="$d"; break; fi
             done
           fi
