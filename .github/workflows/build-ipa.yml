@@ -15,7 +15,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # 支持两种放置方式：① 直接上传源码到仓库根目录；② 只上传一个 zip 包
+      # 解压或检测源码
       - name: Extract source if uploaded as archive
         run: |
           if [ -f Yuedu-Reader.xcodeproj/project.pbxproj ]; then
@@ -42,7 +42,7 @@ jobs:
           rm -rf _src "$ARCHIVE"
           ls -a | head -30
 
-      # 关卡：确认解压出来的确实是最新的修复版源码
+      # 校验源码修复补丁
       - name: Verify source is the fixed version
         run: |
           MISSING=0
@@ -61,43 +61,37 @@ jobs:
           check Modules/Features/Explore/PublicLibrary/PublicLibraryBookSheet.swift 'let opacity: Double' "PublicLibrary 运算符拆分"
           check Modules/Features/Reader/ReaderViewportReporting.swift 'YUEDU_HAS_RESERVED_REGIONS' "ReservedRegion 隔离"
           check Modules/Services/Works/WorkIndexService.swift 'let seriesValue' "WorkIndex 类型标注"
-          check Modules/Core/BookSource/SourcePerfTrace.swift 'thresholdMilliseconds: Int = 1' "spanAsync 阈值改 Int（绕开 IRGen 崩溃）"
+          check Modules/Core/BookSource/SourcePerfTrace.swift 'thresholdMilliseconds: Int = 1' "spanAsync 阈值改 Int"
           echo "缺失修复项: $MISSING"
           if [ "$MISSING" -gt 0 ]; then
-            echo ""
             echo "!! 源码是旧版本，修复未生效 !!"
-            echo "请：删除仓库中所有旧 zip，只保留最新的 Yuedu-reader-2.0-source.zip，再重跑"
-            echo "当前仓库 zip："
-            ls -la *.zip 2>/dev/null || echo "(无 zip，说明源码直接放在根目录且未更新)"
             exit 1
           fi
           echo "源码版本校验通过"
 
-      # 关键修复 1：避开崩溃的 Xcode 26.3，优先选用稳定的 Xcode 16.x 版本
+      # 避开崩溃的 Xcode 26.3，锁定稳定版本
       - name: Select Stable Xcode
         run: |
-          echo "=== 当前安装的 Xcode 列表 ==="
+          echo "=== 查找机器上所有 Xcode ==="
           ls -d /Applications/Xcode*.app || true
           
-          # 寻找 16.x 系列版本
           TARGET_XCODE=""
-          for x in /Applications/Xcode_16*.app; do
+          for x in /Applications/Xcode_16*.app /Applications/Xcode-16*.app; do
             if [ -d "$x" ]; then
               TARGET_XCODE="$x"
               break
             fi
           done
 
-          # 如果没有 16，再使用默认或者最高版本
           if [ -z "$TARGET_XCODE" ] || [ ! -d "$TARGET_XCODE" ]; then
-            echo "未找到 Xcode 16，使用系统当前默认 Xcode"
+            echo "选择默认 Xcode.app"
             TARGET_XCODE="/Applications/Xcode.app"
           fi
 
           echo "最终选用: $TARGET_XCODE"
           sudo xcode-select -s "$TARGET_XCODE"
           xcodebuild -version
-          xcodebuild -showsdks | grep -i iphone
+          xcodebuild -showsdks
 
       - name: Generate placeholder GoogleService-Info.plist
         run: |
@@ -124,12 +118,9 @@ jobs:
         run: |
           echo "=== Packages/ 目录 ==="
           ls -la Packages/ || true
-          echo "=== 本地包定义 ==="
-          cat Packages/SwiftSoup/Package.swift || true
-          echo "=== 工程里的本地包引用 ==="
-          grep -n 'XCLocalSwiftPackageReference' Yuedu-Reader.xcodeproj/project.pbxproj || true
-          echo "=== Package.resolved 包数 ==="
-          python3 -c "import json;d=json.load(open('Yuedu-Reader.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved'));print(len(d['pins']));print([i['identity'] for i in d['pins']])" || true
+          cat Packages/SwiftSoup/Package.swift 2>/dev/null || true
+          grep -n 'XCLocalSwiftPackageReference' Yuedu-Reader.xcodeproj/project.pbxproj 2>/dev/null || true
+          python3 -c "import json;d=json.load(open('Yuedu-Reader.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved'));print('Pins count:', len(d['pins']))" 2>/dev/null || true
 
       # 依赖解析
       - name: Resolve Swift packages (with retry)
@@ -151,9 +142,7 @@ jobs:
             tail -25 resolve.log
             sleep 15
           done
-          echo "===== 依赖解析连续 3 次失败，完整错误 ====="
           grep -n 'error:' resolve.log | head -40
-          tail -60 resolve.log
           exit 1
 
       - name: Detect ReservedRegion support
@@ -161,27 +150,25 @@ jobs:
           SDK_PATH=$(xcrun --sdk iphoneos --show-sdk-path)
           echo "SDK: $SDK_PATH"
           if grep -rql 'ReservedRegion' "$SDK_PATH/System/Library/Frameworks/SwiftUI.framework" 2>/dev/null; then
-            echo "SDK 支持 ReservedRegion，启用该能力"
             echo "EXTRA_SWIFT_FLAGS=-DYUEDU_HAS_RESERVED_REGIONS" >> "$GITHUB_ENV"
           else
-            echo "SDK 不含 ReservedRegion，降级处理"
             echo "EXTRA_SWIFT_FLAGS=" >> "$GITHUB_ENV"
           fi
 
-      # 关键修复 2：在 Debug/Release 双通道下直接构建
+      # 关键修复：加入 -sdk iphoneos 并指定泛用目标，彻底解决 iOS 18.0 not installed 报错
       - name: Build (unsigned, device)
         run: |
           set +e
           echo "EXTRA_SWIFT_FLAGS=$EXTRA_SWIFT_FLAGS"
 
-          build_with() {
+          run_build() {
             local name="$1" config="$2" mode="$3" opt="$4"
-            echo "----- 尝试组合: $name (config=$config mode=$mode opt=$opt) -----"
+            echo "==== 开始构建: $name ($config, $mode, $opt) ===="
             xcodebuild \
               -project Yuedu-Reader.xcodeproj \
               -scheme Yuedu-Reader \
               -configuration "$config" \
-              -destination 'generic/platform=iOS' \
+              -sdk iphoneos \
               -derivedDataPath "build-$name" \
               -clonedSourcePackagesDirPath build/SourcePackages \
               -onlyUsePackageVersionsFromResolvedFile \
@@ -200,47 +187,49 @@ jobs:
           }
 
           SUCCESS=0
-          # 依次尝试：Release 模式、Debug 模式
-          for combo in "rel-onone|Release|wholemodule|-Onone" "debug|Debug|incremental|-Onone" "rel-opt|Release|wholemodule|-O"; do
-            IFS='|' read -r name config mode opt <<< "$combo"
-            build_with "$name" "$config" "$mode" "$opt"
+          # 策略：依次尝试 Release 增量/无优化、Debug 模式
+          for plan in "rel-onone|Release|incremental|-Onone" "debug|Debug|incremental|-Onone" "rel-whole|Release|wholemodule|-Onone"; do
+            IFS='|' read -r name config mode opt <<< "$plan"
+            run_build "$name" "$config" "$mode" "$opt"
             if [ $? -eq 0 ]; then
-              echo "编译成功 ($name)"
+              echo "构建成功，选用模式: $name"
               echo "BUILD_DIR=build-$name" >> "$GITHUB_ENV"
+              cp "build-$name.log" build.log
               SUCCESS=1
               break
             fi
-            echo "$name 失败，错误预览："
+            echo "$name 构建失败，提取错误预览："
             grep -n 'error:' "build-$name.log" | head -20
           done
 
           if [ "$SUCCESS" -ne 1 ]; then
-            echo "所有组合均失败，保留最后一次构建日志"
-            cp build-debug.log build.log 2>/dev/null || true
+            echo "所有组合均失败，保留日志退出"
+            cp build-rel-onone.log build.log 2>/dev/null || true
             exit 1
           fi
 
       - name: Package unsigned IPA
         run: |
-          echo "BUILD_DIR: $BUILD_DIR"
+          echo "构建目录: $BUILD_DIR"
           if [ -z "$BUILD_DIR" ]; then
-            for d in build-rel-onone build-debug build-rel-opt build; do
+            for d in build-rel-onone build-debug build-rel-whole build; do
               if [ -d "$d/Build/Products" ]; then BUILD_DIR="$d"; break; fi
             done
           fi
-          
+
           APP=$(find "$BUILD_DIR/Build/Products" -name "*.app" -type d -maxdepth 3 | grep -v -E 'Tests|UITests|\.appex' | head -1)
           if [ -z "$APP" ]; then
-            echo "未找到任何 .app 目录"
+            echo "未找到 .app 目录，列出产物："
             find "$BUILD_DIR" -name "*.app" -type d || true
             exit 1
           fi
-          
-          echo "找到 App: $APP"
+
+          echo "找到 APP: $APP"
           rm -rf Payload && mkdir -p Payload
           cp -R "$APP" Payload/
           zip -qry Yuedu-unsigned.ipa Payload
           ls -lh Yuedu-unsigned.ipa
+          unzip -l Yuedu-unsigned.ipa | head -15
 
       - name: Upload IPA
         uses: actions/upload-artifact@v4
