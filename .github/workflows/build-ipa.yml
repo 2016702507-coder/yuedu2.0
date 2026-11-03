@@ -156,9 +156,31 @@ jobs:
       # 内联 Binding<Double>(get:set:) 消除。
       # 下面额外加一层保险：禁用 batch mode（每个文件独立前端进程），
       # 避免 batch 内跨文件 IRGen 状态累积；并降低并行度、崩溃时重试。
+      # 诊断：打印 Swift 版本与 SwiftUI 中 Binding.init(get:set:) 的真实签名。
+      # 若签名是 @isolated(any)，闭包字面量可直接适配、无 reabstraction thunk；
+      # 若是普通 (Value) -> Void，则 @MainActor 闭包仍需桥接。
+      # 这段输出会随失败日志一起上传，便于一次性定位。
+      - name: Inspect toolchain and Binding signature
+        run: |
+          echo "=== Swift 版本 ==="
+          swift --version || true
+          echo "=== Xcode 与 iOS SDK ==="
+          xcodebuild -version || true
+          xcodebuild -showsdks 2>/dev/null | grep -i iphone || true
+          SDK=$(xcrun --sdk iphoneos --show-sdk-path)
+          echo "SDK 路径: $SDK"
+          IFACE=$(find "$SDK/System/Library/Frameworks/SwiftUI.framework" -name "*.swiftinterface" 2>/dev/null | head -1)
+          echo "接口文件: $IFACE"
+          if [ -n "$IFACE" ]; then
+            echo "=== Binding 的 init(get:set:) 声明 ==="
+            grep -n -A5 'public init(get' "$IFACE" 2>/dev/null | head -60 || true
+            echo "=== 是否出现 @isolated(any) ==="
+            grep -c '@isolated(any)' "$IFACE" 2>/dev/null || echo 0
+          fi
+
       - name: Build (unsigned, device)
         run: |
-          set -o pipefail
+          set -eo pipefail
           echo "EXTRA_SWIFT_FLAGS=$EXTRA_SWIFT_FLAGS"
           echo "Xcode: $(xcodebuild -version | head -1)"
 
@@ -189,61 +211,95 @@ jobs:
               build > "build-$name.log" 2>&1
           }
 
-          # 返回 0=成功 1=编译器崩溃（可重试/换档） 2=真实源码错误（立即停）
+          # 崩溃诊断：把「崩溃文件 / 崩溃符号 / 堆栈」单独抽出来
+          # 同时写入 crash-context.log，失败时随 artifact 上传
+          report_crash() {
+            local log="$1"
+            echo "########## 崩溃诊断 ##########"
+            echo "---- 崩溃所在源文件 ----"
+            grep -o 'IR Generation for file "[^"]*"' "$log" 2>/dev/null | tail -3 | sed 's|.*/||; s|"$||' || true
+            echo "---- 崩溃 SIL 符号 ----"
+            grep 'While emitting IR SIL function' "$log" 2>/dev/null | tail -3 || true
+            echo "---- 日志末尾 80 行 ----"
+            tail -80 "$log" 2>/dev/null || true
+            echo "##############################"
+            {
+              echo "=== IRGenRequest 崩溃文件（完整路径） ==="
+              grep -o 'IR Generation for file "[^"]*"' "$log" 2>/dev/null || true
+              echo ""
+              echo "=== 崩溃 SIL 符号 ==="
+              grep 'While emitting IR SIL function' "$log" 2>/dev/null || true
+              echo ""
+              echo "=== 崩溃堆栈（自 Stack dump 起 60 行） ==="
+              awk '/Stack dump:/{f=1} f{print; n++} n>=60{exit}' "$log" 2>/dev/null || true
+              echo ""
+              echo "=== 日志末尾 150 行 ==="
+              tail -150 "$log" 2>/dev/null || true
+            } > crash-context.log || true
+          }
+
+          # 返回 0=成功 1=编译器崩溃（继续换档） 2=真实源码错误（立即停）
+          # 注意：本步骤运行在 bash -e 下，attempt 的非零返回必须用 `|| rc=$?` 接住，
+          # 否则第一档崩溃就会直接终止，后面的重试档根本不会执行。
           attempt() {
             local name="$1" mode="$2" opt="$3" batch="$4"
             if build_with "$name" "$mode" "$opt" "$batch"; then
               echo "编译成功（$name）"
               echo "BUILD_DIR=build-$name" >> "$GITHUB_ENV"
               cp "build-$name.log" build.log
-              tail -20 "build-$name.log"
+              tail -20 "build-$name.log" || true
               return 0
             fi
             echo "----- $name 失败 -----"
-            if [ "$(grep -c 'error:' "build-$name.log")" -gt 0 ]; then
-              echo "===== 存在 error: 行，判定为真实源码错误，停止换档 ====="
-              grep -n 'error:' "build-$name.log" | head -60
+            local errs
+            errs=$(grep -c 'error:' "build-$name.log" 2>/dev/null || true)
+            if [ "${errs:-0}" -gt 0 ]; then
+              echo "===== 存在 ${errs} 条 error: 行，判定为真实源码错误，停止换档 ====="
+              grep -n 'error:' "build-$name.log" 2>/dev/null | head -60 || true
               echo "===== 失败命令 ====="
-              awk '/The following build commands failed:/,0' "build-$name.log" | head -25
+              awk '/The following build commands failed:/,0' "build-$name.log" 2>/dev/null | head -25 || true
               cp "build-$name.log" build.log
               return 2
             fi
             echo "===== 无 error: 行，判定为编译器崩溃 ====="
-            grep -n 'While evaluating request IRGenRequest\|While emitting IR SIL function\|Stack dump\|PLEASE submit a bug report' "build-$name.log" | head -12
+            report_crash "build-$name.log"
             cp "build-$name.log" build.log
             return 1
           }
 
           for combo in "nobatch-a|incremental|-Onone|NO" "nobatch-b|incremental|-Onone|NO" "batch|incremental|-Onone|YES"; do
             IFS='|' read -r name mode opt batch <<< "$combo"
-            attempt "$name" "$mode" "$opt" "$batch"
-            rc=$?
-            if [ "$rc" -eq 0 ]; then exit 0; fi
-            if [ "$rc" -eq 2 ]; then exit 1; fi
-            echo "该档编译器崩溃，进入下一档"
+            rc=0
+            attempt "$name" "$mode" "$opt" "$batch" || rc=$?
+            if [ "$rc" -eq 0 ]; then echo "构建完成：$name"; exit 0; fi
+            if [ "$rc" -eq 2 ]; then echo "真实源码错误，终止"; exit 1; fi
+            echo "「$name」编译器崩溃，进入下一档"
           done
 
-          echo "===== 三种配置均崩溃，请查看上方崩溃文件 ====="
+          echo "===== 三种配置均因编译器崩溃失败 ====="
+          echo "请下载 build-log 与 crash-context 两个 artifact"
+          echo "crash-context.log 第 1 段「IRGenRequest 崩溃文件」就是元凶的完整路径"
           exit 1
 
       - name: Package unsigned IPA
         run: |
-          if [ -z "$BUILD_DIR" ]; then
+          set -eo pipefail
+          if [ -z "${BUILD_DIR:-}" ]; then
             for d in build-nobatch-a build-nobatch-b build-batch build-out; do
               if [ -d "$d/Build/Products" ]; then BUILD_DIR="$d"; break; fi
             done
           fi
-          echo "使用构建目录: $BUILD_DIR"
-          if [ -z "$BUILD_DIR" ] || [ ! -d "$BUILD_DIR/Build/Products" ]; then
+          echo "使用构建目录: ${BUILD_DIR:-<空>}"
+          if [ -z "${BUILD_DIR:-}" ] || [ ! -d "$BUILD_DIR/Build/Products" ]; then
             echo "未找到构建产物目录，列出当前目录："
-            ls -la
-            find . -maxdepth 2 -name "Products" -type d | head -20
+            ls -la || true
+            find . -maxdepth 2 -name "Products" -type d 2>/dev/null | head -20 || true
             exit 1
           fi
-          APP=$(find "$BUILD_DIR/Build/Products" -name "*.app" -type d -maxdepth 3 | grep -v -E 'Tests|UITests|\.appex' | head -1)
+          APP=$(find "$BUILD_DIR/Build/Products" -name "*.app" -type d -maxdepth 3 2>/dev/null | grep -v -E 'Tests|UITests|\.appex' | head -1 || true)
           if [ -z "$APP" ]; then
             echo "未找到 .app 目录"
-            find "$BUILD_DIR/Build/Products" -maxdepth 3 | head -60
+            find "$BUILD_DIR/Build/Products" -maxdepth 3 2>/dev/null | head -60 || true
             exit 1
           fi
           echo "找到 APP Bundle: $APP"
@@ -251,7 +307,7 @@ jobs:
           cp -R "$APP" Payload/
           zip -qry Yuedu-unsigned.ipa Payload
           ls -lh Yuedu-unsigned.ipa
-          unzip -l Yuedu-unsigned.ipa | head -15
+          unzip -l Yuedu-unsigned.ipa | head -15 || true
 
       - name: Upload IPA
         uses: actions/upload-artifact@v4
@@ -265,5 +321,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: build-log
-          path: build.log
+          path: |
+            build.log
+            crash-context.log
           retention-days: 3
+          if-no-files-found: warn
