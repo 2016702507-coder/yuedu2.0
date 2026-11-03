@@ -75,14 +75,10 @@ jobs:
 
       - name: Show package layout
         run: |
-          echo "=== Packages/ 目录 ==="
+          echo "=== Packages/ ==="
           ls -la Packages/ || true
-          echo "=== 本地包定义 ==="
-          cat Packages/SwiftSoup/Package.swift || true
-          echo "=== 工程里的本地包引用 ==="
-          grep -n 'XCLocalSwiftPackageReference' Yuedu-Reader.xcodeproj/project.pbxproj || true
           echo "=== Package.resolved ==="
-          python3 -c "import json;d=json.load(open('Yuedu-Reader.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved'));print(len(d['pins']));print([i['identity'] for i in d['pins']])" || true
+          python3 -c "import json;d=json.load(open('Yuedu-Reader.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved'));print(len(d['pins']),[i['identity'] for i in d['pins']])" || true
 
       - name: Resolve Swift packages (with retry)
         run: |
@@ -103,16 +99,28 @@ jobs:
             tail -25 resolve.log
             sleep 15
           done
-          echo "===== 依赖解析连续 3 次失败，完整错误 ====="
+          echo "===== 依赖解析连续 3 次失败 ====="
           grep -n 'error:' resolve.log | head -40
-          echo "===== 冲突类错误 ====="
           grep -n -i 'conflict\|multiple packages\|unique across' resolve.log | head -30
           tail -60 resolve.log
           exit 1
 
+      - name: Detect ReservedRegion support
+        run: |
+          SDK_PATH=$(xcrun --sdk iphoneos --show-sdk-path)
+          echo "SDK: $SDK_PATH"
+          if grep -rql 'ReservedRegion' "$SDK_PATH/System/Library/Frameworks/SwiftUI.framework" 2>/dev/null; then
+            echo "SDK 支持 ReservedRegion，启用 iOS 27 能力"
+            echo "EXTRA_SWIFT_FLAGS=-DYUEDU_HAS_RESERVED_REGIONS" >> "$GITHUB_ENV"
+          else
+            echo "SDK 不含 ReservedRegion，该项功能降级为空实现"
+            echo "EXTRA_SWIFT_FLAGS=" >> "$GITHUB_ENV"
+          fi
+
       - name: Build (unsigned, device)
         run: |
           set -o pipefail
+          echo "EXTRA_SWIFT_FLAGS=$EXTRA_SWIFT_FLAGS"
           xcodebuild \
             -project Yuedu-Reader.xcodeproj \
             -scheme Yuedu-Reader \
@@ -125,6 +133,7 @@ jobs:
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             SWIFT_TREAT_WARNINGS_AS_ERRORS=NO \
+            SWIFT_ACTIVE_COMPILATION_CONDITIONS="\$(inherited) $EXTRA_SWIFT_FLAGS" \
             -skipPackagePluginValidation \
             -skipMacroValidation \
             build > build.log 2>&1 || {
