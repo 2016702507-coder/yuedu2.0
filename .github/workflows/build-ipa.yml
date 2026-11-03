@@ -65,6 +65,7 @@ jobs:
           check Modules/Core/BookSource/SourcePerfTrace.swift 'thresholdMilliseconds: Int = 1' "spanAsync 阈值改 Int"
           check Modules/Features/Reader/ChapterTitleInspectorView.swift 'Binding<Double>(' "ChapterTitleInspectorView 内联 Binding"
           check_absent Modules/Features/Reader/ChapterTitleInspectorView.swift 'doubleBinding' "doubleBinding 已展开（消除 IRGen thunk）"
+          check Yuedu-Reader.xcodeproj/project.pbxproj 'Crashlytics run tool not found' "Crashlytics 脚本已加固（缺工具时跳过，避免 PhaseScriptExecution 127）"
           echo "缺失修复项: $MISSING"
           if [ "$MISSING" -gt 0 ]; then
             echo "!! 源码缺少必要补丁（可能上传了旧 zip）!!"
@@ -258,6 +259,16 @@ jobs:
               grep -n 'error:' "build-$name.log" 2>/dev/null | head -60 || true
               echo "===== 失败命令 ====="
               awk '/The following build commands failed:/,0' "build-$name.log" 2>/dev/null | head -25 || true
+              cp "build-$name.log" build.log
+              return 2
+            fi
+            # Run Script 阶段失败（如 Crashlytics / 自定义脚本）不是编译器崩溃，
+            # 换优化级别重试毫无意义，必须立即停止并打印脚本诊断。
+            if grep -q 'Command PhaseScriptExecution failed' "build-$name.log" 2>/dev/null; then
+              echo "===== Run Script 阶段失败（非编译器崩溃，重试无用）====="
+              grep -n -B1 -A8 'Command PhaseScriptExecution failed' "build-$name.log" 2>/dev/null | head -40 || true
+              echo "---- 脚本自身的报错行 ----"
+              grep -n '\.sh: line\|No such file or directory\|Permission denied\|command not found' "build-$name.log" 2>/dev/null | head -20 || true
               cp "build-$name.log" build.log
               return 2
             fi
