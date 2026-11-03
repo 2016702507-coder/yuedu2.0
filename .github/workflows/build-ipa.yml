@@ -6,7 +6,7 @@ on:
 jobs:
   build:
     runs-on: macos-15
-    timeout-minutes: 120
+    timeout-minutes: 150
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -53,16 +53,9 @@ jobs:
           check Modules/Core/ReaderCore/CoreText/HTMLAttributedStringBuilder.swift '@unchecked Sendable' "ElementNode Sendable"
           check Modules/Features/AI/AIRelationshipMapView.swift 'let step: Double' "AIRelationshipMapView 拆分"
           check Modules/Features/Explore/PublicLibrary/PublicLibraryBookSheet.swift 'let opacity: Double' "PublicLibrary 运算符拆分"
-          check Modules/Features/Reader/ReaderViewportReporting.swift 'toWindow' "ReservedRegion 隔离"
+          check Modules/Features/Reader/ReaderViewportReporting.swift 'YUEDU_HAS_RESERVED_REGIONS' "ReservedRegion 隔离"
           check Modules/Services/Works/WorkIndexService.swift 'let seriesValue' "WorkIndex 类型标注"
-          check Modules/Core/BookSource/SourcePerfTrace.swift 'spanAsync' "spanAsync 存在"
-          echo "=== 校验编译器崩溃修复（应为 0） ==="
-          ISO=$(grep -rn 'isolation: isolated (any Actor)' --include=*.swift Modules/ 2>/dev/null | wc -l | tr -d ' ')
-          echo "残留 #isolation 参数: $ISO"
-          if [ "$ISO" -gt 0 ]; then
-            echo "!! 源码仍是旧版本，#isolation 未移除"
-            MISSING=$((MISSING+1))
-          fi
+          check Modules/Core/BookSource/SourcePerfTrace.swift 'thresholdMilliseconds: Int = 1' "spanAsync 阈值改 Int（绕开 IRGen 崩溃）"
           echo "缺失修复项: $MISSING"
           if [ "$MISSING" -gt 0 ]; then
             echo ""
@@ -121,10 +114,6 @@ jobs:
         run: |
           echo "=== Packages/ 目录 ==="
           ls -la Packages/ || true
-          echo "=== 本地包定义 ==="
-          cat Packages/SwiftSoup/Package.swift || true
-          echo "=== 工程里的本地包引用 ==="
-          grep -n 'XCLocalSwiftPackageReference' Yuedu-Reader.xcodeproj/project.pbxproj || true
           echo "=== Package.resolved 包数 ==="
           python3 -c "import json;d=json.load(open('Yuedu-Reader.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved'));print(len(d['pins']));print([i['identity'] for i in d['pins']])" || true
 
@@ -147,7 +136,7 @@ jobs:
             tail -25 resolve.log
             sleep 15
           done
-          echo "===== 依赖解析连续 3 次失败，完整错误 ====="
+          echo "===== 依赖解析连续 3 次失败 ====="
           grep -n 'error:' resolve.log | head -40
           grep -n -i 'conflict\|multiple packages\|unique across' resolve.log | head -30
           tail -60 resolve.log
@@ -171,41 +160,69 @@ jobs:
           set -o pipefail
           echo "EXTRA_SWIFT_FLAGS=$EXTRA_SWIFT_FLAGS"
           echo "COMPILATION_MODE=$COMPILATION_MODE"
-          xcodebuild \
-            -project Yuedu-Reader.xcodeproj \
-            -scheme Yuedu-Reader \
-            -configuration Release \
-            -destination 'generic/platform=iOS' \
-            -derivedDataPath build \
-            -clonedSourcePackagesDirPath build/SourcePackages \
-            -onlyUsePackageVersionsFromResolvedFile \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGN_IDENTITY="" \
-            CODE_SIGNING_REQUIRED=NO \
-            SWIFT_TREAT_WARNINGS_AS_ERRORS=NO \
-            SWIFT_ACTIVE_COMPILATION_CONDITIONS="\$(inherited) $EXTRA_SWIFT_FLAGS" \
-            SWIFT_COMPILATION_MODE=$COMPILATION_MODE \
-            -skipPackagePluginValidation \
-            -skipMacroValidation \
-            build > build.log 2>&1 || {
-              echo "===== 编译失败，错误摘要如下 ====="
-              grep -n 'error:' build.log | head -60
-              if [ "$(grep -c 'error:' build.log)" -eq 0 ]; then
-                echo "(没有 error: 行，检查是否编译器崩溃)"
-                grep -n -A3 'Please submit a bug report\|Stack dump\|While emitting IR' build.log | head -30
-              fi
-              echo "===== 失败命令 ====="
-              awk '/The following build commands failed:/,0' build.log | head -30
-              exit 1
-            }
-          tail -20 build.log
+
+          build_with() {
+            local opt="$1"
+            echo "----- 尝试优化级别: $opt -----"
+            xcodebuild \
+              -project Yuedu-Reader.xcodeproj \
+              -scheme Yuedu-Reader \
+              -configuration Release \
+              -destination 'generic/platform=iOS' \
+              -derivedDataPath "build-$opt" \
+              -clonedSourcePackagesDirPath build/SourcePackages \
+              -onlyUsePackageVersionsFromResolvedFile \
+              CODE_SIGNING_ALLOWED=NO \
+              CODE_SIGN_IDENTITY="" \
+              CODE_SIGNING_REQUIRED=NO \
+              SWIFT_TREAT_WARNINGS_AS_ERRORS=NO \
+              SWIFT_ACTIVE_COMPILATION_CONDITIONS="\$(inherited) $EXTRA_SWIFT_FLAGS" \
+              SWIFT_COMPILATION_MODE=$COMPILATION_MODE \
+              SWIFT_OPTIMIZATION_LEVEL="$opt" \
+              -skipPackagePluginValidation \
+              -skipMacroValidation \
+              build > "build-$opt.log" 2>&1
+          }
+
+          if build_with "-O"; then
+            echo "编译成功（-O）"
+            cp build-O.log build.log
+            echo "BUILD_DIR=build-O" >> "$GITHUB_ENV"
+            tail -20 build-O.log
+            exit 0
+          fi
+
+          if [ "$(grep -c 'error:' build-O.log)" -eq 0 ]; then
+            echo "===== -O 下没有 error: 行，判定为编译器崩溃，退回 -Onone 重试 ====="
+            grep -n -A3 'While emitting IR\|Stack dump' build-O.log | head -20
+            if build_with "-Onone"; then
+              echo "编译成功（-Onone 兜底）"
+              cp build-Onone.log build.log
+              echo "BUILD_DIR=build-Onone" >> "$GITHUB_ENV"
+              tail -20 build-Onone.log
+              exit 0
+            fi
+            echo "===== -Onone 也失败 ====="
+            grep -n 'error:' build-Onone.log | head -40
+            awk '/The following build commands failed:/,0' build-Onone.log | head -30
+            cp build-Onone.log build.log
+            exit 1
+          fi
+
+          echo "===== 编译失败，错误摘要如下 ====="
+          grep -n 'error:' build-O.log | head -60
+          echo "===== 失败命令 ====="
+          awk '/The following build commands failed:/,0' build-O.log | head -30
+          cp build-O.log build.log
+          exit 1
 
       - name: Package unsigned IPA
         run: |
-          APP=$(find build/Build/Products -maxdepth 2 -name "*.app" -type d | grep -v -E 'Tests|UITests' | head -1)
+          echo "使用构建目录: $BUILD_DIR"
+          APP=$(find "$BUILD_DIR/Build/Products" -maxdepth 2 -name "*.app" -type d | grep -v -E 'Tests|UITests' | head -1)
           if [ -z "$APP" ]; then
             echo "未找到 .app，列出产物目录："
-            find build/Build/Products -maxdepth 2 | head -50
+            find "$BUILD_DIR/Build/Products" -maxdepth 2 | head -50
             exit 1
           fi
           echo "App bundle: $APP"
