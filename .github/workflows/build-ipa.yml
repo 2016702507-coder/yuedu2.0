@@ -200,6 +200,8 @@ jobs:
               CODE_SIGNING_ALLOWED=NO \
               CODE_SIGN_IDENTITY="" \
               CODE_SIGNING_REQUIRED=NO \
+              ENABLE_DEBUG_DYLIB=NO \
+              ENABLE_DEBUGGING_ATTACH=NO \
               SWIFT_TREAT_WARNINGS_AS_ERRORS=NO \
               SWIFT_ACTIVE_COMPILATION_CONDITIONS="\$(inherited) $EXTRA_SWIFT_FLAGS" \
               SWIFT_COMPILATION_MODE="$mode" \
@@ -314,6 +316,35 @@ jobs:
             exit 1
           fi
           echo "找到 APP Bundle: $APP"
+
+          # —— 产物结构硬校验 ——
+          # Xcode 16+ 的 ENABLE_DEBUG_DYLIB 会把全部代码编进 App.debug.dylib，
+          # 主二进制只剩几十 KB 的壳，靠 @rpath/App.debug.dylib 加载真实代码。
+          # 未签名 IPA 交给第三方重签工具时，工具只签 .app 主二进制、Frameworks 和
+          # PlugIns，不会签 App 根目录下的 *.debug.dylib；iOS 加载未签名的 dylib 会
+          # 被内核拒绝，dyld 直接 abort —— 表现为「点开图标立刻回桌面」。
+          # 因此这里只要还看到 debug dylib 就终止，绝不产出这种包。
+          DEBUG_DYLIBS=$(find "$APP" -name "*.debug.dylib" 2>/dev/null || true)
+          if [ -n "$DEBUG_DYLIBS" ]; then
+            echo "!! 产物里仍存在 debug dylib（ENABLE_DEBUG_DYLIB 未生效）："
+            echo "$DEBUG_DYLIBS"
+            find "$APP" -name "*.debug.dylib" -exec ls -lh {} \; 2>/dev/null || true
+            exit 1
+          fi
+
+          MAIN_BIN="$APP/$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$APP/Info.plist" 2>/dev/null || echo YueduReader)"
+          if [ ! -f "$MAIN_BIN" ]; then
+            echo "!! 找不到主可执行文件 $MAIN_BIN"
+            exit 1
+          fi
+          MAIN_SIZE=$(stat -f%z "$MAIN_BIN" 2>/dev/null || echo 0)
+          echo "主可执行文件: $(basename "$MAIN_BIN")  ${MAIN_SIZE} 字节"
+          if [ "${MAIN_SIZE:-0}" -lt 5242880 ]; then
+            echo "!! 主二进制不足 5MB，仍是 debug dylib 空壳结构，终止打包"
+            exit 1
+          fi
+          echo "产物结构校验通过（无 debug dylib，主二进制 ${MAIN_SIZE} 字节）"
+
           rm -rf Payload && mkdir -p Payload
           cp -R "$APP" Payload/
           zip -qry Yuedu-unsigned.ipa Payload
