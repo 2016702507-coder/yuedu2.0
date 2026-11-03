@@ -10,7 +10,7 @@ on:
 jobs:
   build:
     runs-on: macos-15
-    timeout-minutes: 180
+    timeout-minutes: 240
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -47,6 +47,14 @@ jobs:
               MISSING=$((MISSING+1))
             fi
           }
+          check_absent() {
+            if grep -q "$2" "$1" 2>/dev/null; then
+              echo "  BAD  $3   (文件: $1 仍含该写法)"
+              MISSING=$((MISSING+1))
+            else
+              echo "  OK   $3"
+            fi
+          }
           echo "=== 校验修复是否包含在源码中 ==="
           check Modules/Core/MOBI/KF8Converter.swift 'let insertion: \[UInt8\]' "KF8Converter 类型检查拆分"
           check Modules/Core/ReaderCore/CoreText/HTMLAttributedStringBuilder.swift '@unchecked Sendable' "ElementNode Sendable"
@@ -55,19 +63,16 @@ jobs:
           check Modules/Features/Reader/ReaderViewportReporting.swift 'YUEDU_HAS_RESERVED_REGIONS' "ReservedRegion 隔离"
           check Modules/Services/Works/WorkIndexService.swift 'let seriesValue' "WorkIndex 类型标注"
           check Modules/Core/BookSource/SourcePerfTrace.swift 'thresholdMilliseconds: Int = 1' "spanAsync 阈值改 Int"
+          check Modules/Features/Reader/ChapterTitleInspectorView.swift 'Binding<Double>(' "ChapterTitleInspectorView 内联 Binding"
+          check_absent Modules/Features/Reader/ChapterTitleInspectorView.swift 'doubleBinding' "doubleBinding 已展开（消除 IRGen thunk）"
+          echo "缺失修复项: $MISSING"
           if [ "$MISSING" -gt 0 ]; then
-            echo "!! 源码缺少必要补丁 !!"
+            echo "!! 源码缺少必要补丁（可能上传了旧 zip）!!"
             exit 1
           fi
           echo "源码版本校验通过"
 
-      # 说明：原流程里的 "Patch ChapterTitleDesigner IRGen Bug" 步骤已删除。
-      # 它把 ChapterTitleDesignerView.swift 覆盖成空壳，而同文件第 17 行定义的
-      # enum ChapterTitleLayerAccessibleAction 是 ChapterTitleDesignerCanvas.swift
-      # 第 347/382 行要用的类型，覆盖后必然报 "cannot find type"。
-      # 编译器崩溃已由下面的 -Onone 组合解决，不需要这个步骤。
-
-      # 选用具备对应 SDK 的最新 Xcode
+      # 选用最新 Xcode（工程用 Xcode 26 开发，需要 iOS 26 SDK）
       - name: Pick newest Xcode
         run: |
           BEST=""
@@ -86,6 +91,7 @@ jobs:
           echo "选中: $BEST"
           sudo xcode-select -s "$BEST"
           xcodebuild -version
+          xcodebuild -showsdks | grep -i iphone || true
 
       - name: Generate placeholder GoogleService-Info.plist
         run: |
@@ -105,11 +111,13 @@ jobs:
           </dict>
           </plist>
           EOF
+            echo "已写入占位 GoogleService-Info.plist"
           fi
 
       - name: Resolve Swift packages (with retry)
         run: |
           for i in 1 2 3; do
+            echo "===== 依赖解析尝试 $i ====="
             if xcodebuild -resolvePackageDependencies \
                  -project Yuedu-Reader.xcodeproj \
                  -scheme Yuedu-Reader \
@@ -120,73 +128,130 @@ jobs:
               echo "依赖解析成功"
               exit 0
             fi
+            tail -20 resolve.log
             sleep 10
           done
-          cat resolve.log
+          echo "===== 依赖解析失败 ====="
+          grep -n 'error:' resolve.log | head -30
+          tail -60 resolve.log
           exit 1
 
       - name: Detect ReservedRegion support
         run: |
           SDK_PATH=$(xcrun --sdk iphoneos --show-sdk-path)
           if grep -rql 'ReservedRegion' "$SDK_PATH/System/Library/Frameworks/SwiftUI.framework" 2>/dev/null; then
+            echo "SDK 支持 ReservedRegion"
             echo "EXTRA_SWIFT_FLAGS=-DYUEDU_HAS_RESERVED_REGIONS" >> "$GITHUB_ENV"
           else
+            echo "SDK 不含 ReservedRegion，对应功能降级"
             echo "EXTRA_SWIFT_FLAGS=" >> "$GITHUB_ENV"
           fi
 
-      # 已验证有效：-Onone + incremental + -disable-llvm-optzns
-      # 可完全绕开 swift-frontend 的 IRGen SmallVector 崩溃
+      # 背景：Xcode 26.3 的 swift-frontend 在 IRGen 阶段发射
+      #   "$sSdScA_pSgIeAghyg_SdIeAghn_TR"
+      # （reabstraction thunk：(Double, Actor?) -> () 转 (Double) -> ()）
+      # 时会 abort（SmallVector::grow_pod 超容量）。
+      # 该 thunk 由 ChapterTitleInspectorView.swift 里把 @MainActor 闭包
+      # 当作 (Double) -> Void 传入 Binding.init 触发，已在源码中展开为
+      # 内联 Binding<Double>(get:set:) 消除。
+      # 下面额外加一层保险：禁用 batch mode（每个文件独立前端进程），
+      # 避免 batch 内跨文件 IRGen 状态累积；并降低并行度、崩溃时重试。
       - name: Build (unsigned, device)
         run: |
           set -o pipefail
-          echo "开始编译..."
-          xcodebuild \
-            -project Yuedu-Reader.xcodeproj \
-            -scheme Yuedu-Reader \
-            -configuration Release \
-            -destination 'generic/platform=iOS' \
-            -derivedDataPath "build-out" \
-            -clonedSourcePackagesDirPath build/SourcePackages \
-            -onlyUsePackageVersionsFromResolvedFile \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGN_IDENTITY="" \
-            CODE_SIGNING_REQUIRED=NO \
-            SWIFT_TREAT_WARNINGS_AS_ERRORS=NO \
-            SWIFT_ACTIVE_COMPILATION_CONDITIONS="\$(inherited) $EXTRA_SWIFT_FLAGS" \
-            SWIFT_COMPILATION_MODE="incremental" \
-            SWIFT_OPTIMIZATION_LEVEL="-Onone" \
-            OTHER_SWIFT_FLAGS="\$(inherited) -Xfrontend -disable-llvm-optzns" \
-            VALIDATE_PRODUCT=NO \
-            -skipPackagePluginValidation \
-            -skipMacroValidation \
-            build > build.log 2>&1
+          echo "EXTRA_SWIFT_FLAGS=$EXTRA_SWIFT_FLAGS"
+          echo "Xcode: $(xcodebuild -version | head -1)"
 
-          RC=$?
-          tail -25 build.log
-          if [ $RC -ne 0 ]; then
-            echo "===== 编译失败，错误摘要 ====="
-            grep -n 'error:' build.log | head -60
-            echo "===== 失败命令 ====="
-            awk '/The following build commands failed:/,0' build.log | head -20
-            exit 1
-          fi
-          echo "BUILD_DIR=build-out" >> "$GITHUB_ENV"
+          build_with() {
+            local name="$1" mode="$2" opt="$3" batch="$4"
+            echo "----- 尝试配置: $name (mode=$mode opt=$opt batch=$batch) -----"
+            xcodebuild \
+              -project Yuedu-Reader.xcodeproj \
+              -scheme Yuedu-Reader \
+              -configuration Release \
+              -destination 'generic/platform=iOS' \
+              -derivedDataPath "build-$name" \
+              -jobs 4 \
+              -clonedSourcePackagesDirPath build/SourcePackages \
+              -onlyUsePackageVersionsFromResolvedFile \
+              CODE_SIGNING_ALLOWED=NO \
+              CODE_SIGN_IDENTITY="" \
+              CODE_SIGNING_REQUIRED=NO \
+              SWIFT_TREAT_WARNINGS_AS_ERRORS=NO \
+              SWIFT_ACTIVE_COMPILATION_CONDITIONS="\$(inherited) $EXTRA_SWIFT_FLAGS" \
+              SWIFT_COMPILATION_MODE="$mode" \
+              SWIFT_OPTIMIZATION_LEVEL="$opt" \
+              SWIFT_ENABLE_BATCH_MODE="$batch" \
+              OTHER_SWIFT_FLAGS="\$(inherited) -Xfrontend -disable-llvm-optzns" \
+              VALIDATE_PRODUCT=NO \
+              -skipPackagePluginValidation \
+              -skipMacroValidation \
+              build > "build-$name.log" 2>&1
+          }
+
+          # 返回 0=成功 1=编译器崩溃（可重试/换档） 2=真实源码错误（立即停）
+          attempt() {
+            local name="$1" mode="$2" opt="$3" batch="$4"
+            if build_with "$name" "$mode" "$opt" "$batch"; then
+              echo "编译成功（$name）"
+              echo "BUILD_DIR=build-$name" >> "$GITHUB_ENV"
+              cp "build-$name.log" build.log
+              tail -20 "build-$name.log"
+              return 0
+            fi
+            echo "----- $name 失败 -----"
+            if [ "$(grep -c 'error:' "build-$name.log")" -gt 0 ]; then
+              echo "===== 存在 error: 行，判定为真实源码错误，停止换档 ====="
+              grep -n 'error:' "build-$name.log" | head -60
+              echo "===== 失败命令 ====="
+              awk '/The following build commands failed:/,0' "build-$name.log" | head -25
+              cp "build-$name.log" build.log
+              return 2
+            fi
+            echo "===== 无 error: 行，判定为编译器崩溃 ====="
+            grep -n 'While evaluating request IRGenRequest\|While emitting IR SIL function\|Stack dump\|PLEASE submit a bug report' "build-$name.log" | head -12
+            cp "build-$name.log" build.log
+            return 1
+          }
+
+          for combo in "nobatch-a|incremental|-Onone|NO" "nobatch-b|incremental|-Onone|NO" "batch|incremental|-Onone|YES"; do
+            IFS='|' read -r name mode opt batch <<< "$combo"
+            attempt "$name" "$mode" "$opt" "$batch"
+            rc=$?
+            if [ "$rc" -eq 0 ]; then exit 0; fi
+            if [ "$rc" -eq 2 ]; then exit 1; fi
+            echo "该档编译器崩溃，进入下一档"
+          done
+
+          echo "===== 三种配置均崩溃，请查看上方崩溃文件 ====="
+          exit 1
 
       - name: Package unsigned IPA
         run: |
-          BUILD_DIR="build-out"
+          if [ -z "$BUILD_DIR" ]; then
+            for d in build-nobatch-a build-nobatch-b build-batch build-out; do
+              if [ -d "$d/Build/Products" ]; then BUILD_DIR="$d"; break; fi
+            done
+          fi
+          echo "使用构建目录: $BUILD_DIR"
+          if [ -z "$BUILD_DIR" ] || [ ! -d "$BUILD_DIR/Build/Products" ]; then
+            echo "未找到构建产物目录，列出当前目录："
+            ls -la
+            find . -maxdepth 2 -name "Products" -type d | head -20
+            exit 1
+          fi
           APP=$(find "$BUILD_DIR/Build/Products" -name "*.app" -type d -maxdepth 3 | grep -v -E 'Tests|UITests|\.appex' | head -1)
           if [ -z "$APP" ]; then
             echo "未找到 .app 目录"
-            find "$BUILD_DIR" -name "*.app" || true
+            find "$BUILD_DIR/Build/Products" -maxdepth 3 | head -60
             exit 1
           fi
-
           echo "找到 APP Bundle: $APP"
           rm -rf Payload && mkdir -p Payload
           cp -R "$APP" Payload/
           zip -qry Yuedu-unsigned.ipa Payload
           ls -lh Yuedu-unsigned.ipa
+          unzip -l Yuedu-unsigned.ipa | head -15
 
       - name: Upload IPA
         uses: actions/upload-artifact@v4
