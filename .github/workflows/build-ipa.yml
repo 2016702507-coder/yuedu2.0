@@ -6,11 +6,13 @@ on:
 jobs:
   build:
     runs-on: macos-15
-    timeout-minutes: 150
+    timeout-minutes: 180
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # 支持两种放置方式：① 直接上传源码到仓库根目录；② 只上传一个 zip 包（手机端推荐）
+      # 注意：仓库里必须只保留一个新 zip；多个 zip 时旧包会被误选，导致修复不生效
       - name: Extract source if uploaded as archive
         run: |
           if [ -f Yuedu-Reader.xcodeproj/project.pbxproj ]; then
@@ -37,6 +39,7 @@ jobs:
           rm -rf _src "$ARCHIVE"
           ls -a | head -30
 
+      # 关卡：确认解压出来的确实是最新的修复版源码，避免旧包白白编译十分钟
       - name: Verify source is the fixed version
         run: |
           MISSING=0
@@ -61,11 +64,14 @@ jobs:
             echo ""
             echo "!! 源码是旧版本，修复未生效 !!"
             echo "请：删除仓库中所有旧 zip，只保留最新的 Yuedu-reader-2.0-source.zip，再重跑"
-            ls -la *.zip 2>/dev/null || echo "(无 zip)"
+            echo "当前仓库 zip："
+            ls -la *.zip 2>/dev/null || echo "(无 zip，说明源码直接放在根目录且未更新)"
             exit 1
           fi
           echo "源码版本校验通过"
 
+      # 工程用 Xcode 26 开发（LastUpgradeVersion 2650，用到 iOS 26 API），
+      # 优先选 Xcode 26，没有再退回 16.4
       - name: Pick newest Xcode (26 preferred)
         run: |
           ls /Applications | grep -i xcode
@@ -74,6 +80,7 @@ jobs:
           for x in /Applications/Xcode*.app; do
             v=$(defaults read "$x/Contents/Info" CFBundleShortVersionString 2>/dev/null || echo 0)
             echo "found: $x ($v)"
+            # 版本号转成可比较的数字：26.3 -> 2603, 16.4 -> 1604
             maj=${v%%.*}
             rest=${v#*.}
             min=${rest%%.*}
@@ -114,9 +121,15 @@ jobs:
         run: |
           echo "=== Packages/ 目录 ==="
           ls -la Packages/ || true
+          echo "=== 本地包定义 ==="
+          cat Packages/SwiftSoup/Package.swift || true
+          echo "=== 工程里的本地包引用 ==="
+          grep -n 'XCLocalSwiftPackageReference' Yuedu-Reader.xcodeproj/project.pbxproj || true
           echo "=== Package.resolved 包数 ==="
           python3 -c "import json;d=json.load(open('Yuedu-Reader.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved'));print(len(d['pins']));print([i['identity'] for i in d['pins']])" || true
 
+      # 依赖解析：工程自带 Package.resolved（27 个包锁定版本），
+      # 先单独 resolve，失败时重试，避免网络抖动导致整个构建挂掉
       - name: Resolve Swift packages (with retry)
         run: |
           for i in 1 2 3; do
@@ -136,12 +149,14 @@ jobs:
             tail -25 resolve.log
             sleep 15
           done
-          echo "===== 依赖解析连续 3 次失败 ====="
+          echo "===== 依赖解析连续 3 次失败，完整错误 ====="
           grep -n 'error:' resolve.log | head -40
+          echo "===== 全部冲突类错误 ====="
           grep -n -i 'conflict\|multiple packages\|unique across' resolve.log | head -30
           tail -60 resolve.log
           exit 1
 
+      # 注意：不能用 tail 截断输出，否则报错行会被吞掉
       - name: Detect ReservedRegion support
         run: |
           SDK_PATH=$(xcrun --sdk iphoneos --show-sdk-path)
@@ -153,6 +168,8 @@ jobs:
             echo "SDK 不含 ReservedRegion，该项功能降级为空实现"
             echo "EXTRA_SWIFT_FLAGS=" >> "$GITHUB_ENV"
           fi
+          # 编译器崩溃的根因已在源码中修掉（spanAsync 的阈值参数由 Double 改为 Int，
+          # 不再生成会崩的那个 thunk），这里保留默认的 wholemodule 优化
           echo "COMPILATION_MODE=wholemodule" >> "$GITHUB_ENV"
 
       - name: Build (unsigned, device)
@@ -161,15 +178,16 @@ jobs:
           echo "EXTRA_SWIFT_FLAGS=$EXTRA_SWIFT_FLAGS"
           echo "COMPILATION_MODE=$COMPILATION_MODE"
 
+          # name 只用作日志/目录名，不带前导连字符，避免出现 build--O.log 这种双连字符
           build_with() {
-            local opt="$1"
-            echo "----- 尝试优化级别: $opt -----"
+            local name="$1" mode="$2" opt="$3"
+            echo "----- 尝试组合: $name (mode=$mode opt=$opt) -----"
             xcodebuild \
               -project Yuedu-Reader.xcodeproj \
               -scheme Yuedu-Reader \
               -configuration Release \
               -destination 'generic/platform=iOS' \
-              -derivedDataPath "build-$opt" \
+              -derivedDataPath "build-$name" \
               -clonedSourcePackagesDirPath build/SourcePackages \
               -onlyUsePackageVersionsFromResolvedFile \
               CODE_SIGNING_ALLOWED=NO \
@@ -177,52 +195,71 @@ jobs:
               CODE_SIGNING_REQUIRED=NO \
               SWIFT_TREAT_WARNINGS_AS_ERRORS=NO \
               SWIFT_ACTIVE_COMPILATION_CONDITIONS="\$(inherited) $EXTRA_SWIFT_FLAGS" \
-              SWIFT_COMPILATION_MODE=$COMPILATION_MODE \
+              SWIFT_COMPILATION_MODE="$mode" \
               SWIFT_OPTIMIZATION_LEVEL="$opt" \
+              VALIDATE_PRODUCT=NO \
               -skipPackagePluginValidation \
               -skipMacroValidation \
-              build > "build-$opt.log" 2>&1
+              build > "build-$name.log" 2>&1
           }
 
-          if build_with "-O"; then
-            echo "编译成功（-O）"
-            cp build-O.log build.log
-            echo "BUILD_DIR=build-O" >> "$GITHUB_ENV"
-            tail -20 build-O.log
-            exit 0
-          fi
-
-          if [ "$(grep -c 'error:' build-O.log)" -eq 0 ]; then
-            echo "===== -O 下没有 error: 行，判定为编译器崩溃，退回 -Onone 重试 ====="
-            grep -n -A3 'While emitting IR\|Stack dump' build-O.log | head -20
-            if build_with "-Onone"; then
-              echo "编译成功（-Onone 兜底）"
-              cp build-Onone.log build.log
-              echo "BUILD_DIR=build-Onone" >> "$GITHUB_ENV"
-              tail -20 build-Onone.log
-              exit 0
+          # 返回 0=成功，1=编译器崩溃（可换档重试），2=真实源码错误（不该重试）
+          attempt() {
+            local name="$1" mode="$2" opt="$3"
+            if build_with "$name" "$mode" "$opt"; then
+              echo "编译成功（$name）"
+              echo "BUILD_DIR=build-$name" >> "$GITHUB_ENV"
+              cp "build-$name.log" build.log
+              tail -20 "build-$name.log"
+              return 0
             fi
-            echo "===== -Onone 也失败 ====="
-            grep -n 'error:' build-Onone.log | head -40
-            awk '/The following build commands failed:/,0' build-Onone.log | head -30
-            cp build-Onone.log build.log
-            exit 1
-          fi
+            echo "----- $name 失败，判断失败类型 -----"
+            if [ "$(grep -c 'error:' "build-$name.log")" -gt 0 ]; then
+              echo "===== 真实编译错误，停止换档 ====="
+              grep -n 'error:' "build-$name.log" | head -60
+              echo "===== 失败命令 ====="
+              awk '/The following build commands failed:/,0' "build-$name.log" | head -30
+              cp "build-$name.log" build.log
+              return 2
+            fi
+            echo "===== 没有 error: 行，判定为编译器崩溃（IRGen/SIL） ====="
+            grep -n -A3 'While emitting IR\|Stack dump\|PLEASE submit a bug report' "build-$name.log" | head -20
+            return 1
+          }
 
-          echo "===== 编译失败，错误摘要如下 ====="
-          grep -n 'error:' build-O.log | head -60
-          echo "===== 失败命令 ====="
-          awk '/The following build commands failed:/,0' build-O.log | head -30
-          cp build-O.log build.log
+          # 正常路径：-O。若 swift-frontend 崩溃，依次退回 -Onone、-Onone+incremental
+          for combo in "O|wholemodule|-O" "Onone|wholemodule|-Onone" "Onone-inc|incremental|-Onone"; do
+            IFS='|' read -r name mode opt <<< "$combo"
+            attempt "$name" "$mode" "$opt"
+            rc=$?
+            if [ "$rc" -eq 0 ]; then exit 0; fi
+            if [ "$rc" -eq 2 ]; then exit 1; fi
+          done
+
+          echo "===== 三种组合全部崩溃，附上最后一次日志 ====="
+          cp build-Onone-inc.log build.log
           exit 1
 
       - name: Package unsigned IPA
         run: |
+          # 兜底：BUILD_DIR 为空时，在常见的构建目录里找
+          if [ -z "$BUILD_DIR" ]; then
+            for d in build-O build-Onone build-Onone-inc build; do
+              if [ -d "$d/Build/Products" ]; then BUILD_DIR="$d"; break; fi
+            done
+          fi
           echo "使用构建目录: $BUILD_DIR"
-          APP=$(find "$BUILD_DIR/Build/Products" -maxdepth 2 -name "*.app" -type d | grep -v -E 'Tests|UITests' | head -1)
+          if [ -z "$BUILD_DIR" ] || [ ! -d "$BUILD_DIR/Build/Products" ]; then
+            echo "没有找到任何构建产物目录，列出当前目录："
+            ls -la
+            find . -maxdepth 2 -name "Products" -type d | head -20
+            exit 1
+          fi
+          # 全深度搜索，避免目录层级变化导致漏掉
+          APP=$(find "$BUILD_DIR/Build/Products" -name "*.app" -type d -maxdepth 3 | grep -v -E 'Tests|UITests|\.appex' | head -1)
           if [ -z "$APP" ]; then
             echo "未找到 .app，列出产物目录："
-            find "$BUILD_DIR/Build/Products" -maxdepth 2 | head -50
+            find "$BUILD_DIR/Build/Products" -maxdepth 3 | head -60
             exit 1
           fi
           echo "App bundle: $APP"
