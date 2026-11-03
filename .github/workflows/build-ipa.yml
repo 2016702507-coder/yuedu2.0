@@ -17,7 +17,14 @@ jobs:
             echo "源码已在根目录，无需解压"
             exit 0
           fi
-          ARCHIVE=$(ls *.zip 2>/dev/null | head -1)
+          echo "=== 仓库里的 zip 文件 ==="
+          ls -la *.zip 2>/dev/null || true
+          ZIP_COUNT=$(ls -1 *.zip 2>/dev/null | wc -l | tr -d ' ')
+          echo "zip 数量: $ZIP_COUNT"
+          if [ "$ZIP_COUNT" -gt 1 ]; then
+            echo "!! 检测到 $ZIP_COUNT 个 zip，可能混入了旧包"
+          fi
+          ARCHIVE=$(ls -1 *.zip 2>/dev/null | head -1)
           if [ -z "$ARCHIVE" ]; then
             echo "未找到源码或 zip 包"; ls -a; exit 1
           fi
@@ -29,6 +36,35 @@ jobs:
           cp -R "$ROOT"/* ./
           rm -rf _src "$ARCHIVE"
           ls -a | head -30
+
+      - name: Verify source is the fixed version
+        run: |
+          MISSING=0
+          check() {
+            if grep -q "$2" "$1" 2>/dev/null; then
+              echo "  OK   $3"
+            else
+              echo "  MISS $3   (文件: $1)"
+              MISSING=$((MISSING+1))
+            fi
+          }
+          echo "=== 校验修复是否包含在源码中 ==="
+          check Modules/Core/MOBI/KF8Converter.swift 'let insertion: \[UInt8\]' "KF8Converter 类型检查拆分"
+          check Modules/Core/ReaderCore/CoreText/HTMLAttributedStringBuilder.swift '@unchecked Sendable' "ElementNode Sendable"
+          check Modules/Features/AI/AIRelationshipMapView.swift 'let step: Double' "AIRelationshipMapView 拆分"
+          check Modules/Features/Explore/PublicLibrary/PublicLibraryBookSheet.swift 'let opacity: Double' "PublicLibrary 运算符拆分"
+          check Modules/Features/Reader/ReaderViewportReporting.swift 'YUEDU_HAS_RESERVED_REGIONS' "ReservedRegion 隔离"
+          check Modules/Services/Works/WorkIndexService.swift 'let seriesValue' "WorkIndex 类型标注"
+          echo "缺失修复项: $MISSING"
+          if [ "$MISSING" -gt 0 ]; then
+            echo ""
+            echo "!! 源码是旧版本，修复未生效 !!"
+            echo "请：删除仓库中所有旧 zip，只保留最新的 Yuedu-reader-2.0-source.zip，再重跑"
+            echo "当前仓库 zip："
+            ls -la *.zip 2>/dev/null || echo "(无 zip，说明源码直接放在根目录且未更新)"
+            exit 1
+          fi
+          echo "源码版本校验通过"
 
       - name: Pick newest Xcode (26 preferred)
         run: |
@@ -50,6 +86,7 @@ jobs:
           echo "选中 $BEST"
           sudo xcode-select -s "$BEST"
           xcodebuild -version
+          echo "--- installed iOS SDKs ---"
           xcodebuild -showsdks | grep -i iphone
 
       - name: Generate placeholder GoogleService-Info.plist
@@ -75,10 +112,14 @@ jobs:
 
       - name: Show package layout
         run: |
-          echo "=== Packages/ ==="
+          echo "=== Packages/ 目录 ==="
           ls -la Packages/ || true
-          echo "=== Package.resolved ==="
-          python3 -c "import json;d=json.load(open('Yuedu-Reader.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved'));print(len(d['pins']),[i['identity'] for i in d['pins']])" || true
+          echo "=== 本地包定义 ==="
+          cat Packages/SwiftSoup/Package.swift || true
+          echo "=== 工程里的本地包引用 ==="
+          grep -n 'XCLocalSwiftPackageReference' Yuedu-Reader.xcodeproj/project.pbxproj || true
+          echo "=== Package.resolved 包数 ==="
+          python3 -c "import json;d=json.load(open('Yuedu-Reader.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved'));print(len(d['pins']));print([i['identity'] for i in d['pins']])" || true
 
       - name: Resolve Swift packages (with retry)
         run: |
@@ -99,8 +140,9 @@ jobs:
             tail -25 resolve.log
             sleep 15
           done
-          echo "===== 依赖解析连续 3 次失败 ====="
+          echo "===== 依赖解析连续 3 次失败，完整错误 ====="
           grep -n 'error:' resolve.log | head -40
+          echo "===== 全部冲突类错误 ====="
           grep -n -i 'conflict\|multiple packages\|unique across' resolve.log | head -30
           tail -60 resolve.log
           exit 1
@@ -149,7 +191,7 @@ jobs:
         run: |
           APP=$(find build/Build/Products -maxdepth 2 -name "*.app" -type d | grep -v -E 'Tests|UITests' | head -1)
           if [ -z "$APP" ]; then
-            echo "未找到 .app"
+            echo "未找到 .app，列出产物目录："
             find build/Build/Products -maxdepth 2 | head -50
             exit 1
           fi
@@ -158,6 +200,7 @@ jobs:
           cp -R "$APP" Payload/
           zip -qry Yuedu-unsigned.ipa Payload
           ls -lh Yuedu-unsigned.ipa
+          unzip -l Yuedu-unsigned.ipa | head -20
 
       - name: Upload IPA
         uses: actions/upload-artifact@v4
