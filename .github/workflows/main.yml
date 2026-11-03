@@ -75,8 +75,7 @@ jobs:
             -sdk iphoneos \
             ARCHS=arm64 \
             ONLY_ACTIVE_ARCH=NO \
-            SYMROOT=build/Build/Products \
-            OBJROOT=build/Build/Intermediates.noindex \
+            CONFIGURATION_BUILD_DIR=build/Release-iphoneos \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
@@ -87,10 +86,10 @@ jobs:
 
       - name: Package unsigned IPA
         run: |
-          APP=$(find build -maxdepth 4 -name "*.app" -type d | grep -v -E 'Tests|UITests' | head -1)
+          APP=$(find build -maxdepth 3 -name "*.app" -type d | grep -v -E 'Tests|UITests' | head -1)
           if [ -z "$APP" ]; then
             echo "未找到 .app，列出产物目录："
-            find build -maxdepth 4 | head -60
+            find build -maxdepth 3 | head -60
             exit 1
           fi
           echo "App bundle: $APP"
