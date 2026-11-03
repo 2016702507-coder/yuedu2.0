@@ -73,26 +73,29 @@ jobs:
           fi
           echo "源码版本校验通过"
 
-      # 选择可用的 Xcode（优先 26，若无则使用系统最新稳定版）
-      - name: Pick Xcode
+      # 关键修复 1：避开崩溃的 Xcode 26.3，优先选用稳定的 Xcode 16.x 版本
+      - name: Select Stable Xcode
         run: |
+          echo "=== 当前安装的 Xcode 列表 ==="
           ls -d /Applications/Xcode*.app || true
-          BEST=""
-          BEST_V=0
-          for x in /Applications/Xcode*.app; do
-            v=$(defaults read "$x/Contents/Info" CFBundleShortVersionString 2>/dev/null || echo 0)
-            echo "found: $x ($v)"
-            maj=${v%%.*}
-            rest=${v#*.}
-            min=${rest%%.*}
-            n=$((maj * 100 + 10#${min:-0}))
-            if [ "$n" -gt "$BEST_V" ]; then
-              BEST_V=$n
-              BEST="$x"
+          
+          # 寻找 16.x 系列版本
+          TARGET_XCODE=""
+          for x in /Applications/Xcode_16*.app; do
+            if [ -d "$x" ]; then
+              TARGET_XCODE="$x"
+              break
             fi
           done
-          echo "选中 $BEST"
-          sudo xcode-select -s "$BEST"
+
+          # 如果没有 16，再使用默认或者最高版本
+          if [ -z "$TARGET_XCODE" ] || [ ! -d "$TARGET_XCODE" ]; then
+            echo "未找到 Xcode 16，使用系统当前默认 Xcode"
+            TARGET_XCODE="/Applications/Xcode.app"
+          fi
+
+          echo "最终选用: $TARGET_XCODE"
+          sudo xcode-select -s "$TARGET_XCODE"
           xcodebuild -version
           xcodebuild -showsdks | grep -i iphone
 
@@ -158,27 +161,26 @@ jobs:
           SDK_PATH=$(xcrun --sdk iphoneos --show-sdk-path)
           echo "SDK: $SDK_PATH"
           if grep -rql 'ReservedRegion' "$SDK_PATH/System/Library/Frameworks/SwiftUI.framework" 2>/dev/null; then
-            echo "SDK 支持 ReservedRegion，启用 iOS 27 能力"
+            echo "SDK 支持 ReservedRegion，启用该能力"
             echo "EXTRA_SWIFT_FLAGS=-DYUEDU_HAS_RESERVED_REGIONS" >> "$GITHUB_ENV"
           else
-            echo "SDK 不含 ReservedRegion，该项功能降级为空实现"
+            echo "SDK 不含 ReservedRegion，降级处理"
             echo "EXTRA_SWIFT_FLAGS=" >> "$GITHUB_ENV"
           fi
 
-      # 修复了 set -e 导致重试中断的问题，并采用稳妥的增量编译策略
+      # 关键修复 2：在 Debug/Release 双通道下直接构建
       - name: Build (unsigned, device)
         run: |
-          # 关键：暂时关闭非零退出，确保循环能够顺利降级换挡重试
           set +e
           echo "EXTRA_SWIFT_FLAGS=$EXTRA_SWIFT_FLAGS"
 
           build_with() {
-            local name="$1" mode="$2" opt="$3"
-            echo "----- 尝试组合: $name (mode=$mode opt=$opt) -----"
+            local name="$1" config="$2" mode="$3" opt="$4"
+            echo "----- 尝试组合: $name (config=$config mode=$mode opt=$opt) -----"
             xcodebuild \
               -project Yuedu-Reader.xcodeproj \
               -scheme Yuedu-Reader \
-              -configuration Release \
+              -configuration "$config" \
               -destination 'generic/platform=iOS' \
               -derivedDataPath "build-$name" \
               -clonedSourcePackagesDirPath build/SourcePackages \
@@ -197,76 +199,44 @@ jobs:
             return $?
           }
 
-          attempt() {
-            local name="$1" mode="$2" opt="$3"
-            build_with "$name" "$mode" "$opt"
-            local build_res=$?
-            if [ $build_res -eq 0 ]; then
-              echo "编译成功（$name）"
-              echo "BUILD_DIR=build-$name" >> "$GITHUB_ENV"
-              cp "build-$name.log" build.log
-              tail -20 "build-$name.log"
-              return 0
-            fi
-
-            echo "----- $name 失败，判断失败类型 -----"
-            if [ "$(grep -c 'error:' "build-$name.log")" -gt 0 ]; then
-              echo "===== 真实编译错误，停止换挡 ====="
-              grep -n 'error:' "build-$name.log" | head -60
-              awk '/The following build commands failed:/,0' "build-$name.log" | head -30
-              cp "build-$name.log" build.log
-              return 2
-            fi
-
-            echo "===== 编译器崩溃（IRGen/SIL），自动换挡尝试下一组 ====="
-            grep -n -A3 'While emitting IR\|Stack dump\|PLEASE submit a bug report' "build-$name.log" | head -20
-            return 1
-          }
-
           SUCCESS=0
-          # 策略说明：
-          # 1. Onone-inc: 增量单文件编译，不合并 IR 模块，有效避开整体发射时的 IRGen 编译器崩溃
-          # 2. Onone: 全模块但不优化
-          # 3. O: 默认 release 优化
-          for combo in "Onone-inc|incremental|-Onone" "Onone|wholemodule|-Onone" "O|wholemodule|-O"; do
-            IFS='|' read -r name mode opt <<< "$combo"
-            attempt "$name" "$mode" "$opt"
-            rc=$?
-            if [ "$rc" -eq 0 ]; then
+          # 依次尝试：Release 模式、Debug 模式
+          for combo in "rel-onone|Release|wholemodule|-Onone" "debug|Debug|incremental|-Onone" "rel-opt|Release|wholemodule|-O"; do
+            IFS='|' read -r name config mode opt <<< "$combo"
+            build_with "$name" "$config" "$mode" "$opt"
+            if [ $? -eq 0 ]; then
+              echo "编译成功 ($name)"
+              echo "BUILD_DIR=build-$name" >> "$GITHUB_ENV"
               SUCCESS=1
               break
-            elif [ "$rc" -eq 2 ]; then
-              echo "遇到源码层面的具体代码报错，不再重试。"
-              exit 1
             fi
+            echo "$name 失败，错误预览："
+            grep -n 'error:' "build-$name.log" | head -20
           done
 
           if [ "$SUCCESS" -ne 1 ]; then
-            echo "===== 全部组合均未能编译成功，附上最后日志 ====="
-            cp build-Onone-inc.log build.log 2>/dev/null || true
+            echo "所有组合均失败，保留最后一次构建日志"
+            cp build-debug.log build.log 2>/dev/null || true
             exit 1
           fi
 
       - name: Package unsigned IPA
         run: |
+          echo "BUILD_DIR: $BUILD_DIR"
           if [ -z "$BUILD_DIR" ]; then
-            for d in build-Onone-inc build-Onone build-O build; do
+            for d in build-rel-onone build-debug build-rel-opt build; do
               if [ -d "$d/Build/Products" ]; then BUILD_DIR="$d"; break; fi
             done
           fi
-          echo "使用构建目录: $BUILD_DIR"
-          if [ -z "$BUILD_DIR" ] || [ ! -d "$BUILD_DIR/Build/Products" ]; then
-            echo "没有找到任何构建产物目录"
-            find . -maxdepth 2 -name "Products" -type d | head -20
-            exit 1
-          fi
+          
           APP=$(find "$BUILD_DIR/Build/Products" -name "*.app" -type d -maxdepth 3 | grep -v -E 'Tests|UITests|\.appex' | head -1)
           if [ -z "$APP" ]; then
-            echo "未找到 .app 目录"
-            find "$BUILD_DIR/Build/Products" -maxdepth 3 | head -60
+            echo "未找到任何 .app 目录"
+            find "$BUILD_DIR" -name "*.app" -type d || true
             exit 1
           fi
-          echo "App bundle: $APP"
+          
+          echo "找到 App: $APP"
           rm -rf Payload && mkdir -p Payload
           cp -R "$APP" Payload/
           zip -qry Yuedu-unsigned.ipa Payload
