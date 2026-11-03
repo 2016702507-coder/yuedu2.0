@@ -35,7 +35,7 @@ jobs:
           cp -R "$ROOT"/* ./
           rm -rf _src "$ARCHIVE"
 
-      # 校验源码修复项
+      # 校验补丁
       - name: Verify source is the fixed version
         run: |
           MISSING=0
@@ -61,15 +61,19 @@ jobs:
           fi
           echo "源码版本校验通过"
 
-      # 关键补丁：修复 ChapterTitleDesignerView 中引发 IRGen Thunk 崩溃的复杂表达式
-      - name: Patch IRGen crash sites
+      # 关键修补：消除 ChapterTitleDesigner 系列文件中引发 IRGen Reabstraction Thunk 崩溃的代码
+      - name: Patch ChapterTitleDesigner IRGen Bug
         run: |
-          echo "=== 应用防编译器崩溃热补丁 ==="
-          # 如果存在 ChapterTitleDesignerView，给可疑的浮点闭包加上显式类型，避免生成破坏性 Thunk
-          find Modules/Features/Reader -name "*.swift" -exec sed -i '' 's/\.animation(\.easeInOut, value: [a-zA-Z0-9_]*)/.animation(nil, value: 0)/g' {} + 2>/dev/null || true
+          echo "=== 应用 ChapterTitleDesigner 防崩溃热补丁 ==="
+          TARGET="Modules/Features/Reader/ChapterTitleDesignerView.swift"
+          if [ -f "$TARGET" ]; then
+            # 简化引发编译器推断崩溃的复杂闭包与链式调用
+            sed -i '' 's/\.animation(\.default/\.animation(nil/g' "$TARGET" 2>/dev/null || true
+            sed -i '' 's/\.animation(\.easeInOut/\.animation(nil/g' "$TARGET" 2>/dev/null || true
+          fi
           echo "热补丁处理完毕"
 
-      # 选回最新具备完整 iOS SDK 的 Xcode
+      # 选择可用的 Xcode（系统最新）
       - name: Pick newest Xcode
         run: |
           BEST=""
@@ -85,7 +89,7 @@ jobs:
               BEST="$x"
             fi
           done
-          echo "选中最新开发套件: $BEST"
+          echo "选中: $BEST"
           sudo xcode-select -s "$BEST"
           xcodebuild -version
 
@@ -136,13 +140,11 @@ jobs:
             echo "EXTRA_SWIFT_FLAGS=" >> "$GITHUB_ENV"
           fi
 
-      # 关键构建步骤：恢复有效 destination，并传入屏蔽 IRGen 崩溃的 Swift 前端参数
+      # 关键构建：以 Release 模式使用 incremental 和 -Onone，并通过 OTHER_SWIFT_FLAGS 关闭出问题的底层内联 Pass
       - name: Build (unsigned, device)
         run: |
-          set +e
-          echo "开始构建工程..."
-
-          # 使用标准 generic 设备通道，并增加防止 IRGen 崩溃的参数
+          set -o pipefail
+          echo "开始编译..."
           xcodebuild \
             -project Yuedu-Reader.xcodeproj \
             -scheme Yuedu-Reader \
@@ -156,55 +158,24 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             SWIFT_TREAT_WARNINGS_AS_ERRORS=NO \
             SWIFT_ACTIVE_COMPILATION_CONDITIONS="\$(inherited) $EXTRA_SWIFT_FLAGS" \
-            SWIFT_COMPILATION_MODE="wholemodule" \
+            SWIFT_COMPILATION_MODE="incremental" \
             SWIFT_OPTIMIZATION_LEVEL="-Onone" \
             OTHER_SWIFT_FLAGS="\$(inherited) -Xfrontend -disable-round-trip-debug-types" \
             VALIDATE_PRODUCT=NO \
             -skipPackagePluginValidation \
             -skipMacroValidation \
-            build > build.log 2>&1
+            build | tee build.log | grep -E 'error:|warning:|BUILD FAILED|CompileSwift|Linking' | tail -40
 
-          BUILD_STATUS=$?
-          if [ $BUILD_STATUS -eq 0 ]; then
-            echo "构建成功！"
-            echo "BUILD_DIR=build-out" >> "$GITHUB_ENV"
-            exit 0
+          if [ ${PIPESTATUS[0]} -ne 0 ]; then
+            echo "===== 编译失败，打印完整错误尾部 ====="
+            tail -100 build.log
+            exit 1
           fi
-
-          echo "Release 模式失败，回退尝试 Debug 配置构建..."
-          xcodebuild \
-            -project Yuedu-Reader.xcodeproj \
-            -scheme Yuedu-Reader \
-            -configuration Debug \
-            -destination 'generic/platform=iOS' \
-            -derivedDataPath "build-out" \
-            -clonedSourcePackagesDirPath build/SourcePackages \
-            -onlyUsePackageVersionsFromResolvedFile \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGN_IDENTITY="" \
-            CODE_SIGNING_REQUIRED=NO \
-            SWIFT_TREAT_WARNINGS_AS_ERRORS=NO \
-            SWIFT_ACTIVE_COMPILATION_CONDITIONS="\$(inherited) $EXTRA_SWIFT_FLAGS" \
-            VALIDATE_PRODUCT=NO \
-            -skipPackagePluginValidation \
-            -skipMacroValidation \
-            build > build.log 2>&1
-
-          if [ $? -eq 0 ]; then
-            echo "Debug 构建成功！"
-            echo "BUILD_DIR=build-out" >> "$GITHUB_ENV"
-            exit 0
-          fi
-
-          echo "===== 编译依然出错，输出最后 50 行错误日志 ====="
-          grep -n 'error:' build.log | head -30
-          tail -50 build.log
-          exit 1
+          echo "BUILD_DIR=build-out" >> "$GITHUB_ENV"
 
       - name: Package unsigned IPA
         run: |
           BUILD_DIR="build-out"
-          echo "产物路径: $BUILD_DIR"
           APP=$(find "$BUILD_DIR/Build/Products" -name "*.app" -type d -maxdepth 3 | grep -v -E 'Tests|UITests|\.appex' | head -1)
           if [ -z "$APP" ]; then
             echo "未找到 .app 目录"
