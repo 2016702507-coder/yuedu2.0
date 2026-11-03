@@ -73,6 +73,30 @@ jobs:
             echo "Placeholder written"
           fi
 
+      - name: Resolve Swift packages (with retry)
+        run: |
+          for i in 1 2 3; do
+            echo "===== 依赖解析尝试 $i ====="
+            if xcodebuild -resolvePackageDependencies \
+                 -project Yuedu-Reader.xcodeproj \
+                 -scheme Yuedu-Reader \
+                 -derivedDataPath build \
+                 -clonedSourcePackagesDirPath build/SourcePackages \
+                 -skipPackagePluginValidation \
+                 -skipMacroValidation \
+                 > resolve.log 2>&1; then
+              echo "依赖解析成功"
+              exit 0
+            fi
+            echo "第 $i 次失败，尾部日志："
+            tail -25 resolve.log
+            sleep 15
+          done
+          echo "===== 依赖解析连续 3 次失败，完整错误 ====="
+          grep -n 'error:' resolve.log | head -40
+          tail -60 resolve.log
+          exit 1
+
       - name: Build (unsigned, device)
         run: |
           set -o pipefail
@@ -82,6 +106,8 @@ jobs:
             -configuration Release \
             -destination 'generic/platform=iOS' \
             -derivedDataPath build \
+            -clonedSourcePackagesDirPath build/SourcePackages \
+            -onlyUsePackageVersionsFromResolvedFile \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
