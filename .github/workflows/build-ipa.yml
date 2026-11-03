@@ -55,6 +55,14 @@ jobs:
           check Modules/Features/Explore/PublicLibrary/PublicLibraryBookSheet.swift 'let opacity: Double' "PublicLibrary 运算符拆分"
           check Modules/Features/Reader/ReaderViewportReporting.swift 'toWindow' "ReservedRegion 隔离"
           check Modules/Services/Works/WorkIndexService.swift 'let seriesValue' "WorkIndex 类型标注"
+          check Modules/Core/BookSource/SourcePerfTrace.swift 'spanAsync' "spanAsync 存在"
+          echo "=== 校验编译器崩溃修复（应为 0） ==="
+          ISO=$(grep -rn 'isolation: isolated (any Actor)' --include=*.swift Modules/ 2>/dev/null | wc -l | tr -d ' ')
+          echo "残留 #isolation 参数: $ISO"
+          if [ "$ISO" -gt 0 ]; then
+            echo "!! 源码仍是旧版本，#isolation 未移除"
+            MISSING=$((MISSING+1))
+          fi
           echo "缺失修复项: $MISSING"
           if [ "$MISSING" -gt 0 ]; then
             echo ""
@@ -156,7 +164,7 @@ jobs:
             echo "SDK 不含 ReservedRegion，该项功能降级为空实现"
             echo "EXTRA_SWIFT_FLAGS=" >> "$GITHUB_ENV"
           fi
-          echo "COMPILATION_MODE=incremental" >> "$GITHUB_ENV"
+          echo "COMPILATION_MODE=wholemodule" >> "$GITHUB_ENV"
 
       - name: Build (unsigned, device)
         run: |
