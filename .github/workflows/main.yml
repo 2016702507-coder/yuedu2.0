@@ -30,19 +30,10 @@ jobs:
           rm -rf _src "$ARCHIVE"
           ls -a | head -30
 
-      - name: Pick Xcode 16+
+      - name: Show Xcode
         run: |
-          ls /Applications | grep -i xcode
-          for x in /Applications/Xcode*.app; do
-            v=$(defaults read "$x/Contents/Info" CFBundleShortVersionString 2>/dev/null || echo 0)
-            major=${v%%.*}
-            if [ "$major" -ge 16 ]; then
-              sudo xcode-select -s "$x"
-              echo "Using $x ($v)"
-              break
-            fi
-          done
           xcodebuild -version
+          xcodebuild -showsdks | grep -i iphone
 
       - name: Generate placeholder GoogleService-Info.plist
         run: |
@@ -70,26 +61,23 @@ jobs:
           set -o pipefail
           xcodebuild \
             -project Yuedu-Reader.xcodeproj \
-            -target "yuedu app" \
+            -scheme Yuedu-Reader \
             -configuration Release \
-            -sdk iphoneos \
-            ARCHS=arm64 \
-            ONLY_ACTIVE_ARCH=NO \
-            CONFIGURATION_BUILD_DIR=build/Release-iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             SWIFT_TREAT_WARNINGS_AS_ERRORS=NO \
             -skipPackagePluginValidation \
-            -skipMacroValidation \
             build 2>&1 | tee build.log | tail -80
 
       - name: Package unsigned IPA
         run: |
-          APP=$(find build -maxdepth 3 -name "*.app" -type d | grep -v -E 'Tests|UITests' | head -1)
+          APP=$(find build/Build/Products -maxdepth 2 -name "*.app" -type d | grep -v -E 'Tests|UITests' | head -1)
           if [ -z "$APP" ]; then
             echo "未找到 .app，列出产物目录："
-            find build -maxdepth 3 | head -60
+            find build/Build/Products -maxdepth 2 | head -60
             exit 1
           fi
           echo "App bundle: $APP"
