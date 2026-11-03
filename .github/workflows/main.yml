@@ -30,6 +30,12 @@ jobs:
           rm -rf _src "$ARCHIVE"
           ls -a | head -20
 
+      - name: Drop duplicate local SwiftSoup package
+        run: |
+          rm -rf Packages/SwiftSoup
+          python3 tools/patch_pbx.py
+          grep -c SwiftSoup Yuedu-Reader.xcodeproj/project.pbxproj || true
+
       - name: Pick Xcode 16+
         run: |
           ls /Applications | grep -i xcode
