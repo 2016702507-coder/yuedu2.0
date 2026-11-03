@@ -179,6 +179,201 @@ jobs:
             grep -c '@isolated(any)' "$IFACE" 2>/dev/null || echo 0
           fi
 
+      - name: Patch CloudKit guard (stop launch crash on re-signed builds)
+        run: |
+          cat > /tmp/patch_icloud.py <<'PYEOF'
+          #!/usr/bin/env python3
+          """Patch CloudKit initialisation so a re-signed build cannot die on launch.
+
+          `CKContainer(identifier:)` raises an Objective-C exception when the identifier is
+          not in the process's entitlements. A sideloaded build has
+          `com.apple.developer.icloud-container-identifiers` emptied by the signing tool, so
+          the exception is raised while `SubscriptionStore` (which holds the mirror as a
+          stored property) is being constructed at launch — the app dies on the splash.
+          Swift cannot catch it, so the only fix is not to create the container at all.
+          """
+          import sys
+          import pathlib
+
+          ICLOUD = "Modules/Services/iCloud/ICloudSyncManager.swift"
+          MIRROR = "Modules/Services/Subscription/SubscriptionICloudMirror.swift"
+
+          PATCHES = {
+              ICLOUD: [
+                  (
+                      "    private let container: CKContainer\n"
+                      "    private let database: CKDatabase\n"
+                      "\n"
+                      "    nonisolated private static var deviceId: String {",
+                      "    /// Nil when this build may not use the container: `CKContainer(identifier:)`\n"
+                      "    /// raises an Objective-C exception, which Swift cannot catch, when the\n"
+                      "    /// identifier is not in the process's entitlements — and that exception is fatal.\n"
+                      "    private let container: CKContainer?\n"
+                      "    private let database: CKDatabase?\n"
+                      "\n"
+                      "    /// Whether this build may touch CloudKit at all (see `container`).\n"
+                      "    ///\n"
+                      "    /// A re-signed / sideloaded build has `com.apple.developer.icloud-container-identifiers`\n"
+                      "    /// emptied by the signing tool, and CloudKit answers a container outside that\n"
+                      "    /// list by raising, before any Swift code can intervene. `SubscriptionStore`\n"
+                      "    /// holds this singleton as a stored property, so it is built during launch and\n"
+                      "    /// an exception there kills the app on the launch screen.\n"
+                      "    nonisolated static let isICloudSyncAvailable = false\n"
+                      "\n"
+                      "    nonisolated private static var deviceId: String {",
+                  ),
+                  (
+                      "    private init(container: CKContainer = CKContainer(identifier: ICloudSyncManager.containerIdentifier)) {\n"
+                      "        self.container = container\n"
+                      "        database = container.privateCloudDatabase\n"
+                      "        lastSyncDate = UserDefaults.standard.object(forKey: Self.lastSyncKey) as? Date\n"
+                      "    }",
+                      "    private init() {\n"
+                      "        if Self.isICloudSyncAvailable {\n"
+                      "            let container = CKContainer(identifier: ICloudSyncManager.containerIdentifier)\n"
+                      "            self.container = container\n"
+                      "            database = container.privateCloudDatabase\n"
+                      "        } else {\n"
+                      "            container = nil\n"
+                      "            database = nil\n"
+                      "        }\n"
+                      "        lastSyncDate = UserDefaults.standard.object(forKey: Self.lastSyncKey) as? Date\n"
+                      "    }",
+                  ),
+                  (
+                      "    nonisolated private func fetchAccountStatus() async -> CKAccountStatus {\n"
+                      "        await withCheckedContinuation { continuation in",
+                      "    nonisolated private func fetchAccountStatus() async -> CKAccountStatus {\n"
+                      "        guard let container else { return .couldNotDetermine }\n"
+                      "        return await withCheckedContinuation { continuation in",
+                  ),
+                  (
+                      "    nonisolated private func fetchRecord(_ recordID: CKRecord.ID) async throws -> CKRecord {\n"
+                      "        try await withCheckedThrowingContinuation { continuation in",
+                      "    nonisolated private func fetchRecord(_ recordID: CKRecord.ID) async throws -> CKRecord {\n"
+                      "        guard let database else { throw ICloudSyncError.accountUnavailable(.couldNotDetermine) }\n"
+                      "        return try await withCheckedThrowingContinuation { continuation in",
+                  ),
+                  (
+                      "    nonisolated private func fetchRecordWithoutFields(_ recordID: CKRecord.ID) async throws -> CKRecord? {\n"
+                      "        try await withCheckedThrowingContinuation { continuation in",
+                      "    nonisolated private func fetchRecordWithoutFields(_ recordID: CKRecord.ID) async throws -> CKRecord? {\n"
+                      "        guard let database else { throw ICloudSyncError.accountUnavailable(.couldNotDetermine) }\n"
+                      "        return try await withCheckedThrowingContinuation { continuation in",
+                  ),
+                  (
+                      "    nonisolated private func deleteRecord(_ recordID: CKRecord.ID) async throws {\n"
+                      "        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in",
+                      "    nonisolated private func deleteRecord(_ recordID: CKRecord.ID) async throws {\n"
+                      "        guard let database else { throw ICloudSyncError.accountUnavailable(.couldNotDetermine) }\n"
+                      "        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in",
+                  ),
+                  (
+                      "    nonisolated private func saveRecord(_ record: CKRecord) async throws {\n"
+                      "        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in",
+                      "    nonisolated private func saveRecord(_ record: CKRecord) async throws {\n"
+                      "        guard let database else { throw ICloudSyncError.accountUnavailable(.couldNotDetermine) }\n"
+                      "        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in",
+                  ),
+              ],
+              MIRROR: [
+                  (
+                      "    private let container: CKContainer\n"
+                      "    private let database: CKDatabase\n"
+                      "    /// Last value written, so repeated refreshes that re-read the same StoreKit",
+                      "    /// Nil when this build may not use the container; see\n"
+                      "    /// `ICloudSyncManager.isICloudSyncAvailable`.\n"
+                      "    private let container: CKContainer?\n"
+                      "    private let database: CKDatabase?\n"
+                      "    /// Last value written, so repeated refreshes that re-read the same StoreKit",
+                  ),
+                  (
+                      "    private init(\n"
+                      "        container: CKContainer = CKContainer(identifier: ICloudSyncManager.containerIdentifier)\n"
+                      "    ) {\n"
+                      "        self.container = container\n"
+                      "        database = container.privateCloudDatabase\n"
+                      "    }",
+                      "    private init() {\n"
+                      "        if ICloudSyncManager.isICloudSyncAvailable {\n"
+                      "            let container = CKContainer(identifier: ICloudSyncManager.containerIdentifier)\n"
+                      "            self.container = container\n"
+                      "            database = container.privateCloudDatabase\n"
+                      "        } else {\n"
+                      "            container = nil\n"
+                      "            database = nil\n"
+                      "        }\n"
+                      "    }",
+                  ),
+                  (
+                      "    func accountStatusDescription() async -> String {\n"
+                      "        await withCheckedContinuation { continuation in",
+                      "    func accountStatusDescription() async -> String {\n"
+                      "        guard let container else { return \"unavailable (no iCloud entitlement)\" }\n"
+                      "        return await withCheckedContinuation { continuation in",
+                  ),
+                  (
+                      "    private func isAvailable() async -> Bool {\n"
+                      "        await withCheckedContinuation { continuation in",
+                      "    private func isAvailable() async -> Bool {\n"
+                      "        guard let container else { return false }\n"
+                      "        return await withCheckedContinuation { continuation in",
+                  ),
+                  (
+                      "    private func fetchRecord(_ recordID: CKRecord.ID) async throws -> CKRecord {\n"
+                      "        try await withCheckedThrowingContinuation { continuation in",
+                      "    private func fetchRecord(_ recordID: CKRecord.ID) async throws -> CKRecord {\n"
+                      "        guard let database else { throw CKError(.notAuthenticated) }\n"
+                      "        return try await withCheckedThrowingContinuation { continuation in",
+                  ),
+                  (
+                      "    private func saveRecord(_ record: CKRecord) async throws {\n"
+                      "        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in",
+                      "    private func saveRecord(_ record: CKRecord) async throws {\n"
+                      "        guard let database else { throw CKError(.notAuthenticated) }\n"
+                      "        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in",
+                  ),
+              ],
+          }
+
+
+          def apply(root, reverse=False):
+              for rel, pairs in PATCHES.items():
+                  path = pathlib.Path(root) / rel
+                  if not path.exists():
+                      sys.exit("missing file: %s" % path)
+                  text = path.read_text(encoding="utf-8")
+                  if not reverse and "isICloudSyncAvailable" in text:
+                      print("already patched: %s" % rel)
+                      continue
+                  for old, new in pairs:
+                      if reverse:
+                          old, new = new, old
+                      if new in text and old not in text:
+                          continue
+                      if old not in text:
+                          sys.exit("anchor not found in %s:\n%s" % (rel, old[:160]))
+                      text = text.replace(old, new, 1)
+                  path.write_text(text, encoding="utf-8")
+                  print("patched: %s" % rel)
+
+
+          if __name__ == "__main__":
+              import argparse
+
+              ap = argparse.ArgumentParser()
+              ap.add_argument("--root", default=".")
+              ap.add_argument("--reverse", action="store_true")
+              args = ap.parse_args()
+              apply(args.root, args.reverse)
+          PYEOF
+          python3 /tmp/patch_icloud.py --root .
+
+          grep -q 'isICloudSyncAvailable' Modules/Services/iCloud/ICloudSyncManager.swift || { echo '!! CloudKit guard missing in ICloudSyncManager'; exit 1; }
+          grep -q 'guard let database else' Modules/Services/iCloud/ICloudSyncManager.swift || { echo '!! database guards missing in ICloudSyncManager'; exit 1; }
+          grep -q 'isICloudSyncAvailable' Modules/Services/Subscription/SubscriptionICloudMirror.swift || { echo '!! CloudKit guard missing in SubscriptionICloudMirror'; exit 1; }
+          echo 'CloudKit guard applied'
+
       - name: Build (unsigned, device)
         run: |
           set -eo pipefail
@@ -186,8 +381,12 @@ jobs:
           echo "Xcode: $(xcodebuild -version | head -1)"
 
           build_with() {
-            local name="$1" mode="$2" opt="$3" batch="$4"
-            echo "----- 尝试配置: $name (mode=$mode opt=$opt batch=$batch) -----"
+            local name="$1" mode="$2" opt="$3" batch="$4" disopt="$5"
+            echo "----- 尝试配置: $name (mode=$mode opt=$opt batch=$batch disable-optzns=$disopt) -----"
+            local extra_flags="\$(inherited)"
+            if [ "$disopt" = "yes" ]; then
+              extra_flags="\$(inherited) -Xfrontend -disable-llvm-optzns"
+            fi
             xcodebuild \
               -project Yuedu-Reader.xcodeproj \
               -scheme Yuedu-Reader \
@@ -207,7 +406,12 @@ jobs:
               SWIFT_COMPILATION_MODE="$mode" \
               SWIFT_OPTIMIZATION_LEVEL="$opt" \
               SWIFT_ENABLE_BATCH_MODE="$batch" \
-              OTHER_SWIFT_FLAGS="\$(inherited) -Xfrontend -disable-llvm-optzns" \
+              OTHER_SWIFT_FLAGS="$extra_flags" \
+              DEBUG_INFORMATION_FORMAT=dwarf-with-dsym \
+              COPY_PHASE_STRIP=YES \
+              STRIP_INSTALLED_PRODUCT=YES \
+              STRIP_STYLE=all \
+              DEPLOYMENT_POSTPROCESSING=YES \
               VALIDATE_PRODUCT=NO \
               -skipPackagePluginValidation \
               -skipMacroValidation \
@@ -245,8 +449,8 @@ jobs:
           # 注意：本步骤运行在 bash -e 下，attempt 的非零返回必须用 `|| rc=$?` 接住，
           # 否则第一档崩溃就会直接终止，后面的重试档根本不会执行。
           attempt() {
-            local name="$1" mode="$2" opt="$3" batch="$4"
-            if build_with "$name" "$mode" "$opt" "$batch"; then
+            local name="$1" mode="$2" opt="$3" batch="$4" disopt="$5"
+            if build_with "$name" "$mode" "$opt" "$batch" "$disopt"; then
               echo "编译成功（$name）"
               echo "BUILD_DIR=build-$name" >> "$GITHUB_ENV"
               cp "build-$name.log" build.log
@@ -280,16 +484,23 @@ jobs:
             return 1
           }
 
-          for combo in "nobatch-a|incremental|-Onone|NO" "nobatch-b|incremental|-Onone|NO" "batch|incremental|-Onone|YES"; do
-            IFS='|' read -r name mode opt batch <<< "$combo"
+          # 第 1 档用真正的 -O 优化（不带 -disable-llvm-optzns）：代码段从 97MB 降到
+          # 正常量级，产物约 40MB，第三方重签工具才签得动、系统才装得下。
+          # 若 -O 触发 IRGen 崩溃，自动降级到 -Onone 三档兜底。
+          for combo in \
+            "opt|incremental|-O|NO|no" \
+            "opt-size|incremental|-Osize|NO|no" \
+            "nobatch-a|incremental|-Onone|NO|no" \
+            "fallback|incremental|-Onone|NO|yes"; do
+            IFS='|' read -r name mode opt batch disopt <<< "$combo"
             rc=0
-            attempt "$name" "$mode" "$opt" "$batch" || rc=$?
+            attempt "$name" "$mode" "$opt" "$batch" "$disopt" || rc=$?
             if [ "$rc" -eq 0 ]; then echo "构建完成：$name"; exit 0; fi
             if [ "$rc" -eq 2 ]; then echo "真实源码错误，终止"; exit 1; fi
             echo "「$name」编译器崩溃，进入下一档"
           done
 
-          echo "===== 三种配置均因编译器崩溃失败 ====="
+          echo "===== 四种配置均失败 ====="
           echo "请下载 build-log 与 crash-context 两个 artifact"
           echo "crash-context.log 第 1 段「IRGenRequest 崩溃文件」就是元凶的完整路径"
           exit 1
