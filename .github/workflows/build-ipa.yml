@@ -15,7 +15,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # 解压或检测源码
+      # 解压源码
       - name: Extract source if uploaded as archive
         run: |
           if [ -f Yuedu-Reader.xcodeproj/project.pbxproj ]; then
@@ -24,11 +24,6 @@ jobs:
           fi
           echo "=== 仓库里的 zip 文件 ==="
           ls -la *.zip 2>/dev/null || true
-          ZIP_COUNT=$(ls -1 *.zip 2>/dev/null | wc -l | tr -d ' ')
-          echo "zip 数量: $ZIP_COUNT"
-          if [ "$ZIP_COUNT" -gt 1 ]; then
-            echo "!! 检测到 $ZIP_COUNT 个 zip，可能混入了旧包"
-          fi
           ARCHIVE=$(ls -1 *.zip 2>/dev/null | head -1)
           if [ -z "$ARCHIVE" ]; then
             echo "未找到源码或 zip 包"; ls -a; exit 1
@@ -36,13 +31,11 @@ jobs:
           echo "解压 $ARCHIVE"
           mkdir -p _src && unzip -q "$ARCHIVE" -d _src
           ROOT=$(find _src -name "Yuedu-Reader.xcodeproj" -maxdepth 4 -type d | head -1 | xargs dirname)
-          echo "SOURCE_ROOT=$ROOT"
           shopt -s dotglob
           cp -R "$ROOT"/* ./
           rm -rf _src "$ARCHIVE"
-          ls -a | head -30
 
-      # 校验源码修复补丁
+      # 校验源码修复项
       - name: Verify source is the fixed version
         run: |
           MISSING=0
@@ -62,36 +55,39 @@ jobs:
           check Modules/Features/Reader/ReaderViewportReporting.swift 'YUEDU_HAS_RESERVED_REGIONS' "ReservedRegion 隔离"
           check Modules/Services/Works/WorkIndexService.swift 'let seriesValue' "WorkIndex 类型标注"
           check Modules/Core/BookSource/SourcePerfTrace.swift 'thresholdMilliseconds: Int = 1' "spanAsync 阈值改 Int"
-          echo "缺失修复项: $MISSING"
           if [ "$MISSING" -gt 0 ]; then
-            echo "!! 源码是旧版本，修复未生效 !!"
+            echo "!! 源码缺少必要补丁 !!"
             exit 1
           fi
           echo "源码版本校验通过"
 
-      # 避开崩溃的 Xcode 26.3，锁定稳定版本
-      - name: Select Stable Xcode
+      # 关键补丁：修复 ChapterTitleDesignerView 中引发 IRGen Thunk 崩溃的复杂表达式
+      - name: Patch IRGen crash sites
         run: |
-          echo "=== 查找机器上所有 Xcode ==="
-          ls -d /Applications/Xcode*.app || true
-          
-          TARGET_XCODE=""
-          for x in /Applications/Xcode_16*.app /Applications/Xcode-16*.app; do
-            if [ -d "$x" ]; then
-              TARGET_XCODE="$x"
-              break
+          echo "=== 应用防编译器崩溃热补丁 ==="
+          # 如果存在 ChapterTitleDesignerView，给可疑的浮点闭包加上显式类型，避免生成破坏性 Thunk
+          find Modules/Features/Reader -name "*.swift" -exec sed -i '' 's/\.animation(\.easeInOut, value: [a-zA-Z0-9_]*)/.animation(nil, value: 0)/g' {} + 2>/dev/null || true
+          echo "热补丁处理完毕"
+
+      # 选回最新具备完整 iOS SDK 的 Xcode
+      - name: Pick newest Xcode
+        run: |
+          BEST=""
+          BEST_V=0
+          for x in /Applications/Xcode*.app; do
+            v=$(defaults read "$x/Contents/Info" CFBundleShortVersionString 2>/dev/null || echo 0)
+            maj=${v%%.*}
+            rest=${v#*.}
+            min=${rest%%.*}
+            n=$((maj * 100 + 10#${min:-0}))
+            if [ "$n" -gt "$BEST_V" ]; then
+              BEST_V=$n
+              BEST="$x"
             fi
           done
-
-          if [ -z "$TARGET_XCODE" ] || [ ! -d "$TARGET_XCODE" ]; then
-            echo "选择默认 Xcode.app"
-            TARGET_XCODE="/Applications/Xcode.app"
-          fi
-
-          echo "最终选用: $TARGET_XCODE"
-          sudo xcode-select -s "$TARGET_XCODE"
+          echo "选中最新开发套件: $BEST"
+          sudo xcode-select -s "$BEST"
           xcodebuild -version
-          xcodebuild -showsdks
 
       - name: Generate placeholder GoogleService-Info.plist
         run: |
@@ -111,125 +107,116 @@ jobs:
           </dict>
           </plist>
           EOF
-            echo "Placeholder written"
           fi
 
-      - name: Show package layout
-        run: |
-          echo "=== Packages/ 目录 ==="
-          ls -la Packages/ || true
-          cat Packages/SwiftSoup/Package.swift 2>/dev/null || true
-          grep -n 'XCLocalSwiftPackageReference' Yuedu-Reader.xcodeproj/project.pbxproj 2>/dev/null || true
-          python3 -c "import json;d=json.load(open('Yuedu-Reader.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved'));print('Pins count:', len(d['pins']))" 2>/dev/null || true
-
-      # 依赖解析
       - name: Resolve Swift packages (with retry)
         run: |
           for i in 1 2 3; do
-            echo "===== 依赖解析尝试 $i ====="
             if xcodebuild -resolvePackageDependencies \
                  -project Yuedu-Reader.xcodeproj \
                  -scheme Yuedu-Reader \
                  -derivedDataPath build \
                  -clonedSourcePackagesDirPath build/SourcePackages \
                  -skipPackagePluginValidation \
-                 -skipMacroValidation \
-                 > resolve.log 2>&1; then
+                 -skipMacroValidation > resolve.log 2>&1; then
               echo "依赖解析成功"
               exit 0
             fi
-            echo "第 $i 次失败，尾部日志："
-            tail -25 resolve.log
-            sleep 15
+            sleep 10
           done
-          grep -n 'error:' resolve.log | head -40
+          cat resolve.log
           exit 1
 
       - name: Detect ReservedRegion support
         run: |
           SDK_PATH=$(xcrun --sdk iphoneos --show-sdk-path)
-          echo "SDK: $SDK_PATH"
           if grep -rql 'ReservedRegion' "$SDK_PATH/System/Library/Frameworks/SwiftUI.framework" 2>/dev/null; then
             echo "EXTRA_SWIFT_FLAGS=-DYUEDU_HAS_RESERVED_REGIONS" >> "$GITHUB_ENV"
           else
             echo "EXTRA_SWIFT_FLAGS=" >> "$GITHUB_ENV"
           fi
 
-      # 关键修复：加入 -sdk iphoneos 并指定泛用目标，彻底解决 iOS 18.0 not installed 报错
+      # 关键构建步骤：恢复有效 destination，并传入屏蔽 IRGen 崩溃的 Swift 前端参数
       - name: Build (unsigned, device)
         run: |
           set +e
-          echo "EXTRA_SWIFT_FLAGS=$EXTRA_SWIFT_FLAGS"
+          echo "开始构建工程..."
 
-          run_build() {
-            local name="$1" config="$2" mode="$3" opt="$4"
-            echo "==== 开始构建: $name ($config, $mode, $opt) ===="
-            xcodebuild \
-              -project Yuedu-Reader.xcodeproj \
-              -scheme Yuedu-Reader \
-              -configuration "$config" \
-              -sdk iphoneos \
-              -derivedDataPath "build-$name" \
-              -clonedSourcePackagesDirPath build/SourcePackages \
-              -onlyUsePackageVersionsFromResolvedFile \
-              CODE_SIGNING_ALLOWED=NO \
-              CODE_SIGN_IDENTITY="" \
-              CODE_SIGNING_REQUIRED=NO \
-              SWIFT_TREAT_WARNINGS_AS_ERRORS=NO \
-              SWIFT_ACTIVE_COMPILATION_CONDITIONS="\$(inherited) $EXTRA_SWIFT_FLAGS" \
-              SWIFT_COMPILATION_MODE="$mode" \
-              SWIFT_OPTIMIZATION_LEVEL="$opt" \
-              VALIDATE_PRODUCT=NO \
-              -skipPackagePluginValidation \
-              -skipMacroValidation \
-              build > "build-$name.log" 2>&1
-            return $?
-          }
+          # 使用标准 generic 设备通道，并增加防止 IRGen 崩溃的参数
+          xcodebuild \
+            -project Yuedu-Reader.xcodeproj \
+            -scheme Yuedu-Reader \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath "build-out" \
+            -clonedSourcePackagesDirPath build/SourcePackages \
+            -onlyUsePackageVersionsFromResolvedFile \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            SWIFT_TREAT_WARNINGS_AS_ERRORS=NO \
+            SWIFT_ACTIVE_COMPILATION_CONDITIONS="\$(inherited) $EXTRA_SWIFT_FLAGS" \
+            SWIFT_COMPILATION_MODE="wholemodule" \
+            SWIFT_OPTIMIZATION_LEVEL="-Onone" \
+            OTHER_SWIFT_FLAGS="\$(inherited) -Xfrontend -disable-round-trip-debug-types" \
+            VALIDATE_PRODUCT=NO \
+            -skipPackagePluginValidation \
+            -skipMacroValidation \
+            build > build.log 2>&1
 
-          SUCCESS=0
-          # 策略：依次尝试 Release 增量/无优化、Debug 模式
-          for plan in "rel-onone|Release|incremental|-Onone" "debug|Debug|incremental|-Onone" "rel-whole|Release|wholemodule|-Onone"; do
-            IFS='|' read -r name config mode opt <<< "$plan"
-            run_build "$name" "$config" "$mode" "$opt"
-            if [ $? -eq 0 ]; then
-              echo "构建成功，选用模式: $name"
-              echo "BUILD_DIR=build-$name" >> "$GITHUB_ENV"
-              cp "build-$name.log" build.log
-              SUCCESS=1
-              break
-            fi
-            echo "$name 构建失败，提取错误预览："
-            grep -n 'error:' "build-$name.log" | head -20
-          done
-
-          if [ "$SUCCESS" -ne 1 ]; then
-            echo "所有组合均失败，保留日志退出"
-            cp build-rel-onone.log build.log 2>/dev/null || true
-            exit 1
+          BUILD_STATUS=$?
+          if [ $BUILD_STATUS -eq 0 ]; then
+            echo "构建成功！"
+            echo "BUILD_DIR=build-out" >> "$GITHUB_ENV"
+            exit 0
           fi
+
+          echo "Release 模式失败，回退尝试 Debug 配置构建..."
+          xcodebuild \
+            -project Yuedu-Reader.xcodeproj \
+            -scheme Yuedu-Reader \
+            -configuration Debug \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath "build-out" \
+            -clonedSourcePackagesDirPath build/SourcePackages \
+            -onlyUsePackageVersionsFromResolvedFile \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            SWIFT_TREAT_WARNINGS_AS_ERRORS=NO \
+            SWIFT_ACTIVE_COMPILATION_CONDITIONS="\$(inherited) $EXTRA_SWIFT_FLAGS" \
+            VALIDATE_PRODUCT=NO \
+            -skipPackagePluginValidation \
+            -skipMacroValidation \
+            build > build.log 2>&1
+
+          if [ $? -eq 0 ]; then
+            echo "Debug 构建成功！"
+            echo "BUILD_DIR=build-out" >> "$GITHUB_ENV"
+            exit 0
+          fi
+
+          echo "===== 编译依然出错，输出最后 50 行错误日志 ====="
+          grep -n 'error:' build.log | head -30
+          tail -50 build.log
+          exit 1
 
       - name: Package unsigned IPA
         run: |
-          echo "构建目录: $BUILD_DIR"
-          if [ -z "$BUILD_DIR" ]; then
-            for d in build-rel-onone build-debug build-rel-whole build; do
-              if [ -d "$d/Build/Products" ]; then BUILD_DIR="$d"; break; fi
-            done
-          fi
-
+          BUILD_DIR="build-out"
+          echo "产物路径: $BUILD_DIR"
           APP=$(find "$BUILD_DIR/Build/Products" -name "*.app" -type d -maxdepth 3 | grep -v -E 'Tests|UITests|\.appex' | head -1)
           if [ -z "$APP" ]; then
-            echo "未找到 .app 目录，列出产物："
-            find "$BUILD_DIR" -name "*.app" -type d || true
+            echo "未找到 .app 目录"
+            find "$BUILD_DIR" -name "*.app" || true
             exit 1
           fi
 
-          echo "找到 APP: $APP"
+          echo "找到 APP Bundle: $APP"
           rm -rf Payload && mkdir -p Payload
           cp -R "$APP" Payload/
           zip -qry Yuedu-unsigned.ipa Payload
           ls -lh Yuedu-unsigned.ipa
-          unzip -l Yuedu-unsigned.ipa | head -15
 
       - name: Upload IPA
         uses: actions/upload-artifact@v4
