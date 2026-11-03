@@ -1,0 +1,95 @@
+name: Build Unsigned IPA
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 120
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Extract source if uploaded as archive
+        run: |
+          if [ -f Yuedu-Reader.xcodeproj/project.pbxproj ]; then
+            echo "源码已在根目录"
+            exit 0
+          fi
+          ARCHIVE=$(ls *.zip 2>/dev/null | head -1)
+          if [ -z "$ARCHIVE" ]; then
+            echo "未找到源码或 zip 包"; ls -a; exit 1
+          fi
+          mkdir -p _src && unzip -q "$ARCHIVE" -d _src
+          ROOT=$(find _src -name "Yuedu-Reader.xcodeproj" -maxdepth 3 -type d | head -1 | xargs dirname)
+          shopt -s dotglob
+          cp -R "$ROOT"/* ./
+          rm -rf _src "$ARCHIVE"
+          ls -a | head -20
+
+      - name: Pick Xcode 16+
+        run: |
+          ls /Applications | grep -i xcode
+          for x in /Applications/Xcode*.app; do
+            v=$(defaults read "$x/Contents/Info" CFBundleShortVersionString 2>/dev/null || echo 0)
+            major=${v%%.*}
+            if [ "$major" -ge 16 ]; then
+              sudo xcode-select -s "$x"
+              echo "Using $x ($v)"
+              break
+            fi
+          done
+          xcodebuild -version
+
+      - name: Placeholder GoogleService
+        run: |
+          if [ ! -s GoogleService-Info.plist ]; then
+            cat > GoogleService-Info.plist <<'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>BUNDLE_ID</key><string>com.yuedu.reader</string>
+            <key>PROJECT_ID</key><string>yuedu-placeholder</string>
+            <key>API_KEY</key><string>AIzaSyPLACEHOLDER-KEY-00000000000000000</string>
+            <key>GCM_SENDER_ID</key><string>000000000000</string>
+            <key>GOOGLE_APP_ID</key><string>1:000000000000:ios:0000000000000000000000</string>
+            <key>STORAGE_BUCKET</key><string>yuedu-placeholder.appspot.com</string>
+            <key>PLIST_VERSION</key><string>1</string>
+          </dict>
+          </plist>
+          EOF
+          fi
+
+      - name: Build
+        run: |
+          set -o pipefail
+          xcodebuild -project Yuedu-Reader.xcodeproj -scheme Yuedu-Reader \
+            -configuration Release -destination 'generic/platform=iOS' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO \
+            SWIFT_TREAT_WARNINGS_AS_ERRORS=NO -skipPackagePluginValidation \
+            build 2>&1 | tee build.log | tail -60
+
+      - name: Package IPA
+        run: |
+          APP=$(find build/Build/Products/Release-iphoneos -maxdepth 1 -name "*.app" | head -1)
+          mkdir -p Payload && cp -R "$APP" Payload/
+          zip -qry Yuedu-unsigned.ipa Payload
+          ls -lh Yuedu-unsigned.ipa
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: Yuedu-unsigned-ipa
+          path: Yuedu-unsigned.ipa
+          retention-days: 7
+
+      - name: Upload log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: build.log
+          retention-days: 3
