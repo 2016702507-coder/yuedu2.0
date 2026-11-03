@@ -14,15 +14,17 @@ jobs:
       - name: Extract source if uploaded as archive
         run: |
           if [ -f Yuedu-Reader.xcodeproj/project.pbxproj ]; then
-            echo "源码已在根目录"
+            echo "源码已在根目录，无需解压"
             exit 0
           fi
           ARCHIVE=$(ls *.zip 2>/dev/null | head -1)
           if [ -z "$ARCHIVE" ]; then
             echo "未找到源码或 zip 包"; ls -a; exit 1
           fi
+          echo "解压 $ARCHIVE"
           mkdir -p _src && unzip -q "$ARCHIVE" -d _src
           ROOT=$(find _src -name "Yuedu-Reader.xcodeproj" -maxdepth 3 -type d | head -1 | xargs dirname)
+          echo "SOURCE_ROOT=$ROOT"
           shopt -s dotglob
           cp -R "$ROOT"/* ./
           rm -rf _src "$ARCHIVE"
@@ -41,8 +43,10 @@ jobs:
             fi
           done
           xcodebuild -version
+          echo "--- installed iOS SDKs ---"
+          xcodebuild -showsdks | grep -i iphone
 
-      - name: Placeholder GoogleService
+      - name: Generate placeholder GoogleService-Info.plist
         run: |
           if [ ! -s GoogleService-Info.plist ]; then
             cat > GoogleService-Info.plist <<'EOF'
@@ -60,22 +64,31 @@ jobs:
           </dict>
           </plist>
           EOF
+            echo "Placeholder written"
           fi
 
-      - name: Build
+      - name: Build (unsigned, device)
         run: |
           set -o pipefail
-          xcodebuild -project Yuedu-Reader.xcodeproj -scheme Yuedu-Reader \
-            -configuration Release -destination 'generic/platform=iOS' \
+          xcodebuild \
+            -project Yuedu-Reader.xcodeproj \
+            -scheme Yuedu-Reader \
+            -configuration Release \
+            -sdk iphoneos \
             -derivedDataPath build \
-            CODE_SIGNING_ALLOWED=NO CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO \
-            SWIFT_TREAT_WARNINGS_AS_ERRORS=NO -skipPackagePluginValidation \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            SWIFT_TREAT_WARNINGS_AS_ERRORS=NO \
+            -skipPackagePluginValidation \
             build 2>&1 | tee build.log | tail -60
 
-      - name: Package IPA
+      - name: Package unsigned IPA
         run: |
           APP=$(find build/Build/Products/Release-iphoneos -maxdepth 1 -name "*.app" | head -1)
-          mkdir -p Payload && cp -R "$APP" Payload/
+          echo "App bundle: $APP"
+          mkdir -p Payload
+          cp -R "$APP" Payload/
           zip -qry Yuedu-unsigned.ipa Payload
           ls -lh Yuedu-unsigned.ipa
 
@@ -86,7 +99,7 @@ jobs:
           path: Yuedu-unsigned.ipa
           retention-days: 7
 
-      - name: Upload log on failure
+      - name: Upload build log on failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
