@@ -106,6 +106,7 @@ struct CardKeyUnlockView: View {
         switch membership.lastFailureReason {
         case "device_mismatch": return "此卡密已在其他裝置啟用"
         case "expired": return "此卡密已到期，請換一張新卡密"
+        case "already_forever": return "已是永久會員，無需再激活"
         case "network": return "網路連線失敗，請稍後重試"
         default: return "卡密錯誤，請重新輸入"
         }

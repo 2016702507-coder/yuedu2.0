@@ -11,7 +11,7 @@ enum CardKeyPlan: String {
     /// 服務端返回的檔位字串；認不出來時當永久處理 —— 寧可多給一次，
     /// 也不要因為協議多了一個新值就把已付費用戶鎖在門外。
     init(serverValue: String?) {
-        switch serverValue {
+        switch serverValue ?? "" {
         case CardKeyPlan.month.rawValue: self = .month
         case CardKeyPlan.forever.rawValue: self = .forever
         default: self = .forever
@@ -69,15 +69,21 @@ final class CardKeyMembership: ObservableObject {
     /// 最近一次失敗原因，UI 用它區分「卡密錯」「已在別的設備激活」「已過期」。
     @Published private(set) var lastFailureReason: String? = nil
 
+    /// 會員狀態被動改變（到期、遠端吊銷）時回調，`SubscriptionStore` 用它重算權益。
+    /// 用回調而不是通知中心：調用方是 @MainActor，閉包直接在該上下文跑。
+    var onStateChanged: (@MainActor () -> Void)?
+
     private var lastCheck: Date = .distantPast
     private var isRefreshing = false
     private var expiryTimer: Timer?
 
     private init() {
         let defaults = UserDefaults.standard
-        plan = CardKeyPlan(rawValue: defaults.string(forKey: Self.planKey) ?? "") ?? .none
-        expiresAt = defaults.object(forKey: Self.expiresKey) as? Date
-        isUnlocked = defaults.bool(forKey: Self.activatedFlag) && !Self.hasExpired(expiresAt)
+        let storedPlan = CardKeyPlan(rawValue: defaults.string(forKey: Self.planKey) ?? "") ?? .none
+        let storedExpiry = defaults.object(forKey: Self.expiresKey) as? Date
+        plan = storedPlan
+        expiresAt = storedExpiry
+        isUnlocked = defaults.bool(forKey: Self.activatedFlag) && !Self.hasExpired(storedExpiry)
         lastCheck = defaults.object(forKey: Self.checkStamp) as? Date ?? .distantPast
 
         if isUnlocked, plan == .none {
@@ -221,6 +227,13 @@ final class CardKeyMembership: ObservableObject {
         let trimmed = key.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
         guard !trimmed.isEmpty else { return false }
 
+        // 已是永久會員就不用再驗了：讓月卡覆蓋上去等於把永久降級，
+        // 而且會白白消耗掉這條卡密的綁定名額。
+        guard plan != .forever || !isUnlocked else {
+            lastFailureReason = "already_forever"
+            return false
+        }
+
         guard let outcome = await verify(trimmed) else {
             lastFailureReason = "network"
             return false
@@ -282,7 +295,7 @@ final class CardKeyMembership: ObservableObject {
         defaults.set(CardKeyPlan.none.rawValue, forKey: Self.planKey)
 
         if let reason { lastFailureReason = reason }
-        NotificationCenter.default.post(name: .cardKeyMembershipStateChanged, object: nil)
+        onStateChanged?()
     }
 
     /// 到期那一刻把會員收回，不用等用戶重啟 App。
@@ -319,11 +332,6 @@ final class CardKeyMembership: ObservableObject {
         guard isUnlocked else { return nil }
         return UserDefaults.standard.string(forKey: Self.activatedCard)
     }
-}
-
-extension Notification.Name {
-    /// 卡密會員狀態被動改變（到期收回、遠端吊銷），供 `SubscriptionStore` 重算權益。
-    static let cardKeyMembershipStateChanged = Notification.Name("cardkey.membership.didChange")
 }
 
 /// 設備標識：Keychain 裡的一個 UUID，卸載重裝不會變。
