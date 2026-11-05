@@ -9,7 +9,7 @@ on:
 
 jobs:
   build:
-    runs-on: macos-15-intel
+    runs-on: macos-15
     timeout-minutes: 240
     env:
       # —— 改成你自己签名证书的 App ID（必须是「精确 ID」，不能带 * ）——
