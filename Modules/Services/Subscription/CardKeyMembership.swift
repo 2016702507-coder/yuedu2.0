@@ -55,7 +55,7 @@ final class CardKeyMembership: ObservableObject {
     private static let cacheTTL: TimeInterval = 600
 
     /// 本機設備標識，進程內只讀一次。
-    private static let deviceId = DeviceIdentity.current()
+    private static let deviceId = CardKeyDeviceIdentity.current()
 
     /// 是否已有可用的會員（未激活或已到期都為 false）。
     @Published private(set) var isUnlocked: Bool
@@ -335,7 +335,7 @@ final class CardKeyMembership: ObservableObject {
 }
 
 /// 設備標識：Keychain 裡的一個 UUID，卸載重裝不會變。
-private enum DeviceIdentity {
+private enum CardKeyDeviceIdentity {
     private static let service = "com.yuedu.reader.identity"
     private static let account = "device_id"
 
