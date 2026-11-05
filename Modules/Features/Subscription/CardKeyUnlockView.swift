@@ -10,6 +10,7 @@ struct CardKeyUnlockView: View {
     @ObservedObject private var membership = CardKeyMembership.shared
     @State private var input = ""
     @State private var wrongKey = false
+    @State private var isSubmitting = false
     @FocusState private var isFocused: Bool
 
     var body: some View {
@@ -45,13 +46,19 @@ struct CardKeyUnlockView: View {
             }
 
             Button(action: activate) {
-                Text(localized("激活"))
-                    .font(.body.weight(.semibold))
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 6)
+                if isSubmitting {
+                    ProgressView()
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 6)
+                } else {
+                    Text(localized("激活"))
+                        .font(.body.weight(.semibold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 6)
+                }
             }
             .buttonStyle(.borderedProminent)
-            .disabled(input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            .disabled(isSubmitting || input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
 
             Button(localized("取消"), role: .cancel) { dismiss() }
                 .font(.footnote)
@@ -63,8 +70,8 @@ struct CardKeyUnlockView: View {
         .presentationDragIndicator(.visible)
         .onAppear {
             isFocused = true
-            // 打开面板就拉一次最新名单：后台刚加的卡密，这里输进去立刻能用，
-            // 不用等 App 下次冷启动。失败无妨，activate 会走本地缓存和内置那 11 条。
+            // 打开面板就复验一次：若服务端已把这条卡密吊销，这里立刻收回会员，
+            // 不用等 App 下次冷启动。
             Task { await membership.refreshIfNeeded(force: true) }
         }
         .onChange(of: membership.isUnlocked) { _, unlocked in
@@ -73,12 +80,19 @@ struct CardKeyUnlockView: View {
     }
 
     private func activate() {
-        if membership.activate(input) {
-            wrongKey = false
-            SubscriptionStore.shared.cardKeyMembershipDidChange()
-            dismiss()
-        } else {
-            wrongKey = true
+        guard !isSubmitting else { return }
+        let key = input
+        isSubmitting = true
+        Task {
+            let unlocked = await membership.activate(key)
+            isSubmitting = false
+            if unlocked {
+                wrongKey = false
+                SubscriptionStore.shared.cardKeyMembershipDidChange()
+                dismiss()
+            } else {
+                wrongKey = true
+            }
         }
     }
 }

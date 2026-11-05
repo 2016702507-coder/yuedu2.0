@@ -303,14 +303,17 @@ struct SettingsView: View {
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                 Button(localized("激活")) {
-                    if cardKeyMembership.activate(cardKeyInput) {
-                        cardKeyWrongKey = false
-                        cardKeyInput = ""
-                        subscriptionStore.cardKeyMembershipDidChange()
-                    } else {
-                        cardKeyWrongKey = true
-                        // Alert 已在关闭动画中；稍候重弹，避免同帧重设 isPresented 失效。
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { cardKeyAlert = true }
+                    let key = cardKeyInput
+                    Task {
+                        if await cardKeyMembership.activate(key) {
+                            cardKeyWrongKey = false
+                            cardKeyInput = ""
+                            subscriptionStore.cardKeyMembershipDidChange()
+                        } else {
+                            cardKeyWrongKey = true
+                            // Alert 已在关闭动画中；稍候重弹，避免同帧重设 isPresented 失效。
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { cardKeyAlert = true }
+                        }
                     }
                 }
                 .disabled(cardKeyInput.isEmpty)
