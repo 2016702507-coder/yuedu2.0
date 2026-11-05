@@ -192,6 +192,10 @@ final class SubscriptionStore: ObservableObject {
     // MARK: - Private
 
     private var updatesListenerTask: Task<Void, Never>?
+    /// 卡密會員到期／被遠端吊銷時，會員狀態是被 `CardKeyMembership` 自己改的，
+    /// 這裡跟著重算一次 `isProActive`，否則要等用戶重啟才掉權益。
+    /// `nonisolated(unsafe)`：只為了讓 nonisolated 的 deinit 能把它摘掉。
+    private nonisolated(unsafe) var cardKeyObserver: NSObjectProtocol?
     private var loadedStorefrontID: String?
     private var productLoadGeneration = 0
     private let accountService = SubscriptionAccountService.shared
@@ -241,6 +245,11 @@ final class SubscriptionStore: ObservableObject {
         // an update delivered while the app was backgrounded or during a
         // purchase interrupted by an Ask-to-Buy / SCA prompt.
         updatesListenerTask = listenForTransactions()
+        cardKeyObserver = NotificationCenter.default.addObserver(
+            forName: .cardKeyMembershipStateChanged, object: nil, queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in self?.cardKeyMembershipDidChange() }
+        }
         Task {
             // Before anything reads an environment-scoped store: the suffix that
             // separates TestFlight from App Store state depends on it.
@@ -254,6 +263,7 @@ final class SubscriptionStore: ObservableObject {
 
     deinit {
         updatesListenerTask?.cancel()
+        if let cardKeyObserver { NotificationCenter.default.removeObserver(cardKeyObserver) }
     }
 
     // MARK: - Feature gating

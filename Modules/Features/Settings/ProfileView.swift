@@ -39,12 +39,29 @@ struct SettingsView: View {
     #if DEBUG
     @State private var autoOpenDiagnostics = false
     #endif
-    /// 卡密失败文案：区分「设备已被占用」和「卡密错误」
+    /// 卡密失败文案：区分「设备已被占用」「已过期」和「卡密错误」
     private var cardKeyFailureText: String {
         switch cardKeyMembership.lastFailureReason {
         case "device_mismatch": return "此卡密已在其他裝置啟用"
+        case "expired": return "此卡密已到期，請換一張新卡密"
         case "network": return "網路連線失敗，請稍後重試"
         default: return "卡密錯誤，請重新輸入"
+        }
+    }
+
+    /// 會員卡密一行的狀態：永久 / 月卡剩餘天數 / 未激活。
+    private var cardKeyStatusText: String {
+        guard cardKeyMembership.isUnlocked else { return localized("未激活") }
+        switch cardKeyMembership.plan {
+        case .forever:
+            return localized("永久會員")
+        case .month:
+            guard let days = cardKeyMembership.remainingDays, days > 0 else {
+                return localized("月卡會員")
+            }
+            return String(format: localized("月卡會員 · 剩餘 %d 天"), days)
+        case .none:
+            return localized("未激活")
         }
     }
 
@@ -89,7 +106,7 @@ struct SettingsView: View {
                         DSSettingsRow(
                             icon: "crown.fill",
                             title: localized("會員卡密"),
-                            detail: cardKeyMembership.isUnlocked ? localized("永久會員") : localized("未激活"),
+                            detail: cardKeyStatusText,
                             action: {
                                 // 这里的弹窗绑定的是 cardKeyAlert，不是 showCardKeyEntry；
                                 // 之前只置了后者，导致点这一行毫无反应。
@@ -329,7 +346,7 @@ struct SettingsView: View {
                 Button(localized("取消"), role: .cancel) {}
             } message: {
                 // 卡密对但设备不符时，提示「卡密错误」会让人一直重输
-                Text(cardKeyWrongKey ? localized(cardKeyFailureText) : localized("輸入卡密以激活永久會員"))
+                Text(cardKeyWrongKey ? localized(cardKeyFailureText) : localized("輸入卡密以激活會員（月卡 / 永久）"))
             }
             .sheet(isPresented: $showAISettings) {
                 AISettingsView()

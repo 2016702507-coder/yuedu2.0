@@ -23,10 +23,16 @@ struct CardKeyUnlockView: View {
             Text(localized("會員卡密"))
                 .font(.title3.weight(.semibold))
 
-            Text(localized("輸入卡密即可解鎖會員功能"))
+            Text(localized("支援月卡（30 天）與永久卡，一張卡密限一台裝置"))
                 .font(.footnote)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
+
+            if membership.isUnlocked {
+                Text(statusText)
+                    .font(.footnote.weight(.medium))
+                    .foregroundStyle(.secondary)
+            }
 
             TextField(localized("請輸入卡密"), text: $input)
                 .textFieldStyle(.roundedBorder)
@@ -67,7 +73,7 @@ struct CardKeyUnlockView: View {
             Spacer(minLength: 0)
         }
         .padding(24)
-        .presentationDetents([.height(400)])
+        .presentationDetents([.height(430)])
         .presentationDragIndicator(.visible)
         .onAppear {
             isFocused = true
@@ -80,10 +86,26 @@ struct CardKeyUnlockView: View {
         }
     }
 
+    /// 目前檔位一行；未激活時不顯示。
+    private var statusText: String {
+        switch membership.plan {
+        case .forever:
+            return localized("目前：永久會員")
+        case .month:
+            guard let days = membership.remainingDays, days > 0 else {
+                return localized("目前：月卡會員")
+            }
+            return String(format: localized("目前：月卡會員 · 剩餘 %d 天"), days)
+        case .none:
+            return ""
+        }
+    }
+
     /// 失败文案按原因区分：卡密对但设备不符时，提示「卡密错误」会让人一直重输。
     private var failureText: String {
         switch membership.lastFailureReason {
         case "device_mismatch": return "此卡密已在其他裝置啟用"
+        case "expired": return "此卡密已到期，請換一張新卡密"
         case "network": return "網路連線失敗，請稍後重試"
         default: return "卡密錯誤，請重新輸入"
         }
