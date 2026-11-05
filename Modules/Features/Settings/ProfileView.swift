@@ -39,6 +39,15 @@ struct SettingsView: View {
     #if DEBUG
     @State private var autoOpenDiagnostics = false
     #endif
+    /// 卡密失败文案：区分「设备已被占用」和「卡密错误」
+    private var cardKeyFailureText: String {
+        switch cardKeyMembership.lastFailureReason {
+        case "device_mismatch": return "此卡密已在其他裝置啟用"
+        case "network": return "網路連線失敗，請稍後重試"
+        default: return "卡密錯誤，請重新輸入"
+        }
+    }
+
     private let feedbackEmail = "2961361138@qq.com"
     /// 交流群 (maintainer, 2026-11-05). Tapping the row copies the number — a QQ group
     /// invitation URL needs the group to be joinable by link, and this one is searched
@@ -319,7 +328,8 @@ struct SettingsView: View {
                 .disabled(cardKeyInput.isEmpty)
                 Button(localized("取消"), role: .cancel) {}
             } message: {
-                Text(cardKeyWrongKey ? localized("卡密錯誤，請重新輸入") : localized("輸入卡密以激活永久會員"))
+                // 卡密对但设备不符时，提示「卡密错误」会让人一直重输
+                Text(cardKeyWrongKey ? localized(cardKeyFailureText) : localized("輸入卡密以激活永久會員"))
             }
             .sheet(isPresented: $showAISettings) {
                 AISettingsView()

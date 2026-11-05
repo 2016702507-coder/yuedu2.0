@@ -40,9 +40,10 @@ struct CardKeyUnlockView: View {
                 .onSubmit(activate)
 
             if wrongKey {
-                Text(localized("卡密錯誤，請重新輸入"))
+                Text(localized(failureText))
                     .font(.footnote)
                     .foregroundStyle(.red)
+                    .multilineTextAlignment(.center)
             }
 
             Button(action: activate) {
@@ -76,6 +77,15 @@ struct CardKeyUnlockView: View {
         }
         .onChange(of: membership.isUnlocked) { _, unlocked in
             if unlocked { dismiss() }
+        }
+    }
+
+    /// 失败文案按原因区分：卡密对但设备不符时，提示「卡密错误」会让人一直重输。
+    private var failureText: String {
+        switch membership.lastFailureReason {
+        case "device_mismatch": return "此卡密已在其他裝置啟用"
+        case "network": return "網路連線失敗，請稍後重試"
+        default: return "卡密錯誤，請重新輸入"
         }
     }
 
