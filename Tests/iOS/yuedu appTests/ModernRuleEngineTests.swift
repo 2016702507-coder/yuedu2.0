@@ -1,0 +1,167 @@
+import Foundation
+import Testing
+@testable import yuedu_app
+
+struct ModernRuleEngineTests {
+    @Test
+    func cssExtractorMatchesLegacyOutput() throws {
+        let html = """
+        <html><body>
+            <div class='item'><a class='title' href='/book/1'>斗羅大陸</a></div>
+        </body></html>
+        """
+        let baseURL = "https://example.com/catalog"
+        let rule = "@css:a.title@href"
+
+        let legacy = RuleEngine.routeExtractValue(content: html, baseURL: baseURL, rule: rule)
+        let modern = try ModernRuleEngine().extractValue(from: html, rule: rule, baseURL: baseURL)
+
+        #expect(modern == legacy)
+        #expect(modern == "https://example.com/book/1")
+    }
+
+    @Test
+    func xpathPathMatchesLegacyOutput() throws {
+        let html = """
+        <html><body>
+            <div id='content'>
+                <p>第一段</p>
+                <p>第二段</p>
+            </div>
+        </body></html>
+        """
+        let baseURL = "https://example.com"
+        let rule = "@xpath://div[@id='content']/p[1]"
+
+        let legacy = RuleEngine.routeExtractValue(content: html, baseURL: baseURL, rule: rule)
+        let modern = try ModernRuleEngine().extractValue(from: html, rule: rule, baseURL: baseURL)
+
+        #expect(modern == legacy)
+        #expect(modern.contains("第一段"))
+    }
+
+    @Test
+    func xpathListMatchesLegacyOutput() throws {
+        let html = """
+        <html><body>
+            <ul>
+                <li><a href='/ch/1'>章節1</a></li>
+                <li><a href='/ch/2'>章節2</a></li>
+            </ul>
+        </body></html>
+        """
+        let baseURL = "https://example.com"
+        let rule = "@xpath://li/a/@href"
+
+        let legacy = RuleEngine.extractValueList(fromHTML: html, rule: rule, baseURL: baseURL)
+        let modern = try ModernRuleEngine().extractList(from: html, rule: rule, baseURL: baseURL)
+
+        #expect(modern == legacy)
+        #expect(modern.count == 2)
+        #expect(modern.first == "https://example.com/ch/1")
+    }
+
+    @Test
+    func jsonPathMatchesLegacyOutput() throws {
+        let json = """
+        {
+          "data": {
+            "list": [
+              {"title": "Book A"},
+              {"title": "Book B"}
+            ]
+          }
+        }
+        """
+        let baseURL = "https://api.example.com"
+        let rule = "$.data.list[0].title"
+
+        let legacy = RuleEngine.routeExtractValue(content: json, baseURL: baseURL, rule: rule)
+        let modern = try ModernRuleEngine().extractValue(from: json, rule: rule, baseURL: baseURL)
+
+        #expect(modern == legacy)
+        #expect(modern == "Book A")
+    }
+
+    @Test
+    func regexChainMatchesLegacyOutput() throws {
+        let html = "<div class='title'>【校對版】斗羅大陸</div>"
+        let baseURL = "https://example.com"
+        let rule = "@css:div.title@text##【.*?】##"
+
+        let legacy = RuleEngine.routeExtractValue(content: html, baseURL: baseURL, rule: rule)
+        let modern = try ModernRuleEngine().extractValue(from: html, rule: rule, baseURL: baseURL)
+
+        #expect(modern == legacy)
+        #expect(modern == "斗羅大陸")
+    }
+
+    @Test
+    func jsBlockNewlineJSONPathListExtraction() {
+        let engine = ModernRuleEngine()
+        engine.setContent("payload")
+        engine.jsEvaluator = { _, _ in
+            #"{"data":[{"book_name":"斗罗大陆"},{"book_name":"斗罗大陆II"}]}"#
+        }
+
+        let elements = engine.getElements(ruleStr: """
+        <js>
+        request('/search');
+        </js>
+        $.data
+        """)
+
+        #expect(elements.count == 2)
+        // Elements are the parsed JSON objects (Legado's JsonPath getList returns the
+        // objects too), so check them the way a book-list parse reads them: each one
+        // becomes the content for its field rules. Their `description` is not a contract —
+        // Foundation prints a dictionary's CJK as `\U6597…`.
+        guard elements.count == 2 else { return }
+        for (element, name) in zip(elements, ["斗罗大陆", "斗罗大陆II"]) {
+            engine.setContent(element)
+            #expect(engine.getString(ruleStr: "$.book_name") == name)
+            #expect(engine.getString(ruleStr: "book_name") == name)
+        }
+    }
+
+    /// A JSONPath element is a parsed `JSONSerialization` object. When a rule needs it as
+    /// text — a `##` replace or a regex — it must read as JSON (Legado prints
+    /// `JsonObject.toString`), not as Foundation's plist description, which escapes CJK as
+    /// `\U6597…` and writes `key = value;`.
+    @Test
+    func jsonObjectElementReplaceSeesJSONText() throws {
+        let engine = ModernRuleEngine()
+        engine.setContent(#"{"data":[{"book_name":"斗罗大陆","url":"https://a/b"}]}"#)
+        let elements = engine.getElements(ruleStr: "$.data")
+        try #require(elements.count == 1)
+
+        engine.setContent(elements[0])
+        let text = engine.getString(ruleStr: "##^##")
+
+        #expect(!text.contains(#"\U"#))
+        #expect(!text.contains(#"\/"#))
+        #expect(text.contains("https://a/b"))
+        let parsed = try #require(
+            try JSONSerialization.jsonObject(with: Data(text.utf8)) as? [String: Any]
+        )
+        #expect(parsed["book_name"] as? String == "斗罗大陆")
+        #expect(parsed["url"] as? String == "https://a/b")
+    }
+
+    @Test
+    func jsonObjectElementRegexMatchesJSONText() throws {
+        let engine = ModernRuleEngine()
+        engine.setContent(#"{"data":[{"book_name":"斗罗大陆","url":"https://a/b"}]}"#)
+        let elements = engine.getElements(ruleStr: "$.data")
+        try #require(elements.count == 1)
+
+        engine.setContent(elements[0])
+        let matches = engine.getElements(ruleStr: #":"book_name":"([^"]+)""#)
+
+        try #require(matches.count == 1)
+        let groups = try #require(matches[0] as? [String?])
+        #expect(groups.count == 2)
+        #expect(groups.last ?? nil == "斗罗大陆")
+    }
+
+}

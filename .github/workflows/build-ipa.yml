@@ -9,7 +9,7 @@ on:
 
 jobs:
   build:
-    runs-on: macos-15
+    runs-on: macos-15-intel
     timeout-minutes: 240
     env:
       # —— 改成你自己签名证书的 App ID（必须是「精确 ID」，不能带 * ）——
@@ -102,10 +102,14 @@ jobs:
           xcodebuild -version
           xcodebuild -showsdks | grep -i iphone || true
 
-      - name: Generate placeholder GoogleService-Info.plist
+      - name: Ensure GoogleService-Info.plist has a valid API key
         run: |
-          if [ ! -s GoogleService-Info.plist ]; then
-            cat > GoogleService-Info.plist <<'EOF'
+          # Firebase 的 FIRInstallations 在启动时校验 API_KEY 长度必须为 39，
+          # 不合规直接抛 NSException——Swift 捕获不到，进程当场终止（白屏闪退）。
+          KEY=$(/usr/libexec/PlistBuddy -c "Print :API_KEY" GoogleService-Info.plist 2>/dev/null || echo "")
+          echo "当前 API_KEY 长度: ${#KEY}"
+          if [ "${#KEY}" != "39" ]; then
+            sed 's/^ *//' <<'EOF' > GoogleService-Info.plist
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0">
@@ -120,7 +124,12 @@ jobs:
           </dict>
           </plist>
           EOF
-            echo "已写入占位 GoogleService-Info.plist"
+            echo "已重写为 39 字符合规占位"
+          fi
+          FINAL=$(/usr/libexec/PlistBuddy -c "Print :API_KEY" GoogleService-Info.plist 2>/dev/null || echo "")
+          if [ "${#FINAL}" != "39" ]; then
+            echo "::error::API_KEY 长度 ${#FINAL}，Firebase 要求 39 字符，构建中止"
+            exit 1
           fi
 
       - name: Resolve Swift packages (with retry)

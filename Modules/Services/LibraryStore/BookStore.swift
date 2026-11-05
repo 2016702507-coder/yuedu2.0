@@ -1,0 +1,3854 @@
+import Combine
+import Foundation
+import OSLog
+import os
+import SwiftSoup
+import SwiftUI
+import UIKit
+import WidgetKit
+import ReadiumShared
+import YueduCoreText
+
+extension OnlineBookContentKind {
+    var pipelineKind: BookPipelineKind {
+        switch self {
+        case .audio:
+            return .audio
+        case .manga:
+            return .manga
+        case .video:
+            return .video
+        case .text:
+            return .html
+        }
+    }
+}
+
+// Widget data model — matched with Widget target's BookProgress
+struct WidgetBookProgress: Codable {
+    var title: String
+    var author: String
+    var progress: Double
+    var coverImagePath: String?
+    var lastReadDate: Date
+}
+
+private struct PersistedPositionSnapshot: Equatable {
+    let currentPosition: Double
+    let mangaChapterIndex: Int
+    let mangaPage: Int
+    let audioChapterIndex: Int
+    let audioTimeSeconds: Double
+
+    init(book: ReadingBook) {
+        currentPosition = book.currentPosition
+        mangaChapterIndex = book.mangaChapterIndex
+        mangaPage = book.mangaPage
+        audioChapterIndex = book.audioChapterIndex
+        audioTimeSeconds = book.audioTimeSeconds
+    }
+}
+
+/// Owns the single record array and its data publisher. Data subscribers (sync)
+/// must still receive progress while the full-screen reader observes its session.
+private final class BookRecordStorage {
+    @Published var values: [ReadingBook] = []
+}
+
+@MainActor
+class BookStore: @MainActor ObservableObject, BookProvider {
+    let objectWillChange = ObservableObjectPublisher()
+    private let recordStorage = BookRecordStorage()
+    /// Every refresh that moved chapters to other indices. An event, not state: the full-screen
+    /// reader does not observe the store, so it takes this with `onReceive`.
+    let chapterRenumberings = PassthroughSubject<ChapterRenumbering, Never>()
+    private var records: [ReadingBook] {
+        get { recordStorage.values }
+        set { replaceRecords(newValue) }
+    }
+
+    private func replaceRecords(_ value: [ReadingBook], notifyLibraryViews: Bool = true) {
+        if notifyLibraryViews { objectWillChange.send() }
+        recordStorage.values = movingChapterListsToStore(value)
+        mutationRevision &+= 1
+    }
+
+    /// A record never holds its table of contents, as legado's `Book` has none: a list
+    /// attached to one — a book built with its chapters, or read through `readingBook(id:)`
+    /// and saved back — moves to `chapterStore`, and the record keeps its summary. A record
+    /// without one leaves the stored list alone.
+    private func movingChapterListsToStore(_ value: [ReadingBook]) -> [ReadingBook] {
+        guard value.contains(where: { $0.onlineChapters != nil }) else { return value }
+        return value.map { book in
+            guard let chapters = book.onlineChapters else { return book }
+            var record = book
+            record.onlineChapters = nil
+            record.applyChapterSummary(from: chapters)
+            chapterStore.setChapters(chapters, for: book.id)
+            return record
+        }
+    }
+
+    /// The network may finish after an import, deletion or reading-position edit.
+    /// A result may replace the shelf only while its input snapshot is current.
+    private(set) var mutationRevision: UInt64 = 0
+
+    /// The shelf and its groups as derived from `records` at `revision`. `books` used to be a
+    /// `records.filter` on every access and `allGroups` a filter + Set + sort, both read many
+    /// times per bookshelf body (and by sync, the widget, search): with 300 books one store
+    /// publish cost the shelf ~13 ms on the main thread (Debug simulator). Derived once per
+    /// change of `records`, whose only write point bumps `mutationRevision` — a memo of a
+    /// value, not a second store.
+    private struct ShelfDerivation {
+        let revision: UInt64
+        let books: [ReadingBook]
+        var groups: [String]?
+    }
+    /// Locked: `books` is also read off the main thread (sync encoding, downloads), and a
+    /// getter that fills a memo must not race itself.
+    private let shelfDerivation = OSAllocatedUnfairLock<ShelfDerivation?>(initialState: nil)
+
+    private var derivedShelf: ShelfDerivation {
+        let revision = mutationRevision
+        if let derived = shelfDerivation.withLock({ $0 }), derived.revision == revision { return derived }
+        let derived = ShelfDerivation(revision: revision, books: records.filter(\.isInBookshelf))
+        shelfDerivation.withLock { $0 = derived }
+        return derived
+    }
+
+    /// `CopyLookup` (unified library 2c), memoized like `derivedShelf`: per `mutationRevision`
+    /// and the remote library connections it was keyed with.
+    private struct CopyLookupDerivation {
+        let revision: UInt64
+        let connections: [String]
+        let lookup: CopyLookup
+    }
+    private let copyLookupDerivation = OSAllocatedUnfairLock<CopyLookupDerivation?>(initialState: nil)
+
+    func copyLookupMemo(fingerprint connections: [String], build: () -> CopyLookup) -> CopyLookup {
+        let revision = mutationRevision
+        if let derived = copyLookupDerivation.withLock({ $0 }), derived.revision == revision, derived.connections == connections {
+            return derived.lookup
+        }
+        let lookup = build()
+        copyLookupDerivation.withLock { $0 = CopyLookupDerivation(revision: revision, connections: connections, lookup: lookup) }
+        return lookup
+    }
+
+    /// Only explicit shelf members are exposed to shelf, widget and sync clients.
+    var books: [ReadingBook] {
+        get { derivedShelf.books }
+        set {
+            let ids = Set(newValue.map(\.id))
+            records = newValue.map { book in
+                var book = book
+                book.isInBookshelf = true
+                return book
+            } + records.filter { !$0.isInBookshelf && !ids.contains($0.id) }
+        }
+    }
+
+    var shelfPublisher: AnyPublisher<[ReadingBook], Never> {
+        recordStorage.$values.map { $0.filter(\.isInBookshelf) }.eraseToAnyPublisher()
+    }
+
+    var readingBooks: [ReadingBook] { records }
+
+    /// What the cloud syncs: the shelf, and the versions kept beside its books
+    /// (`ReadingBook.versionOf`, maintainer 2026-10-26: a version switched from on one device
+    /// is there to switch back to on every device). Copies only read stay on this device.
+    var syncedBooks: [ReadingBook] { records.filter { $0.isInBookshelf || $0.versionOf != nil } }
+
+    /// The book with its table of contents, which is read from `chapterStore` the first
+    /// time it is asked for — legado's `getChapterList(bookUrl)` for the book being opened.
+    func readingBook(id: UUID) -> ReadingBook? {
+        guard var book = records.first(where: { $0.id == id }) else { return nil }
+        book.onlineChapters = chapterStore.chapters(for: id)
+        return book
+    }
+
+    /// A shelf book's record — its summary, without the table of contents — found without
+    /// building `books`, which filters every record on each access.
+    func shelfRecord(id: UUID) -> ReadingBook? {
+        guard let book = records.first(where: { $0.id == id }), book.isInBookshelf else { return nil }
+        return book
+    }
+
+    /// A book's table of contents (legado's `getChapterList`). The shelf's records carry
+    /// only its summary (`totalChapterNum`, `latestChapterTitle`). Safe off the main thread:
+    /// `chapterStore` has its own lock.
+    nonisolated func chapters(for bookId: UUID) -> [OnlineChapterRef]? {
+        chapterStore.chapters(for: bookId)
+    }
+
+    func saveReadingBook(_ book: ReadingBook) {
+        if let index = records.firstIndex(where: { $0.id == book.id }) {
+            records[index] = book
+        } else {
+            records.append(book)
+        }
+        saveMetaImmediately()
+    }
+
+    @discardableResult
+    func addReadingBookToShelf(id: UUID) -> ReadingBook? {
+        guard let index = records.firstIndex(where: { $0.id == id }) else { return nil }
+        records[index].isInBookshelf = true
+        // On the shelf, a copy is no version of another book: the launch merge decides which
+        // of the two stays (`ShelfWorkMerger`).
+        records[index].versionOf = nil
+        saveMetaImmediately()
+        return records[index]
+    }
+
+    nonisolated private var readingMetadataFileURL: URL {
+        Self.readingMetadataFileURL(forShelf: metadataFileURL)
+    }
+
+    /// Where the records of books not on the shelf are kept, beside the shelf's file.
+    nonisolated static func readingMetadataFileURL(forShelf shelfURL: URL) -> URL {
+        shelfURL.deletingPathExtension().appendingPathExtension("reading.json")
+    }
+    private var lastPersistedReadingData: Data?
+    /// Set when the reading-record file could not be read, or did not decode and could not be
+    /// copied aside. The books only read (立即閱讀 copies, remote references taken off the
+    /// shelf) are in no other file; writing would replace them with the few this launch knows.
+    private var readingRecordsWritesBlocked = false
+
+    /// Thrown by a write that must land when `metadataWritesBlocked` or
+    /// `readingRecordsWritesBlocked` keeps it from its file.
+    struct MetadataFileUnwritable: Error {}
+
+
+    // Legacy UserDefaults key kept only for one-time migration.
+    private let legacyMetaKey = "yd_books_meta"
+    private var saveWorkItem: DispatchWorkItem?
+    /// When the oldest still-unwritten edit was requested. Drives the debounce ceiling.
+    private var firstPendingSaveRequestedAt: Date?
+    private var saveGeneration = 0
+    private let metadataFileURL: URL
+    private var lastPersistedMetadataData: Data?
+    /// Set when the shelf file could not be read, or did not decode and could not be copied
+    /// aside. Writing would replace the only copy of data nobody has seen.
+    private var metadataWritesBlocked = false
+    private var lastPersistedPositionSnapshots: [UUID: PersistedPositionSnapshot] = [:]
+    private var lastPersistedPositionSaveUptimeByBook: [UUID: TimeInterval] = [:]
+
+    private static let minimumProgressDeltaForMetadataWrite = 0.0025
+    private static let minimumAudioTimeDeltaForMetadataWrite: TimeInterval = 30
+    private static let maximumPositionMetadataWriteInterval: TimeInterval = 60
+
+    /// Persistent storage location for the book-library JSON.
+    /// Kept out of the UserDefaults domain plist (which is loaded synchronously at
+    /// launch into memory in its entirety) and under Application Support rather than
+    /// Documents: this file *is* the bookshelf, and Documents is user-visible in the
+    /// Files app, where deleting it would empty the shelf. Still backed up.
+    /// `StorageMigration` moves it out of the legacy Documents location.
+    static var booksMetaFileURL: URL {
+        StorageLocations.booksMetadataFile
+    }
+
+    /// Per-book reader settings. Kept beside the shelf file, as the reading records are, so
+    /// a store opened on any other shelf (every test's temporary one) never reads or
+    /// rewrites the app's own.
+    let readerSettings: BookReaderSettingsStore
+
+    /// Every book's table of contents, one file per book beside the shelf file — legado's
+    /// chapters table. The shelf file holds the books and a summary of each list.
+    private let chapterStore: BookChapterStore
+    /// Identifiers and metadata each import read beyond title and author, one sidecar per
+    /// copy beside the shelf file (unified library 1b). Never part of a `ReadingBook`.
+    let importedMetadata: ImportedMetadataStore
+    /// Unified library 1d: the reader's decisions, `Works/decisions.json`. Its title and
+    /// author locks are checked before the online refresh writes either.
+    let workDecisions: WorkDecisionsStore
+    /// Unified library 2d: what WebDAV indexing found, `Works/remote/<connection id>.json`.
+    let remoteRecords: RemoteRecordStore
+    /// Unified library 5c-4: the one work index of this shelf, `Works/index.json`, refreshed
+    /// when a reader of it asks (`WorkIndexService.current()`). Here, beside the stores it is
+    /// built from, so Explore's home and the bookshelf's 作品詳情 (5f) share it.
+    @MainActor lazy var workIndex = WorkIndexService(
+        store: self,
+        directory: metadataFileURL.deletingLastPathComponent().appendingPathComponent("Works", isDirectory: true)
+    )
+    /// Unified library 5d-6b: reads the local EPUB copies' series numbers once, for 系列下一本.
+    @MainActor lazy var seriesNumberBackfill = SeriesNumberBackfill(
+        store: self,
+        worksDirectory: metadataFileURL.deletingLastPathComponent().appendingPathComponent("Works", isDirectory: true)
+    )
+    /// Unified library Phase 3: which provider was asked about which copy (`Works/metadata-fill.json`).
+    @MainActor lazy var metadataFillLedger = MetadataFillLedger(
+        worksDirectory: metadataFileURL.deletingLastPathComponent().appendingPathComponent("Works", isDirectory: true)
+    )
+    /// Phase 3a-2: the covers the filler gave copies with none, for the shelf's cover slots.
+    @MainActor lazy var filledCovers = FilledCoverIndex()
+    /// Phase 3d: when the filler runs. Idle until the app marks it active.
+    @MainActor lazy var metadataFill = MetadataFillCoordinator(store: self)
+    /// Whether the last load read both the shelf and the reading records. Only then may a
+    /// book missing from `records` be taken as gone, and its list and settings removed.
+    private var recordsLoadedCompletely = false
+
+    /// Where a book read and then taken off the shelf leaves its name for 搜索's 最近閱讀
+    /// (`OffShelfReadRecords`). Nil for a store on any shelf but the app's own, which then
+    /// leaves no names behind.
+    private let offShelfReadRecordsDefaults: UserDefaults?
+    /// Where opening a book records its genres for AI 推薦 (Discovery Phase 7a-2). Nil for a
+    /// store on any shelf but the app's own.
+    private let readingGenres: ReadingGenreRecorder?
+
+    /// - Parameter legacyReaderSettingsDefaults: where builds before
+    ///   `BookReaderSettingsStore` kept the fixed-page reading mode. Only the app's own
+    ///   store passes one; a store opened on any other shelf must not claim those keys.
+    /// - Parameter offShelfReadRecordsDefaults: where removed books leave their names.
+    ///   Only the app's own store passes one, so a test's shelf never writes the app's list.
+    /// - Parameter readingGenres: where opened books' genres go; only the app's own store passes one.
+    init(
+        metadataFileURL: URL = BookStore.booksMetaFileURL,
+        legacyReaderSettingsDefaults: UserDefaults? = nil,
+        offShelfReadRecordsDefaults: UserDefaults? = nil,
+        readingGenres: ReadingGenreRecorder? = nil
+    ) {
+        self.metadataFileURL = metadataFileURL
+        self.offShelfReadRecordsDefaults = offShelfReadRecordsDefaults
+        self.readingGenres = readingGenres
+        readerSettings = BookReaderSettingsStore(
+            fileURL: metadataFileURL.deletingPathExtension().appendingPathExtension("reader-settings.json")
+        )
+        chapterStore = BookChapterStore(
+            directoryURL: metadataFileURL.deletingPathExtension().appendingPathExtension("chapters")
+        )
+        importedMetadata = ImportedMetadataStore(besideShelfFile: metadataFileURL)
+        workDecisions = WorkDecisionsStore(besideShelfFile: metadataFileURL)
+        remoteRecords = RemoteRecordStore(besideShelfFile: metadataFileURL)
+        // A store reads the files only after writes already queued to them have landed
+        // (the queue is shared by every instance). At launch it is empty; it matters for a
+        // store opened on files another instance has just saved. Waits on the calling (main)
+        // thread; kept because reopening right after a queued merge relies on it, and timed
+        // so a field report shows it if the queue is ever busy here.
+        SourcePerfTrace.span("library.persist.wait", "site=init main=\(Thread.isMainThread)", thresholdMs: 5) {
+            Self.persistQueue.sync {}
+        }
+        let shelfLoaded = loadMeta()
+        let readingRecordsLoaded = loadReadingRecords()
+        finishLoadingChapterLists(complete: shelfLoaded && readingRecordsLoaded)
+        // One book per work (feedback #16): the app's own shelf — its file, and the store that
+        // takes its off-shelf records — merges copies of one work once per launch. A store on
+        // any other shelf (every test's) never does.
+        if shelfLoaded && readingRecordsLoaded, metadataFileURL == Self.booksMetaFileURL,
+           offShelfReadRecordsDefaults != nil {
+            ShelfWorkLaunchMerge.schedule(store: self)
+        }
+        if let legacyReaderSettingsDefaults {
+            readerSettings.migrateLegacyFixedPageReadingModes(
+                from: legacyReaderSettingsDefaults,
+                knownBookIDs: Set(records.map(\.id)),
+                // Only a shelf that really loaded can say a book no longer exists.
+                removesUnknownKeys: shelfLoaded && readingRecordsLoaded
+            )
+        }
+    }
+
+    // MARK: Read Book Content
+
+    nonisolated func content(for book: ReadingBook) -> String {
+        let url = documentsURL(for: book.contentFilename)
+        if book.resolvedPipelineKind == .txt {
+            return (try? TXTFileReader.readTextFile(url: url)) ?? ""
+        }
+        return (try? String(contentsOf: url, encoding: .utf8)) ?? ""
+    }
+
+    nonisolated func package(forLocalBook book: ReadingBook) throws -> BookPackage {
+        switch book.resolvedPipelineKind {
+        case .epub:
+            let epubFilename = book.contentFilename.hasSuffix(".epub")
+                ? book.contentFilename
+                : book.contentFilename.replacingOccurrences(of: "_epub.json", with: ".epub")
+            let epubURL = documentsURL(for: epubFilename)
+            let placeholder = EPUBParsedBook.placeholder(
+                title: book.title,
+                author: book.author,
+                basePath: epubURL.deletingLastPathComponent()
+            )
+            return placeholder.makePackage(pipelineKind: .epub, originalSourceURL: epubURL)
+        case .html:
+            throw ReaderError.unsupportedFormat("HTML 渲染尚待 CoreText 遷移完成，目前不支援")
+        case .txt:
+            throw ReaderError.unsupportedFormat("TXT 渲染尚待 CoreText 遷移完成，目前不支援")
+        case .manga:
+            throw ReaderError.unsupportedFormat("漫畫使用獨立的圖片閱讀器，無 CoreText 套件")
+        case .fixedPage:
+            throw ReaderError.unsupportedFormat("固定頁面文件使用獨立的固定頁面閱讀器，無 CoreText 套件")
+        case .audio:
+            throw ReaderError.unsupportedFormat("有聲書使用獨立的音訊播放器，無 CoreText 套件")
+        case .video:
+            throw ReaderError.unsupportedFormat("影片使用獨立的影片播放器，無 CoreText 套件")
+        }
+    }
+
+    // MARK: Import TXT File
+
+    @MainActor @discardableResult
+    func importTxt(url: URL, title: String? = nil, author: String? = nil) async throws -> ReadingBook {
+        let fallbackTitle = title ?? url.deletingPathExtension().lastPathComponent
+        let filename = "\(UUID().uuidString).txt"
+        let destination = documentsURL(for: filename)
+
+        let worker = Task.detached(priority: .userInitiated) {
+            try Task.checkCancellation()
+            let metadataStart = ProcessInfo.processInfo.systemUptime
+            let metadata = try SourcePerfTrace.span(
+                "txt.import.metadata",
+                "bytes=\((try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0)"
+            ) {
+                try TXTMetadataProbe.probe(
+                    url: url,
+                    fallbackTitle: fallbackTitle
+                )
+            }
+            AppLogger.info(
+                "[ImportTrace][BookStore.importTxt] stage=metadataProbe "
+                    + "elapsedMs=\(String(format: "%.1f", (ProcessInfo.processInfo.systemUptime - metadataStart) * 1_000))"
+            )
+
+            try Task.checkCancellation()
+            let persistenceStart = ProcessInfo.processInfo.systemUptime
+            try SourcePerfTrace.span(
+                "txt.import.persist",
+                "bytes=\((try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0)"
+            ) {
+                try TXTFilePersistence.persistOriginal(
+                    source: url,
+                    destination: destination
+                )
+            }
+            AppLogger.info(
+                "[ImportTrace][BookStore.importTxt] stage=filePersistence "
+                    + "elapsedMs=\(String(format: "%.1f", (ProcessInfo.processInfo.systemUptime - persistenceStart) * 1_000))"
+            )
+            try Task.checkCancellation()
+            return metadata
+        }
+
+        let metadata: TXTBookMetadata
+        do {
+            metadata = try await withTaskCancellationHandler {
+                try await worker.value
+            } onCancel: {
+                worker.cancel()
+            }
+        } catch {
+            if FileManager.default.fileExists(atPath: destination.path) {
+                do {
+                    try FileManager.default.removeItem(at: destination)
+                } catch let cleanupError {
+                    AppLogger.error(
+                        "Failed to clean cancelled TXT import: \(cleanupError.localizedDescription)"
+                    )
+                }
+            }
+            throw error
+        }
+
+        var book = ReadingBook(
+            title: title ?? metadata.title,
+            author: author ?? metadata.author ?? "未知作者",
+            source: "local",
+            contentFilename: filename
+        )
+        book.contentPipelineKind = .txt
+        let importedBook = book
+
+        do {
+            try Task.checkCancellation()
+            // The header's 文案 and 标签, beside the copy before it joins the shelf, so the
+            // metadata filler (set off by the shelf change) reads them and asks only for the rest.
+            if let header = ImportedMetadataCapture.txt(copy: importedBook, metadata: metadata) {
+                importedMetadata.write(header)
+            }
+            records.insert(importedBook, at: 0)
+            saveMeta()
+        } catch {
+            if FileManager.default.fileExists(atPath: destination.path) {
+                do {
+                    try FileManager.default.removeItem(at: destination)
+                } catch let cleanupError {
+                    AppLogger.error(
+                        "Failed to clean uncommitted TXT import: \(cleanupError.localizedDescription)"
+                    )
+                }
+            }
+            throw error
+        }
+        return importedBook
+    }
+
+    @discardableResult
+    func importMarkdown(
+        url: URL,
+        title: String? = nil,
+        author: String = "未知作者"
+    ) throws -> ReadingBook {
+        let bookTitle = title ?? url.deletingPathExtension().lastPathComponent
+        let ext = normalizedMarkdownExtension(url.pathExtension.lowercased())
+        return try importLocalTextFile(
+            url: url,
+            title: bookTitle,
+            author: author,
+            fileExtension: ext
+        )
+    }
+
+    // MARK: Import Local Manga Archive
+
+    @discardableResult
+    nonisolated func importLocalManga(
+        url: URL,
+        title: String? = nil,
+        author: String? = nil
+    ) async throws -> ReadingBook {
+        let info = try await LocalMangaArchive.inspect(url: url)
+        let uuid = UUID().uuidString
+        let ext = url.pathExtension.lowercased() == "zip" ? "zip" : "cbz"
+        let filename = "\(uuid).\(ext)"
+        let destURL = documentsURL(for: filename)
+        var coverFilename: String?
+
+        func cleanupImportedFiles() {
+            try? FileManager.default.removeItem(at: destURL)
+            if let coverFilename {
+                try? FileManager.default.removeItem(at: StorageLocations.coverFile(coverFilename))
+            }
+        }
+
+        do {
+            if FileManager.default.fileExists(atPath: destURL.path) {
+                try FileManager.default.removeItem(at: destURL)
+            }
+            try FileManager.default.copyItem(at: url, to: destURL)
+
+            let resolvedTitle = title?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+                ? title!.trimmingCharacters(in: .whitespacesAndNewlines)
+                : info.title
+            let resolvedAuthor = author?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+                ? author!.trimmingCharacters(in: .whitespacesAndNewlines)
+                : info.author
+
+            if let cover = await LocalMangaArchive.coverImageData(from: destURL),
+               UIImage(data: cover.data) != nil {
+                let coverExt = cover.fileExtension.isEmpty ? "jpg" : cover.fileExtension
+                let candidate = "\(uuid)_cover.\(coverExt)"
+                try cover.data.write(to: StorageLocations.coverFile(candidate))
+                coverFilename = candidate
+            }
+
+            var imported = ReadingBook(
+                title: resolvedTitle,
+                author: resolvedAuthor,
+                source: "local_manga",
+                contentFilename: filename
+            )
+            imported.contentPipelineKind = .manga
+            imported.onlineChapters = [
+                OnlineChapterRef(index: 0, title: info.chapterTitle, url: filename)
+            ]
+            imported.coverImagePath = coverFilename
+            // Pages are read straight from the archive copied above; nothing is extracted.
+
+            let importedBook = imported
+            await MainActor.run {
+                self.records.insert(importedBook, at: 0)
+                self.saveMeta()
+            }
+            return importedBook
+        } catch {
+            cleanupImportedFiles()
+            throw error
+        }
+    }
+
+    // MARK: Import Local PDF
+
+    /// Import a PDF as a `.fixedPage` book: the file stays in Documents, the whole
+    /// document is one chapter (so page numbers stay absolute), and the PDF's own
+    /// bookmarks become the reader's table of contents.
+    @discardableResult
+    nonisolated func importLocalPDF(
+        url: URL,
+        title: String? = nil,
+        author: String? = nil
+    ) async throws -> ReadingBook {
+        try Task.checkCancellation()
+        let info = try LocalPDFArchive.inspect(url: url)
+        let uuid = UUID().uuidString
+        let filename = "\(uuid).pdf"
+        let destURL = documentsURL(for: filename)
+        var coverFilename: String?
+
+        func cleanupImportedFiles() {
+            try? FileManager.default.removeItem(at: destURL)
+            if let coverFilename {
+                try? FileManager.default.removeItem(at: StorageLocations.coverFile(coverFilename))
+            }
+        }
+
+        do {
+            if FileManager.default.fileExists(atPath: destURL.path) {
+                try FileManager.default.removeItem(at: destURL)
+            }
+            try FileManager.default.copyItem(at: url, to: destURL)
+
+            let resolvedTitle = title?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+                ? title!.trimmingCharacters(in: .whitespacesAndNewlines)
+                : info.title
+            let resolvedAuthor = author?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+                ? author!.trimmingCharacters(in: .whitespacesAndNewlines)
+                : info.author
+
+            if let coverData = LocalPDFArchive.coverImageData(from: destURL) {
+                let candidate = "\(uuid)_cover.jpg"
+                try coverData.write(to: StorageLocations.coverFile(candidate))
+                coverFilename = candidate
+            }
+
+            var imported = ReadingBook(
+                title: resolvedTitle,
+                author: resolvedAuthor,
+                source: "local_pdf",
+                contentFilename: filename
+            )
+            imported.contentPipelineKind = .fixedPage
+            imported.onlineChapters = [
+                LocalPDFArchive.chapterRef(
+                    for: info,
+                    filename: filename,
+                    bookTitle: resolvedTitle
+                )
+            ]
+            imported.coverImagePath = coverFilename
+
+            let importedBook = imported
+            try await MainActor.run {
+                try Task.checkCancellation()
+                self.records.insert(importedBook, at: 0)
+                self.saveMeta()
+            }
+            return importedBook
+        } catch {
+            cleanupImportedFiles()
+            throw error
+        }
+    }
+
+    // MARK: Import Local Audiobook
+
+    @discardableResult
+    nonisolated func importLocalAudiobook(
+        url: URL,
+        title: String? = nil,
+        author: String? = nil
+    ) async throws -> ReadingBook {
+        let info = try await LocalAudiobookArchive.inspect(url: url)
+        let uuid = UUID().uuidString
+        let contentFilename = info.isArchive
+            ? "local_audio/\(uuid)"
+            : "\(uuid).\(url.pathExtension.lowercased())"
+        let contentURL = documentsURL(for: contentFilename)
+        var coverFilename: String?
+
+        func cleanupImportedFiles() {
+            try? FileManager.default.removeItem(at: contentURL)
+            if let coverFilename {
+                try? FileManager.default.removeItem(at: StorageLocations.coverFile(coverFilename))
+            }
+        }
+
+        do {
+            let resolvedTitle = title?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+                ? title!.trimmingCharacters(in: .whitespacesAndNewlines)
+                : info.title
+            let resolvedAuthor = author?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+                ? author!.trimmingCharacters(in: .whitespacesAndNewlines)
+                : info.author
+
+            let chapters: [OnlineChapterRef]
+            if info.isArchive {
+                let extracted = try await LocalAudiobookArchive.extractAudioEntries(from: url, to: contentURL)
+                chapters = extracted.enumerated().map { index, chapter in
+                    OnlineChapterRef(
+                        index: index,
+                        title: chapter.title,
+                        url: "local_audio/\(uuid)/\(chapter.filename)"
+                    )
+                }
+            } else {
+                if FileManager.default.fileExists(atPath: contentURL.path) {
+                    try FileManager.default.removeItem(at: contentURL)
+                }
+                try FileManager.default.copyItem(at: url, to: contentURL)
+                chapters = info.chapterSeeds.enumerated().map { index, seed in
+                    OnlineChapterRef(
+                        index: index,
+                        title: seed.title,
+                        url: contentFilename,
+                        audioStartSeconds: seed.audioStartSeconds,
+                        audioDurationSeconds: seed.audioDurationSeconds
+                    )
+                }
+            }
+
+            if let data = info.coverImageData,
+               let image = UIImage(data: data),
+               let jpeg = image.jpegData(compressionQuality: 0.88) {
+                let candidate = "\(uuid)_cover.jpg"
+                try jpeg.write(to: StorageLocations.coverFile(candidate))
+                coverFilename = candidate
+            }
+
+            var imported = ReadingBook(
+                title: resolvedTitle,
+                author: resolvedAuthor,
+                source: "local_audio",
+                contentFilename: contentFilename
+            )
+            imported.contentPipelineKind = .audio
+            imported.onlineChapters = chapters
+            imported.coverImagePath = coverFilename
+
+            let importedBook = imported
+            await MainActor.run {
+                self.records.insert(importedBook, at: 0)
+                self.saveMeta()
+            }
+            return importedBook
+        } catch {
+            cleanupImportedFiles()
+            throw error
+        }
+    }
+
+    private func importLocalTextFile(
+        url: URL,
+        title: String,
+        author: String,
+        fileExtension: String
+    ) throws -> ReadingBook {
+        let filename = "\(UUID().uuidString).\(fileExtension)"
+        let destURL = documentsURL(for: filename)
+        try TXTFilePersistence.persistOriginal(source: url, destination: destURL)
+
+        var book = ReadingBook(title: title, author: author, source: "local", contentFilename: filename)
+        book.contentPipelineKind = .txt
+        records.insert(book, at: 0)
+        saveMeta()
+        return book
+    }
+
+    private func normalizedMarkdownExtension(_ ext: String) -> String {
+        switch ext {
+        case "markdown":
+            return "markdown"
+        default:
+            return "md"
+        }
+    }
+
+    // MARK: Import EPUB File
+
+    @discardableResult
+    /// - Parameter isInBookshelf: false for a copy made to be read, which joins the shelf only
+    ///   when the reader adds it (a 青空文庫 work read from its 作品詳情).
+    nonisolated func importEpub(url: URL, title: String? = nil, author: String? = nil, requireValidPublication: Bool = false,
+                    isInBookshelf: Bool = true) async throws -> ReadingBook {
+        let importStartUptime = ProcessInfo.processInfo.systemUptime
+        func importTrace(_ message: String) {
+            let line = "[ImportTrace][BookStore.importEpub] \(message)"
+            print(line)
+            NSLog("%@", line)
+        }
+
+        let uuid = UUID().uuidString
+        let filename = "\(uuid).epub"
+        let destURL = documentsURL(for: filename)
+        var coverFilename: String? = nil
+        let sourceSizeBytes = (try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0
+        importTrace(
+            "begin source=\(url.lastPathComponent) sourceSizeBytes=\(sourceSizeBytes) dest=\(filename)"
+        )
+
+        func cleanupImportedFiles() {
+            if FileManager.default.fileExists(atPath: destURL.path) {
+                do {
+                    try FileManager.default.removeItem(at: destURL)
+                } catch {
+                    AppLogger.cache("Failed to remove item at \(destURL): \(error)")
+                }
+            }
+            if let coverFilename {
+                let coverURL = StorageLocations.coverFile(coverFilename)
+                if FileManager.default.fileExists(atPath: coverURL.path) {
+                    do {
+                        try FileManager.default.removeItem(at: coverURL)
+                    } catch {
+                        AppLogger.cache("Failed to remove cover image at \(coverURL): \(error)")
+                    }
+                }
+            }
+        }
+
+        do {
+            try Task.checkCancellation()
+
+            // 1. Copy EPUB to Documents
+            let copyStart = ProcessInfo.processInfo.systemUptime
+            if FileManager.default.fileExists(atPath: destURL.path) {
+                try FileManager.default.removeItem(at: destURL)
+            }
+            try FileManager.default.copyItem(at: url, to: destURL)
+            importTrace(
+                "stage=copy done elapsedMs=\(String(format: "%.1f", (ProcessInfo.processInfo.systemUptime - copyStart) * 1000))"
+            )
+            try Task.checkCancellation()
+
+            // 2. Extract cover and metadata (merged to avoid redundant EPUB ZIP/XML parsing)
+            let metadataStart = ProcessInfo.processInfo.systemUptime
+            let session: PublicationSession?
+            if requireValidPublication {
+                // A received file must be readable before the transfer is
+                // committed. Reuse this metadata open instead of parsing twice.
+                do {
+                    session = try await PublicationSession.open(sourceURL: destURL)
+                } catch let error as PublicationSessionError {
+                    throw error
+                } catch is CancellationError {
+                    throw CancellationError()
+                } catch {
+                    // Readium's own errors say nothing a reader can use, and the import
+                    // alerts show this one; what Readium said goes to the log.
+                    throw PublicationSessionError.parsingFailed(String(describing: error))
+                }
+            } else {
+                session = try? await PublicationSession.open(sourceURL: destURL)
+            }
+            importTrace(
+                "stage=metadataOpen done elapsedMs=\(String(format: "%.1f", (ProcessInfo.processInfo.systemUptime - metadataStart) * 1000)) chapters=\(session?.chapters.count ?? 0)"
+            )
+            try Task.checkCancellation()
+
+            let coverStart = ProcessInfo.processInfo.systemUptime
+            if let coverResult = await session?.publication.cover(), case .success(let optionalImage) = coverResult, let coverImage = optionalImage {
+                let coverName = "\(uuid)_cover.jpg"
+                let coverURL = StorageLocations.coverFile(coverName)
+                // Convert cover to JPEG for space efficiency
+                if let jpegData = coverImage.jpegData(compressionQuality: 0.85) {
+                    do {
+                        try jpegData.write(to: coverURL)
+                        coverFilename = coverName
+                    } catch {
+                        AppLogger.cache("Failed to write cover image at \(coverURL): \(error)")
+                    }
+                }
+            }
+            importTrace(
+                "stage=coverExtract done elapsedMs=\(String(format: "%.1f", (ProcessInfo.processInfo.systemUptime - coverStart) * 1000)) hasCover=\(coverFilename != nil)"
+            )
+            try Task.checkCancellation()
+
+            // 3. Build book model
+            let fallbackTitle = title ?? url.deletingPathExtension().lastPathComponent
+            let parsedTitle = session?.bookTitle.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            let parsedAuthor = session?.author.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            let bookTitle = parsedTitle.isEmpty ? fallbackTitle : parsedTitle
+            let author = parsedAuthor.isEmpty ? "未知" : parsedAuthor
+            var book = ReadingBook(
+                title: bookTitle,
+                author: author,
+                source: "local_epub",
+                contentFilename: filename
+            )
+            if let session, session.layoutMode == .prePaginated {
+                book.contentPipelineKind = .fixedPage
+                book.onlineChapters = FixedLayoutEPUBPageProvider.chapterRefs(from: session)
+                importTrace(
+                    "stage=fixedLayoutDetected pipeline=fixedPage pages=\(session.chapters.count)"
+                )
+            } else {
+                book.contentPipelineKind = .epub
+            }
+            book.coverImagePath = coverFilename
+            book.isInBookshelf = isInBookshelf
+            let finalBook = book
+
+            try Task.checkCancellation()
+            let persistStart = ProcessInfo.processInfo.systemUptime
+            if let session {
+                // Unified library 1b: what the OPF says beyond title and author, beside the copy.
+                // Queued before the copy joins the shelf, so anything the shelf change sets off
+                // (the metadata filler, 3d) reads it: the sidecar store's reads wait for its
+                // queued writes. A cancelled import leaves it behind until the next complete
+                // load removes it (`remove(notIn:)`).
+                let metadata = session.publication.metadata
+                importedMetadata.write(ImportedMetadataCapture.epub(
+                    copy: finalBook,
+                    sourceItem: .copy(finalBook.id),
+                    identifiers: session.opfIdentifiers,
+                    languages: metadata.languages,
+                    description: metadata.description,
+                    subjects: metadata.subjects.map(\.name),
+                    publishers: metadata.publishers.map(\.name),
+                    published: metadata.published,
+                    series: ImportedMetadataCapture.EPUBSeries(metadata)
+                ))
+            }
+            try await MainActor.run {
+                try Task.checkCancellation()
+                self.records.insert(finalBook, at: 0)
+                self.saveMeta()
+            }
+            importTrace(
+                "stage=persist done elapsedMs=\(String(format: "%.1f", (ProcessInfo.processInfo.systemUptime - persistStart) * 1000)) totalElapsedMs=\(String(format: "%.1f", (ProcessInfo.processInfo.systemUptime - importStartUptime) * 1000))"
+            )
+            return finalBook
+        } catch is CancellationError {
+            importTrace("cancelled totalElapsedMs=\(String(format: "%.1f", (ProcessInfo.processInfo.systemUptime - importStartUptime) * 1000))")
+            cleanupImportedFiles()
+            throw CancellationError()
+        } catch {
+            cleanupImportedFiles()
+            throw error
+        }
+    }
+
+    // MARK: Import Web Text
+
+    @discardableResult
+    func importWeb(
+        content: String,
+        title: String,
+        author: String = "網路書籍",
+        sourceURL: String,
+        format: ImportedBookContentFormat = .plainText
+    ) throws -> ReadingBook {
+        return try saveBook(
+            title: title,
+            author: author,
+            content: content,
+            source: sourceURL,
+            format: format
+        )
+    }
+
+    // MARK: Update Reading Progress
+
+    /// Writes a position only when it moves something, or when the library views
+    /// have yet to see an earlier silent write.
+    ///
+    /// A notifying write invalidates every `@EnvironmentObject store` — `ContentView`,
+    /// `HomeView` and `BookReaderView` all hold one — and re-evaluates the whole
+    /// bookshelf behind the open reader. Reading re-sends the same position
+    /// routinely: `saveProgress()` forces a save straight after an auto-save, and a
+    /// scroll that settles back on the chapter it started in reports the same
+    /// fraction. Those writes move nothing on screen, so they no longer publish.
+    /// Persistence is asked either way — a forced save has to be able to flush a
+    /// value that is already in memory but not yet on disk.
+    ///
+    /// `notifyLibraryViews` affects observation only: records, sync, mutation
+    /// ownership and the existing disk-write policy always receive the position.
+    /// The continuous reader's bars observe ReaderSessionStore instead, and its
+    /// lifecycle save publishes the latest summary before the library reappears —
+    /// by writing that same position again with notification, which must therefore
+    /// publish even though the value did not change.
+    private func applyPositionUpdate(
+        bookId: UUID,
+        force: Bool,
+        notifyLibraryViews: Bool = true,
+        _ mutate: (inout ReadingBook) -> Void
+    ) {
+        guard let idx = records.firstIndex(where: { $0.id == bookId }) else { return }
+        var book = records[idx]
+        mutate(&book)
+        let moved = PersistedPositionSnapshot(book: book) != PersistedPositionSnapshot(book: records[idx])
+        if moved || (notifyLibraryViews && unpublishedPositionBookIDs.contains(bookId)) {
+            var updated = records
+            updated[idx] = book
+            replaceRecords(updated, notifyLibraryViews: notifyLibraryViews)
+            if notifyLibraryViews {
+                unpublishedPositionBookIDs.remove(bookId)
+            } else {
+                unpublishedPositionBookIDs.insert(bookId)
+            }
+        }
+        persistPositionUpdateIfNeeded(bookId: bookId, updatedBook: records[idx], force: force)
+    }
+
+    /// Books whose position was written without notifying the library views.
+    private var unpublishedPositionBookIDs: Set<UUID> = []
+
+    func updatePosition(
+        bookId: UUID, position: Double, forceSave: Bool = false, notifyLibraryViews: Bool = true
+    ) {
+        applyPositionUpdate(bookId: bookId, force: forceSave, notifyLibraryViews: notifyLibraryViews) { book in
+            book.currentPosition = position
+        }
+    }
+
+    /// Persist manga reading position (chapter index + page) plus an overall
+    /// progress fraction so the bookshelf progress bar stays meaningful.
+    /// - Parameter pageProgress: how far through the *current* chapter the reader is
+    ///   (0...1). Books whose whole content is a single chapter — a local PDF — have
+    ///   no chapter-level progress to report, so they pass this instead; leaving it
+    ///   nil keeps the chapter-count behaviour every other fixed-page book has.
+    func updateMangaPosition(
+        bookId: UUID,
+        chapter: Int,
+        page: Int,
+        totalChapters: Int,
+        pageProgress: Double? = nil,
+        forceSave: Bool = false
+    ) {
+        applyPositionUpdate(bookId: bookId, force: forceSave) { book in
+            book.mangaChapterIndex = chapter
+            book.mangaPage = page
+            if totalChapters > 0 {
+                let progress = (Double(chapter) + (pageProgress ?? 0)) / Double(totalChapters)
+                book.currentPosition = min(1.0, max(0, progress))
+            }
+        }
+    }
+
+    /// Persist audiobook playback position (chapter index + elapsed seconds) plus
+    /// an overall progress fraction so the bookshelf progress bar stays meaningful.
+    func updateAudioPosition(
+        bookId: UUID,
+        chapter: Int,
+        time: Double,
+        totalChapters: Int,
+        forceSave: Bool = false
+    ) {
+        applyPositionUpdate(bookId: bookId, force: forceSave) { book in
+            book.audioChapterIndex = chapter
+            book.audioTimeSeconds = max(0, time)
+            if totalChapters > 0 {
+                book.currentPosition = min(1.0, Double(chapter) / Double(totalChapters))
+            }
+        }
+    }
+
+    /// The audiobook player's play mode for this book (legado-E / MD3 `Book.setPlayMode`).
+    func setAudioPlayMode(bookId: UUID, mode: AudiobookPlayMode) {
+        guard let idx = records.firstIndex(where: { $0.id == bookId }),
+              records[idx].audiobookPlayMode != mode else { return }
+        records[idx].audiobookPlayMode = mode
+        saveMeta()
+    }
+
+    /// Seconds of opening and closing credits the audiobook player skips in every chapter
+    /// of this book (legado-E / MD3 `Book.setOpenCredits` / `setCloseCredits`).
+    func setAudioSkipCredits(bookId: UUID, openSeconds: Int, closeSeconds: Int) {
+        guard let idx = records.firstIndex(where: { $0.id == bookId }),
+              records[idx].audiobookOpeningCreditsSeconds != openSeconds
+                || records[idx].audiobookClosingCreditsSeconds != closeSeconds
+        else { return }
+        records[idx].audiobookOpeningCreditsSeconds = openSeconds
+        records[idx].audiobookClosingCreditsSeconds = closeSeconds
+        saveMeta()
+    }
+
+    func updateLastOpened(bookId: UUID) {
+        guard let idx = records.firstIndex(where: { $0.id == bookId }) else { return }
+        records[idx].lastOpenedDate = Date()
+        // Opening the book counts as acknowledging any new chapters.
+        records[idx].hasNewChapterUpdate = false
+        saveMeta()
+        readingGenres?.bookOpened(records[idx], metadata: importedMetadata, sources: .shared)
+    }
+
+    /// 從繼續閱讀移除 (unified library 5d-3c): out of 繼續閱讀 until the book is opened again.
+    /// The shelf, its 最近閱讀 order and the book's progress are untouched.
+    func removeFromContinueReading(bookId: UUID) {
+        guard let idx = records.firstIndex(where: { $0.id == bookId }) else { return }
+        records[idx].continueReadingHiddenAt = Date()
+        saveMeta()
+    }
+
+    /// 標記為已讀完 (unified library 5d-3c): 已讀完 wherever progress shows, and out of 繼續閱讀,
+    /// as Apple Books' Mark as Finished. The reader keeps its own position, so opening the
+    /// book again resumes where it was and its next save writes the real progress back.
+    func markFinished(bookId: UUID) {
+        updatePosition(bookId: bookId, position: 1, forceSave: true)
+        removeFromContinueReading(bookId: bookId)
+    }
+
+    func setRendererPreference(bookId: UUID, preference: BookRendererPreference) {
+        guard let idx = records.firstIndex(where: { $0.id == bookId }) else { return }
+        records[idx].rendererPreference = preference
+        saveMeta()
+    }
+
+    /// Lifts an automatic quarantine, leaving every deliberate choice alone.
+    ///
+    /// `.quarantined` is written by the chapter fetcher after five cumulative failures and
+    /// persisted, and nothing ever wrote it back — so a burst of failures (cancelling a
+    /// download cancels many chapters at once) downgraded the book's renderer for good.
+    /// Only the automatic value is cleared: `.forcedLegacy` / `.forcedWeb` are the user's.
+    func clearAutomaticQuarantine(bookId: UUID) {
+        guard let idx = records.firstIndex(where: { $0.id == bookId }),
+              records[idx].compatibilityState == .quarantined
+        else { return }
+        records[idx].compatibilityState = .defaultWeb
+        saveMeta()
+    }
+
+    func setCompatibilityState(bookId: UUID, state: BookCompatibilityState) {
+        guard let idx = records.firstIndex(where: { $0.id == bookId }) else { return }
+        records[idx].compatibilityState = state
+        saveMeta()
+    }
+
+    func setOfflineDownloadState(
+        bookId: UUID,
+        state: BookOfflineDownloadState,
+        downloadedChapterCount: Int? = nil,
+        offlineDownloadTask: BookOfflineDownloadTask? = nil
+    ) {
+        guard let idx = records.firstIndex(where: { $0.id == bookId }) else { return }
+        records[idx].offlineDownloadState = state
+        if let downloadedChapterCount {
+            records[idx].downloadedChapterCount = downloadedChapterCount
+        }
+        if let offlineDownloadTask {
+            records[idx].offlineDownloadTask = offlineDownloadTask
+        }
+        // Download terminal states must survive an immediate app suspension or
+        // termination. Progress updates remain debounced to avoid rewriting the
+        // full library metadata once per chapter.
+        switch state {
+        case .available, .partial, .paused, .failed:
+            saveMetaImmediately()
+        case .none, .downloading:
+            saveMeta()
+        }
+    }
+
+    func replaceOfflineDownloadTask(
+        bookId: UUID,
+        task: BookOfflineDownloadTask,
+        isRunning: Bool
+    ) {
+        guard let idx = records.firstIndex(where: { $0.id == bookId }) else { return }
+        let previousRequestedIndices = records[idx].offlineDownloadTask?.requestedIndices
+        let state = task.derivedState(isRunning: isRunning)
+        // Every table-of-contents refresh reconciles each downloaded book's task, almost
+        // always to what it already is. That used to publish the store and write the whole
+        // shelf at once, per downloaded book, on every launch.
+        if records[idx].offlineDownloadTask == task,
+           records[idx].offlineDownloadState == state,
+           records[idx].downloadedChapterCount == task.completedChapterCount {
+            return
+        }
+        // One assignment: each one publishes the store to every view on it.
+        var updated = records[idx]
+        updated.offlineDownloadTask = task
+        updated.offlineDownloadState = state
+        updated.downloadedChapterCount = task.completedChapterCount
+        records[idx] = updated
+        let targetsChanged = previousRequestedIndices != task.requestedIndices
+        switch state {
+        case .available, .partial, .paused, .failed:
+            saveMetaImmediately()
+        case .none, .downloading:
+            targetsChanged ? saveMetaImmediately() : saveMeta()
+        }
+        // The single write funnel for download progress, and therefore the only place the
+        // Live Activity needs to hear from. Observing `$records` instead would fire for every
+        // unrelated shelf edit.
+        DownloadLiveActivityController.refresh(books: books)
+    }
+
+    func clearOfflineDownloadTask(bookId: UUID) {
+        guard let idx = records.firstIndex(where: { $0.id == bookId }) else { return }
+        records[idx].offlineDownloadTask = nil
+        saveMeta()
+    }
+
+    @discardableResult
+    func ensureOnlineBookForDownload(_ book: ReadingBook) -> ReadingBook {
+        guard book.isOnline else { return book }
+        if var stored = readingBook(id: book.id) {
+            // Only a shelf book's chapters download (`OfflineDownloadManager.runBook`). One
+            // only read — 立即閱讀's, which stays off the shelf — goes on it as its download
+            // starts, and stays there.
+            if !stored.isInBookshelf, addReadingBookToShelf(id: book.id) != nil {
+                stored.isInBookshelf = true
+            }
+            return stored
+        }
+        var libraryBook = book
+        libraryBook.addedDate = Date()
+        records.insert(libraryBook, at: 0)
+        saveMeta()
+        return libraryBook
+    }
+
+    /// Finds a shelf book by its source-qualified online identity — or, `onShelf: false`, a
+    /// book only read: what 立即閱讀 keeps while its reader is open, and leaves behind when
+    /// the app ends before the reader closes.
+    ///
+    /// A detail URL is not globally unique: aggregation sources can expose the
+    /// same site URL under different source rules. Keeping `bookSourceId` in the
+    /// key lets those source variants coexist, matching the MD3 shelf model,
+    /// while repeated opens of the same source reuse one shelf item.
+    func onlineBook(sourceId: UUID?, bookInfoURL: String?, onShelf: Bool = true) -> ReadingBook? {
+        let urlKey = OnlineBookURLKey.normalize(bookInfoURL)
+        guard !urlKey.isEmpty else { return nil }
+        return records.first { book in
+            guard book.isInBookshelf == onShelf, book.isOnline, book.bookSourceId == sourceId else { return false }
+            return OnlineBookURLKey.normalize(book.bookInfoURL ?? book.source) == urlKey
+        }
+    }
+
+    // MARK: Bookmark Management
+
+    func addBookmark(bookId: UUID, bookmark: Bookmark) {
+        guard let idx = records.firstIndex(where: { $0.id == bookId }) else { return }
+        var bookmark = bookmark
+        if bookmark.textVersion == nil {
+            bookmark.textVersion = ConvertedTextVersions.shared.version(for: bookId.uuidString)
+        }
+        // Prevent duplicate bookmarks at the same stable position.
+        // Top-bar bookmarks write chapter-start positions, so they share one per chapter.
+        if records[idx].bookmarks.contains(where: { $0.hasSameStableLocation(as: bookmark) }) { return }
+        records[idx].bookmarks.append(bookmark)
+        records[idx].bookmarks = records[idx].bookmarks.sortedByStablePosition()
+        saveMeta()
+    }
+
+    func removeBookmark(bookId: UUID, bookmarkId: UUID) {
+        guard let idx = records.firstIndex(where: { $0.id == bookId }) else { return }
+        records[idx].bookmarks.removeAll { $0.id == bookmarkId }
+        saveMeta()
+    }
+
+    /// 一頁一個書籤：這一頁上已有的書籤，由早到晚。Another converted text version's bookmarks
+    /// mark other words, and belong to no page here.
+    func pageBookmarks(bookId: UUID, in range: ReaderPageBookmarkRange) -> [Bookmark] {
+        guard let book = records.first(where: { $0.id == bookId }) else { return [] }
+        return range.pageBookmarks(in: book.bookmarks.indexingReadText(of: bookId))
+    }
+
+    /// 一頁一個書籤：這頁沒有就加一個（位置記在頁首），已經有就把整頁範圍內的書籤都移除。
+    ///
+    /// 用範圍而不是位置相等來判斷，換過字級／邊距之後舊書籤仍然屬於它原本那一頁，
+    /// 不會在同一頁上疊出第二個，也刪得掉。
+    /// - Returns: `true` 代表這次是加入書籤，`false` 代表移除。
+    @discardableResult
+    func togglePageBookmark(
+        bookId: UUID, chapterIndex: Int, chapterTitle: String,
+        range: ReaderPageBookmarkRange, excerpt: String
+    ) -> Bool {
+        guard let idx = records.firstIndex(where: { $0.id == bookId }) else { return false }
+        let existing = range.pageBookmarks(in: records[idx].bookmarks.indexingReadText(of: bookId))
+        if existing.isEmpty {
+            records[idx].bookmarks.append(Bookmark(
+                chapterIndex: chapterIndex,
+                chapterTitle: chapterTitle,
+                position: range.bookmarkPosition,
+                excerpt: excerpt,
+                textVersion: ConvertedTextVersions.shared.version(for: bookId.uuidString)
+            ))
+            records[idx].bookmarks = records[idx].bookmarks.sortedByStablePosition()
+            saveMeta()
+            return true
+        }
+        let removedIDs = Set(existing.map(\.id))
+        records[idx].bookmarks.removeAll { removedIDs.contains($0.id) }
+        saveMeta()
+        return false
+    }
+
+    /// Moves the bookmarks of `spine` saved before pictures took up source text
+    /// (`PictureOffsetMigration`), once the chapter's browser layout exists.
+    /// - Returns: whether any moved.
+    @discardableResult
+    func movePictureOffsets(bookId: UUID, spine: Int, sourceText: String, pictures: BrowserPictureOffsets) -> Bool {
+        guard let idx = records.firstIndex(where: { $0.id == bookId }),
+              let moved = PictureOffsetMigration.moved(records[idx].bookmarks, spine: spine,
+                                                        sourceText: sourceText, pictures: pictures) else { return false }
+        let count = zip(records[idx].bookmarks, moved).filter { $0.position != $1.position || $0.length != $1.length }.count
+        records[idx].bookmarks = moved
+        saveMeta()
+        AppLogger.cache("[PictureOffsets] bookmarks bookId=\(bookId) spine=\(spine) moved=\(count)")
+        return true
+    }
+
+    func addTextAnnotation(
+        bookId: UUID,
+        chapterIndex: Int,
+        chapterTitle: String,
+        position: CoreTextReadingPosition,
+        length: Int,
+        excerpt: String,
+        style: AnnotationStyle = .underline,
+        color: AnnotationColor = .yellow,
+        note: String? = nil
+    ) {
+        guard let idx = records.firstIndex(where: { $0.id == bookId }) else { return }
+        let safeLength = max(1, length)
+        let targetRange = NSRange(location: position.charOffset, length: safeLength)
+        // Another text version's highlights index other words; they neither merge nor move.
+        let existingAnnotations = records[idx].bookmarks.indexingReadText(of: bookId).compactMap(\.coreTextTextAnnotation)
+        // 改顏色／樣式時範圍不變，舊標註會被下面的 removeExact 拿掉。新標註要接手它的身分
+        // （id、筆記、建立時間、摘錄），否則「換個顏色」等於刪掉重畫一條新的。
+        let replaced = existingAnnotations.first {
+            $0.spineIndex == position.spineIndex && NSEqualRanges($0.range, targetRange)
+        }
+        let newAnnotation = CoreTextTextAnnotation(
+            id: replaced?.id ?? UUID(),
+            spineIndex: position.spineIndex,
+            range: targetRange,
+            style: style,
+            color: color,
+            note: note ?? replaced?.note
+        )
+        // 若同一範圍已有標註（改顏色/樣式時範圍不變），先移除舊的，避免新舊兩色並存。
+        // 全新選取不會精確命中既有範圍，removeExact 為 no-op。
+        let (cleaned, replacedIDs) = AnnotationStore.removeExact(
+            spineIndex: position.spineIndex,
+            range: targetRange,
+            from: existingAnnotations
+        )
+        let annotation: CoreTextTextAnnotation
+        let absorbedIDs: [UUID]
+        switch AnnotationStore.merge(newAnnotation, into: cleaned).editResult {
+        case .created(let created):
+            annotation = created
+            absorbedIDs = []
+        case .updated(let updated):
+            annotation = updated
+            absorbedIDs = [updated.id]
+        case .merged(let merged, absorbedIDs: let ids):
+            annotation = merged
+            absorbedIDs = ids
+        }
+
+        // 只換掉這次被取代或併入的標註，其他劃線原封不動。以前是把全書劃線整批刪掉再從範圍重建，
+        // 別條的 id、建立時間、摘錄全被洗掉（見 BookStoreTextAnnotationTests）。
+        let consumedIDs = Set(replacedIDs).union(absorbedIDs)
+        let consumed = records[idx].bookmarks.filter { consumedIDs.contains($0.id) }
+        records[idx].bookmarks.removeAll { consumedIDs.contains($0.id) }
+
+        // 沒選到文字時呼叫端送的是頁面開頭（`currentPageExcerpt`），所以範圍沒變就沿用原本的摘錄；
+        // 原本是空的（例如被舊版清掉）才用這次送來的。範圍變大時舊摘錄只涵蓋其中一段，改用這次的。
+        let replacedExcerpt = replaced.flatMap { old in consumed.first { $0.id == old.id }?.excerpt } ?? ""
+        let keepsReplacedExcerpt = NSEqualRanges(annotation.range, targetRange) && !replacedExcerpt.isEmpty
+        records[idx].bookmarks.append(Bookmark(
+            chapterIndex: chapterIndex,
+            chapterTitle: chapterTitle,
+            position: CoreTextReadingPosition(spineIndex: annotation.spineIndex, charOffset: annotation.startOffset),
+            length: annotation.range.length,
+            kind: annotation.style == .highlight ? .highlight : .underline,
+            note: annotation.note ?? "",
+            excerpt: keepsReplacedExcerpt ? replacedExcerpt : excerpt,
+            id: annotation.id,
+            date: consumed.map(\.date).min() ?? Date(),
+            annotationStyle: annotation.style,
+            annotationColor: annotation.color,
+            textVersion: ConvertedTextVersions.shared.version(for: bookId.uuidString)
+        ))
+        records[idx].bookmarks = records[idx].bookmarks.sortedByStablePosition()
+        saveMeta()
+    }
+
+    func removeTextAnnotation(
+        bookId: UUID,
+        position: CoreTextReadingPosition,
+        length: Int,
+        style: AnnotationStyle = .underline,
+        color: AnnotationColor = .yellow
+    ) {
+        guard let idx = records.firstIndex(where: { $0.id == bookId }) else { return }
+        let range = NSRange(location: position.charOffset, length: max(1, length))
+        let (_, removedIDs) = AnnotationStore.removeExact(
+            spineIndex: position.spineIndex,
+            range: range,
+            from: records[idx].bookmarks.compactMap(\.coreTextTextAnnotation)
+        )
+        guard !removedIDs.isEmpty else {
+            AppLogger.cache("劃線：要刪除的範圍沒有完全相同的標註 spine=\(position.spineIndex) range=\(range)")
+            return
+        }
+        // 只刪命中的那一條。以前會把同章其他劃線重建成空摘錄、新 id、新建立時間。
+        let removedIDSet = Set(removedIDs)
+        records[idx].bookmarks.removeAll { removedIDSet.contains($0.id) }
+        records[idx].bookmarks = records[idx].bookmarks.sortedByStablePosition()
+        saveMeta()
+    }
+
+    /// 找出涵蓋指定範圍的標註書籤。
+    ///
+    /// 新增標註後範圍可能被 `AnnotationStore.merge` 併大，呼叫端不能拿自己送出去的
+    /// range 當結果用——筆記要掛在合併後那一條上，否則下次開啟會對不到。
+    func textAnnotationBookmark(bookId: UUID, spineIndex: Int, range: NSRange) -> Bookmark? {
+        guard let book = records.first(where: { $0.id == bookId }) else { return nil }
+        let start = range.location
+        let end = range.location + range.length
+        return book.bookmarks.first { bm in
+            guard bm.kind == .underline || bm.kind == .highlight else { return false }
+            guard bm.position.spineIndex == spineIndex else { return false }
+            return bm.position.charOffset <= start
+                && bm.position.charOffset + bm.length >= end
+        }
+    }
+
+    /// 寫入／清空一條標註的筆記。傳空字串等於「只刪筆記、保留標註」。
+    func setTextAnnotationNote(bookId: UUID, bookmarkId: UUID, note: String) {
+        guard let idx = records.firstIndex(where: { $0.id == bookId }),
+              let bmIdx = records[idx].bookmarks.firstIndex(where: { $0.id == bookmarkId })
+        else { return }
+        records[idx].bookmarks[bmIdx].note = note
+        saveMeta()
+    }
+
+    func isBookmark(bookId: UUID, position: CoreTextReadingPosition) -> Bool {
+        records.first(where: { $0.id == bookId })?.bookmarks.contains(where: {
+            $0.position == position
+        }) ?? false
+    }
+
+    /// 一頁一個書籤：這一頁上有沒有書籤。
+    func isPageBookmarked(bookId: UUID, range: ReaderPageBookmarkRange) -> Bool {
+        !pageBookmarks(bookId: bookId, in: range).isEmpty
+    }
+
+    // MARK: Incremental Content Update (download interruption protection)
+
+    func updateBookContent(bookId: UUID, rawText: String) {
+        guard let idx = records.firstIndex(where: { $0.id == bookId }) else { return }
+        let filename = records[idx].contentFilename
+        let fileURL = documentsURL(for: filename)
+        do {
+            try rawText.write(to: fileURL, atomically: true, encoding: .utf8)
+        } catch {
+            AppLogger.cache("Failed to write raw text chapter to \(fileURL): \(error)")
+        }
+    }
+
+    // MARK: Edit Book Info
+
+    func updateBook(bookId: UUID, title: String, author: String) {
+        if let idx = records.firstIndex(where: { $0.id == bookId }) {
+            records[idx].title = title.isEmpty ? records[idx].title : title
+            records[idx].author = author.isEmpty ? records[idx].author : author
+            saveMeta()
+        }
+    }
+
+    /// The author the 來源配置 agreed on for a copy that names none (a TXT with no 「作者：」
+    /// line): written only over 未知作者, never over an author the reader typed.
+    func nameUnknownAuthor(_ author: String, for bookId: UUID) {
+        let name = author.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty, let idx = records.firstIndex(where: { $0.id == bookId }),
+              WorkMatchKey.knownAuthors([records[idx].author]).isEmpty else { return }
+        records[idx].author = name
+        AppLogger.info("metadata.fill author named from agreeing sources copy=\(bookId.uuidString)")
+        saveMeta()
+    }
+
+    /// The reader's own description, from 編輯資訊; empty clears it, and the page shows the
+    /// book's own again.
+    func setCustomIntro(_ text: String, for bookId: UUID) {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        let intro = trimmed.isEmpty ? nil : trimmed
+        guard let idx = records.firstIndex(where: { $0.id == bookId }), records[idx].customIntro != intro else { return }
+        records[idx].customIntro = intro
+        saveMeta()
+    }
+
+    // MARK: Bookshelf Grouping
+
+    var allGroups: [String] {
+        var derived = derivedShelf
+        if let groups = derived.groups { return groups }
+        let groups = Array(Set(derived.books.compactMap { $0.group.isEmpty ? nil : $0.group })).sorted()
+        derived.groups = groups
+        shelfDerivation.withLock { [derived] in if $0?.revision == derived.revision { $0 = derived } }
+        return groups
+    }
+
+    func setGroup(_ group: String, for bookId: UUID) {
+        setGroups([bookId: group])
+    }
+
+    /// Moves several books at once and saves once — AI 整理書架 applies a whole proposal.
+    func setGroups(_ assignments: [UUID: String]) {
+        var updated = records
+        var changed = false
+        for index in updated.indices {
+            guard let group = assignments[updated[index].id], updated[index].group != group else { continue }
+            updated[index].group = group
+            changed = true
+        }
+        guard changed else { return }
+        records = updated
+        saveMeta()
+    }
+
+    /// 重命名分組: every book in `group` moves to `newName`, trimmed. A name another group
+    /// already has merges the two; an empty or unchanged one leaves the shelf as it is.
+    func renameGroup(_ group: String, to newName: String) {
+        let name = newName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !group.isEmpty, !name.isEmpty, name != group else { return }
+        setGroups(assignments(movingBooksOf: group, to: name))
+    }
+
+    /// 解散分組: the group's books stay on the shelf, in no group.
+    func dissolveGroup(_ group: String) {
+        guard !group.isEmpty else { return }
+        setGroups(assignments(movingBooksOf: group, to: ""))
+    }
+
+    private func assignments(movingBooksOf group: String, to name: String) -> [UUID: String] {
+        Dictionary(records.filter { $0.group == group }.map { ($0.id, name) }, uniquingKeysWith: { first, _ in first })
+    }
+
+    // MARK: Delete Book
+
+    /// Moves the records with the given `ids` before `targetId`.
+    /// If `targetId` is nil, moves them to the end. Preserves relative order.
+    func moveBooks(ids: [UUID], before targetId: UUID?) {
+        guard !ids.isEmpty else { return }
+        let idSet = Set(ids)
+        let moving = records.filter { idSet.contains($0.id) }
+        var rest = records.filter { !idSet.contains($0.id) }
+        if let targetId, let idx = rest.firstIndex(where: { $0.id == targetId }) {
+            rest.insert(contentsOf: moving, at: idx)
+        } else {
+            rest.append(contentsOf: moving)
+        }
+        records = rest
+        saveMeta()
+    }
+
+    /// Keeps the name of `book`, read and now off the shelf — removed, or read from its detail
+    /// page and not added (`ShelfWorkService.leaveReadCopyOffShelf`) — for 搜索's 最近閱讀, as
+    /// legado's 閱讀記錄 outlives the book.
+    func recordOffShelfRead(_ book: ReadingBook) {
+        guard let offShelfReadRecordsDefaults, let lastRead = book.lastOpenedDate else { return }
+        OffShelfReadRecords.record(
+            title: book.title,
+            author: book.author,
+            coverUrl: book.coverUrl ?? "",
+            at: lastRead,
+            defaults: offShelfReadRecordsDefaults
+        )
+    }
+
+    func delete(bookId: UUID) {
+        // The versions kept beside a shelf book (`ShelfVersionSwitch`) are the same work, and only
+        // its 換源 lists them: deleting the book deletes them. A merge relinks them first
+        // (`ShelfWorkMerger.absorb`).
+        for version in records where version.versionOf == bookId {
+            delete(bookId: version.id)
+        }
+        Task { @MainActor in
+            do { try await AICharacterMemoryService.shared.clear(book: bookId) }
+            catch { AppLogger.error("Character memory cleanup failed") }
+        }
+        if let idx = records.firstIndex(where: { $0.id == bookId }) {
+            let book = records[idx]
+            recordOffShelfRead(book)
+            if book.remoteSource != nil {
+                // Removing a remote shelf reference keeps the same reading record
+                // and explicit offline copy available from its library detail.
+                records[idx].isInBookshelf = false
+                persistReadingRecords()
+                saveMetaImmediately()
+                return
+            }
+            if book.isOnline {
+                // Delete cache directory
+                let cacheDir = StorageLocations.onlineCache.appendingPathComponent(bookId.uuidString)
+                do {
+                    try FileManager.default.removeItem(at: cacheDir)
+                } catch {
+                    AppLogger.cache("Failed to remove cache directory \(cacheDir): \(error)")
+                }
+            } else {
+                do {
+                    let fileUrl = documentsURL(for: book.contentFilename)
+                    try FileManager.default.removeItem(at: fileUrl)
+                } catch {
+                    AppLogger.cache("Failed to remove document file \(book.contentFilename): \(error)")
+                }
+                // A book converted at import keeps its original beside the EPUB.
+                if let original = book.convertedOriginalFilename {
+                    do {
+                        try FileManager.default.removeItem(at: documentsURL(for: original))
+                    } catch {
+                        AppLogger.cache("Failed to remove the converted book's original \(original): \(error)")
+                    }
+                }
+                if book.resolvedPipelineKind == .manga || book.resolvedPipelineKind == .fixedPage {
+                    // Pages extracted at import by builds up to 2.0.7, if this book has any.
+                    LocalMangaArchive.removeLegacyExtractedPages(bookId: book.id)
+                }
+                TXTChapterParser.deleteCachedIndexes(bookId: bookId)
+                // Also delete EPUB font resource directory
+                if book.isLegacyParsedEPUB {
+                    let assetsDir = book.contentFilename.replacingOccurrences(
+                        of: "_epub.json", with: "_epub_assets")
+                    do {
+                        let assetsUrl = documentsURL(for: assetsDir)
+                        try FileManager.default.removeItem(at: assetsUrl)
+                    } catch {
+                        AppLogger.cache("Failed to remove assets directory \(assetsDir): \(error)")
+                    }
+                }
+            }
+            readerSettings.removeSettings(for: bookId)
+            // legado's chapters go with their book (`ForeignKey.CASCADE`); so does the list here.
+            chapterStore.removeChapters(for: bookId)
+            importedMetadata.remove(copyID: bookId)
+            // The 多角色朗讀 cast is keyed by book id and would otherwise outlive the book.
+            let globalSettings = GlobalSettings.shared
+            let remainingRoleVoices = TTSRoleVoiceCast.clearing(bookID: bookId, in: globalSettings.ttsRoleVoices)
+            if remainingRoleVoices.count != globalSettings.ttsRoleVoices.count {
+                globalSettings.ttsRoleVoices = remainingRoleVoices
+            }
+            // Nothing draws this book's covers any more: release their bitmaps. The
+            // files themselves stay where deletion has always left them.
+            let coverSources = [book.coverImagePath, book.originalCoverImagePath]
+                .compactMap { $0 }
+                .filter { !$0.isEmpty }
+                .map { CoverImageSource.bookCover(filename: $0) }
+            CoverImagePipeline.shared.invalidate(Set(coverSources))
+            records.remove(at: idx)
+            // Its files are gone already: a debounced save lost to an app kill brought the
+            // record back with nothing behind it.
+            saveMetaImmediately()
+        }
+    }
+
+    // MARK: Add Online Book (from book source)
+
+    @discardableResult
+    func addOnlineBook(
+        name: String, author: String,
+        sourceId: UUID, bookInfoURL: String, tocURL: String? = nil,
+        coverUrl: String = "",
+        runtimeVariables: [String: String]? = nil,
+        contentKind: OnlineBookContentKind? = nil,
+        chapters: [OnlineChapterRef],
+        isInBookshelf: Bool = true
+    ) -> ReadingBook {
+        var book = ReadingBook(
+            title: name, author: author, source: bookInfoURL, contentFilename: "")
+        book.isOnline = true
+        book.isInBookshelf = isInBookshelf
+        let inferredKind = Self.inferredOnlineContentKind(
+            explicit: contentKind, sourceId: sourceId, runtimeVariables: runtimeVariables,
+            bookInfoURL: bookInfoURL, tocURL: tocURL
+        )
+        book.contentPipelineKind = inferredKind.pipelineKind
+        book.bookSourceId = sourceId
+        book.bookInfoURL = bookInfoURL
+        book.tocURL = tocURL
+        book.runtimeVariables = runtimeVariables
+        if !coverUrl.isEmpty { book.coverUrl = coverUrl }
+        book.onlineChapters = chapters.map { chapter in
+            var sanitized = chapter
+            sanitized.title = ReaderHTMLUtilities.displayText(fromHTMLFragment: chapter.title)
+            return sanitized
+        }
+        records.insert(book, at: 0)
+        saveMeta()
+        downloadCoverIfNeeded(bookId: book.id, coverUrl: coverUrl, sourceId: sourceId)
+        return book
+    }
+
+    @discardableResult
+    func updateOnlineBookContentKind(bookId: UUID, kind: OnlineBookContentKind) -> Bool {
+        guard let idx = records.firstIndex(where: { $0.id == bookId }) else { return false }
+        guard records[idx].isOnline else { return false }
+        let pipelineKind = kind.pipelineKind
+        guard records[idx].contentPipelineKind != pipelineKind else { return false }
+        records[idx].contentPipelineKind = pipelineKind
+        saveMeta()
+        return true
+    }
+
+    /// Promote an online book to the manga pipeline once a fetched chapter turns out
+    /// to be an image page list. Aggregation sources report `bookSourceType == 0`
+    /// (text) even when serving manga, so the only reliable signal is the content
+    /// itself. After this flips, `BookReaderView` reactively swaps to the image
+    /// reader and the change persists for future opens. Idempotent and cheap.
+    ///
+    /// `chapterIndex` is the chapter whose content was detected — the one the text reader
+    /// was opened at. The image reader restores from `mangaChapterIndex`, not the position
+    /// store, so without it a comic opened from 目錄 at any chapter flipped to its first.
+    @discardableResult
+    func upgradeToMangaIfDetected(
+        bookId: UUID, content: String, imageStyle: String? = nil, atChapter chapterIndex: Int
+    ) -> Bool {
+        guard let idx = records.firstIndex(where: { $0.id == bookId }) else { return false }
+        guard records[idx].isOnline,
+              records[idx].contentPipelineKind != .manga,
+              records[idx].contentPipelineKind != .video else { return false }
+        guard MangaChapterParser.looksLikeMangaContent(content, imageStyle: imageStyle) else { return false }
+        records[idx].contentPipelineKind = .manga
+        records[idx].mangaChapterIndex = chapterIndex
+        records[idx].mangaPage = 0
+        saveMeta()
+        ReaderTelemetry.shared.log(
+            "manga_autodetect",
+            attributes: ["bookId": bookId.uuidString]
+        )
+        return true
+    }
+
+    /// Promote an online book to the audio pipeline once a fetched chapter turns
+    /// out to be an audiobook stream. Aggregation sources report `bookSourceType
+    /// == 0` (text) even when serving audiobooks, so the content itself is the
+    /// only reliable signal. After this flips, `BookReaderView` reactively swaps
+    /// to the audio player and the change persists for future opens. Idempotent.
+    /// `chapterIndex` is the chapter whose content was detected, as for comics.
+    @discardableResult
+    func upgradeToAudioIfDetected(bookId: UUID, content: String, atChapter chapterIndex: Int) -> Bool {
+        guard let idx = records.firstIndex(where: { $0.id == bookId }) else { return false }
+        guard records[idx].isOnline,
+              records[idx].contentPipelineKind != .manga,
+              records[idx].contentPipelineKind != .audio,
+              records[idx].contentPipelineKind != .video else { return false }
+        guard DirectChapterAudioResolver.looksLikeAudioContent(content) else { return false }
+        records[idx].contentPipelineKind = .audio
+        records[idx].audioChapterIndex = chapterIndex
+        records[idx].audioTimeSeconds = 0
+        saveMeta()
+        ReaderTelemetry.shared.log(
+            "audio_autodetect",
+            attributes: ["bookId": bookId.uuidString]
+        )
+        return true
+    }
+
+    /// Download a remote cover (with source headers) and store it on the book.
+    /// No-op when the URL is empty or the book already shows a saved cover.
+    func downloadCoverIfNeeded(bookId: UUID, coverUrl: String, sourceId: UUID?) {
+        Task { [weak self] in
+            await self?.downloadCover(bookId: bookId, coverUrl: coverUrl, sourceId: sourceId)
+        }
+    }
+
+    /// `downloadCoverIfNeeded`, returning once the cover is saved or the download failed
+    /// (`BookCoverLoader` logs each failure where it happens).
+    ///
+    /// A downloaded cover whose file is gone — 快取管理 deleted it (feedback #116) — is
+    /// downloaded again under the name its record already has, so the record does not change
+    /// and sync has nothing to send.
+    func downloadCover(bookId: UUID, coverUrl: String, sourceId: UUID?) async {
+        let trimmed = coverUrl.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty,
+              let book = records.first(where: { $0.id == bookId }),
+              !Self.showsSavedCover(book.coverImagePath) else { return }
+
+        let source = sourceId.flatMap { id in BookSourceStore.shared.source(id: id) }
+        CoverDecodeService.shared.registerIfNeeded(coverUrl: trimmed, source: source)
+        let filename = book.coverImagePath.flatMap { $0.isEmpty ? nil : $0 } ?? "\(bookId.uuidString)_cover.jpg"
+        let headers = BookCoverLoader.headers(
+            sourceBaseURL: source?.bookSourceUrl,
+            sourceHeaders: await source?.resolvedHeaders() ?? [:]
+        )
+        guard let saved = await BookCoverLoader.downloadAndSave(
+            urlString: trimmed, headers: headers, filename: filename
+        ) else { return }
+        guard records.first(where: { $0.id == bookId })?.coverImagePath != saved else { return }
+        setCoverImagePath(bookId: bookId, filename: saved)
+    }
+
+    /// Whether the saved cover `path` names is there to show: one the user picked, or a
+    /// download still on disk. A picked cover whose file is gone is not replaced by the
+    /// source's.
+    nonisolated static func showsSavedCover(_ path: String?) -> Bool {
+        guard let path, !path.isEmpty else { return false }
+        return StorageLocations.isCustomCoverFilename(path)
+            || FileManager.default.fileExists(atPath: StorageLocations.coverFileLocation(path).path)
+    }
+
+    /// Puts back each saved cover a book shows whose file is gone: after 快取管理 cleared the
+    /// covers, and at launch for what an earlier clear (3.0.0 (143), feedback #116), a failed
+    /// download or a lost file left behind. A download is downloaded again; an imported book's
+    /// own cover is read again from its file. Returns once each is back or has failed.
+    func restoreMissingCovers() async {
+        let saved = records.compactMap(SavedCovers.init)
+        guard !saved.isEmpty else { return }
+        // A file check per cover, off the main thread: a shelf can hold hundreds.
+        let missing = await Task.detached(priority: .utility) {
+            saved.compactMap { $0.missing() }
+        }.value
+        guard !missing.isEmpty else { return }
+        AppLogger.cache("⟐ restoring missing covers", context: ["books": missing.count], level: .notice)
+        await withTaskGroup(of: Void.self) { group in
+            var reads: [SavedCovers] = []
+            for covers in missing {
+                guard case .download(let url, let sourceId) = covers.origin else {
+                    reads.append(covers)
+                    continue
+                }
+                group.addTask { await self.downloadCover(bookId: covers.id, coverUrl: url, sourceId: sourceId) }
+            }
+            // One book file at a time: opening one is memory-heavy, and there is no network to wait on.
+            group.addTask { [reads] in
+                for covers in reads { await self.readCoverAgain(covers) }
+            }
+        }
+    }
+
+    /// Reads an imported book's own cover again from its file, into each name whose file is gone.
+    nonisolated private func readCoverAgain(_ covers: SavedCovers) async {
+        guard case .file(let format, let contentFilename) = covers.origin else { return }
+        let file: URL? = switch format {
+        case .epub: localEPUBURL(forContent: contentFilename)
+        case .pdf, .comic: documentsURL(for: contentFilename)
+        case .audio: chapters(for: covers.id)?.first.map { documentsURL(for: $0.url) }
+        }
+        guard let file, FileManager.default.fileExists(atPath: file.path) else {
+            AppLogger.cache(
+                "⟐ cover not restored: the book's file is not on this device",
+                context: ["format": format.rawValue],
+                level: .notice
+            )
+            return
+        }
+        guard let data = await ImportedBookCover.read(format, from: file) else { return }
+        for name in covers.names {
+            do {
+                try BookCoverFileStore.live.write(data, filename: name)
+            } catch {
+                AppLogger.cache("⟐ restored cover could not be saved", error: error)
+            }
+        }
+    }
+
+    /// A book's saved cover names, and where they come back from.
+    private struct SavedCovers: Sendable {
+        enum Origin: Sendable {
+            case download(url: String, sourceId: UUID?)
+            case file(ImportedBookCover.Format, contentFilename: String)
+        }
+
+        let id: UUID
+        let names: [String]
+        let origin: Origin
+
+        init?(_ book: ReadingBook) {
+            let names: [String?]
+            if book.downloadsItsCover {
+                // Not the original kept for 重設封面, which downloads it again itself.
+                names = [book.coverImagePath]
+                origin = .download(url: book.coverUrl ?? "", sourceId: book.bookSourceId)
+            } else if let format = ImportedBookCover.format(of: book) {
+                names = [book.coverImagePath, book.originalCoverImagePath]
+                origin = .file(format, contentFilename: book.contentFilename)
+            } else {
+                return nil
+            }
+            id = book.id
+            self.names = names.compactMap { $0 }.filter { !$0.isEmpty }
+            guard !self.names.isEmpty else { return nil }
+        }
+
+        nonisolated private init(id: UUID, names: [String], origin: Origin) {
+            self.id = id
+            self.names = names
+            self.origin = origin
+        }
+
+        /// The same, with only the names whose file is gone; nil when none is.
+        nonisolated func missing() -> SavedCovers? {
+            let gone = names.filter { !BookStore.showsSavedCover($0) }
+            return gone.isEmpty ? nil : SavedCovers(id: id, names: gone, origin: origin)
+        }
+    }
+
+    /// Assign a downloaded cover filename to a book and persist.
+    func setCoverImagePath(bookId: UUID, filename: String) {
+        guard let idx = records.firstIndex(where: { $0.id == bookId }) else { return }
+        records[idx].coverImagePath = filename
+        saveMeta()
+    }
+
+    // MARK: - Custom cover (封面搜索 / 相簿 / 手動網址)
+
+    /// Download a cover the user picked in 書籍資訊 (封面搜索 result or a pasted
+    /// address) and make it this book's cover.
+    ///
+    /// `sourceId` is the book source the cover URL came from — its headers are
+    /// what make hotlink-protected CDN covers load at all, so a cover found in
+    /// source B is downloaded with B's headers, not with the book's own source.
+    /// Returns false when the image could not be fetched or decoded, so the
+    /// caller can tell the user instead of silently keeping the old cover.
+    @discardableResult
+    @MainActor
+    func applyCustomCover(bookId: UUID, coverUrl: String, sourceId: UUID?) async -> Bool {
+        let trimmed = coverUrl.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, records.contains(where: { $0.id == bookId }) else { return false }
+
+        let source = sourceId.flatMap { id in BookSourceStore.shared.source(id: id) }
+        let headers = BookCoverLoader.headers(
+            sourceBaseURL: source?.bookSourceUrl,
+            sourceHeaders: await source?.resolvedHeaders() ?? [:]
+        )
+        CoverDecodeService.shared.registerIfNeeded(coverUrl: trimmed, source: source)
+        guard let image = await BookCoverLoader.loadImage(urlString: trimmed, headers: headers) else {
+            AppLogger.network("[Cover] custom cover download failed url=\(trimmed)")
+            return false
+        }
+        return storeCustomCover(bookId: bookId, image: image, customCoverUrl: trimmed)
+    }
+
+    /// Make a locally picked image (相簿 / 檔案) this book's cover. Downsampled on
+    /// the way in, like every network cover, so a 12MP photo does not become a
+    /// full-size decode in each shelf row.
+    @discardableResult
+    @MainActor
+    func applyCustomCover(bookId: UUID, imageData: Data) -> Bool {
+        guard let image = BookCoverLoader.decodedCover(from: imageData) else {
+            AppLogger.render("[Cover] custom cover pick could not be decoded")
+            return false
+        }
+        return storeCustomCover(
+            bookId: bookId,
+            image: image,
+            customCoverUrl: ReadingBook.localCustomCoverMarker
+        )
+    }
+
+    /// Writes the chosen image to the custom-cover directory and points the book
+    /// at it.
+    ///
+    /// Each custom cover lands under a fresh filename rather than overwriting
+    /// `<id>_cover.jpg`: the bookshelf reads covers straight off disk keyed by
+    /// that filename, so reusing it leaves every already-rendered row showing the
+    /// previous image until the app restarts.
+    @MainActor
+    private func storeCustomCover(bookId: UUID, image: UIImage, customCoverUrl: String) -> Bool {
+        guard let idx = records.firstIndex(where: { $0.id == bookId }),
+              let jpeg = image.jpegData(compressionQuality: 0.85) else { return false }
+
+        // The marker routes the file to `StorageLocations.customCovers`, which
+        // 快取管理 does not wipe — a photo-library pick has no second source.
+        let filename =
+            "\(bookId.uuidString)\(StorageLocations.customCoverFilenameMarker)"
+            + "\(UUID().uuidString.prefix(8)).jpg"
+        do {
+            try BookCoverFileStore.live.write(jpeg, filename: filename)
+        } catch {
+            AppLogger.render("[Cover] could not write custom cover: \(error.localizedDescription)")
+            return false
+        }
+
+        let previousPath = records[idx].coverImagePath
+        // First customization only: keep whatever the source or the EPUB gave us
+        // so 重設封面 has something to restore. Later changes replace each other.
+        if records[idx].originalCoverImagePath == nil {
+            records[idx].originalCoverImagePath = previousPath
+        } else if let previousPath, previousPath != records[idx].originalCoverImagePath {
+            removeCoverFile(previousPath)
+        }
+        records[idx].coverImagePath = filename
+        records[idx].customCoverUrl = customCoverUrl
+        // Picking a cover is a user-confirmed metadata transaction, like a source
+        // switch: it must survive leaving 書籍資訊 and an immediate suspension. The
+        // 2-second debounce is for high-frequency progress/TOC writes.
+        saveMetaImmediately()
+        return true
+    }
+
+    /// Drop the user's cover and go back to the source's / EPUB's own.
+    ///
+    /// The preserved original is not synced by iCloud (only `coverImagePath` is),
+    /// so on a restored device the file can be gone — that case re-downloads from
+    /// `coverUrl` instead of leaving the book with no cover at all.
+    @MainActor
+    func resetCover(bookId: UUID) {
+        guard let idx = records.firstIndex(where: { $0.id == bookId }) else { return }
+        let customPath = records[idx].coverImagePath
+        let originalPath = records[idx].originalCoverImagePath
+
+        records[idx].customCoverUrl = nil
+        records[idx].originalCoverImagePath = nil
+
+        if let originalPath,
+           FileManager.default.fileExists(atPath: StorageLocations.coverFileLocation(originalPath).path) {
+            records[idx].coverImagePath = originalPath
+            if let customPath, customPath != originalPath { removeCoverFile(customPath) }
+            // Immediate for the same reason as `storeCustomCover`, and because the
+            // custom file is already deleted — a lost write would leave the book
+            // pointing at a cover that no longer exists.
+            saveMetaImmediately()
+            return
+        }
+
+        records[idx].coverImagePath = nil
+        if let customPath { removeCoverFile(customPath) }
+        saveMetaImmediately()
+        downloadCoverIfNeeded(
+            bookId: bookId,
+            coverUrl: records[idx].coverUrl ?? "",
+            sourceId: records[idx].bookSourceId
+        )
+    }
+
+    private func removeCoverFile(_ filename: String) {
+        BookCoverFileStore.live.remove(filename: filename)
+    }
+
+    // MARK: Add Browser-Imported Book (no book source; lazy-loads by URL)
+
+    @discardableResult
+    func addWebBrowsedBook(
+        name: String, author: String,
+        sourceURL: String,
+        chapters: [OnlineChapterRef]
+    ) -> ReadingBook {
+        var book = ReadingBook(title: name, author: author, source: sourceURL, contentFilename: "")
+        book.isOnline = true
+        book.contentPipelineKind = .html
+        book.bookSourceId = nil  // nil indicates browser-converted book, independent of book sources
+        book.bookInfoURL = sourceURL
+        book.onlineChapters = chapters.map { chapter in
+            var sanitized = chapter
+            sanitized.title = ReaderHTMLUtilities.displayText(fromHTMLFragment: chapter.title)
+            return sanitized
+        }
+        records.insert(book, at: 0)
+        saveMeta()
+        return book
+    }
+
+    // MARK: Add Module Book (read through a module's `reading` rules)
+
+    /// Through `ModuleBookShelf`, which reads the table of contents first.
+    @discardableResult
+    func addModuleBook(_ moduleBook: ModuleBook, chapters: [OnlineChapterRef], isInBookshelf: Bool) -> ReadingBook {
+        let reference = moduleBook.reference
+        var book = ReadingBook(title: moduleBook.title, author: moduleBook.author.isEmpty ? "未知作者" : moduleBook.author,
+                               source: reference.bookURL, contentFilename: "")
+        book.isOnline = true
+        book.isInBookshelf = isInBookshelf
+        book.contentPipelineKind = moduleBook.contentKind == .comic ? .manga : .html
+        book.module = reference
+        book.bookInfoURL = reference.bookURL
+        book.tocURL = reference.bookURL
+        book.onlineChapters = chapters
+        book.applyChapterSummary(from: chapters)
+        if let coverURL = moduleBook.coverURL, !coverURL.isEmpty { book.coverUrl = coverURL }
+        records.insert(book, at: 0)
+        saveMeta()
+        if let coverURL = book.coverUrl { downloadCoverIfNeeded(bookId: book.id, coverUrl: coverURL, sourceId: nil) }
+        return readingBook(id: book.id) ?? book
+    }
+
+    // MARK: Cached Chapter Marks
+
+    func clearCachedChapter(bookId: UUID, chapterIndex: Int) {
+        guard let idx = records.firstIndex(where: { $0.id == bookId }),
+            var chapters = chapterStore.chapters(for: bookId)
+        else { return }
+        if let ci = chapters.firstIndex(where: { $0.index == chapterIndex }) {
+            chapters[ci].cachedFilename = nil
+            records[idx].onlineChapters = chapters
+            saveMeta()
+        }
+    }
+
+    /// Clears all cachedFilename markers for a book without affecting offlineDownloadState.
+    /// Used alongside `clearAllChapterCache` during refresh to reset the book's cache state.
+    func clearAllCachedChapterFilenames(bookId: UUID) {
+        guard let idx = records.firstIndex(where: { $0.id == bookId }),
+            var chapters = chapterStore.chapters(for: bookId)
+        else { return }
+        var changed = false
+        for i in chapters.indices where chapters[i].cachedFilename != nil {
+            chapters[i].cachedFilename = nil
+            changed = true
+        }
+        guard changed else { return }
+        records[idx].onlineChapters = chapters
+        saveMeta()
+    }
+
+    // Called from OfflineDownloadManager's actor. Both publications and the cache-clear
+    // notification can synchronously rebuild a mounted reader, including UIKit constraints.
+    @MainActor
+    func clearOnlineDownload(
+        bookId: UUID,
+        offlineChapterStore: any OfflineChapterStoring = OfflineChapterStore()
+    ) async throws {
+        guard let removing = records.first(where: { $0.id == bookId }) else { return }
+        // Every chapter is about to go back to the network for the first time since the
+        // download was made. Doing that against a table of contents the cache has been
+        // replaying unchanged — it is keyed by `(sourceId, url)` and outlives the book — is
+        // what turned 移除下載 into "the whole book fails and only 換源 fixes it".
+        if let sourceId = removing.bookSourceId,
+           let source = BookSourceStore.shared.source(id: sourceId) {
+            BookSourceFetcher.shared.clearTOCAndBookInfoCache(
+                tocUrl: removing.tocURL,
+                bookURL: removing.bookInfoURL,
+                source: source
+            )
+        }
+        try await offlineChapterStore.removeBook(bookId: bookId)
+        // `records` can be mutated while the artifact removal is in flight (imports
+        // insert at 0, deletions remove rows), so the row has to be located again:
+        // an index resolved before the await could now address a different book,
+        // or be past the end of the array.
+        guard let idx = records.firstIndex(where: { $0.id == bookId }) else { return }
+        if var chapters = chapterStore.chapters(for: bookId) {
+            for chapterIndex in chapters.indices {
+                chapters[chapterIndex].cachedFilename = nil
+            }
+            records[idx].onlineChapters = chapters
+        }
+        records[idx].offlineDownloadState = .none
+        records[idx].downloadedChapterCount = 0
+        records[idx].offlineDownloadTask = nil
+        DownloadLiveActivityController.refresh(books: books)
+        // The cache was already removed from disk; persist the matching state
+        // now so a quick relaunch cannot resurrect a stale completed download.
+        saveMetaImmediately()
+        // An open reader still holds `.ready` chapter states for the files just deleted, and
+        // nothing else would tell it otherwise: no load state changed and no chapter was
+        // entered, so neither of the reader's mismatch checks runs. Left alone it renders
+        // 資料不一致 over a chapter it could simply refetch.
+        NotificationCenter.default.post(
+            name: .onlineChapterCacheDidClear,
+            object: nil,
+            userInfo: ["bookId": bookId]
+        )
+    }
+
+    // MARK: Update Online Book TOC (called after progressive TOC load completes)
+
+    func updateOnlineChapters(
+        bookId: UUID,
+        chapters: [OnlineChapterRef],
+        runtimeVariables: [String: String]? = nil
+    ) {
+        guard let idx = records.firstIndex(where: { $0.id == bookId }) else { return }
+        records[idx].onlineChapters = chapters
+        if let runtimeVariables, !runtimeVariables.isEmpty {
+            records[idx].runtimeVariables = runtimeVariables
+        }
+        saveMeta()
+    }
+
+    // MARK: Switch Book Source
+
+    /// Switches the book to a new source: fetches new TOC, updates book-source metadata,
+    /// replaces onlineChapters, and clears the chapter cache.
+    /// 設置書籍變量 editor: replaces the book's runtime-variable map (the values
+    /// a source's JS reads back as book variables on subsequent fetches).
+    func updateBookRuntimeVariables(bookId: UUID, variables: [String: String]?) {
+        guard let idx = records.firstIndex(where: { $0.id == bookId }) else { return }
+        let normalized = (variables?.isEmpty ?? true) ? nil : variables
+        records[idx].runtimeVariables = normalized
+        saveMeta()
+    }
+
+    /// Commits a source switch. `preparedTOC` is the table of contents the caller already
+    /// fetched — the reader resolves it up front so it can show progress and stay cancellable,
+    /// and passing it here is what stops the switch from fetching the same TOC a second time
+    /// (Legado hands the toc to `changeTo(source, book, toc)` for the same reason).
+    nonisolated func updateOnlineBookSource(
+        bookId: UUID,
+        origin: BookOrigin,
+        preparedTOC: TOCPackage? = nil,
+        bookSourceFetcher: any BookSourceFetching = LiveBookSourceFetcher(bookSourceFetcher: BookSourceFetcher.shared),
+        offlineChapterStore: any OfflineChapterStoring = OfflineChapterStore()
+    ) async throws {
+        guard let source = BookSourceStore.shared.source(id: origin.sourceId)
+        else {
+            throw NSError(
+                domain: "BookStore", code: -1, userInfo: [NSLocalizedDescriptionKey: "找不到來源配置"])
+        }
+        let tocPackage: TOCPackage
+        if let preparedTOC {
+            tocPackage = preparedTOC
+        } else {
+            tocPackage = try await bookSourceFetcher.fetchTOCPackage(
+                tocUrl: origin.tocUrl, source: source, runtimeVariables: origin.runtimeVariables)
+        }
+        // `fetchTOCPackage` returns an empty package instead of throwing when a source's TOC
+        // rules match nothing, and committing that wipes `onlineChapters`: the book loses its
+        // chapter list, the reader's 刷新 action disappears (it is gated on a non-empty list),
+        // and only a reopen — which re-runs `refreshOnlineBookMetadata` — brings it back.
+        // A switch that cannot produce chapters has failed; leave the old source intact.
+        guard !tocPackage.chapters.isEmpty else {
+            throw NSError(
+                domain: "BookStore", code: -5,
+                userInfo: [NSLocalizedDescriptionKey: localized("此來源配置取不到目錄")])
+        }
+        let oldRefs = await MainActor.run {
+            chapterStore.chapters(for: bookId) ?? []
+        }
+        try await SourcePerfTrace.spanAsync(
+            "changeSource.reconcileOffline", "\(max(oldRefs.count, tocPackage.chapters.count))ch"
+        ) {
+            try await offlineChapterStore.reconcileBook(
+                bookId: bookId,
+                oldRefs: oldRefs,
+                newRefs: tocPackage.chapters,
+                // A confirmed rebinding to a different source: the old source's chapter
+                // bytes are genuinely worthless here, and the user asked for it.
+                disposition: .deleteMismatched
+            )
+        }
+        await MainActor.run {
+            guard let idx = records.firstIndex(where: { $0.id == bookId }) else { return }
+            records[idx].bookSourceId = origin.sourceId
+            records[idx].bookInfoURL = origin.bookUrl
+            records[idx].tocURL = origin.tocUrl
+            records[idx].runtimeVariables = origin.runtimeVariables
+            records[idx].onlineChapters = tocPackage.chapters
+            // A source switch is a user-confirmed metadata transaction. It must
+            // survive leaving the reader or immediate app suspension; the normal
+            // debounce is reserved for high-frequency progress/TOC updates.
+            saveMetaImmediately()
+        }
+        let staleIndices = await Task.detached(priority: .userInitiated) {
+            Self.changedChapterIdentities(oldRefs: oldRefs, newRefs: tocPackage.chapters)
+        }.value
+        await SourcePerfTrace.spanAsync("changeSource.reconcileTask") {
+            await reconcileOfflineTaskMetadata(
+                bookId: bookId,
+                oldRefs: oldRefs,
+                newRefs: tocPackage.chapters,
+                staleIndices: staleIndices
+            )
+        }
+    }
+
+    @discardableResult
+    nonisolated func refreshOnlineBookMetadata(
+        bookId: UUID,
+        forceInfoRefresh: Bool = false,
+        bookSourceFetcher: any BookSourceFetching = LiveBookSourceFetcher(bookSourceFetcher: BookSourceFetcher.shared),
+        offlineChapterStore: any OfflineChapterStoring = OfflineChapterStore(),
+        positionStore: any ReadingPositionStore = JSONFileReadingPositionStore(),
+        moduleReader: ModuleBookReader = .live,
+        onFirstChaptersReady: (@MainActor @Sendable (ReadingBook) -> Void)? = nil
+    ) async throws -> ReadingBook {
+        guard let snapshot = await MainActor.run(body: {
+            records.first(where: { $0.id == bookId }).flatMap { $0.isOnline ? $0 : nil }
+        }) else {
+            throw NSError(
+                domain: "BookStore", code: -2, userInfo: [NSLocalizedDescriptionKey: "找不到線上書籍"])
+        }
+
+        // Snapshot of what the user has already seen, so the final merge can tell
+        // whether this refresh actually brought in newer chapters (drives the
+        // "更新" badge on the bookshelf). Read off the main thread: the list of a
+        // 2000-chapter book is a 2MB file, and the launch refresh walks the whole shelf.
+        // (Detached on purpose — with approachable concurrency an `async` function runs on
+        // its caller's actor, and the launch refresh is called from the main actor.)
+        let (originalChapterCount, originalLatestTitle) = await Task.detached(priority: .utility) { [chapterStore] in
+            let originalChapters = chapterStore.chapters(for: bookId) ?? []
+            return (originalChapters.count, Self.normalizeChapterTitle(originalChapters.last?.title ?? ""))
+        }.value
+
+        // A module's book: online with no source, so before the browser import's return. Its
+        // list is the book's page, read again; the merge is a source book's.
+        if let reference = snapshot.module {
+            let refreshed = try await moduleReader.chapters(of: reference, title: snapshot.title)
+            return try await commitRefreshedChapters(
+                refreshed, snapshot: snapshot, originalChapterCount: originalChapterCount,
+                originalLatestTitle: originalLatestTitle, offlineChapterStore: offlineChapterStore,
+                positionStore: positionStore
+            ) { index, plan in
+                self.commitRefreshedList(
+                    at: index, plan: plan, sourceID: nil, bookURL: reference.bookURL, tocURL: reference.bookURL,
+                    runtimeVariables: nil, infoPackage: nil
+                )
+            }
+        }
+
+        guard let sourceId = snapshot.bookSourceId else {
+            return snapshot
+        }
+        guard let source = await MainActor.run(body: {
+            BookSourceStore.shared.source(id: sourceId)
+        }) else {
+            throw NSError(
+                domain: "BookStore", code: -3, userInfo: [NSLocalizedDescriptionKey: "找不到來源配置"])
+        }
+
+        let bookURL = normalizedOnlineValue(snapshot.bookInfoURL ?? snapshot.source)
+        guard !bookURL.isEmpty else {
+            throw NSError(
+                domain: "BookStore", code: -4, userInfo: [NSLocalizedDescriptionKey: "缺少書籍詳情頁 URL"])
+        }
+
+        var runtimeVariables = snapshot.runtimeVariables
+        var tocURL = normalizedOnlineValue(snapshot.tocURL)
+        var infoPackage: BookInfoPackage?
+
+        if forceInfoRefresh || tocURL.isEmpty {
+            // The shelf already knows this book — hand that over so a detail page that omits a
+            // field leaves the stored value alone. Most sources' `ruleBookInfo.name` is empty
+            // (they rely on the caller keeping the title it already had, as legado's
+            // `analyzeBookInfo` does), and a refresh must never blank a shelved book's title.
+            let knownBook = OnlineBook(
+                name: snapshot.title,
+                author: snapshot.author,
+                intro: "",   // ReadingBook does not store an intro; nothing to preserve here
+                coverUrl: snapshot.coverUrl ?? "",
+                bookUrl: bookURL,
+                tocUrl: normalizedOnlineValue(snapshot.tocURL),
+                wordCount: "",
+                lastChapter: snapshot.onlineChapters?.last?.title ?? "",
+                kind: "",
+                sourceId: sourceId,
+                sourceName: source.bookSourceName,
+                runtimeVariables: runtimeVariables
+            )
+            let fetchedInfo = try await bookSourceFetcher.fetchBookInfoPackage(
+                url: bookURL,
+                source: source,
+                runtimeVariables: runtimeVariables,
+                knownBook: knownBook
+            )
+            infoPackage = fetchedInfo
+            if let fetchedRuntime = fetchedInfo.runtimeVariables, !fetchedRuntime.isEmpty {
+                runtimeVariables = fetchedRuntime
+            }
+            let discoveredTOC = normalizedOnlineValue(fetchedInfo.tocUrl)
+            if !discoveredTOC.isEmpty {
+                tocURL = discoveredTOC
+            }
+        }
+
+        if tocURL.isEmpty {
+            tocURL = bookURL
+        }
+
+        let progressiveTOCURL = tocURL
+        let progressiveRuntimeVariables = runtimeVariables
+        let progressiveInfoPackage = infoPackage
+        // The first page's commit runs on its own; the final merge waits for it so it plans
+        // from the list that commit left (the runtime fetch hands the whole list over as
+        // the first page, so this is every refresh, not only multi-page ones).
+        let firstPageCommit = TaskBox()
+
+        let tocPackage = try await bookSourceFetcher.fetchTOCPackage(
+            tocUrl: tocURL,
+            source: source,
+            runtimeVariables: runtimeVariables,
+            onFirstPageReady: { [weak self] firstChapters in
+                guard let self else { return }
+                firstPageCommit.set(Task.detached(priority: .utility) {
+                    guard OnlineTOCCommitPolicy.decide(
+                        refreshedCount: firstChapters.count
+                    ) == .commit else {
+                        AppLogger.network("⟐ TOC first page came back empty, not committing", context: [
+                            "bookId": bookId.uuidString,
+                        ])
+                        return
+                    }
+                    // Merging and comparing 2000-chapter lists normalizes every title; done
+                    // here, off the main thread, and the record is replaced once below.
+                    let existingChapters = self.chapterStore.chapters(for: bookId) ?? []
+                    let (mergedChapters, moves) = Self.mergeOnlineChapters(
+                        existing: existingChapters,
+                        refreshed: firstChapters,
+                        preservingExistingTail: true
+                    )
+                    // The first page never raises the new-chapter badge or re-pends cached
+                    // chapters; the final merge decides both.
+                    let plan = MergePlan(
+                        existing: existingChapters,
+                        merged: mergedChapters,
+                        chaptersChanged: Self.chapterListChanged(existing: existingChapters, refreshed: firstChapters),
+                        listChanged: mergedChapters != existingChapters,
+                        gainedChapters: false,
+                        staleIndices: [],
+                        // The runtime fetch hands the whole list over as this first page, so
+                        // this commit is usually the one that moves chapters.
+                        moves: moves
+                    )
+                    await MainActor.run {
+                        guard let idx = self.records.firstIndex(where: { $0.id == bookId }) else { return }
+                        let book = self.commitRefreshedList(
+                            at: idx, plan: plan, sourceID: source.id, bookURL: bookURL, tocURL: progressiveTOCURL,
+                            runtimeVariables: progressiveRuntimeVariables, infoPackage: progressiveInfoPackage
+                        )
+                        onFirstChaptersReady?(book)
+                    }
+                    await self.carryReadingPlace(bookId: bookId, moves: moves, positionStore: positionStore)
+                })
+            },
+            // Always hit the network here: this is the "check for new chapters"
+            // path, so the stale cached TOC must be bypassed or serial novels
+            // never pick up newly-published chapters.
+            forceRefresh: true
+        )
+        if let fetchedRuntime = tocPackage.runtimeVariables, !fetchedRuntime.isEmpty {
+            runtimeVariables = fetchedRuntime
+        }
+
+        let finalTOCURL = tocURL
+        let finalRuntimeVariables = runtimeVariables
+        let finalInfoPackage = infoPackage
+        await firstPageCommit.value?.value
+        return try await commitRefreshedChapters(
+            tocPackage.chapters, snapshot: snapshot, originalChapterCount: originalChapterCount,
+            originalLatestTitle: originalLatestTitle, offlineChapterStore: offlineChapterStore,
+            positionStore: positionStore
+        ) { index, plan in
+            self.commitRefreshedList(
+                at: index, plan: plan, sourceID: source.id, bookURL: bookURL, tocURL: finalTOCURL,
+                runtimeVariables: finalRuntimeVariables, infoPackage: finalInfoPackage
+            )
+        }
+    }
+
+    /// A refreshed table of contents into the record: planned off the main thread, written
+    /// once by `commit` on the list it was planned from, then reconciled with the offline
+    /// download. Both refreshes, a source's and a module's, end here.
+    nonisolated private func commitRefreshedChapters(
+        _ refreshed: [OnlineChapterRef],
+        snapshot: ReadingBook,
+        originalChapterCount: Int,
+        originalLatestTitle: String,
+        offlineChapterStore: any OfflineChapterStoring,
+        positionStore: any ReadingPositionStore,
+        commit: @escaping @MainActor @Sendable (Int, MergePlan) -> ReadingBook
+    ) async throws -> ReadingBook {
+        let bookId = snapshot.id
+
+        // Returning early here leaves `onlineChapters` — and therefore the reconcile that
+        // reads it — completely untouched. See `OnlineTOCCommitPolicy`.
+        guard OnlineTOCCommitPolicy.decide(
+            refreshedCount: refreshed.count
+        ) == .commit else {
+            AppLogger.network("⟐ TOC refresh came back empty, keeping existing chapters", context: [
+                "bookId": bookId.uuidString,
+                "existing": chapterStore.chapters(for: bookId)?.count ?? 0,
+            ])
+            return snapshot
+        }
+
+        // The merge, the comparison and the stale-chapter scan each normalize every title
+        // of both lists — on a 2000-chapter book that was ~100ms on the main thread per
+        // refreshed book, with the launch refresh walking the whole shelf. All of it runs
+        // here; the main thread only replaces the record, once, and only for a change.
+        // Detached, and through a static helper: with approachable concurrency this function
+        // and any local function of it run on the caller's actor, which for the launch
+        // refresh is the main one.
+        @Sendable func detachedPlan(existing: [OnlineChapterRef]?) async -> MergePlan {
+            await Self.detachedMergePlan(
+                existing: existing, chapterStore: chapterStore, bookId: bookId, refreshed: refreshed,
+                originalChapterCount: originalChapterCount, originalLatestTitle: originalLatestTitle
+            )
+        }
+        enum CommitOutcome {
+            case gone
+            case listMoved([OnlineChapterRef])
+            case committed(ReadingBook, MergePlan)
+        }
+        var prepared = await detachedPlan(existing: nil)
+        // A chapter cached while the plan was being made (a download marks one per chapter)
+        // changes the list under it. The commit only lands on the list it was planned from;
+        // otherwise it is planned again from what is there now — off the main thread, a few
+        // times, before giving in and planning there.
+        var replans = 0
+        var result: (updated: ReadingBook, committed: MergePlan)?
+        while result == nil {
+            let outcome = await MainActor.run { [prepared, replans] () -> CommitOutcome in
+                guard let idx = records.firstIndex(where: { $0.id == bookId }) else { return .gone }
+                let current = chapterStore.chapters(for: bookId) ?? []
+                let plan: MergePlan
+                if current == prepared.existing {
+                    plan = prepared
+                } else if replans < 3 {
+                    return .listMoved(current)
+                } else {
+                    AppLogger.cache("⟐ TOC merge planned on the main thread: the list kept changing underneath", context: [
+                        "bookId": bookId.uuidString,
+                    ])
+                    plan = Self.mergePlan(
+                        existing: current, refreshed: refreshed,
+                        originalChapterCount: originalChapterCount, originalLatestTitle: originalLatestTitle
+                    )
+                }
+                let updated = commit(idx, plan)
+                return .committed(updated, plan)
+            }
+            switch outcome {
+            case .gone:
+                return snapshot
+            case .listMoved(let current):
+                replans += 1
+                prepared = await detachedPlan(existing: current)
+            case .committed(let book, let plan):
+                result = (book, plan)
+            }
+        }
+        guard let result else {
+            return snapshot
+        }
+        let updated = result.updated
+        let committed = result.committed
+        let oldRefs = committed.existing
+        let newRefs = committed.merged
+        let staleIndices = committed.staleIndices
+        await carryReadingPlace(bookId: bookId, moves: committed.moves, positionStore: positionStore)
+
+        do {
+            try await offlineChapterStore.reconcileBook(
+                bookId: bookId,
+                oldRefs: oldRefs,
+                newRefs: newRefs,
+                // A refresh asks about chapter *lists*; it is never a request to discard
+                // chapter *bytes*. `reconcileOfflineTaskMetadata` below still nulls
+                // `cachedFilename` and re-pends every mismatched index, so those chapters
+                // are refetched on demand — the files just stop being deleted behind the
+                // user's back.
+                disposition: .preserveContent
+            )
+        } catch {
+            await reconcileOfflineTaskMetadata(
+                bookId: bookId,
+                oldRefs: oldRefs,
+                newRefs: newRefs,
+                staleIndices: staleIndices
+            )
+            throw error
+        }
+        await reconcileOfflineTaskMetadata(
+            bookId: bookId,
+            oldRefs: oldRefs,
+            newRefs: newRefs,
+            staleIndices: staleIndices
+        )
+
+        return updated
+    }
+
+    /// Writes a planned refresh into the record at `index`: one assignment, and only for a
+    /// change, because every assignment publishes the store to every view on it.
+    @MainActor
+    private func commitRefreshedList(
+        at index: Int,
+        plan: MergePlan,
+        sourceID: UUID?,
+        bookURL: String,
+        tocURL: String,
+        runtimeVariables: [String: String]?,
+        infoPackage: BookInfoPackage?
+    ) -> ReadingBook {
+        var updated = records[index]
+        let tocChanged = normalizedOnlineValue(updated.tocURL) != tocURL
+        let runtimeChanged = (updated.runtimeVariables ?? [:]) != (runtimeVariables ?? [:])
+
+        updated.bookSourceId = sourceID
+        updated.bookInfoURL = bookURL
+        updated.tocURL = tocURL
+        updated.runtimeVariables = runtimeVariables
+        updated.onlineChapters = plan.merged
+        // In the same record write as the list, so no save ever pairs the new list with
+        // bookmarks that still name the old indices.
+        if !plan.moves.isEmpty {
+            ChapterRenumbering(bookId: updated.id, moves: plan.moves).applyToRecordPlaces(&updated)
+        }
+
+        if let infoPackage {
+            let resolvedName = normalizedOnlineValue(infoPackage.name)
+            let resolvedAuthor = normalizedOnlineValue(infoPackage.author)
+            // Unified library 1d: a title or author the reader locked stays; the chapters, TOC
+            // and runtime variables of this refresh still land. Both commits of a refresh (the
+            // first page and the final list) come through here.
+            if !resolvedName.isEmpty, resolvedName != updated.title {
+                if workDecisions.isLocked(.title, anchor: .copy(updated.id)) {
+                    AppLogger.cache("⟐ locked title kept", context: ["copy": updated.id.uuidString, "path": "onlineRefresh"])
+                } else {
+                    updated.title = resolvedName
+                }
+            }
+            if !resolvedAuthor.isEmpty, resolvedAuthor != updated.author {
+                if workDecisions.isLocked(.authors, anchor: .copy(updated.id)) {
+                    AppLogger.cache("⟐ locked author kept", context: ["copy": updated.id.uuidString, "path": "onlineRefresh"])
+                } else {
+                    updated.author = resolvedAuthor
+                }
+            }
+        }
+        if plan.gainedChapters {
+            updated.hasNewChapterUpdate = true
+        }
+
+        let titleChanged = updated.title != records[index].title
+        let authorChanged = updated.author != records[index].author
+        let sourceChanged = updated.bookSourceId != records[index].bookSourceId
+            || updated.bookInfoURL != records[index].bookInfoURL
+        let badgeChanged = updated.hasNewChapterUpdate != records[index].hasNewChapterUpdate
+
+        if runtimeChanged || plan.chaptersChanged || plan.listChanged || tocChanged
+            || titleChanged || authorChanged || sourceChanged || badgeChanged {
+            records[index] = updated
+        }
+        if runtimeChanged || plan.chaptersChanged || tocChanged || titleChanged || authorChanged || plan.gainedChapters {
+            saveMeta()
+        }
+        return readingBook(id: updated.id) ?? records[index]
+    }
+
+    /// The text readers' place lives in the position store, not on the record
+    /// (`ReadingChapterPlace`), so it moves here, after the list it is read against has landed.
+    /// An open reader holds its own place against the list it opened with; it answers
+    /// `chapterRenumberings` by moving that place the same way and reloading.
+    nonisolated private func carryReadingPlace(
+        bookId: UUID, moves: [Int: Int], positionStore: any ReadingPositionStore
+    ) async {
+        guard !moves.isEmpty else { return }
+        let renumbering = ChapterRenumbering(bookId: bookId, moves: moves)
+        let key = bookId.uuidString
+        let stored = await positionStore.load(for: key)
+        if let stored, moves[stored.spineIndex] != nil {
+            await positionStore.save(renumbering.position(for: stored), for: key)
+        }
+        AppLogger.cache("⟐ TOC refresh moved chapters", context: [
+            "bookId": key,
+            "moved": moves.count,
+            "storedSpine": stored?.spineIndex ?? -1,
+            "carriedTo": stored.map { renumbering.position(for: $0).spineIndex } ?? -1,
+        ])
+        await MainActor.run { chapterRenumberings.send(renumbering) }
+    }
+
+    private struct MergePlan {
+        let existing: [OnlineChapterRef]
+        let merged: [OnlineChapterRef]
+        let chaptersChanged: Bool
+        let listChanged: Bool
+        let gainedChapters: Bool
+        let staleIndices: Set<Int>
+        /// `mergeOnlineChapters`' old index → new index of every chapter that moved.
+        let moves: [Int: Int]
+    }
+
+    /// Everything a table-of-contents refresh decides from the two lists. Normalizes every
+    /// title of both several times over; call it off the main thread.
+    /// `mergePlan` on a detached utility task, with the stored list read there too.
+    nonisolated private static func detachedMergePlan(
+        existing: [OnlineChapterRef]?, chapterStore: BookChapterStore, bookId: UUID, refreshed: [OnlineChapterRef],
+        originalChapterCount: Int, originalLatestTitle: String
+    ) async -> MergePlan {
+        await Task.detached(priority: .utility) {
+            mergePlan(
+                existing: existing ?? chapterStore.chapters(for: bookId) ?? [], refreshed: refreshed,
+                originalChapterCount: originalChapterCount, originalLatestTitle: originalLatestTitle
+            )
+        }.value
+    }
+
+    nonisolated private static func mergePlan(
+        existing: [OnlineChapterRef],
+        refreshed: [OnlineChapterRef],
+        originalChapterCount: Int,
+        originalLatestTitle: String
+    ) -> MergePlan {
+        let (merged, moves) = mergeOnlineChapters(existing: existing, refreshed: refreshed)
+        // Surface newly-arrived chapters on the bookshelf. Only flag when the
+        // book already had chapters (avoids marking a first-time population)
+        // and the latest chapter moved on — more chapters, or a new tail title.
+        let gained = originalChapterCount > 0
+            && (merged.count > originalChapterCount
+                || normalizeChapterTitle(merged.last?.title ?? "") != originalLatestTitle)
+        return MergePlan(
+            existing: existing,
+            merged: merged,
+            chaptersChanged: chapterListChanged(existing: existing, refreshed: refreshed),
+            listChanged: merged != existing,
+            gainedChapters: gained,
+            staleIndices: changedChapterIdentities(oldRefs: existing, newRefs: merged),
+            moves: moves
+        )
+    }
+
+    /// Indices present in both lists whose chapter is no longer the same one (different
+    /// URL or title), so a cached file under that index belongs to another chapter.
+    /// Normalizes every title of both lists; call it off the main thread.
+    nonisolated private static func changedChapterIdentities(
+        oldRefs: [OnlineChapterRef],
+        newRefs: [OnlineChapterRef]
+    ) -> Set<Int> {
+        var changed: Set<Int> = []
+        for index in 0..<min(oldRefs.count, newRefs.count) {
+            let sameURL = normalizedOnlineValue(oldRefs[index].url)
+                == normalizedOnlineValue(newRefs[index].url)
+            let sameTitle = normalizeChapterTitle(oldRefs[index].title)
+                == normalizeChapterTitle(newRefs[index].title)
+            if !sameURL || !sameTitle {
+                changed.insert(index)
+            }
+        }
+        return changed
+    }
+
+    /// - Parameter staleIndices: `changedChapterIdentities(oldRefs:newRefs:)`, computed off
+    ///   the main thread; this runs on it and only walks the list.
+    @MainActor
+    private func reconcileOfflineTaskMetadata(
+        bookId: UUID,
+        oldRefs: [OnlineChapterRef],
+        newRefs: [OnlineChapterRef],
+        staleIndices: Set<Int>
+    ) {
+        guard let idx = records.firstIndex(where: { $0.id == bookId }) else { return }
+        var invalidatedIndices: Set<Int> = []
+        if var chapters = chapterStore.chapters(for: bookId) {
+            var listChanged = false
+            for index in chapters.indices {
+                let inBothLists = oldRefs.indices.contains(index) && newRefs.indices.contains(index)
+                let stale = !inBothLists || staleIndices.contains(index)
+                if stale, oldRefs.indices.contains(index) {
+                    invalidatedIndices.insert(index)
+                }
+                if stale, chapters[index].cachedFilename != nil {
+                    chapters[index].cachedFilename = nil
+                    listChanged = true
+                }
+            }
+            if listChanged {
+                records[idx].onlineChapters = chapters
+            }
+        }
+        if var task = records[idx].offlineDownloadTask?.clamped(to: newRefs.count) {
+            for index in invalidatedIndices where task.requestedIndices.contains(index) {
+                task.markPending(index)
+            }
+            replaceOfflineDownloadTask(bookId: bookId, task: task, isRunning: false)
+        } else if records[idx].offlineDownloadTask != nil {
+            records[idx].offlineDownloadTask = nil
+            records[idx].offlineDownloadState = .none
+            records[idx].downloadedChapterCount = 0
+            saveMetaImmediately()
+        } else {
+            saveMeta()
+        }
+    }
+
+    // MARK: Private Methods
+
+    private func saveBook(
+        title: String,
+        author: String,
+        content: String,
+        source: String,
+        format: ImportedBookContentFormat = .plainText
+    ) throws -> ReadingBook {
+        let filename = "\(UUID().uuidString).\(format.fileExtension)"
+        let fileURL = documentsURL(for: filename)
+        try content.write(to: fileURL, atomically: true, encoding: .utf8)
+        var book = ReadingBook(
+            title: title, author: author, source: source, contentFilename: filename)
+        book.contentPipelineKind = (format == .html) ? .html : .txt
+        records.insert(book, at: 0)
+        saveMeta()
+        return book
+    }
+
+    /// Book content files stay in Documents: they are the user's own files, and being
+    /// visible in the Files app is the point.
+    nonisolated private func documentsURL(for filename: String) -> URL {
+        StorageLocations.bookFile(filename)
+    }
+
+    nonisolated func localEPUBURL(for book: ReadingBook) -> URL {
+        localEPUBURL(forContent: book.contentFilename)
+    }
+
+    nonisolated private func localEPUBURL(forContent contentFilename: String) -> URL {
+        let epubFilename = contentFilename.hasSuffix(".epub")
+            ? contentFilename
+            : contentFilename.replacingOccurrences(of: "_epub.json", with: ".epub")
+        return documentsURL(for: epubFilename)
+    }
+
+    /// The on-disk book file to hand to a share sheet (the EPUB/TXT itself), or nil for online books
+    /// (no local file) and missing files.
+    nonisolated func shareableFileURL(for book: ReadingBook) -> URL? {
+        guard !book.isOnline, !book.contentFilename.isEmpty else { return nil }
+        // EPUB-derived records may store an `_epub.json` sidecar; share the real `.epub`.
+        if book.contentFilename.hasSuffix(".epub") || book.contentFilename.hasSuffix("_epub.json") {
+            let epubURL = localEPUBURL(for: book)
+            if FileManager.default.fileExists(atPath: epubURL.path) {
+                return epubURL
+            }
+        }
+        let direct = documentsURL(for: book.contentFilename)
+        return FileManager.default.fileExists(atPath: direct.path) ? direct : nil
+    }
+
+    /// Longest a pending metadata write may be deferred, however many times the debounce is
+    /// re-armed. Cancel-and-reschedule with no ceiling starves the write entirely whenever
+    /// edits arrive faster than the debounce window — a download completing a chapter every
+    /// second never persisted a single one, so an app kill lost the whole run.
+    private static let metadataSaveMaximumDelay: TimeInterval = 10
+
+    private func saveMeta() {
+        saveWorkItem?.cancel()
+        saveGeneration += 1
+        let generation = saveGeneration
+
+        let now = Date()
+        if firstPendingSaveRequestedAt == nil {
+            firstPendingSaveRequestedAt = now
+        }
+
+        let workItem = DispatchWorkItem { [weak self] in
+            guard let self else { return }
+            guard self.saveGeneration == generation else { return }
+            self.saveWorkItem = nil
+            self.firstPendingSaveRequestedAt = nil
+            self.persistMetadataIfChanged(inBackground: true)
+        }
+
+        saveWorkItem = workItem
+        // Debounce writes by 2 seconds to avoid frequent UI stalls, but never let the oldest
+        // unwritten edit sit longer than `metadataSaveMaximumDelay`.
+        let elapsed = now.timeIntervalSince(firstPendingSaveRequestedAt ?? now)
+        let delay = max(0, min(2.0, Self.metadataSaveMaximumDelay - elapsed))
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: workItem)
+    }
+
+    /// Immutable input and encoded output share the same local revision. The worker
+    /// never reads the store or writes files, so a late result cannot overwrite a
+    /// newer progress save, import, deletion, or another sync application.
+    struct SyncSnapshot {
+        fileprivate let records: [ReadingBook]
+        fileprivate let revision: UInt64
+    }
+
+    struct EncodedSyncSnapshot {
+        fileprivate let snapshot: SyncSnapshot
+        fileprivate let shelfData: Data
+        fileprivate let readingData: Data
+    }
+
+    nonisolated private static let syncEncodingQueue = DispatchQueue(
+        label: "com.yuedu.library.sync-metadata", qos: .utility
+    )
+
+    @MainActor
+    func snapshotForSync(_ syncedRecords: [ReadingBook], expectedMutationRevision: UInt64? = nil) -> SyncSnapshot? {
+        if let expectedMutationRevision, expectedMutationRevision != mutationRevision { return nil }
+        // The table of contents is this device's own: `chapterStore` keeps it, and the
+        // record's summary is derived from it. A synced copy carries none, except one a build
+        // before the store uploaded — an older list, taken only by a device that has none.
+        let localRecords = Dictionary(records.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        // A version whose shelf book the merge no longer has — deleted on a build from before
+        // versions synced, which leaves them behind — is a shelf book again: nothing would list
+        // it otherwise.
+        let shelfIDs = Set(syncedRecords.filter { $0.versionOf == nil }.map(\.id))
+        let shelf = syncedRecords.map { book in
+            var merged = book.withoutTableOfContents()
+            if let shelfID = merged.versionOf, !shelfIDs.contains(shelfID) { merged.versionOf = nil }
+            merged.isInBookshelf = merged.versionOf == nil
+            // A module's book whose record came back from a build before `module` existed:
+            // that build kept every field it knew and dropped this one, and without it the
+            // book reads as a browser import. Only an online book with no source of its own
+            // takes it back, as nothing else could have been that book. Delete once no build
+            // from before module ecosystem M5b (2026-10) syncs.
+            if merged.module == nil, merged.isOnline, merged.bookSourceId == nil,
+               let local = localRecords[book.id]?.module {
+                merged.module = local
+            }
+            // A video whose record came back from a build before `.video` existed: that build
+            // decodes the unknown kind by inference (online → `.html`) and, once the book changes
+            // there, uploads it so. A type-4 source's book is a video on every build that knows
+            // the kind, so only that pair is taken back. Delete once no build from before video
+            // sources (2026-11) syncs.
+            if merged.isOnline, merged.contentPipelineKind == .html,
+               let sourceID = merged.bookSourceId,
+               BookSourceStore.shared.source(id: sourceID)?.bookSourceType == 4 {
+                merged.contentPipelineKind = .video
+            }
+            if let incoming = book.onlineChapters, !incoming.isEmpty, !chapterStore.hasList(for: book.id) {
+                merged.onlineChapters = incoming
+                merged.applyChapterSummary(from: incoming)
+            } else {
+                merged.totalChapterNum = localRecords[book.id]?.totalChapterNum
+                merged.latestChapterTitle = localRecords[book.id]?.latestChapterTitle
+            }
+            return merged
+        }.sorted { lhs, rhs in
+            (lhs.lastOpenedDate ?? lhs.addedDate) > (rhs.lastOpenedDate ?? rhs.addedDate)
+        }
+        // The copies only read stay as they are; a version is the merge's like a shelf book, so
+        // one deleted on another device goes here too.
+        let ids = Set(shelf.map(\.id))
+        return SyncSnapshot(records: shelf + records.filter { !$0.isInBookshelf && $0.versionOf == nil && !ids.contains($0.id) },
+                            revision: mutationRevision)
+    }
+
+    nonisolated static func encodeSyncSnapshot(_ snapshot: SyncSnapshot) async throws -> EncodedSyncSnapshot {
+        try await withCheckedThrowingContinuation { continuation in
+            syncEncodingQueue.async {
+                dispatchPrecondition(condition: .notOnQueue(.main))
+                do {
+                    let result = try SourcePerfTrace.span("sync.encode.books", "count=\(snapshot.records.count) main=false") {
+                        try encodeSyncSnapshotData(snapshot)
+                    }
+                    continuation.resume(returning: result)
+                } catch {
+                    continuation.resume(throwing: error)
+                }
+            }
+        }
+    }
+
+    nonisolated private static func encodeSyncSnapshotData(_ snapshot: SyncSnapshot) throws -> EncodedSyncSnapshot {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys]
+        return try EncodedSyncSnapshot(snapshot: snapshot,
+            shelfData: encoder.encode(snapshot.records.filter(\.isInBookshelf)),
+            readingData: encoder.encode(snapshot.records.filter { !$0.isInBookshelf }))
+    }
+
+    /// Applies a merge encoded off the main thread and queues its write without waiting for
+    /// it. Waiting put the main thread behind every write already queued — the scene's own
+    /// flush is queued on the same trip — with the changed tables of contents flushed first:
+    /// in the field `library.chapters.write 178ms bytes=20183991 main=true` inside
+    /// `sync.apply.books`, during the iCloud sync a trip to the background starts (3.0.0
+    /// (129), iPhone 11), while the 10 s scene-update watchdog was counting. Readers of the
+    /// files wait for the queue (`queuedWritesLanded`, a store opening them).
+    @discardableResult
+    @MainActor
+    func applySyncSnapshot(_ prepared: EncodedSyncSnapshot) -> Bool {
+        applySyncSnapshot(prepared, inBackground: true)
+    }
+
+    @MainActor
+    private func applySyncSnapshot(_ prepared: EncodedSyncSnapshot, inBackground: Bool) -> Bool {
+        guard prepared.snapshot.revision == mutationRevision else { return false }
+        replaceRecords(prepared.snapshot.records)
+        cancelPendingMetadataSave()
+        let bookIDs = Set(records.map(\.id))
+        if recordsLoadedCompletely {
+            chapterStore.removeChapters(notIn: bookIDs)
+            importedMetadata.remove(notIn: bookIDs)
+            // Outside this guard it dropped the settings of every book only read whenever the
+            // reading records had not loaded (feedback #74).
+            readerSettings.removeSettings(notIn: bookIDs)
+        }
+        persistMetadata(prepared.shelfData, readingData: prepared.readingData, inBackground: inBackground)
+        return true
+    }
+
+    /// Every book this device holds a record of, on the shelf or only read.
+    var recordIDs: Set<UUID> { Set(records.map(\.id)) }
+
+    /// Books added on devices still on a build from before the iCloud sync split
+    /// (2026-10-05), taken onto the shelf under the id they carry, so a book is one book
+    /// when those devices update. Only ids with no record here: a book this device holds,
+    /// on the shelf or only read, stays as it is.
+    ///
+    /// - Returns: how many were taken.
+    @discardableResult
+    @MainActor
+    func adoptBooksAddedByOlderBuilds(_ books: [ReadingBook]) -> Int {
+        var known = recordIDs
+        let adopted = books.compactMap { book -> ReadingBook? in
+            guard known.insert(book.id).inserted else { return nil }
+            var shelved = book
+            shelved.isInBookshelf = true
+            return shelved
+        }
+        guard !adopted.isEmpty else { return 0 }
+        records = adopted + records
+        saveMeta()
+        return adopted.count
+    }
+
+    /// Writes on the calling (main) thread, behind every write already queued, so the files
+    /// hold the merge when it returns. Only tests seed shelves with it: both cloud syncs use
+    /// snapshot → worker encoding → revision-checked application (`applySyncSnapshot`).
+    @discardableResult
+    @MainActor
+    func replaceBooksFromSync(_ syncedBooks: [ReadingBook], expectedMutationRevision: UInt64? = nil) -> Bool {
+        guard let snapshot = snapshotForSync(syncedBooks, expectedMutationRevision: expectedMutationRevision),
+              let prepared = try? Self.encodeSyncSnapshotData(snapshot) else { return false }
+        return applySyncSnapshot(prepared, inBackground: false)
+    }
+
+    private func cancelPendingMetadataSave() {
+        saveWorkItem?.cancel()
+        saveGeneration += 1
+        saveWorkItem = nil
+        firstPendingSaveRequestedAt = nil
+    }
+
+    /// Starts the write now instead of after the debounce, on `persistQueue` like every other
+    /// write, and keeps the app running in the background until it has landed.
+    ///
+    /// It used to wait for the write on the calling (main) thread. The write first flushes
+    /// every changed table of contents, so on a large shelf the main thread stood still for
+    /// seconds — on the way into the background long enough for the 10 s scene-update
+    /// watchdog to kill the app ("聽書息屏秒崩"; MetricKit `scene-update watchdog`, 169 users
+    /// in 30 days up to build 2.0.7 (127)).
+    private func saveMetaImmediately() {
+        cancelPendingMetadataSave()
+        persistMetadataIfChanged(inBackground: true)
+        // After the write is queued: the hold covers what is queued when it is taken, and
+        // taken first it was released before this write ran.
+        holdAppUntilQueuedWritesLand()
+    }
+
+    /// Writes a debounced save now. The scene calls this on its way out of the
+    /// foreground: an app killed from the app switcher, or while suspended, never ran
+    /// the pending write, and a book added to the shelf just before was gone.
+    /// Never waits: the write runs on `persistQueue` under a background task.
+    func flushPendingMetadataSave() {
+        guard saveWorkItem != nil else {
+            // A background write already in flight finishes before the app is suspended.
+            holdAppUntilQueuedWritesLand()
+            return
+        }
+        saveMetaImmediately()
+    }
+
+    /// Keeps the app from being suspended until everything queued on `persistQueue` so far
+    /// has run. Without it, a write handed to the queue as the app leaves the foreground can
+    /// be frozen half-way.
+    private func holdAppUntilQueuedWritesLand() {
+        let hold = BackgroundTaskHold(name: "library.persist")
+        Self.persistQueue.async { hold.release() }
+    }
+
+    /// Lets tests and file-replacing callers see what was handed to the write queue. Waits on
+    /// the calling thread; never call it from UI code.
+    func waitForQueuedWrites() {
+        Self.persistQueue.sync {}
+    }
+
+    /// Resumes once every write queued so far has landed, without blocking any thread. For
+    /// code that reads the shelf files themselves (WebDAV backup, iCloud file upload): a save
+    /// is queued, not finished, when it returns.
+    nonisolated static func queuedWritesLanded() async {
+        await withCheckedContinuation { continuation in
+            persistQueue.async { continuation.resume() }
+        }
+    }
+
+    /// Reindexing changes the meaning of chapter numbers. Publish bookmark changes
+    /// only after their full metadata snapshot is durably written, and reject edits
+    /// made while the migration was measuring source/rendered correspondence.
+    ///
+    /// Returns once the write has landed, without holding the main thread behind the writes
+    /// queued before it (it used to wait for them there). The store holds the moved bookmarks
+    /// from the start, so a save made while the write is in flight carries them too: one
+    /// queued behind it with the old bookmarks would put them back on disk after the caller
+    /// has published the new index. A failed write takes them back out.
+    @MainActor
+    func commitTXTBookmarks(bookId: UUID, original: [Bookmark], migrated: [Bookmark]) async throws {
+        guard let index = records.firstIndex(where: { $0.id == bookId }),
+              records[index].bookmarks == original || records[index].bookmarks == migrated else {
+            throw TXTLocationMigration.Failure.missingSourceIdentity
+        }
+        var updated = records[index]
+        updated.bookmarks = migrated
+        let output = records.map { $0.id == bookId ? updated : $0 }
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys]
+        let data = try encoder.encode(output.filter { $0.isInBookshelf == updated.isInBookshelf })
+        records[index] = updated
+        persistSequence &+= 1
+        let sequence = persistSequence
+        // Changed lists become durable with this write, as when they rode inside the shelf.
+        // On `persistQueue`, after any background write in flight.
+        let files = persistedFiles
+        let isShelf = updated.isInBookshelf
+        let url = isShelf ? metadataFileURL : readingMetadataFileURL
+        do {
+            // The caller publishes the new chapter index only once these bookmarks are durable.
+            if isShelf ? metadataWritesBlocked : readingRecordsWritesBlocked { throw MetadataFileUnwritable() }
+            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, any Error>) in
+                Self.persistQueue.async { [self] in
+                    do {
+                        chapterStore.flush()
+                        try data.write(to: url, options: .atomic)
+                        if isShelf { files.shelfData = data } else { files.readingData = data }
+                        continuation.resume()
+                    } catch {
+                        continuation.resume(throwing: error)
+                    }
+                }
+            }
+        } catch {
+            if let current = records.firstIndex(where: { $0.id == bookId }), records[current].bookmarks == migrated {
+                records[current].bookmarks = original
+                // A save made meanwhile may have written the moved ones.
+                saveMeta()
+            }
+            AppLogger.error("TXT bookmarks moved to the new chapter index could not be saved", error: error)
+            throw error
+        }
+        // A save queued while this one was in flight has landed after it, with its own bookkeeping.
+        guard sequence > lastAppliedPersistSequence else { return }
+        lastAppliedPersistSequence = sequence
+        if isShelf { markMetadataPersisted(data, records: output, queueKnows: true); syncWidgetData() }
+        else { notePersistedReadingData(data, queueKnows: true) }
+    }
+
+    private func persistPositionUpdateIfNeeded(
+        bookId: UUID,
+        updatedBook: ReadingBook,
+        force: Bool
+    ) {
+        guard shouldPersistPositionUpdate(bookId: bookId, updatedBook: updatedBook, force: force) else {
+            return
+        }
+        if force {
+            saveMetaImmediately()
+        } else {
+            saveMeta()
+        }
+    }
+
+    private func shouldPersistPositionUpdate(
+        bookId: UUID,
+        updatedBook: ReadingBook,
+        force: Bool
+    ) -> Bool {
+        if force { return true }
+
+        let snapshot = PersistedPositionSnapshot(book: updatedBook)
+        guard let persisted = lastPersistedPositionSnapshots[bookId] else {
+            return true
+        }
+
+        if abs(snapshot.currentPosition - persisted.currentPosition) >= Self.minimumProgressDeltaForMetadataWrite {
+            return true
+        }
+        if snapshot.mangaChapterIndex != persisted.mangaChapterIndex {
+            return true
+        }
+        if snapshot.audioChapterIndex != persisted.audioChapterIndex {
+            return true
+        }
+        if abs(snapshot.audioTimeSeconds - persisted.audioTimeSeconds) >= Self.minimumAudioTimeDeltaForMetadataWrite {
+            return true
+        }
+
+        guard snapshot != persisted else { return false }
+        let now = ProcessInfo.processInfo.systemUptime
+        let lastSave = lastPersistedPositionSaveUptimeByBook[bookId] ?? now
+        return now - lastSave >= Self.maximumPositionMetadataWriteInterval
+    }
+
+    // MARK: - Writing the shelf
+    //
+    // Every write goes through `persistQueue`, in order. A debounced save — what a download's
+    // chapter marks and the launch refresh's table-of-contents updates ask for, every few
+    // seconds for as long as either runs — is written in the background: encoding 100 books
+    // and a changed 2000-chapter list took 30–120ms on the main thread each time. An
+    // immediate save (a source switch, a download's state change, the scene leaving the
+    // foreground, an iCloud merge) is queued without the debounce, on the same queue, so it
+    // lands after any write already in flight, and holds the app until it has. legado writes
+    // its books and chapters through Room on its IO dispatcher for the same reason.
+    /// Not private so a test can hold the queue and show what the main thread waits for.
+    nonisolated static let persistQueue = DispatchQueue(label: "com.yuedu.library.persist", qos: .utility)
+    /// Order of the writes handed to `persistQueue`; a write's bookkeeping is applied only if
+    /// no later write's has been.
+    private var persistSequence: UInt64 = 0
+    private var lastAppliedPersistSequence: UInt64 = 0
+
+    /// What the two files last received from this store. Read and written on `persistQueue`
+    /// only, so a write sees the one before it even while that one's main-thread bookkeeping
+    /// is still queued; the main thread sets it when it reads or writes the files itself.
+    /// The lock is never contended (every access is on that one serial queue); it is what
+    /// lets the compiler check that the queue's closures may share this object.
+    private final class PersistedFiles: Sendable {
+        private struct Contents {
+            var shelfData: Data?
+            var readingData: Data?
+        }
+        private let contents = OSAllocatedUnfairLock(initialState: Contents())
+        var shelfData: Data? {
+            get { contents.withLock { $0.shelfData } }
+            set { contents.withLock { $0.shelfData = newValue } }
+        }
+        var readingData: Data? {
+            get { contents.withLock { $0.readingData } }
+            set { contents.withLock { $0.readingData = newValue } }
+        }
+    }
+    private let persistedFiles = PersistedFiles()
+
+    private struct MetadataWriteInput {
+        enum Payload {
+            case records(shelf: [ReadingBook], reading: [ReadingBook])
+            case encoded(shelf: Data, reading: Data)
+        }
+        let payload: Payload
+        let writesBlocked: Bool
+        let readingWritesBlocked: Bool
+        /// The records the shelf data describes, for the position bookkeeping.
+        let records: [ReadingBook]
+    }
+
+    private struct MetadataWritten {
+        var shelfData: Data?
+        var readingData: Data?
+    }
+
+    private func persistMetadataIfChanged(inBackground: Bool) {
+        persist(
+            MetadataWriteInput(
+                payload: .records(shelf: books, reading: records.filter { !$0.isInBookshelf }),
+                writesBlocked: metadataWritesBlocked,
+                readingWritesBlocked: readingRecordsWritesBlocked,
+                records: records
+            ),
+            inBackground: inBackground
+        )
+    }
+
+    private func persistMetadata(_ data: Data, readingData: Data, inBackground: Bool) {
+        persist(
+            MetadataWriteInput(
+                payload: .encoded(shelf: data, reading: readingData),
+                writesBlocked: metadataWritesBlocked,
+                readingWritesBlocked: readingRecordsWritesBlocked,
+                records: records
+            ),
+            inBackground: inBackground
+        )
+        if inBackground { holdAppUntilQueuedWritesLand() }
+    }
+
+    private func persist(_ input: MetadataWriteInput, inBackground: Bool) {
+        persistSequence &+= 1
+        let sequence = persistSequence
+        if inBackground {
+            Self.persistQueue.async { [self] in
+                let written = writeMetadata(input)
+                DispatchQueue.main.async { self.noteMetadataWritten(written, from: input, sequence: sequence) }
+            }
+        } else {
+            let written = Self.persistQueue.sync { writeMetadata(input) }
+            noteMetadataWritten(written, from: input, sequence: sequence)
+        }
+    }
+
+    /// Runs on `persistQueue`. Touches no store state beyond `chapterStore`, which has its own lock.
+    nonisolated private func writeMetadata(_ input: MetadataWriteInput) -> MetadataWritten {
+        let shelfData: Data?
+        let readingData: Data?
+        switch input.payload {
+        case .records(let shelf, let reading):
+            shelfData = Self.encodeShelf(shelf)
+            readingData = Self.encodeShelf(reading)
+        case .encoded(let shelf, let reading):
+            shelfData = shelf
+            readingData = reading
+        }
+        var written = MetadataWritten()
+        let files = persistedFiles
+        SourcePerfTrace.span(
+            "library.shelf.save",
+            "books=\(input.records.count) bytes=\((written.shelfData?.count ?? 0) + (written.readingData?.count ?? 0)) main=\(Thread.isMainThread)",
+            thresholdMs: 5
+        ) {
+            do {
+                // Write the shelf first: a crash while promoting a reading record must
+                // leave at least one durable copy. Loading gives shelf IDs precedence.
+                if input.writesBlocked {
+                    // What is on disk is the only copy of a shelf this launch could not read.
+                    AppLogger.cache("Bookshelf metadata is unreadable and was not kept aside; leaving it as it is")
+                } else {
+                    // The lists go before the shelf that no longer carries them: a shelf moved out
+                    // of an older build's file must not be written until its lists are on disk.
+                    chapterStore.flush()
+                    if let shelfData, shelfData != files.shelfData {
+                        // A restore (iCloud, WebDAV) replaces the file from outside the store and
+                        // reloads it afterwards. A write queued before that must not put the old
+                        // shelf back over it: the file is only overwritten while it still holds
+                        // what this store last wrote.
+                        if Self.file(metadataFileURL, holds: files.shelfData) {
+                            try shelfData.write(to: metadataFileURL, options: .atomic)
+                            files.shelfData = shelfData
+                            written.shelfData = shelfData
+                        } else {
+                            AppLogger.cache("Bookshelf file changed outside the store; keeping it")
+                        }
+                    }
+                }
+                if input.readingWritesBlocked {
+                    // What is on disk is the only copy of the books only read, which this launch could not read.
+                    AppLogger.cache("Reading records are unreadable and were not kept aside; leaving them as they are")
+                } else if let readingData, readingData != files.readingData {
+                    try readingData.write(to: readingMetadataFileURL, options: .atomic)
+                    files.readingData = readingData
+                    written.readingData = readingData
+                }
+            } catch {
+                AppLogger.cache("Failed to write metadata: \(error)")
+            }
+        }
+        return written
+    }
+
+    nonisolated private static func file(_ url: URL, holds data: Data?) -> Bool {
+        guard let data else { return !FileManager.default.fileExists(atPath: url.path) }
+        return (try? Data(contentsOf: url)) == data
+    }
+
+    /// Main thread: records what the files now hold. A write that an immediate one has
+    /// already overtaken changes nothing here; the files hold the later one.
+    private func noteMetadataWritten(_ written: MetadataWritten, from input: MetadataWriteInput, sequence: UInt64) {
+        guard sequence > lastAppliedPersistSequence else { return }
+        lastAppliedPersistSequence = sequence
+        if let shelfData = written.shelfData {
+            markMetadataPersisted(shelfData, records: input.records, queueKnows: true)
+            syncWidgetData()
+        }
+        if let readingData = written.readingData {
+            lastPersistedReadingData = readingData
+        }
+    }
+
+    /// - Parameter queueKnows: the write happened on `persistQueue`, which recorded it there.
+    ///   Otherwise the queue is told asynchronously: it is serial, so every write handed to it
+    ///   later sees this, and the main thread never waits for one in flight.
+    private func notePersistedReadingData(_ data: Data, queueKnows: Bool = false) {
+        lastPersistedReadingData = data
+        guard !queueKnows else { return }
+        let files = persistedFiles
+        Self.persistQueue.async { files.readingData = data }
+    }
+
+    nonisolated private static func encodeShelf(_ books: [ReadingBook]) -> Data? {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys]
+        return try? encoder.encode(books)
+    }
+
+    private func encodeBooksMetadata() -> Data? {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys]
+        return try? encoder.encode(books)
+    }
+
+    /// - Parameter records: the records `data` was encoded from — on a background write,
+    ///   the store may have moved on by the time this runs.
+    ///   `queueKnows`: see `notePersistedReadingData`. A background write's bookkeeping must
+    ///   not tell the queue again: by the time it runs here a later write may already have
+    ///   landed, and telling the queue the older bytes made the next write believe the file
+    ///   had been replaced from outside, and skip it.
+    private func markMetadataPersisted(_ data: Data, records: [ReadingBook], queueKnows: Bool = false) {
+        lastPersistedMetadataData = data
+        if !queueKnows {
+            let files = persistedFiles
+            Self.persistQueue.async { files.shelfData = data }
+        }
+        let now = ProcessInfo.processInfo.systemUptime
+        lastPersistedPositionSnapshots = Dictionary(
+            uniqueKeysWithValues: records.map { ($0.id, PersistedPositionSnapshot(book: $0)) }
+        )
+        lastPersistedPositionSaveUptimeByBook = Dictionary(
+            uniqueKeysWithValues: records.map { ($0.id, now) }
+        )
+    }
+
+    // MARK: - Widget Data Sync
+
+    private static let widgetAppGroupID = "group.com.zhangruilin.yuedureader"
+    private static let widgetDataKey = "widget_last_book"
+
+    private func syncWidgetData() {
+        guard let defaults = UserDefaults(suiteName: Self.widgetAppGroupID) else { return }
+        guard let lastBook = books
+            .sorted(by: { ($0.lastOpenedDate ?? $0.addedDate) > ($1.lastOpenedDate ?? $1.addedDate) })
+            .first
+        else {
+            defaults.removeObject(forKey: Self.widgetDataKey)
+            return
+        }
+
+        let entry = WidgetBookProgress(
+            title: lastBook.title,
+            author: lastBook.author,
+            progress: min(1, max(0, lastBook.currentPosition)),
+            coverImagePath: lastBook.coverImagePath,
+            lastReadDate: lastBook.lastOpenedDate ?? lastBook.addedDate
+        )
+
+        if let data = try? JSONEncoder().encode(entry) {
+            defaults.set(data, forKey: Self.widgetDataKey)
+            WidgetCenter.shared.reloadTimelines(ofKind: "BookProgressWidget")
+        }
+    }
+
+    /// Re-reads `books_meta.json` into memory. Used after an iCloud restore
+    /// overwrites the file so the bookshelf reflects it without a relaunch.
+    ///
+    /// Waits for the writes already queued without holding the main thread behind them (it
+    /// used to wait there).
+    func reloadFromDisk() async {
+        // Nothing of the shelf being replaced may be written over it: a pending save is
+        // dropped, and a write already in flight finishes first (it keeps the restored
+        // file, see `writeMetadata`).
+        cancelPendingMetadataSave()
+        await Self.queuedWritesLanded()
+        // A save asked for while waiting would carry the shelf being replaced.
+        cancelPendingMetadataSave()
+        let shelfLoaded = loadMeta()
+        let readingRecordsLoaded = loadReadingRecords()
+        finishLoadingChapterLists(complete: shelfLoaded && readingRecordsLoaded)
+    }
+
+    /// Runs once the shelf and the reading records are read. Lists that came inside them —
+    /// a file written before `chapterStore`, or by an older build since — are written out;
+    /// a book whose summary is missing gets it back from its stored list; and when both
+    /// files read completely, the lists of books that are in neither are removed.
+    private func finishLoadingChapterLists(complete: Bool) {
+        // A shelf without the summary has its lists on disk all the same: a backup restored
+        // over it never carries the summary (`strippedForSync`), and a build from before it
+        // drops the fields when it rewrites the file.
+        var repaired = records
+        var didRepair = false
+        for index in repaired.indices where repaired[index].totalChapterNum == nil {
+            let bookID = repaired[index].id
+            guard chapterStore.hasStoredList(for: bookID),
+                  let chapters = chapterStore.chapters(for: bookID) else { continue }
+            repaired[index].applyChapterSummary(from: chapters)
+            didRepair = true
+        }
+        if didRepair { records = repaired }
+        recordsLoadedCompletely = complete
+        if complete {
+            let bookIDs = Set(records.map(\.id))
+            chapterStore.removeChapters(notIn: bookIDs)
+            importedMetadata.remove(notIn: bookIDs)
+        }
+        if didRepair || chapterStore.hasUnwrittenChanges { saveMetaImmediately() }
+        // Phase 3a-2: the covers the filler gave copies with none, for the shelf.
+        Task { @MainActor [weak self] in await self?.refreshFilledCovers() }
+        Task { @MainActor [weak self] in await self?.rereadTXTHeaders() }
+    }
+
+    /// TXT copies imported before `TXTMetadataProbe` read the header's credit line, 文案 and
+    /// 标签 (2026-10-17) have their file's header read again, once: an author is written only
+    /// over the 未知作者 placeholder (one the reader typed stays), and 文案／标签 go beside the
+    /// copy as an import's do. A copy still 未知作者 is read at every launch (its first 128 KB).
+    /// The main actor only hands over the shelf (a copy-on-write copy) and, when a header
+    /// named an author, writes it back; the filtering, the files and the sidecars stay off
+    /// it (a 5000-book shelf's filter costs ~5 ms, too much for launch).
+    nonisolated func rereadTXTHeaders() async {
+        let placeholder = "未知作者"
+        let done = Set(UserDefaults.standard.stringArray(forKey: Self.txtHeadersReadKey) ?? [])
+        let shelf = await MainActor.run { records }
+        let candidates = shelf.filter {
+            $0.source == "local" && $0.resolvedPipelineKind == .txt
+                && ($0.author == placeholder || !done.contains($0.id.uuidString))
+        }.map { (book: $0, url: documentsURL(for: $0.contentFilename)) }
+        guard !candidates.isEmpty else { return }
+        let read = await Task.detached(priority: .utility) { () -> [UUID: TXTBookMetadata] in
+            var found: [UUID: TXTBookMetadata] = [:]
+            for candidate in candidates {
+                do {
+                    found[candidate.book.id] = try TXTMetadataProbe.probe(url: candidate.url, fallbackTitle: candidate.book.title)
+                } catch {
+                    AppLogger.error("TXT header could not be read again", context: [
+                        "book": candidate.book.id.uuidString, "error": "\(error)",
+                    ], level: .warning)
+                }
+            }
+            return found
+        }.value
+        let authors = read.compactMapValues(\.author)
+        // Written against the shelf as it is now, not the copy read before the files were.
+        let named = authors.isEmpty ? 0 : await MainActor.run { () -> Int in
+            var updated = records
+            var named = 0
+            for index in updated.indices {
+                guard updated[index].author == placeholder, let author = authors[updated[index].id] else { continue }
+                updated[index].author = author
+                named += 1
+            }
+            if named > 0 {
+                records = updated
+                saveMeta()
+            }
+            return named
+        }
+        for candidate in candidates where !done.contains(candidate.book.id.uuidString) {
+            guard let header = read[candidate.book.id] else { continue }
+            var book = candidate.book
+            if book.author == placeholder, let author = header.author { book.author = author }
+            guard let captured = ImportedMetadataCapture.txt(copy: book, metadata: header) else { continue }
+            // Only what the sidecar has none of: a value filled or typed since stays.
+            let existing = Set(importedMetadata.read(copyID: book.id)?.values.map(\.field) ?? [])
+            let fresh = captured.values.filter { !existing.contains($0.field) }
+            if !fresh.isEmpty {
+                importedMetadata.write(ImportedMetadata(copyID: captured.copyID, sourceItem: captured.sourceItem,
+                                                        identifiers: [], values: fresh))
+            }
+        }
+        UserDefaults.standard.set(Array(done.union(read.keys.map(\.uuidString))), forKey: Self.txtHeadersReadKey)
+        AppLogger.info("TXT headers read again: \(read.count) book(s), \(named) named their author")
+    }
+
+    nonisolated static let txtHeadersReadKey = "yd_txt_headers_read"
+
+    /// Whether the shelf is known to be complete: the file decoded, or there is no shelf
+    /// file yet. A file that exists but does not decode leaves the shelf empty, and that
+    /// must not be taken to mean the user has no books.
+    ///
+    /// Whether the file may be written is decided afresh on every load: a restore
+    /// (`reloadFromDisk`) may bring a readable file.
+    @discardableResult
+    private func loadMeta() -> Bool {
+        metadataWritesBlocked = false
+        let shelfFileExists = FileManager.default.fileExists(atPath: metadataFileURL.path)
+        // Prefer the file-based store.
+        if shelfFileExists {
+            do {
+                let data = try Data(contentsOf: metadataFileURL)
+                do {
+                    let decoded = try SourcePerfTrace.span("library.shelf.load", "bytes=\(data.count)", thresholdMs: 5) {
+                        try JSONDecoder().decode([ReadingBook].self, from: data)
+                    }
+                    records = Self.sanitizingInlineChapterURLs(decoded)
+                    markMetadataPersisted(data, records: records)
+                    return true
+                } catch {
+                    // The shelf opens empty when this happens, and nothing on screen says why.
+                    AppLogger.error(
+                        "Bookshelf metadata could not be decoded",
+                        error: error,
+                        context: ["file": metadataFileURL.lastPathComponent]
+                    )
+                    metadataWritesBlocked = !keptUnreadableMetadataAside(
+                        data, of: metadataFileURL, named: "Bookshelf metadata"
+                    )
+                    if !metadataWritesBlocked {
+                        // The bytes are safe in their copy, so the file may be written over:
+                        // the write queue is told what it holds now.
+                        let files = persistedFiles
+                        Self.persistQueue.async { files.shelfData = data }
+                    }
+                }
+            } catch {
+                // Not even the bytes are in hand, so nothing may be written over them.
+                AppLogger.error(
+                    "Bookshelf metadata could not be read",
+                    error: error,
+                    context: ["file": metadataFileURL.lastPathComponent]
+                )
+                metadataWritesBlocked = true
+            }
+        }
+
+        // One-time migration: pull legacy data out of UserDefaults, write to disk,
+        // then remove the UserDefaults entry so it no longer inflates the plist.
+        if let data = UserDefaults.standard.data(forKey: legacyMetaKey),
+           let decoded = try? JSONDecoder().decode([ReadingBook].self, from: data)
+        {
+            records = Self.sanitizingInlineChapterURLs(decoded)
+            if !metadataWritesBlocked, let migrated = encodeBooksMetadata() {
+                chapterStore.flush()
+                try? migrated.write(to: metadataFileURL, options: .atomic)
+                markMetadataPersisted(migrated, records: records)
+            }
+            UserDefaults.standard.removeObject(forKey: legacyMetaKey)
+            return true
+        }
+        return !shelfFileExists
+    }
+
+    /// Copies a file of the library — the shelf, or the reading records — that did not decode
+    /// next to itself, before anything writes over it.
+    ///
+    /// Named after the file's own modification time, so the next launch recognises the copy it
+    /// already made instead of filling the folder with duplicates. Returns whether the bytes
+    /// are safely preserved; when they are not, the file is left exactly as it is for this
+    /// launch — an empty shelf written over the only copy is how a library disappears.
+    private func keptUnreadableMetadataAside(_ data: Data, of fileURL: URL, named name: String) -> Bool {
+        let modified = try? fileURL
+            .resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate
+        let stamp = Int((modified ?? Date()).timeIntervalSince1970)
+        let backupURL = fileURL
+            .deletingPathExtension()
+            .appendingPathExtension("corrupt-\(stamp).json")
+        do {
+            try data.write(to: backupURL, options: .withoutOverwriting)
+            AppLogger.error(
+                "\(name) kept aside as \(backupURL.lastPathComponent)",
+                context: ["bytes": data.count]
+            )
+            return true
+        } catch {
+            if let existing = try? Data(contentsOf: backupURL), existing == data {
+                // An earlier launch already kept exactly these bytes.
+                return true
+            }
+            AppLogger.error(
+                "\(name) could not be kept aside; this launch will not write over it",
+                error: error,
+                context: ["backup": backupURL.lastPathComponent]
+            )
+            return false
+        }
+    }
+
+    /// Whether every reading-only record is known: the file decoded, or there is none.
+    ///
+    /// A file that exists but does not decode is kept aside before anything writes over it,
+    /// as the shelf is; one whose bytes cannot be read or kept is not written this launch.
+    /// Decided afresh on every load: a restore (`reloadFromDisk`) may bring a readable file.
+    @discardableResult
+    private func loadReadingRecords() -> Bool {
+        readingRecordsWritesBlocked = false
+        guard FileManager.default.fileExists(atPath: readingMetadataFileURL.path) else { return true }
+        let data: Data
+        do {
+            data = try Data(contentsOf: readingMetadataFileURL)
+        } catch {
+            // Not even the bytes are in hand, so nothing may be written over them.
+            AppLogger.error(
+                "Remote reading records could not be read",
+                error: error,
+                context: ["file": readingMetadataFileURL.lastPathComponent]
+            )
+            readingRecordsWritesBlocked = true
+            return false
+        }
+        do {
+            let decoded = Self.sanitizingInlineChapterURLs(try JSONDecoder().decode([ReadingBook].self, from: data))
+            let shelfIDs = Set(records.map(\.id))
+            records.append(contentsOf: decoded.filter { !$0.isInBookshelf && !shelfIDs.contains($0.id) })
+            notePersistedReadingData(data)
+            return true
+        } catch {
+            AppLogger.error(
+                "Remote reading records could not be decoded",
+                error: error,
+                context: ["file": readingMetadataFileURL.lastPathComponent]
+            )
+            readingRecordsWritesBlocked = !keptUnreadableMetadataAside(
+                data, of: readingMetadataFileURL, named: "Remote reading records"
+            )
+            if !readingRecordsWritesBlocked {
+                // The bytes are safe in their copy, so the file may be written over: the
+                // write queue is told what it holds now.
+                notePersistedReadingData(data)
+            }
+            return false
+        }
+    }
+
+    /// Queues the reading records' write ahead of the shelf save that follows it: a record
+    /// taken off the shelf is in the reading file before the shelf file stops listing it.
+    /// The caller's `saveMetaImmediately()` holds the app until both have landed. It used to
+    /// wait for the write on the main thread, behind every write already queued.
+    private func persistReadingRecords() {
+        guard !readingRecordsWritesBlocked else {
+            AppLogger.cache("Reading records are unreadable and were not kept aside; leaving them as they are")
+            return
+        }
+        let data: Data
+        do {
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = [.sortedKeys]
+            data = try encoder.encode(records.filter { !$0.isInBookshelf })
+        } catch {
+            AppLogger.error("Remote reading records could not be saved", error: error)
+            return
+        }
+        guard data != lastPersistedReadingData else { return }
+        let files = persistedFiles
+        let url = readingMetadataFileURL
+        Self.persistQueue.async { [self] in
+            guard data != files.readingData else { return }
+            do {
+                try data.write(to: url, options: .atomic)
+                files.readingData = data
+                DispatchQueue.main.async { self.lastPersistedReadingData = data }
+            } catch {
+                AppLogger.error("Remote reading records could not be saved", error: error)
+            }
+        }
+    }
+
+    /// Cleans the chapter URLs of lists read from inside a shelf file: replaces URLs
+    /// containing HTML markup with sanitized href values. Lists written by `chapterStore`
+    /// passed through here on their way out of the shelf, or came from a current parser.
+    nonisolated private static func sanitizingInlineChapterURLs(_ books: [ReadingBook]) -> [ReadingBook] {
+        books.map { book in
+            guard book.isOnline, var chapters = book.onlineChapters else { return book }
+            var bookChanged = false
+            for j in chapters.indices {
+                let original = chapters[j].url
+                let sanitized = RuleEngine.sanitizeExtractedURL(original)
+                if sanitized != original {
+                    chapters[j].url = sanitized
+                    bookChanged = true
+                }
+            }
+            guard bookChanged else { return book }
+            var sanitized = book
+            sanitized.onlineChapters = chapters
+            return sanitized
+        }
+    }
+
+    nonisolated private static func normalizedOnlineValue(_ value: String?) -> String {
+        value?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+    }
+
+    nonisolated private func normalizedOnlineValue(_ value: String?) -> String {
+        Self.normalizedOnlineValue(value)
+    }
+
+    /// - Parameter preservingExistingTail: keep chapters the refreshed list does not reach.
+    ///   Required for the progressive `onFirstPageReady` commit, which carries **only the
+    ///   first page** of the table of contents: replacing a 3000-chapter list with those 50
+    ///   truncates the book, and any `saveMetaImmediately()` racing that window — every
+    ///   completed download chapter issues one — persists the truncation. A later reconcile
+    ///   then reads the short list as "these chapters are gone". The final commit passes
+    ///   false, because by then the refreshed list is the whole thing and a genuine deletion
+    ///   upstream should be reflected.
+    ///
+    /// A stored chapter is the same chapter in the refreshed list when it has the same URL, or
+    /// — for a site that moved its chapter URLs — when it sits at the same index under the same
+    /// title. Until 2026-10-27 it was matched by index alone, so a source that inserted one
+    /// entry ahead of the reader (a 作品相关 notice, a new 卷 header) handed every later
+    /// chapter its predecessor's identity while the reading place and bookmarks stayed on the
+    /// old index: the book reopened one chapter back (feedback #95).
+    /// - Returns: the merged list, and `moves`: old index → new index of every matched chapter
+    ///   whose index changed (`ChapterRenumbering`).
+    nonisolated private static func mergeOnlineChapters(
+        existing: [OnlineChapterRef],
+        refreshed: [OnlineChapterRef],
+        preservingExistingTail: Bool = false
+    ) -> (chapters: [OnlineChapterRef], moves: [Int: Int]) {
+        // Sources repeat URLs and 卷 headers have none, so a URL names a queue of stored
+        // chapters, each claimed at most once: no two refreshed chapters share an `id`.
+        var existingByURL: [String: [OnlineChapterRef]] = [:]
+        for chapter in existing {
+            let url = normalizedOnlineValue(chapter.url)
+            guard !url.isEmpty else { continue }
+            existingByURL[url, default: []].append(chapter)
+        }
+        let existingByIndex = Dictionary(existing.map { ($0.index, $0) }, uniquingKeysWith: { first, _ in first })
+        var claimed: Set<Int> = []
+        var matches: [OnlineChapterRef?] = Array(repeating: nil, count: refreshed.count)
+        for (position, chapter) in refreshed.enumerated() {
+            let url = normalizedOnlineValue(chapter.url)
+            guard !url.isEmpty, let candidates = existingByURL[url] else { continue }
+            // A repeated URL is claimed in list order, so its chapters keep their order.
+            if let match = candidates.first(where: { !claimed.contains($0.index) }) {
+                claimed.insert(match.index)
+                matches[position] = match
+            }
+        }
+        for (position, chapter) in refreshed.enumerated() where matches[position] == nil {
+            guard let current = existingByIndex[chapter.index], !claimed.contains(current.index),
+                  normalizeChapterTitle(current.title) == normalizeChapterTitle(chapter.title) else { continue }
+            claimed.insert(current.index)
+            matches[position] = current
+        }
+
+        var moves: [Int: Int] = [:]
+        var merged = refreshed.enumerated().map { position, chapter in
+            var merged = chapter
+            guard let current = matches[position] else {
+                return merged
+            }
+            // A parser gives every ref a fresh `id`, and the synthesized `==` compares it:
+            // without carrying the stored one over, an unchanged list never compared equal,
+            // so every launch refresh replaced every record and rewrote every list on disk.
+            merged.id = current.id
+            if current.index != chapter.index {
+                moves[current.index] = chapter.index
+            } else if normalizedOnlineValue(current.url) == normalizedOnlineValue(chapter.url) {
+                // Cached files are named by index (`OfflineChapterStore`), so they stay with
+                // the index: a moved chapter is fetched again under its new one.
+                merged.cachedFilename = current.cachedFilename
+            }
+            if (merged.runtimeVariables == nil || merged.runtimeVariables?.isEmpty == true),
+                let currentRuntime = current.runtimeVariables,
+                !currentRuntime.isEmpty
+            {
+                merged.runtimeVariables = currentRuntime
+            }
+            return merged
+        }
+        if preservingExistingTail, existing.count > merged.count {
+            merged.append(contentsOf: existing[merged.count...])
+        }
+        return (merged, moves)
+    }
+
+    nonisolated private static func chapterListChanged(
+        existing: [OnlineChapterRef],
+        refreshed: [OnlineChapterRef]
+    ) -> Bool {
+        guard existing.count == refreshed.count else { return true }
+        for (left, right) in zip(existing, refreshed) {
+            if left.index != right.index { return true }
+            if normalizedOnlineValue(left.url) != normalizedOnlineValue(right.url) { return true }
+            if normalizeChapterTitle(left.title) != normalizeChapterTitle(right.title) { return true }
+        }
+        return false
+    }
+
+    nonisolated private static func normalizeChapterTitle(_ title: String) -> String {
+        ReaderHTMLUtilities.compactTitle(title)
+    }
+}
+
+/// A task handle set from one thread and awaited from another.
+private final class TaskBox: @unchecked Sendable {
+    private let lock = NSLock()
+    private var task: Task<Void, Never>?
+    func set(_ task: Task<Void, Never>) { lock.lock(); self.task = task; lock.unlock() }
+    var value: Task<Void, Never>? { lock.lock(); defer { lock.unlock() }; return task }
+}
+
+// MARK: - 快取管理's covers
+
+extension BookStore: SavedCoverOwner {
+    /// Every cover a book shows or keeps for 重設封面 that is not its own download: an
+    /// imported book's artwork came out of its file, and a remote-library copy's address
+    /// needs its catalog's session. Nil until every record has loaded.
+    func irreplaceableCoverFilenames() -> Set<String>? {
+        guard recordsLoadedCompletely else { return nil }
+        var kept = Set<String>()
+        for book in records where !book.downloadsItsCover {
+            for name in [book.coverImagePath, book.originalCoverImagePath] {
+                if let name, !name.isEmpty { kept.insert(name) }
+            }
+        }
+        return kept
+    }
+
+    func downloadedCoversRemoved() {
+        Task { await restoreMissingCovers() }
+    }
+}
+
+extension ReadingBook {
+    /// The cover this book shows is downloaded from its own `coverUrl`
+    /// (`BookStore.downloadCover`), so 快取管理 may delete the file and the book fetches it
+    /// back. Only an online book's: an imported book's cover came out of its file, and a
+    /// remote-library copy, which is not an online book, draws its address with the catalog's
+    /// session (`BookshelfCoverPlan`).
+    var downloadsItsCover: Bool {
+        isOnline && coverUrl?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+    }
+}

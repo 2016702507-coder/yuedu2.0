@@ -1,0 +1,1026 @@
+import SwiftUI
+
+struct ContentView: View {
+    @EnvironmentObject private var store: BookStore
+    @EnvironmentObject private var subscriptionStore: SubscriptionStore
+    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    /// Bold Text: `.bold` while it is on. The global font needs telling; the system font
+    /// follows it by itself.
+    @Environment(\.legibilityWeight) private var legibilityWeight
+    /// Pixel density a custom tab icon is redrawn at: the window's, not the main screen's.
+    @Environment(\.displayScale) private var displayScale
+    @Bindable private var gs = GlobalSettings.shared
+    /// 探索's browser, which 資源庫's pages open too: one browser, left as it was.
+    @StateObject private var browser = BrowserState()
+    @ObservedObject private var importDrainer = SharedImportQueueDrainer.shared
+    /// Whether any screen is hiding the tab bar — answered from every tab, not only the
+    /// screen's own (`RootTabBarVisibility`).
+    @StateObject private var rootTabBar = RootTabBarVisibility()
+    @State private var selectedRootTab: RootTabItem = .explore
+    /// 新手導覽: up at a device's first launch, and again from 設定 → 關於.
+    @State private var onboarding = OnboardingState()
+    /// A keyword a book source handed back via `java.searchBook`, or a detail page's author,
+    /// title or label (`SourceCallBackService.requestSearch`).
+    /// Presented over the tabs rather than by switching to the 搜尋 tab: that tab is
+    /// user-hideable (`gs.visibleRootTabs`), so selecting it would do nothing at all
+    /// for anyone who turned it off — and a fresh page also lets `initialQuery` run
+    /// on appear, which an already-visited tab would not.
+    @State private var sourceSearchRequest: SourceSearchRequest?
+
+    struct SourceSearchRequest: Identifiable {
+        let id = UUID()
+        let keyword: String
+        /// Search only this source (a book label tapped on its detail page, as legado's
+        /// `SearchActivity.start(source, kind)`); nil searches every enabled source.
+        var sourceURL: String? = nil
+    }
+
+    private var effectiveColorScheme: ColorScheme {
+        gs.effectiveAppearanceColorScheme(systemColorScheme: colorScheme)
+    }
+
+    /// The one `.preferredColorScheme` in the app: an outer one overrides any a screen sets
+    /// for itself, so 外觀主題's preview has to come through here too.
+    private var preferredAppearanceColorScheme: ColorScheme? {
+        gs.appearanceWindowColorScheme
+    }
+
+    /// The theme on screen, nil for 默認: the surfaces and the tint wear the same one.
+    /// (The tint used to skip the launch-time optimism the surfaces had, so a Pro
+    /// theme's colours came up under 默認's accent until StoreKit answered.)
+    private var appearanceTheme: AppearanceThemePreset? {
+        resolvedAppTheme(for: effectiveColorScheme)
+    }
+
+    /// The theme whose surface colors should retint the whole app, or nil for
+    /// system colors. Both appearances retint: `appearanceTheme(for:)` hands back
+    /// the theme's light palette in light mode and its derived dark palette in
+    /// dark mode, so dark mode is the theme's dark version rather than plain
+    /// system black. Classic = no override.
+    ///
+    /// On cold launch the entitlement is still being read, and a Pro user's theme is
+    /// worn optimistically until it is — see `GlobalSettings.appThemeOnScreen`. The
+    /// optimism used to last as long as `hasAccess` was false, so a user without Pro
+    /// kept a Pro theme for good (2026-09-29).
+    private func resolvedAppTheme(for scheme: ColorScheme) -> AppearanceThemePreset? {
+        gs.appThemeOnScreen(
+            for: scheme,
+            isProActive: subscriptionStore.hasAccess(.readerThemePacks),
+            hasResolvedEntitlements: subscriptionStore.hasResolvedEntitlements
+        )
+    }
+
+    /// Both appearances, resolved together. `DSColor` turns these into dynamic colors, so
+    /// the palette is chosen by the trait collection at draw time rather than by whichever
+    /// appearance happened to be current the last time this ran.
+    private var resolvedAppThemes: ActiveAppThemes {
+        ActiveAppThemes(
+            light: resolvedAppTheme(for: .light),
+            dark: resolvedAppTheme(for: .dark)
+        )
+    }
+
+    private var isBoldTextOn: Bool { legibilityWeight == .bold }
+
+    /// The global font as drawn: while Bold Text is on, a font with no bold face gives
+    /// way to the system font (`GlobalAppTypography.effectivePostScriptName`).
+    private var drawnGlobalFont: String? {
+        GlobalAppTypography.effectivePostScriptName(gs.resolvedGlobalFontPostScript, boldText: isBoldTextOn)
+    }
+
+    private var typographyRefreshID: String {
+        "\(drawnGlobalFont ?? "system")|\(dynamicTypeSize)|\(isBoldTextOn)"
+    }
+
+    var body: some View {
+        // For what reads the themes outside a view's colours (whether a page background
+        // hides the bar material, the 光暈 tint) — `DSColor` reads the environment value
+        // set at the end of this chain. A plain global, not SwiftUI state, so assigning
+        // it here is side-effect free as far as invalidation goes.
+        AppearanceThemePreset.activeAppThemes = resolvedAppThemes
+        GlobalAppTypography.activate(postScriptName: drawnGlobalFont, boldText: isBoldTextOn)
+        return tabView
+        .environment(\.rootTabBarVisibility, rootTabBar)
+        // For 關於's 新手導覽, and the tabs that open the page a start names.
+        .environment(onboarding)
+        // 外觀主題's 淺色／深色 preview is for 外觀主題; another tab is not previewing.
+        .onChange(of: selectedRootTab, initial: true) { _, _ in
+            gs.endAppearanceSlotPreview()
+        }
+        // Classic (默認) = the app's original look: no tint override at all.
+        .tint(appearanceTheme?.accentColor)
+        .accentColor(appearanceTheme?.accentColor)
+        .preferredColorScheme(preferredAppearanceColorScheme)
+        // While 單獨設定深色主題 is on, the appearance on screen picks whose theme is worn.
+        // Not in the background, where the light／dark is the app-switcher snapshots';
+        // the scene coming back hands over the appearance it comes back to.
+        .onChange(of: effectiveColorScheme, initial: true) { _, scheme in
+            gs.noteAppearanceOnScreen(scheme, in: scenePhase)
+        }
+        .onChange(of: scenePhase) { _, phase in
+            SourcePerfTrace.span("content.scene.\(phase)", thresholdMs: 5) {
+                gs.noteAppearanceOnScreen(effectiveColorScheme, in: phase)
+            }
+        }
+        .font(DSFont.body)
+        .overlay {
+            // App-wide audiobook mini-player: controls the long-lived audiobook session
+            // from any tab, and narration that went on after its book was closed. A
+            // full-screen cover hides it; a reader pushed inside a tab does
+            // not, so it hides itself while a reader hosts its own (`readerHostsPlayer`).
+            // No reader toolbar here, so allow dragging down to just above the tab bar.
+            NowPlayingMiniPlayer(placement: .global, minBottomClearance: 90)
+        }
+        .iPadAdaptiveRootTabStyle()
+        .background {
+            ImportedBookPresentation(
+                request: importDrainer.lastOutcome == nil ? importDrainer.readerRequest : nil,
+                store: store,
+                subscriptionStore: subscriptionStore,
+                didPresent: importDrainer.didPresentReader(requestID:),
+                customizationRequest: importDrainer.lastOutcome == nil ? importDrainer.customizationRequest : nil,
+                didPresentCustomization: importDrainer.didPresentCustomization(requestID:),
+                readCustomization: { [importDrainer] document in
+                    try await importDrainer.trackingCustomizationRead {
+                        try await SharedCustomizationImportService.load(document)
+                    }
+                }
+            )
+            .frame(width: 0, height: 0)
+        }
+        .sheet(
+            item: Binding(
+                get: {
+                    // An outcome alert takes precedence, same ordering as the customization
+                    // handoff above.
+                    importDrainer.lastOutcome == nil ? importDrainer.bookSourceReviewRequest : nil
+                },
+                set: { request in
+                    guard request == nil,
+                          let id = importDrainer.bookSourceReviewRequest?.id else { return }
+                    importDrainer.didPresentBookSourceReview(requestID: id)
+                }
+            )
+        ) { request in
+            BookSourceImportReviewHost(
+                sources: request.sources,
+                onFinish: { count in
+                    importDrainer.didPresentBookSourceReview(requestID: request.id)
+                    // Report through the drainer's own alert rather than a second mechanism.
+                    importDrainer.lastOutcome = SharedImportQueueDrainer.Outcome(
+                        importedCount: count,
+                        failureCount: 0,
+                        importedBookSourceCount: count
+                    )
+                },
+                onCancel: {
+                    importDrainer.didPresentBookSourceReview(requestID: request.id)
+                }
+            )
+        }
+        .overlay(alignment: .bottom) {
+            if importDrainer.activeImportCount > 0 {
+                ProgressView(localized("匯入中，請稍候…"))
+                    .padding(DSSpacing.md)
+                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: DSRadius.md))
+                    .padding(DSSpacing.md)
+            }
+        }
+        .alert(
+            localized("匯入"),
+            isPresented: Binding(
+                get: { importDrainer.lastOutcome != nil },
+                set: { isPresented in
+                    if !isPresented { importDrainer.lastOutcome = nil }
+                }
+            ),
+            presenting: importDrainer.lastOutcome
+        ) { _ in
+            Button(localized("確定"), role: .cancel) {
+                importDrainer.lastOutcome = nil
+            }
+        } message: { outcome in
+            Text(Self.sharedImportMessage(for: outcome))
+        }
+        // Screens that set a font of their own redraw with the new weight, as they do
+        // when the global font changes; the root `.font` above reaches the rest.
+        .onChange(of: isBoldTextOn) { _, _ in
+            gs.typographyDidChange()
+        }
+        // The same for the global font: `GlobalAppTypography` already draws the new face
+        // (activated in this body), and the views that set a font of their own redraw on
+        // `typographyRevision`.
+        .onChange(of: drawnGlobalFont) { _, _ in
+            gs.typographyDidChange()
+        }
+        .task(id: typographyRefreshID) {
+            await MainActor.run {
+                GlobalAppTypographyUIKitBridge.apply(
+                    postScriptName: drawnGlobalFont
+                )
+            }
+        }
+        .onAppear {
+            selectedRootTab = gs.fallbackRootTab(for: selectedRootTab)
+            // 截圖後跳回饋入口 has been removed with 回饋中心 (maintainer, 2026-11-05),
+            // so nothing installs `FeedbackScreenshotPrompt` any more.
+            #if DEBUG
+            // Pairs with `-open-diagnostics` / `-open-feedback-center` in `SettingsView`:
+            // land on 設定 so the pushed page can be screenshotted straight from launch.
+            let arguments = ProcessInfo.processInfo.arguments
+            if arguments.contains("-open-diagnostics") || arguments.contains("-open-feedback-center") {
+                selectedRootTab = .settings
+            }
+            #endif
+        }
+        .onChange(of: gs.rootTabVisibleIDs) { _, ids in
+            // On iOS 17 a new tab set rebuilds every tab (`tabView`).
+            CrashContext.breadcrumb("root tabs \(ids.joined(separator: ","))")
+            selectedRootTab = gs.fallbackRootTab(for: selectedRootTab)
+        }
+        .modifier(AudiobookPlayerPresentation(store: store))
+        // Over the tabs, their overlays and the mini player; under the launch image.
+        .modifier(OnboardingPresentation(state: onboarding, selectedTab: $selectedRootTab,
+                                         tint: appearanceTheme?.accentColor))
+        // Cold-launch splash: sits above every tab/overlay and fades out.
+        .overlay {
+            LaunchImageSplashOverlay()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .bookSourceRequestedSearch)) { note in
+            guard let keyword = note.userInfo?["keyword"] as? String,
+                  !keyword.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            else { return }
+            sourceSearchRequest = SourceSearchRequest(
+                keyword: keyword,
+                sourceURL: note.userInfo?["sourceURL"] as? String
+            )
+        }
+        // Full screen, not a sheet: a result's 作品詳情 pushes its reader onto this stack, as
+        // every detail page pushes its reader onto the stack it is on, and in a sheet the reader
+        // opened inside the card — its top edge some 130 pt down, the page behind showing above
+        // it, and a pull-down could close it (#91, TestFlight 3.0.0 build 140, iOS 26.3).
+        // On the tabs, never on a NavigationStack's root (iOS 26.4 rebuilds such a cover's
+        // content whenever something is presented over it).
+        .fullScreenCover(item: $sourceSearchRequest) { request in
+            NavigationStack {
+                SearchView(
+                    initialQuery: request.keyword,
+                    sessionScope: request.sourceURL.map {
+                        SearchSourceScope(mode: .custom, selectedSourceURLs: [$0])
+                    }
+                )
+                    .toolbar {
+                        ToolbarItem(placement: .topBarLeading) {
+                            Button { sourceSearchRequest = nil } label: {
+                                Image(systemName: "xmark")
+                            }
+                            .accessibilityIdentifier("sourceSearch.close")
+                        }
+                    }
+            }
+        }
+        // Outermost, so the sheets and overlays above resolve their colours from it too:
+        // `DSColor`'s themed colours read the themes from here when they draw
+        // (`AppThemesTrait`), and follow a switch without their views being rebuilt.
+        .environment(\.appThemes, resolvedAppThemes)
+        // The same for UIKit views outside this environment.
+        .onChange(of: resolvedAppThemes, initial: true) { _, themes in
+            AppThemesTrait.apply(themes)
+        }
+    }
+
+    static func sharedImportMessage(for outcome: SharedImportQueueDrainer.Outcome) -> String {
+        let imported = outcome.importedCount
+        let failed = outcome.failureCount
+        let summary: String
+        if imported > 0 && failed == 0 {
+            summary = String(format: localized("成功匯入 %d 個項目"), imported)
+        } else if imported > 0 {
+            summary = String(
+                format: localized("成功匯入 %1$d 個項目，%2$d 個失敗"), imported, failed)
+        } else {
+            summary = String(format: localized("%d 個項目匯入失敗"), failed)
+        }
+        // Why, as the Files importer says it; the count above already gives the total, so
+        // a long batch of failures keeps the alert short.
+        let reasons = outcome.failures.prefix(Self.sharedImportReasonLimit)
+        return reasons.isEmpty ? summary : summary + "\n\n" + reasons.joined(separator: "\n")
+    }
+
+    static let sharedImportReasonLimit = 3
+
+    /// The root tab bar is driven by `GlobalSettings` so users can hide pages
+    /// and customize tab icon assets without changing the feature screens.
+    @ViewBuilder
+    private var tabView: some View {
+        if #available(iOS 18.0, *) {
+            visibleTabsTabView
+        } else {
+            // iOS 17's TabView keys each tab by its position, so showing or hiding a tab
+            // rebuilds every tab after it — and a rebuilt NavigationStack gets a second
+            // navigation controller while its root still belongs to the first. iOS 17.5
+            // leaves that tab blank; iOS 17.0 lays one navigation item out in two bars and
+            // throws "Layout requested for visible navigation bar … top item belongs to a
+            // different navigation bar" (Crashlytics fe741015, on 書架, which sits after 探索).
+            // A new identity per tab set replaces every tab together with the one
+            // navigation controller that hosts its stack. Placeholders for hidden tabs
+            // (`EmptyView`) did not help: they take no position. Remove this when iOS 17
+            // support is dropped.
+            visibleTabsTabView
+                .id(gs.visibleRootTabs)
+        }
+    }
+
+    private var visibleTabsTabView: some View {
+        TabView(selection: $selectedRootTab) {
+            ForEach(gs.visibleRootTabs) { tab in
+                rootTabContent(for: tab)
+                    .modifier(ThemedSurfaceBackground(
+                        scope: AppearancePageBackgroundScope(rawValue: tab.rawValue) ?? .global,
+                        isProActive: subscriptionStore.hasAccess(.readerThemePacks)
+                    ))
+                    .background { RootTabBarHider(visibility: rootTabBar) }
+                    .tag(tab)
+                    .tabItem {
+                        rootTabItemLabel(for: tab)
+                    }
+            }
+        }
+    }
+
+    private var shouldHideRootTabLabels: Bool {
+        gs.rootTabHidesLabels && horizontalSizeClass == .compact
+    }
+
+    private var usesCustomRootTabIconSize: Bool {
+        gs.usesCustomRootTabIconSize
+    }
+
+    @ViewBuilder
+    private func rootTabContent(for tab: RootTabItem) -> some View {
+        switch tab {
+        case .bookshelf:
+            // 書架, drawn as the maintainer's reference (2026-11-04): 接着讀 on top, then the
+            // rest as a grid. HomeView stays in the tree — its 分組 pages and drill-downs are
+            // still what other screens push into.
+            ShelfPaperView()
+        case .explore:
+            BrowserView(browser: browser)
+        case .library:
+            // 資源庫's slot (maintainer, 2026-11-04): the reading home page instead. 資源庫's
+            // own entry points live in 設定 (ProfileView), so nothing is lost by the swap.
+            ReadingHomeView(onOpenBookshelf: { selectedRootTab = .bookshelf })
+        case .rss:
+            // Not a tab since 5h (`RootTabItem.tabs` leaves it out); its feeds are in 資源庫.
+            EmptyView()
+        case .settings:
+            SettingsView()
+        case .search:
+            SearchTabRoot()
+        }
+    }
+
+    @ViewBuilder
+    private func rootTabItemLabel(for tab: RootTabItem) -> some View {
+        if let renderedIcon = RootTabIconRenderer.customIcon(
+            for: tab,
+            colorScheme: effectiveColorScheme,
+            pointSize: CGFloat(
+                gs.usesCustomRootTabIconSize
+                    ? gs.rootTabIconSize
+                    : GlobalSettings.initialCustomRootTabIconSize
+            ),
+            displayScale: displayScale,
+            settings: gs
+        ) {
+            if shouldHideRootTabLabels {
+                iconOnlyRootTabLabel(titleKey: tab.titleKey) {
+                    Image(uiImage: renderedIcon.image)
+                        .renderingMode(renderedIcon.isTemplate ? .template : .original)
+                }
+            } else {
+                Image(uiImage: renderedIcon.image)
+                    .renderingMode(renderedIcon.isTemplate ? .template : .original)
+                Text(localized(tab.titleKey))
+            }
+        } else if usesCustomRootTabIconSize {
+            let renderedIcon = RootTabIconRenderer.systemIcon(
+                for: tab,
+                pointSize: CGFloat(gs.rootTabIconSize)
+            )
+            if shouldHideRootTabLabels {
+                iconOnlyRootTabLabel(titleKey: tab.titleKey) {
+                    Image(uiImage: renderedIcon.image)
+                        .renderingMode(.template)
+                }
+            } else {
+                Image(uiImage: renderedIcon.image)
+                    .renderingMode(.template)
+                Text(localized(tab.titleKey))
+            }
+        } else if shouldHideRootTabLabels {
+            Label(localized(tab.titleKey), systemImage: tab.defaultSystemImage)
+                .labelStyle(.iconOnly)
+        } else {
+            Label(localized(tab.titleKey), systemImage: tab.defaultSystemImage)
+        }
+    }
+
+    /// Keep the semantic tab title for VoiceOver while asking SwiftUI for its
+    /// supported icon-only layout. A bare Image is treated as the image slot of
+    /// the normal image-plus-title tab layout on iOS 17, which leaves it too high.
+    @ViewBuilder
+    private func iconOnlyRootTabLabel<Icon: View>(
+        titleKey: String,
+        @ViewBuilder icon: () -> Icon
+    ) -> some View {
+        Label {
+            Text(localized(titleKey))
+        } icon: {
+            icon()
+        }
+        .labelStyle(.iconOnly)
+    }
+}
+
+/// Retints scrollable Form/List surfaces to the active app theme by hiding the
+/// system background and painting the themed page color behind — plus, when the
+/// user configured a page background (Pro), the per-scope gradient/image layer.
+/// The default palette resolves to the system grouped background, so default users
+/// keep the same appearance while the view structure stays stable across updates.
+/// The app-root full-screen audiobook player, presented from the global now-playing bar —
+/// and, from the same bar, the book a closed reader is still narrating.
+///
+/// Its own view, observing `NowPlayingHub`, so the root does not: the hub publishes on every
+/// spoken sentence (`currentSegmentIndex`), and the root observing it re-ran `ContentView.body`
+/// — the RSS unread count, every tab's icon — once per sentence for as long as TTS played.
+/// Re-running this modifier's body does not re-run `content`.
+private struct AudiobookPlayerPresentation: ViewModifier {
+    @ObservedObject private var hub = NowPlayingHub.shared
+    let store: BookStore
+
+    func body(content: Content) -> some View {
+        content.fullScreenCover(item: $hub.appRootDestination) { destination in
+            NowPlayingArtworkDestinationView(destination: destination)
+                .environmentObject(store)
+        }
+    }
+}
+
+/// What the now-playing mini-player's artwork opens (`NowPlayingHub.openFromArtwork`), presented
+/// full screen by the mini-player's host: the app root, or the reader the mini-player is in.
+struct NowPlayingArtworkDestinationView: View {
+    let destination: NowPlayingHub.ArtworkDestination
+    @EnvironmentObject private var store: BookStore
+
+    var body: some View {
+        switch destination {
+        case .narratedBook(let bookID):
+            // Its reader takes the narration over as it opens (`ReaderView.init`).
+            BookReaderView(bookId: bookID)
+        case .audiobookPlayer(let bookID):
+            // A 作品詳情 audiobook played without adding it to the shelf has no book for the
+            // reader entry to open: its player is all there is.
+            if store.books.contains(where: { $0.id == bookID }) {
+                BookReaderView(bookId: bookID)
+            } else {
+                AudiobookReaderView(bookId: bookID)
+            }
+        }
+    }
+}
+
+private struct ThemedSurfaceBackground: ViewModifier {
+    let scope: AppearancePageBackgroundScope
+    let isProActive: Bool
+    @Bindable private var gs = GlobalSettings.shared
+    @Environment(\.colorScheme) private var colorScheme
+
+    /// Custom page background for this tab, with global fallback. Inactive when
+    /// the Pro entitlement lapses so backgrounds degrade like themes do.
+    private var pageBackgroundSlice: AppearancePageBackgroundSlice? {
+        guard isProActive else { return nil }
+        return gs.resolvedPageBackgroundSlice(for: scope, colorScheme: colorScheme)
+    }
+
+    /// One structure for every state, on purpose.
+    ///
+    /// An `if/else` over `content` here returns a different branch of
+    /// `_ConditionalContent` per state, which gives the tab's whole subtree a new
+    /// identity the moment the state flips — and SwiftUI rebuilds a subtree whose
+    /// identity changed. That is what popped every pushed screen back to the tab
+    /// root ("閃回設定頁") whenever the theme moved between 默認 (no override) and
+    /// any real theme, or a page background appeared. Keep `content` wrapped in
+    /// exactly one `.background`; branch *inside* it, where an identity change
+    /// only costs a redraw of the backdrop.
+    func body(content: Content) -> some View {
+        let slice = pageBackgroundSlice
+        return content.background {
+            ZStack {
+                // Keep this node present for every appearance. Changing a
+                // conditional child here while a reader is directly pushed onto
+                // the shelf navigation stack can make SwiftUI reconcile the
+                // tab subtree and detach the reader on foreground resume.
+                DSColor.groupedBackground
+                AppearancePageBackgroundLayerView(slice: slice)
+            }
+            .ignoresSafeArea()
+        }
+    }
+}
+
+struct NowPlayingMiniPlayer: View {
+    /// Where the mini-player lives. `.reader` is the in-reader TTS bar; `.global` is the
+    /// app-root bar that controls audiobook playback from any page.
+    enum Placement: String { case reader, global }
+    var placement: Placement = .reader
+
+    /// Whether the host reader's top/bottom bars are showing. Only meaningful for
+    /// `.reader`: when the bars appear the player lifts above the bottom toolbar; while
+    /// they're hidden it may be dragged lower (no toolbar to clear).
+    var barsVisible: Bool = true
+
+    /// Presents what the artwork opens: the book a closed reader is still narrating, or the
+    /// audiobook's player. A reader passes its own and presents it over itself: it may be
+    /// presented full screen, and presenting from the app root closed it. `nil` at the root, which
+    /// presents it over every tab (`NowPlayingHub.appRootDestination`).
+    var presentDestination: ((NowPlayingHub.ArtworkDestination) -> Void)? = nil
+
+    @StateObject private var hub = NowPlayingHub.shared
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var offset = CGSize(width: 0, height: 0)
+    @State private var dragStartOffset: CGSize?
+    @State private var lastDragEndedAt = Date.distantPast
+    /// The screen side the player is tucked into, or nil while it shows in full. ✕ stops
+    /// playback, so this is the way to get the player out of the way while it keeps
+    /// playing. Reset whenever playback ends, so the next session starts in full.
+    @State private var dockedSide: DockSide?
+    @AccessibilityFocusState private var focusedControl: FocusedControl?
+
+    enum DockSide { case left, right }
+    private enum FocusedControl { case collapse, edgeHandle }
+    /// Where the player sat before the bars appeared and lifted it above the toolbar.
+    /// Kept so it can drop back to that spot once the bars hide again; cleared the moment
+    /// the user drags it somewhere new.
+    @State private var liftedFromOffsetHeight: CGFloat?
+    /// Resting distance of the bar's bottom edge from the screen bottom.
+    var defaultBottomClearance: CGFloat = 136
+    /// Lowest the bar can be dragged on tab pages (clears the tab bar). `.global` only.
+    var minBottomClearance: CGFloat? = nil
+    /// Lowest the bar can be dragged in the reader while the bars are hidden (no toolbar).
+    var immersiveBottomClearance: CGFloat = 44
+
+    /// How close to the screen bottom the bar may be dragged, by context.
+    private var dragFloorClearance: CGFloat {
+        switch placement {
+        case .global:
+            return minBottomClearance ?? defaultBottomClearance
+        case .reader:
+            return barsVisible ? defaultBottomClearance : immersiveBottomClearance
+        }
+    }
+
+    /// Max downward drag from the resting position (size-independent: the resting line is
+    /// `defaultBottomClearance` and the floor is `dragFloorClearance`).
+    private var bottomOffsetLimit: CGFloat {
+        defaultBottomClearance - dragFloorClearance
+    }
+
+    /// In the reader, this book's TTS *or* a background audiobook; at the root, the
+    /// audiobook or a closed reader's narration, unless a reader on screen is already showing it.
+    private var isVisible: Bool {
+        NowPlayingHub.showsMiniPlayer(
+            inReader: placement == .reader,
+            readerTTSVisible: hub.isVisible,
+            audiobookLoaded: hub.showsGlobalBar,
+            narrationOutlivesReader: hub.holdsNarrationPastReader,
+            readerHostsPlayer: hub.readerHostsPlayer
+        )
+    }
+
+    var body: some View {
+        GeometryReader { proxy in
+            if isVisible {
+                if let side = dockedSide {
+                    edgeHandle(side)
+                        .position(edgeHandlePosition(side, in: proxy.size))
+                        .transition(edgeHandleTransition(side))
+                } else {
+                    miniPlayerView(in: proxy.size)
+                        .frame(width: contentWidth)
+                        .position(position(in: proxy.size))
+                        .simultaneousGesture(dragGesture(in: proxy.size))
+                        .transition(reduceMotion ? .opacity : .scale(scale: 0.92).combined(with: .opacity))
+                }
+            }
+        }
+        .ignoresSafeArea(.keyboard)
+        // The offset is from a spot measured off the bottom of the space it was dragged in.
+        // A rotation or a resize changes that space, and the player is put back inside it.
+        .onGeometryChange(for: CGSize.self) { proxy in
+            proxy.size
+        } action: { size in
+            offset = clampedOffset(offset, in: size)
+        }
+        .animation(DSAnimation.standard, value: isVisible)
+        .onChange(of: isVisible) { _, visible in
+            if !visible { dockedSide = nil }
+        }
+        .onChange(of: barsVisible) { _, visible in
+            withAnimation(reduceMotion ? nil : DSAnimation.readerChrome) {
+                if visible {
+                    // Bars appeared: lift the player just above the bottom toolbar (only if
+                    // it was dragged into that zone), remembering where it sat so it can
+                    // drop back once the bars hide again.
+                    if offset.height > bottomOffsetLimit {
+                        liftedFromOffsetHeight = offset.height
+                        offset.height = bottomOffsetLimit
+                    }
+                } else if let resting = liftedFromOffsetHeight {
+                    // Bars hidden again: if we lifted it earlier and the user hasn't moved
+                    // it since, return it to its original spot.
+                    offset.height = resting
+                    liftedFromOffsetHeight = nil
+                }
+            }
+        }
+    }
+
+    private func miniPlayerView(in size: CGSize) -> some View {
+        HStack(spacing: controlSpacing) {
+            Button {
+                performTapAction {
+                    guard let destination = hub.openFromArtwork() else { return }
+                    if let presentDestination {
+                        presentDestination(destination)
+                    } else {
+                        hub.appRootDestination = destination
+                    }
+                }
+            } label: {
+                leadingArtwork
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(nowPlayingLabel)
+            .accessibilityHint(openHint)
+            .accessibilityIdentifier("now_playing_\(placement.rawValue)_open_panel")
+
+            Button {
+                performTapAction {
+                    hub.togglePlayback()
+                }
+            } label: {
+                Image(systemName: hub.playbackState == .playing ? "pause.fill" : "play.fill")
+                    .font(DSFont.fixed(size: 18, weight: .bold))
+                    .foregroundStyle(DSColor.textSecondary)
+                    .frame(width: 48, height: 48)
+                    .background(.thinMaterial, in: Circle())
+                    .overlay(Circle().stroke(Color.secondary.opacity(0.35), lineWidth: 2))
+            }
+            .accessibilityLabel(localized(hub.playbackState == .playing ? "暫停" : "播放"))
+            .accessibilityIdentifier("now_playing_\(placement.rawValue)_play_pause")
+
+            Button {
+                performTapAction {
+                    hub.stop()
+                }
+            } label: {
+                Image(systemName: "xmark")
+                    .font(DSFont.fixed(size: 17, weight: .semibold))
+                    .foregroundStyle(DSColor.textSecondary)
+                    .frame(width: trailingButtonWidth, height: 48)
+            }
+            .accessibilityLabel(localized("停止播放"))
+            .accessibilityIdentifier("now_playing_\(placement.rawValue)_stop")
+
+            // Tucks the player into the nearer side; playback keeps going. The arrow points
+            // the way it will go, so it flips as the player is dragged across.
+            Button {
+                performTapAction {
+                    collapse(to: nearestSide(in: size))
+                }
+            } label: {
+                Image(systemName: nearestSide(in: size) == .left ? "chevron.left" : "chevron.right")
+                    .font(DSFont.fixed(size: 17, weight: .semibold))
+                    .foregroundStyle(DSColor.textSecondary)
+                    .frame(width: trailingButtonWidth, height: 48)
+                    .accessibilityHidden(true)
+            }
+            .accessibilityLabel(localized("收起"))
+            .accessibilityFocused($focusedControl, equals: .collapse)
+        }
+        .buttonStyle(.borderless)
+        .padding(.leading, 4)
+        .padding(.trailing, 10)
+        .padding(.vertical, 4)
+        .floatingSurface(in: Capsule())
+        .shadow(color: .black.opacity(0.18), radius: 16, y: 8)
+        .contentShape(Capsule())
+    }
+
+    /// What VoiceOver announces for the artwork button — the title of whatever is
+    /// playing. Labelling each button individually matters: an `.accessibilityLabel`
+    /// on the enclosing `HStack` propagates down and gives all three buttons the same
+    /// name, so VoiceOver read the book title three times over play/pause and stop.
+    private var nowPlayingLabel: String {
+        hub.title.isEmpty ? localized("語音朗讀") : hub.title
+    }
+
+    /// What tapping the artwork does: narration whose reader has closed reopens its book, in
+    /// either placement (`NowPlayingHub.openFromArtwork`); anything else opens its player.
+    private var openHint: String {
+        hub.artworkReopensNarratedBook
+            ? localized("打開這本書到正在朗讀的地方")
+            : localized("打開播放控制面板")
+    }
+
+    /// The leading 56pt tappable artwork: both TTS and audiobook spin the book cover
+    /// like a record — the real cover when present, otherwise the same generated
+    /// cover the bookshelf gives cover-less books.
+    private var leadingArtwork: some View {
+        SpinningCoverIcon(isPlaying: hub.playbackState == .playing) {
+            if let cover = hub.coverImage {
+                Image(uiImage: cover)
+                    .resizable()
+                    .scaledToFill()
+            } else {
+                GeneratedBookCover(title: hub.coverTitle)
+            }
+        }
+        .frame(width: 56, height: 56)
+    }
+
+    /// Width of the icon buttons at the player's trailing end (✕, and 收起 in the reader).
+    private let trailingButtonWidth: CGFloat = 34
+    /// Gap between the player's controls.
+    private let controlSpacing: CGFloat = 12
+
+    private var contentWidth: CGFloat {
+        // Wider by exactly the 收起 button, so the leading edge rests and clamps where it
+        // did before the button existed.
+        148 + trailingButtonWidth + controlSpacing
+    }
+
+    // MARK: - Tucked to the side
+
+    /// The side the player is closer to, measured at its center — where it tucks away.
+    private func nearestSide(in size: CGSize) -> DockSide {
+        position(in: size).x < size.width / 2 ? .left : .right
+    }
+
+    private func collapse(to side: DockSide) {
+        withAnimation(reduceMotion ? nil : DSAnimation.standard) {
+            dockedSide = side
+        }
+        // The control VoiceOver was on is gone; land on the one that brings it back.
+        focusedControl = .edgeHandle
+    }
+
+    private func expand() {
+        withAnimation(reduceMotion ? nil : DSAnimation.standard) {
+            dockedSide = nil
+        }
+        focusedControl = .collapse
+    }
+
+    /// What is left of the player while it is tucked away: a thin tab on the screen edge
+    /// with an arrow pointing back in. Tapping it brings the player back where it was.
+    private func edgeHandle(_ side: DockSide) -> some View {
+        let inner = DSLayout.miniPlayerEdgeHandleWidth / 2
+        let shape = UnevenRoundedRectangle(
+            topLeadingRadius: side == .right ? inner : 0,
+            bottomLeadingRadius: side == .right ? inner : 0,
+            bottomTrailingRadius: side == .left ? inner : 0,
+            topTrailingRadius: side == .left ? inner : 0
+        )
+        return Button {
+            expand()
+        } label: {
+            Image(systemName: side == .left ? "chevron.right" : "chevron.left")
+                .font(DSFont.fixed(size: 13, weight: .semibold))
+                .foregroundStyle(DSColor.textSecondary)
+                .accessibilityHidden(true)
+                .frame(
+                    width: DSLayout.miniPlayerEdgeHandleWidth,
+                    height: DSLayout.miniPlayerEdgeHandleHeight
+                )
+                .floatingSurface(in: shape)
+                .shadow(color: .black.opacity(0.18), radius: 16, y: 8)
+                // Thin to look at, full size to hit: the tab hugs the edge and the rest of
+                // the 44pt region reaches in over the page.
+                .frame(
+                    width: DSLayout.minimumTapTarget,
+                    height: max(DSLayout.minimumTapTarget, DSLayout.miniPlayerEdgeHandleHeight),
+                    alignment: side == .left ? .leading : .trailing
+                )
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(localized("展開"))
+        .accessibilityValue(nowPlayingLabel)
+        .accessibilityFocused($focusedControl, equals: .edgeHandle)
+    }
+
+    /// Flush against its side, on the line the player was on, so it tucks away and comes
+    /// back along one line — and follows the same lift when the reader bars appear.
+    private func edgeHandlePosition(_ side: DockSide, in size: CGSize) -> CGPoint {
+        let halfHitWidth = DSLayout.minimumTapTarget / 2
+        return CGPoint(
+            x: side == .left ? halfHitWidth : size.width - halfHitWidth,
+            y: defaultCenterY(in: size) + offset.height
+        )
+    }
+
+    private func edgeHandleTransition(_ side: DockSide) -> AnyTransition {
+        guard !reduceMotion else { return .opacity }
+        return .move(edge: side == .left ? .leading : .trailing).combined(with: .opacity)
+    }
+
+    private var contentHeight: CGFloat {
+        64
+    }
+
+    private func position(in size: CGSize) -> CGPoint {
+        CGPoint(
+            x: contentWidth / 2 + 26 + offset.width,
+            y: defaultCenterY(in: size) + offset.height
+        )
+    }
+
+    private func defaultCenterY(in size: CGSize) -> CGFloat {
+        size.height - defaultBottomClearance - contentHeight / 2
+    }
+
+    private func clampedOffset(_ proposed: CGSize, in size: CGSize) -> CGSize {
+        let width = contentWidth
+        let leadingCenter = width / 2 + 26
+        let minCenter = width / 2 + 14
+        let maxCenter = size.width - width / 2 - 14
+        let horizontalLimitLeft = minCenter - leadingCenter
+        let horizontalLimitRight = maxCenter - leadingCenter
+        let defaultCenterY = defaultCenterY(in: size)
+        let topCenter = contentHeight / 2 + 14
+        let bottomCenter = size.height - dragFloorClearance - contentHeight / 2
+        let topLimit = topCenter - defaultCenterY
+        let bottomLimit = bottomCenter - defaultCenterY
+        return CGSize(
+            width: min(max(proposed.width, horizontalLimitLeft), horizontalLimitRight),
+            height: min(max(proposed.height, topLimit), bottomLimit)
+        )
+    }
+
+    /// Where a drag puts the player: inside its bounds it follows the finger, past
+    /// them it follows less and less, so the edge gives instead of stopping dead.
+    /// Letting go brings it back inside (`dragGesture`). Under Reduce Motion the
+    /// edge is a plain stop, since nothing would animate it back.
+    private func resistedOffset(_ proposed: CGSize, in size: CGSize) -> CGSize {
+        let clamped = clampedOffset(proposed, in: size)
+        guard !reduceMotion else { return clamped }
+        return CGSize(
+            width: clamped.width + MiniPlayerDragResistance.give(for: proposed.width - clamped.width),
+            height: clamped.height + MiniPlayerDragResistance.give(for: proposed.height - clamped.height)
+        )
+    }
+
+    private func dragGesture(in size: CGSize) -> some Gesture {
+        DragGesture(minimumDistance: 4)
+            .onChanged { value in
+                if dragStartOffset == nil {
+                    dragStartOffset = offset
+                    // User is repositioning by hand — forget the auto-lift origin so we
+                    // don't snap it back when the bars next hide.
+                    liftedFromOffsetHeight = nil
+                }
+                let start = dragStartOffset ?? .zero
+                offset = resistedOffset(
+                    CGSize(
+                        width: start.width + value.translation.width,
+                        height: start.height + value.translation.height
+                    ),
+                    in: size
+                )
+            }
+            .onEnded { _ in
+                withAnimation(reduceMotion ? nil : DSAnimation.dragSettle) {
+                    offset = clampedOffset(offset, in: size)
+                }
+                dragStartOffset = nil
+                lastDragEndedAt = Date()
+            }
+    }
+
+    private func performTapAction(_ action: () -> Void) {
+        guard Date().timeIntervalSince(lastDragEndedAt) > 0.18 else { return }
+        action()
+    }
+}
+
+/// How far the mini player gives when dragged past the edge of where it may rest.
+enum MiniPlayerDragResistance {
+    /// The most it can be pulled past the edge, however far the finger goes.
+    static let maximumGive: CGFloat = DSLayout.miniPlayerDragMaximumGive
+
+    /// Distance past the edge for a finger `overshoot` points beyond it: starts out
+    /// following the finger at about half speed and levels off at `maximumGive`.
+    /// The same curve a scroll view uses past its ends.
+    static func give(for overshoot: CGFloat) -> CGFloat {
+        guard overshoot != 0 else { return 0 }
+        let distance = abs(overshoot)
+        let given = (1 - 1 / (distance * 0.55 / maximumGive + 1)) * maximumGive
+        return overshoot < 0 ? -given : given
+    }
+}
+
+/// A circular disc that spins like a vinyl record while playing and freezes (keeping its
+/// angle) when paused. The disc face is supplied by the caller — a real cover image or the
+/// title-card placeholder. Rotation is time-driven via `TimelineView`, so the angle stays
+/// continuous across pause/resume and costs nothing while paused.
+private struct SpinningCoverIcon<Face: View>: View {
+    let isPlaying: Bool
+    @ViewBuilder var face: () -> Face
+
+    private let degreesPerSecond = 36.0          // one full turn per 10s
+    @State private var baseAngle: Double = 0     // degrees accrued before the current run
+    @State private var runStart: Date = .now     // when the current spinning run began
+
+    var body: some View {
+        TimelineView(.animation(paused: !isPlaying)) { context in
+            let angle = isPlaying
+                ? baseAngle + context.date.timeIntervalSince(runStart) * degreesPerSecond
+                : baseAngle
+            record
+                .rotationEffect(.degrees(angle))
+        }
+        .onAppear { if isPlaying { runStart = Date() } }
+        .onChange(of: isPlaying) { _, playing in
+            let now = Date()
+            if playing {
+                runStart = now
+            } else {
+                // Fold the elapsed run into the accumulated angle so it freezes in place.
+                baseAngle += now.timeIntervalSince(runStart) * degreesPerSecond
+            }
+        }
+    }
+
+    private var record: some View {
+        face()
+            .frame(width: 56, height: 56)
+            .clipShape(Circle())
+            .overlay(Circle().stroke(Color.black.opacity(0.18), lineWidth: 1))
+            .overlay(
+                // Center spindle hole, to read as a record.
+                Circle()
+                    .fill(.regularMaterial)
+                    .frame(width: 12, height: 12)
+                    .overlay(Circle().stroke(Color.black.opacity(0.15), lineWidth: 0.5))
+            )
+    }
+}
+
+#Preview {
+    ContentView()
+        .environmentObject(BookStore())
+}
+
+#if DEBUG
+#Preview("Reader mini-player") {
+    NowPlayingHub.shared.configurePreview(
+        title: "第十章 玄雅的赔礼",
+        playbackState: .playing,
+        currentSegmentIndex: 0,
+        totalSegments: 94
+    )
+    return NowPlayingMiniPlayer(placement: .reader, barsVisible: false)
+}
+
+#Preview("Shelf mini-player, book closed mid-narration") {
+    NowPlayingHub.shared.configurePreview(
+        title: "第十章 玄雅的赔礼",
+        playbackState: .playing,
+        currentSegmentIndex: 12,
+        totalSegments: 94,
+        holdsNarrationPastReader: true
+    )
+    return NowPlayingMiniPlayer(placement: .global, minBottomClearance: 90)
+}
+
+#Preview("Reader mini-player, another book's narration") {
+    NowPlayingHub.shared.configurePreview(
+        title: "第十章 玄雅的赔礼",
+        playbackState: .playing,
+        currentSegmentIndex: 12,
+        totalSegments: 94,
+        holdsNarrationPastReader: true
+    )
+    return NowPlayingMiniPlayer(placement: .reader, barsVisible: false, presentDestination: { _ in })
+}
+
+#Preview("Artwork destination, an audiobook off the shelf") {
+    NowPlayingArtworkDestinationView(destination: .audiobookPlayer(UUID()))
+        .environmentObject(BookStore())
+}
+#endif

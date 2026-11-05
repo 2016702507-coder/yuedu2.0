@@ -1,0 +1,668 @@
+import YueduCoreText
+import SwiftUI
+import UIKit
+
+extension ReaderView {
+
+    // MARK: - Loading & Page Building
+    var activeReaderStyleAppearance: ReaderStyleAppearance {
+        readerTheme == .night ? .dark : .light
+    }
+
+    var activeReaderDisplayMode: ReaderDisplayMode {
+        effectiveScrollMode ? .scroll : .paged
+    }
+
+    var activeReaderRenderSettings: ReaderRenderSettings {
+        readerRenderSettings(for: activeReaderDisplayMode)
+    }
+
+    var readerDocumentStyleFingerprint: ReaderDocumentStyleFingerprint {
+        let anyCommentCardTemplateWorn = ReaderCommentCardKind.allCases.contains {
+            settings.wornCommentCardTemplate(for: $0) != nil
+        }
+        return ReaderDocumentStyleFingerprint(
+            commentBubbleFollowsSourceSVG: settings.commentBubbleFollowsSourceSVG,
+            commentBubblePresetMode: settings.commentBubblePresetMode,
+            commentBubbleCustomStyles: settings.commentBubbleCustomStyles,
+            commentBubbleSelectedCustomStyleID: settings.commentBubbleSelectedCustomStyleID,
+            commentBubbleScale: settings.commentBubbleScale,
+            commentCardChoices: settings.commentCardChoices,
+            commentCardCustomStyles: settings.commentCardCustomStyles,
+            commentCardTextColorHex: anyCommentCardTemplateWorn ? readerTheme.uiTextColor.rgbHex : nil,
+            commentCardAccentHex: anyCommentCardTemplateWorn ? readerTheme.commentCardAccent.rgbHex : nil,
+            readerTextUnderlineDecorationEnabled: settings.readerTextUnderlineDecorationEnabled,
+            readerTextUnderlineDecorationColorHex: settings.readerTextUnderlineDecorationColorHex,
+            readerTextUnderlineStyle: settings.readerTextUnderlineStyle,
+            readerTextUnderlineThickness: settings.readerTextUnderlineThickness,
+            readerTextUnderlineOffset: settings.readerTextUnderlineOffset
+        )
+    }
+
+    /// 整章翻譯's translations for this book, handed to the renderer before any chapter of
+    /// it is built, so both engines lay out the same translated documents.
+    func attachTranslationSource() {
+        guard epubRenderer.translationSource == nil else { return }
+        epubRenderer.translationSource = AIChapterTranslationService.shared.source(for: bookId)
+    }
+
+    func readerRenderSettings(for mode: ReaderDisplayMode) -> ReaderRenderSettings {
+        let input = ReaderRenderSettingsSnapshotInput(
+            theme: readerTheme.epubJSName,
+            textColor: readerTheme.uiTextColor,
+            backgroundColor: readerTheme.uiBackgroundColor,
+            fontSize: readerConfig.fontSize,
+            lineHeightMultiple: max(1.0, readerConfig.lineHeightMultiple),
+            lineSpacing: readerConfig.lineSpacing,
+            paragraphSpacing: readerConfig.paragraphSpacing,
+            letterSpacing: readerConfig.letterSpacing,
+            marginH: pageMarginH(for: mode),
+            // The mode the engines lay a chapter out in when nothing more specific decides it: a publisher
+            // EPUB's paged chapters each have their own (`BookWritingModes`); scroll mode lays out its
+            // segment's.
+            writingMode: mode == .scroll ? scrollWritingMode : bookDirection.principalMode,
+            // The observed property, not the resolver's snapshot read: `body` compares these
+            // settings in `onChanged`, and only an observed read redraws on a font change.
+            fontPostScriptName: UserReaderFontResolver.postScriptName(settings.selectedReaderFontPostScript),
+            isBold: readerConfig.readerFontBold,
+            chapterTitleStyle: readerConfig.chapterTitleStyle,
+            readerBackgroundImageURL: activeReaderBackgroundImageURL,
+            regexHighlightConfiguration: settings.regexHighlightConfiguration,
+            readerStyleAppearance: activeReaderStyleAppearance,
+            readerStyleAssetRevision: settings.readerStyleAssetRevision,
+            dialogueBubbleStyle: settings.dialogueBubbleStyle,
+            displayScale: readerDisplayScale,
+            textConversion: settings.textConversion,
+            translation: effectiveReaderTranslation,
+            bookID: bookId,
+            bottomJustify: settings.readerBottomJustify,
+            usesBookSpacing: settings.readerUsesBookSpacing
+        )
+
+        let sideMargins = pageSideMargins(for: mode)
+        let surface: ReaderRenderSurface
+        switch mode {
+        case .paged:
+            // The bars are structural: whatever height they occupy is taken out of
+            // the text area, in both modes, from one calculation. This replaced the
+            // hand-tuned 內容保留 sliders — a bar's height is known, so reserving the
+            // right amount is arithmetic rather than a number the reader had to guess.
+            let pagedInsets = readerBarContentInsets
+            surface = .paged(
+                contentInsets: UIEdgeInsets(
+                    top: pagedInsets.top,
+                    left: sideMargins.left,
+                    bottom: pagedInsets.bottom,
+                    right: sideMargins.right
+                ),
+                marginV: systemVerticalPadding,
+                footerHeight: footerOverlayHeight
+            )
+        case .scroll:
+            let scrollInsets = readerBarContentInsets
+            surface = .scroll(
+                contentInsets: UIEdgeInsets(
+                    top: scrollInsets.top,
+                    left: sideMargins.left,
+                    bottom: scrollInsets.bottom,
+                    right: sideMargins.right
+                ),
+                marginV: readerConfig.pageMarginV,
+                footerHeight: ReaderLayoutMetrics.footerHeight
+            )
+        }
+
+        return ReaderRenderSettingsSnapshotBuilder.make(input: input, surface: surface)
+    }
+
+    func applyPublicationSession(
+        _ session: PublicationSession,
+        book: ReadingBook,
+        settings: ReaderRenderSettings
+    ) {
+        let document = BookDocumentFactory.makeEPUBDocument(book: book, session: session)
+        applyDocument(document)
+
+        // The shelf decided the opening animation by the same rules (`inspectDirectionIsRTL`), so this
+        // only confirms it for the closing one.
+        if let direction = epubRenderer.bookDirection {
+            readerNavigator?.updateOpeningDirection(ReaderBookOpeningDirection.resolve(isRTL: direction.isRTL))
+        }
+
+        // Start any authored background soundtrack for the chapter we're opening on.
+        activePublicationSession = session
+        Task { await backgroundAudioCoordinator.update(session: session, chapterIndex: currentChapterIndex) }
+
+        // Prefer EPUB toc.ncx / nav.xhtml entries. Only fall back to spine when TOC is missing.
+        if !session.tocEntries.isEmpty {
+            chapters = ReaderTOCChapterMapper.chapters(from: session.tocEntries, session: session)
+        } else {
+            // Fallback: spine-only
+            chapters = session.chapters.map { chapter in
+                BookChapter(
+                    index: chapter.index,
+                    title: chapter.title,
+                    content: "",
+                    href: chapter.href,
+                    level: 0
+                )
+            }
+        }
+        if chapters.isEmpty {
+            chapters = [BookChapter(index: 0, title: session.bookTitle, content: "")]
+        }
+        allPages = [
+            PageContent(
+                chapterIndex: 0,
+                chapterTitle: session.bookTitle,
+                content: "",
+                pageInChapter: 0
+            )
+        ]
+
+        attachTranslationSource()
+        bindBrowserChapterPictures()
+        epubRenderer.load(
+            publicationSession: session,
+            bookIdentifier: book.remoteEPUBRenderIdentifier ?? session.sourceURL.standardizedFileURL.path,
+            renderSize: session.layoutMode == .prePaginated ? readerViewportSize : currentReaderRenderSize,
+            settings: settings,
+            continuousScrolling: effectiveScrollMode
+        )
+        updateFixedLayoutOrientationPreference()
+
+        currentPage = 0
+        isLoadingPipeline = false
+        isRestoringPosition = false
+    }
+
+    func loadLocalEPUB(_ book: ReadingBook) {
+        Task {
+            do {
+                let session = try await EPUBBookService.shared.openSession(for: book, using: store, remoteLibrary: dependencies.remoteLibrary)
+                // Which way the book reads, before anything is laid out for it: the settings below,
+                // the picture migration and the page view are all made in its direction.
+                if book.opensWithDeclaredEPUBFlow {
+                    await self.epubRenderer.resolveWritingModes(for: session)
+                }
+                await self.moveSavedPositionForPictures(book: book, session: session)
+                await MainActor.run {
+                    guard self.book?.id == book.id else { return }
+                    let settings = self.readerRenderSettings(for: self.activeReaderDisplayMode)
+                    self.applyPublicationSession(session, book: book, settings: settings)
+                }
+            } catch is CancellationError {
+                // A remote book's preparation ends this way when its reader closes
+                // (`RemoteLibraryService.release`). Nothing failed, so there is nothing to show.
+                await MainActor.run {
+                    AppLogger.render("EPUB open cancelled")
+                    self.applyDocument(nil)
+                    self.isLoadingPipeline = false
+                    self.isRestoringPosition = false
+                }
+            } catch {
+                await MainActor.run {
+                    AppLogger.render("Readium parsing failed: \(error)")
+                    self.applyDocument(nil)
+                    self.isLoadingPipeline = false
+                    self.isRestoringPosition = false
+                    guard self.book?.id == book.id else { return }
+                    self.bookOpenFailure = BookOpenFailure(error: error)
+                    // 「無法開啟書籍」 has its own buttons; a toolbar raised while the book was
+                    // still opening would cover them with placeholder progress.
+                    self.setReaderChromeVisible(false)
+                }
+            }
+        }
+    }
+
+    /// A position saved before YueduCoreText 0.11 counted no picture characters. Moves it to
+    /// its chapter's offsets before anything restores it, then reads it again, as the TXT index
+    /// migration does. Once per book: every save stamps the file as 0.11's.
+    func moveSavedPositionForPictures(book: ReadingBook, session: PublicationSession) async {
+        let settings = readerRenderSettings(for: activeReaderDisplayMode)
+        // The box tree a position counts in does not depend on the page's size, but the
+        // chapter's admission needs some size. Guards a book opened before the reader's viewport
+        // is measured (`readerViewportSize` still zero); delete once opening waits for it.
+        let measured = currentReaderRenderSize
+        let size = measured.width > 0 && measured.height > 0 ? measured : CGSize(width: 390, height: 844)
+        let renderer = epubRenderer
+        let identifier = book.remoteEPUBRenderIdentifier ?? session.sourceURL.standardizedFileURL.path
+        let moved = await PictureOffsetMigration.migrateSavedPosition(
+            bookId: book.id.uuidString, positions: dependencies.readingPositionStore
+        ) { spine in
+            await renderer.savedPositionPictures(publicationSession: session, bookIdentifier: identifier,
+                                                 renderSize: size, settings: settings, spine: spine)
+        }
+        guard moved, self.book?.id == book.id else { return }
+        refreshInitialRestoreState()
+    }
+
+    /// Moves a chapter's bookmarks saved before pictures took up source text the moment its
+    /// browser layout exists, before any of them is drawn or jumped to.
+    ///
+    /// Captures the store, not `self`: the renderer keeps this closure for the life of the
+    /// reader, and `@EnvironmentObject` is resolved per body.
+    func bindBrowserChapterPictures() {
+        let store = store
+        let bookId = bookId
+        let renderer = epubRenderer
+        renderer.onBrowserChapterPictures = { [weak store, weak renderer] spine, sourceText, pictures in
+            guard let store, let renderer,
+                  store.movePictureOffsets(bookId: bookId, spine: spine, sourceText: sourceText, pictures: pictures)
+            else { return }
+            // What `syncCoreTextTextAnnotations` hands both engines.
+            let annotations = (store.readingBook(id: bookId)?.bookmarks ?? []).indexingReadText(of: bookId)
+                .compactMap(\.coreTextTextAnnotation)
+            renderer.engine?.setTextAnnotations(annotations)
+            renderer.scrollEngine?.textAnnotations = annotations
+        }
+    }
+
+    func loadOnlineCoreText(_ book: ReadingBook) {
+        #if DEBUG
+        AppLogger.render("onlinePipeline route", context: [
+            "builder": "OnlineProviderAttributedStringBuilder",
+            "bookId": book.id.uuidString,
+            "chapters": book.onlineChapters?.count ?? -1
+        ])
+        #endif
+        guard let bundle = BookContentProviderFactory.makeOnlineReaderBundle(
+            book: book,
+            store: store
+        ) else {
+            #if DEBUG
+            AppLogger.render("onlinePipeline route: makeOnlineReaderBundle returned nil")
+            #endif
+            applyDocument(nil)
+            isLoadingPipeline = false
+            isRestoringPosition = false
+            return
+        }
+
+        let settings = readerRenderSettings(for: activeReaderDisplayMode)
+        let refs = book.onlineChapters ?? []
+        chapters = ReaderTOCChapterMapper.chapters(from: refs)
+        if chapters.isEmpty {
+            chapters = [BookChapter(index: 0, title: book.title, content: "")]
+        }
+        allPages = []
+
+        // Per-source content-image decryptor (Legado `ruleContent.imageDecode`):
+        // only sources declaring the rule pay anything; the closure runs the
+        // source's JS over downloaded image bytes.
+        let bookSource = book.bookSourceId.flatMap { sourceId in
+            BookSourceStore.shared.source(id: sourceId)
+        }
+        var imageDecode: (@Sendable (Data, String) async -> Data?)? = nil
+        if let source = bookSource,
+           !source.ruleContent.imageDecode.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            let ruleJs = source.ruleContent.imageDecode
+            imageDecode = { data, src in
+                await SourceImageDecoder.decode(data, src: src, ruleJs: ruleJs, source: source)
+            }
+        }
+        // In-chapter illustrations belong to the source's own CDN, which gates on the source's
+        // headers exactly like its cover art does — same header map the cover and comic-page
+        // loaders build, so an online book has one answer for "how do I fetch this source's
+        // images". Without it 幻梦轻小说's 插图 chapters came back 403 and rendered blank.
+        let imageHeaders = bookSource.map { source in
+            BookCoverLoader.headers(
+                sourceBaseURL: source.bookSourceUrl,
+                sourceHeaders: source.parsedHeaders
+            )
+        } ?? [:]
+
+        attachTranslationSource()
+        epubRenderer.loadWithProvider(
+            contentProvider: bundle.provider,
+            chapterSourceHrefs: bundle.chapterSourceHrefs,
+            bookIdentifier: bundle.bookIdentifier,
+            renderSize: currentReaderRenderSize,
+            settings: settings,
+            imageDecode: imageDecode,
+            imageHeaders: imageHeaders,
+            // Illustrations offline download already fetched. Keyed by book id, not by the
+            // provider's bookIdentifier, because that is what the downloader writes under.
+            imageCacheDirectory: OfflineStorageRoots.live.textImagesDirectory(bookId: book.id)
+        )
+
+        currentPage = 0
+        isLoadingPipeline = false
+        isRestoringPosition = false
+
+        // Lazy loading: auto-fetch the initial chapter (saved position or chapter 0).
+        let initialChapter = OnlineInitialChapterResolver.preferredInitialChapter(
+            chapterCount: refs.count,
+            savedPositionSnapshot: 0,
+            restoreTargetChapter: savedCoreTextRestoreTarget?.chapterIndex
+        )
+        currentChapterIndex = initialChapter
+        ensureChapterReady(chapterIndex: initialChapter)
+        if initialChapter != 0 {
+            // Nobody is looking at chapter 0 yet: at `.immediate` it raced the saved chapter
+            // for the source's bridge and, winning the toss, made a 段評 book's open wait one
+            // extra chapter fetch (~2.7s measured 2026-10-06).
+            ensureChapterReady(chapterIndex: 0, priority: .prefetch)
+        }
+    }
+
+    func loadContent() {
+        // ⟐ infinite-loading probe: if reloads are being swallowed here, the
+        // pipeline flag was left dangling by an earlier aborted load.
+        guard !isLoadingPipeline else {
+            AppLogger.render("⟐ loadContent blocked: isLoadingPipeline still true")
+            return
+        }
+        isLoadingPipeline = true
+        txtIndexReady = false
+        showTXTIndexFailure = false
+        // 重試 on 「無法開啟書籍」 comes through here, back to the opening state.
+        bookOpenFailure = nil
+        isRestoringPosition = true
+        refreshInitialRestoreState()
+
+        guard let b = book else {
+            applyDocument(nil)
+            isRestoringPosition = false
+            isLoadingPipeline = false
+            return
+        }
+
+        if b.isOnline {
+            loadOnlineCoreText(b)
+            return
+        }
+        
+        if b.resolvedPipelineKind == .txt {
+            let bookTitle = b.title
+            let settings = readerRenderSettings(for: activeReaderDisplayMode)
+            let targetBook = b
+            let targetBookID = targetBook.id
+            let txtURL = StorageLocations.bookFile(targetBook.contentFilename)
+            let lowercasedFilename = targetBook.contentFilename.lowercased()
+            let isMarkdownFile = lowercasedFilename.hasSuffix(".md")
+                || lowercasedFilename.hasSuffix(".markdown")
+
+            if isMarkdownFile {
+                DispatchQueue.global(qos: .userInitiated).async {
+                    let markdownText: String
+                    do {
+                        markdownText = try TXTFileReader.readTextFile(url: txtURL)
+                    } catch {
+                        Task { @MainActor in
+                            guard self.book?.id == targetBook.id else { return }
+                            self.applyDocument(nil)
+                            self.isLoadingPipeline = false
+                            self.isRestoringPosition = false
+                        }
+                        return
+                    }
+
+                    let markdownBuilder = MarkdownAttributedStringBuilder(
+                        markdown: markdownText,
+                        fallbackTitle: bookTitle
+                    )
+                    let markdownChapters = markdownBuilder.unifiedChapters
+
+                    Task { @MainActor in
+                        guard self.book?.id == targetBook.id else {
+                            self.isLoadingPipeline = false
+                            self.isRestoringPosition = false
+                            return
+                        }
+
+                        let document = BookDocumentFactory.makeTXTDocument(
+                            book: targetBook,
+                            chapters: markdownChapters
+                        )
+                        // Markdown has its own canonical parser but shares the
+                        // TXT rendering kind; it does not use TXT reindexing.
+                        self.txtIndexReady = true
+                        self.applyDocument(document)
+
+                        self.attachTranslationSource()
+                        self.epubRenderer.loadTXT(
+                            attributedBuilder: markdownBuilder,
+                            bookIdentifier: targetBook.id.uuidString,
+                            renderSize: self.currentReaderRenderSize,
+                            settings: settings
+                        )
+
+                        if document.tableOfContents.count > 0 {
+                            self.chapters = document.tableOfContents.enumerated().map { i, chapter in
+                                BookChapter(index: i, title: chapter.title, content: "")
+                            }
+                        } else {
+                            self.chapters = [BookChapter(index: 0, title: bookTitle, content: "")]
+                        }
+
+                        self.allPages = []
+                        if self.savedCoreTextRestoreTarget == nil {
+                            self.currentPage = 0
+                        }
+                        self.isLoadingPipeline = false
+                        self.isRestoringPosition = false
+                    }
+                }
+                return
+            }
+
+            Task { @MainActor in
+                do {
+                    let preparation = try await Task.detached(priority: .userInitiated) {
+                        try TXTReaderPreparationService.prepare(
+                            url: txtURL,
+                            bookId: targetBookID,
+                            bookTitle: bookTitle
+                        )
+                    }.value
+
+                    guard self.book?.id == targetBook.id else {
+                        self.isLoadingPipeline = false
+                        self.isRestoringPosition = false
+                        return
+                    }
+
+                    if preparation.cachedChapterIndexes == nil,
+                       preparation.previousChapterIndexes == nil,
+                       savedCoreTextRestoreTarget == nil,
+                       targetBook.bookmarks.isEmpty {
+                        let previewIndexes = TXTChapterParser.parseChapterIndexes(
+                            preparation.previewText,
+                            bookTitle: bookTitle
+                        )
+                        let previewBuilder = TXTLazyAttributedStringBuilder(
+                            text: preparation.previewText,
+                            chapterIndexes: previewIndexes
+                        )
+                        let previewDocument = BookDocumentFactory.makeTXTDocument(
+                            book: targetBook,
+                            chapterIndexes: previewIndexes,
+                            text: preparation.previewText
+                        )
+                        self.applyTXTReaderPhase(
+                            book: targetBook,
+                            title: bookTitle,
+                            document: previewDocument,
+                            builder: previewBuilder,
+                            settings: settings,
+                            completesPipeline: false
+                        )
+                    }
+
+                    let completion = try await TXTReaderIndexMigrationService.complete(
+                        preparation, store: store, positions: dependencies.readingPositionStore,
+                        settings: settings
+                    )
+                    let mappedChapterIndexes = completion.indexes
+
+                    guard self.book?.id == targetBook.id else { return }
+                    txtIndexReady = true
+                    // Re-read the canonical migrated location before the final
+                    // engine can restore/settle against the corrected index.
+                    if completion.restoredPosition != nil {
+                        refreshInitialRestoreState()
+                    }
+                    let finalBuilder = TXTLazyAttributedStringBuilder(
+                        mappedTextFile: preparation.mappedTextFile,
+                        chapterIndexes: mappedChapterIndexes
+                    )
+                    let finalDocument = BookDocumentFactory.makeTXTDocument(
+                        book: targetBook,
+                        mappedChapterIndexes: mappedChapterIndexes,
+                        mappedTextFile: preparation.mappedTextFile
+                    )
+                    self.applyTXTReaderPhase(
+                        book: targetBook,
+                        title: bookTitle,
+                        document: finalDocument,
+                        builder: finalBuilder,
+                        settings: self.readerRenderSettings(for: self.activeReaderDisplayMode)
+                    )
+                } catch {
+                    guard self.book?.id == targetBook.id else { return }
+                    AppLogger.error("TXT reader preparation failed", error: error)
+                    showTXTIndexFailure = true
+                    setReaderChromeVisible(true)
+                    self.applyDocument(nil)
+                    self.isLoadingPipeline = false
+                    self.isRestoringPosition = false
+                }
+            }
+            return
+        }
+
+        guard b.resolvedPipelineKind == .epub else {
+            applyDocument(nil)
+            isLoadingPipeline = false
+            isRestoringPosition = false
+            return
+        }
+        let bookTitle = b.title
+        self.chapters = [BookChapter(index: 0, title: bookTitle, content: "")]
+        self.allPages = [PageContent(chapterIndex: 0, chapterTitle: bookTitle, content: "", pageInChapter: 0)]
+        self.currentPage = 0
+        loadLocalEPUB(b)
+    }
+
+    func applyTXTReaderPhase(
+        book: ReadingBook,
+        title: String,
+        document: any BookDocument,
+        builder: any AttributedStringBuilding,
+        settings: ReaderRenderSettings,
+        completesPipeline: Bool = true
+    ) {
+        applyDocument(document)
+        attachTranslationSource()
+        epubRenderer.loadTXT(
+            attributedBuilder: builder,
+            bookIdentifier: book.id.uuidString,
+            renderSize: currentReaderRenderSize,
+            settings: settings
+        )
+
+        if document.tableOfContents.isEmpty {
+            chapters = [BookChapter(index: 0, title: title, content: "")]
+        } else {
+            chapters = document.tableOfContents.enumerated().map { index, chapter in
+                BookChapter(index: index, title: chapter.title, content: "")
+            }
+        }
+        allPages = []
+        if savedCoreTextRestoreTarget == nil {
+            currentPage = 0
+        }
+        if completesPipeline {
+            isLoadingPipeline = false
+            isRestoringPosition = false
+        }
+    }
+
+    /// Builds the reader pipeline for a chapter that arrived before one existed.
+    ///
+    /// This used to begin with `isLoadingPipeline = false`, force-clearing the single guard that
+    /// stops `loadContent` running twice. Opening a book fetches chapters N, N-1 and N+1 together
+    /// and each arrival reaches here, so each got its own pipeline — a device capture showed four
+    /// `CoreTextScrollEngine` instances for one book open, each with its own reader view restoring
+    /// the reading position independently. That is a large part of what the user sees as jumping.
+    ///
+    /// Not clearing it is the correct reading of the caller's intent. "No engine yet" means either
+    /// a build is in flight — in which case that build will produce the engine and starting a
+    /// second one is pure damage — or the flag is stranded from an aborted load, which is a
+    /// *different* bug that force-clearing was hiding. `loadContent`'s `⟐ loadContent blocked`
+    /// line is what surfaces the stranded case, so it can be fixed rather than papered over.
+    ///
+    /// Note this is a no-op change for online books: `loadOnlineCoreText` clears the flag
+    /// synchronously before it returns, so it is already false by the time any chapter callback
+    /// runs. It matters for the TXT/EPUB paths, which hold the flag across async work — exactly
+    /// where "a load really is in flight" is true.
+    func rebuildPages() {
+        AppLogger.render(
+            "⟐ rebuildPages loading=\(isLoadingPipeline) engine=\(epubRenderer.engine != nil) "
+                + "scrollEngine=\(epubRenderer.scrollEngine != nil)"
+        )
+        loadContent()
+    }
+
+    func applyDocument(_ document: (any BookDocument)?) {
+        bookDocument = document
+        if let document {
+            contentProvider = BookDocumentContentProviderAdapter(document: document)
+            readerCapabilities = document.capabilities
+        } else {
+            contentProvider = nil
+            readerCapabilities = .reflowableText
+        }
+    }
+
+    func submitReaderRefresh(
+        intent: ReaderRenderRefreshIntent,
+        settings: ReaderRenderSettings? = nil,
+        viewportSize: CGSize? = nil,
+        mode: ReaderDisplayMode? = nil,
+        position: CoreTextReadingPosition? = nil
+    ) {
+        guard epubRenderer.engine != nil || epubRenderer.scrollEngine != nil else { return }
+        let resolvedSettings = settings ?? activeReaderRenderSettings
+        let resolvedMode = mode ?? activeReaderDisplayMode
+        let request = ReaderRenderRefreshRequest(
+            intent: intent,
+            mode: resolvedMode,
+            settings: resolvedSettings,
+            position: position ?? currentReaderRefreshPosition,
+            viewportSize: viewportSize ?? currentReaderRenderSize
+        )
+        Task { @MainActor in
+            await ReaderStyleAssetStore.shared.prewarmRegexHighlightAssets(
+                configuration: resolvedSettings.regexHighlightConfiguration,
+                appearance: resolvedSettings.readerStyleAppearance
+            )
+            let result = await epubRenderer.refresh(request)
+            if case let .failed(transactionID, failure) = result {
+                AppLogger.render(
+                    "reader refresh failed transaction=\(transactionID) failure=\(failure)"
+                )
+            }
+        }
+    }
+
+    var currentReaderRefreshPosition: CoreTextReadingPosition {
+        if let position = readerSessionCoordinator?.state.location.coreTextPosition {
+            return position
+        }
+        if let pendingScrollJumpTarget {
+            return pendingScrollJumpTarget
+        }
+        if let engine = epubRenderer.engine,
+           let position = engine.readingPosition(forPage: currentPage) {
+            return position
+        }
+        return CoreTextReadingPosition(
+            spineIndex: max(0, currentChapterIndex),
+            charOffset: 0
+        )
+    }
+
+}

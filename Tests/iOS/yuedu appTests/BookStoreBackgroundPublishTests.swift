@@ -1,0 +1,152 @@
+import Combine
+import Foundation
+import os
+import Testing
+@testable import yuedu_app
+
+/// Background producers — the launch refresh, a download — must not publish the store to
+/// every view on it per step: a 2000-chapter table-of-contents refresh used to publish
+/// seven times and normalize every title on the main thread, and a download published
+/// twice per chapter.
+@Suite("BookStore publishes once per background change", .serialized)
+struct BookStoreBackgroundPublishTests {
+    @MainActor
+    private func makeStore() -> (store: BookStore, directory: URL) {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("BookStoreBackgroundPublishTests-\(UUID().uuidString)", isDirectory: true)
+        try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        return (BookStore(metadataFileURL: directory.appendingPathComponent("books_meta.json")), directory)
+    }
+
+    private func chapters(_ count: Int, titlePrefix: String = "第") -> [OnlineChapterRef] {
+        (0..<count).map {
+            OnlineChapterRef(index: $0, title: "\(titlePrefix) \($0 + 1) 章", url: "https://example.com/c\($0 + 1)")
+        }
+    }
+
+    @Test("a table-of-contents refresh replaces the record once, and not at all when nothing changed")
+    func refreshPublishesOnce() async throws {
+        let source = BookSource(bookSourceUrl: "https://example.com", bookSourceName: "測試書源")
+        let previousSources = await MainActor.run { BookSourceStore.shared.sources }
+        await MainActor.run { BookSourceStore.shared.replaceSources([source]) }
+        defer { Task { @MainActor in BookSourceStore.shared.replaceSources(previousSources) } }
+
+        let (store, directory) = await makeStore()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let existing = chapters(3)
+        let book = await MainActor.run {
+            store.addOnlineBook(
+                name: "測試書", author: "作者", sourceId: source.id, bookInfoURL: "https://example.com/book",
+                tocURL: "https://example.com/toc", runtimeVariables: ["token": "final"], chapters: existing
+            )
+        }
+        let publications = await PublicationCounter(store)
+
+        func package(_ list: [OnlineChapterRef]) -> TOCPackage {
+            TOCPackage(
+                sourceId: source.id, sourceName: source.bookSourceName, tocURL: "https://example.com/toc",
+                runtimeVariables: ["token": "final"], chapters: list, rawHTMLFilename: nil, savedAt: Date()
+            )
+        }
+
+        // Same list again: nothing to publish.
+        _ = try await store.refreshOnlineBookMetadata(
+            bookId: book.id, bookSourceFetcher: ImmediateTOCFetcher(package: package(existing))
+        )
+        #expect(publications.value == 0)
+
+        // A new chapter: the record is replaced once, with the merged list and the badge.
+        let refreshed = try await store.refreshOnlineBookMetadata(
+            bookId: book.id, bookSourceFetcher: ImmediateTOCFetcher(package: package(chapters(4)))
+        )
+        #expect(refreshed.onlineChapters?.count == 4)
+        #expect(refreshed.hasNewChapterUpdate == true)
+        #expect(publications.value == 1)
+    }
+
+    /// A parser builds every `OnlineChapterRef` afresh, each with a new `id`. An unchanged
+    /// table of contents must still count as unchanged: when the merge dropped the stored
+    /// ids, every launch refresh replaced every record and rewrote every list on disk —
+    /// about 1 GB of writes within a minute of launch on a large shelf.
+    @Test("an unchanged table of contents parsed afresh publishes nothing and keeps chapter ids")
+    func reparsedUnchangedListIsNoChange() async throws {
+        let source = BookSource(bookSourceUrl: "https://example.com", bookSourceName: "測試書源")
+        let previousSources = await MainActor.run { BookSourceStore.shared.sources }
+        await MainActor.run { BookSourceStore.shared.replaceSources([source]) }
+        defer { Task { @MainActor in BookSourceStore.shared.replaceSources(previousSources) } }
+
+        let (store, directory) = await makeStore()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let book = await MainActor.run {
+            store.addOnlineBook(
+                name: "測試書", author: "作者", sourceId: source.id, bookInfoURL: "https://example.com/book",
+                tocURL: "https://example.com/toc", runtimeVariables: ["token": "final"], chapters: chapters(3)
+            )
+        }
+        let storedIDs = await MainActor.run { store.chapters(for: book.id)?.map(\.id) }
+        let publications = await PublicationCounter(store)
+
+        let reparsed = chapters(3)
+        #expect(reparsed.map(\.id) != storedIDs)
+        _ = try await store.refreshOnlineBookMetadata(
+            bookId: book.id,
+            bookSourceFetcher: ImmediateTOCFetcher(package: TOCPackage(
+                sourceId: source.id, sourceName: source.bookSourceName, tocURL: "https://example.com/toc",
+                runtimeVariables: ["token": "final"], chapters: reparsed, rawHTMLFilename: nil, savedAt: Date()
+            ))
+        )
+
+        #expect(publications.value == 0)
+        #expect(await MainActor.run { store.chapters(for: book.id)?.map(\.id) } == storedIDs)
+    }
+}
+
+/// Counts the store's publications for a test that runs off the main actor. It subscribes on
+/// the main actor, where the store lives, and the subscription ends with it.
+@MainActor
+private final class PublicationCounter {
+    private let count = OSAllocatedUnfairLock(initialState: 0)
+    private var subscription: AnyCancellable?
+
+    init(_ store: BookStore) {
+        let count = count
+        subscription = store.objectWillChange.sink { count.withLock { $0 += 1 } }
+    }
+
+    nonisolated var value: Int { count.withLock { $0 } }
+}
+
+/// Answers a table-of-contents refresh with a fixed package in one go, as a single-page
+/// table of contents arrives.
+private struct ImmediateTOCFetcher: BookSourceFetching {
+    let package: TOCPackage
+
+    func fetchBookInfoPackage(
+        url: String, source: BookSource, runtimeVariables: [String: String]?, knownBook: OnlineBook?
+    ) async throws -> BookInfoPackage {
+        throw NSError(domain: "ImmediateTOCFetcher", code: 1)
+    }
+
+    func fetchTOCPackage(
+        tocUrl: String, source: BookSource, runtimeVariables: [String: String]?,
+        onFirstPageReady: (([OnlineChapterRef]) -> Void)?, forceRefresh: Bool
+    ) async throws -> TOCPackage {
+        return package
+    }
+
+    func isChapterCached(
+        bookId: UUID, chapterIndex: Int, expectedSourceURL: String?, expectedTOCTitle: String?
+    ) -> Bool { false }
+    func clearChapterCache(bookId: UUID, chapterIndex: Int) {}
+    func clearAllChapterCache(bookId: UUID) {}
+    func search(query: String, in source: BookSource) async throws -> [OnlineBook] { [] }
+    func search(
+        query: String, in source: BookSource, earlyFilter: ((String, String) -> Bool)?
+    ) async throws -> [OnlineBook] { [] }
+    func loadChapterPackageSync(
+        bookId: UUID, chapterIndex: Int, expectedSourceURL: String?, expectedTOCTitle: String?
+    ) -> ChapterPackage? { nil }
+    func loadNormalizedChapterHTMLSync(
+        bookId: UUID, chapterIndex: Int, expectedSourceURL: String?, expectedTOCTitle: String?
+    ) -> String? { nil }
+}

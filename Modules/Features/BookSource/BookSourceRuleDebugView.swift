@@ -1,0 +1,244 @@
+import SwiftUI
+
+/// Full per-rule book source debugger.
+/// Shows 4 parsing stages: Search / Detail / TOC / Content.
+/// Each stage lets you enter the relevant input, run it against the real engine,
+/// and see timestamped, color-coded log entries with expandable detail.
+struct BookSourceRuleDebugView: View {
+
+    let source: BookSource
+
+    @StateObject private var engine: BookSourceDebugEngine
+    @State private var selectedTab: DebugTab = .search
+    @State private var keyword: String = ""
+    @State private var inputURL: String = ""
+    @State private var page: Int = 1
+    @Environment(\.dismiss) private var dismiss
+    @Bindable private var gs = GlobalSettings.shared
+
+    enum DebugTab: String, CaseIterable, Identifiable {
+        case search  = "搜索"
+        case detail  = "詳情"
+        case toc     = "目錄"
+        case content = "正文"
+        case fullPipeline = "全流程"
+        var id: String { rawValue }
+    }
+
+    /// `initialTab` and `initialURL` open it on one stage with its input filled in — the
+    /// reader's 調試正文 opens 正文 with the chapter on screen.
+    init(source: BookSource, initialTab: DebugTab = .search, initialURL: String = "") {
+        self.source = source
+        _engine = StateObject(wrappedValue: BookSourceDebugEngine(source: source))
+        _selectedTab = State(initialValue: initialTab)
+        _inputURL = State(initialValue: initialURL)
+    }
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 0) {
+                // Tab picker
+                Picker(localized("解析段落"), selection: $selectedTab) {
+                    ForEach(DebugTab.allCases) {
+                        Text(localized($0.rawValue)).tag($0)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .padding(.horizontal)
+                .padding(.vertical, 8)
+                .background(Color(.systemGray6))
+                .onChange(of: selectedTab) { _, _ in engine.clear() }
+
+                // Input area
+                VStack(spacing: 8) {
+                    if selectedTab == .search || selectedTab == .fullPipeline {
+                        HStack {
+                            TextField(
+                                selectedTab == .fullPipeline ? localized("全流程：輸入關鍵字，依序跑搜索→詳情→目錄→正文") : localized("搜索關鍵字"),
+                                text: $keyword
+                            )
+                            .textFieldStyle(.roundedBorder)
+                            if selectedTab == .search {
+                                Stepper("P\(page)", value: $page, in: 1...999)
+                                    .fixedSize()
+                            }
+                        }
+                    } else {
+                        TextField(localized("URL"), text: $inputURL)
+                            .textFieldStyle(.roundedBorder)
+                            .autocapitalization(.none)
+                            .disableAutocorrection(true)
+                            .keyboardType(.URL)
+                    }
+
+                    HStack {
+                        Button {
+                            engine.clear()
+                        } label: {
+                            Label(localized("清空"), systemImage: "trash")
+                                .foregroundColor(.red)
+                        }
+                        .buttonStyle(.bordered)
+
+                        Spacer()
+
+                        Button {
+                            Task { await runCurrentTab() }
+                        } label: {
+                            if engine.isRunning {
+                                ProgressView().tint(DSColor.textOnAccent)
+                                    .padding(.horizontal, 12)
+                            } else {
+                                Label(localized("執行"), systemImage: "play.fill")
+                                    .padding(.horizontal, 12)
+                            }
+                        }
+                        // Working, not disabled, while running: see `OnAccentProminentButtonStyle.work`.
+                        .buttonStyle(.onAccentProminent(working: engine.isRunning, title: Text(localized("執行"))))
+                    }
+                }
+                .padding(.horizontal)
+                .padding(.bottom, 8)
+                .background(Color(.systemGray6))
+
+                Divider()
+
+                // Log list
+                if engine.logs.isEmpty {
+                    VStack(spacing: 12) {
+                        Image(systemName: "magnifyingglass")
+                            .font(DSFont.largeTitle)
+                            .foregroundStyle(DSColor.textSecondary)
+                        Text(localized("輸入資料後按「執行」開始調試"))
+                            .foregroundStyle(DSColor.textSecondary)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    List(engine.logs) { entry in
+                        DebugLogRow(entry: entry)
+                            .listRowInsets(EdgeInsets(top: 4, leading: 12, bottom: 4, trailing: 12))
+                            .interfaceSectionSurface()
+                    }
+                    .softScrollEdges()
+                    .listStyle(.plain)
+                }
+            }
+            .navigationTitle(source.bookSourceName.isEmpty ? localized("來源配置調試") : source.bookSourceName)
+            .toolbarTitleDisplayMode(.inline)
+            .themedAppSurface(for: .settings)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark")
+                    }
+                    .accessibilityLabel(localized("關閉"))
+                }
+            }
+        }
+    }
+
+    private func runCurrentTab() async {
+        switch selectedTab {
+        case .search:  await engine.runSearch(keyword: keyword, page: page)
+        case .detail:  await engine.runBookInfo(url: inputURL)
+        case .toc:     await engine.runTOC(url: inputURL)
+        case .content: await engine.runContent(url: inputURL)
+        case .fullPipeline: await engine.runFullPipeline(keyword: keyword)
+        }
+    }
+}
+
+// MARK: - Log Row
+
+private struct DebugLogRow: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    let entry: DebugLogEntry
+    @State private var isExpanded = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(alignment: .top, spacing: 8) {
+                Text(icon)
+                    .font(DSFont.body)
+                    .foregroundStyle(DSColor.textPrimary)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(entry.step)
+                        .font(DSFont.caption)
+                        .foregroundColor(color.opacity(0.8))
+                        .bold()
+
+                    Text(entry.summary)
+                        .font(DSFont.subheadline)
+                        .foregroundColor(color)
+                        .lineLimit(isExpanded ? nil : 2)
+                }
+
+                Spacer()
+
+                Text(entry.timestamp, style: .time)
+                    .font(DSFont.caption2)
+                    .foregroundStyle(DSColor.textSecondary)
+            }
+            .contentShape(Rectangle())
+            .onTapGesture {
+                guard entry.detail != nil else { return }
+                withAnimation(reduceMotion ? nil : DSAnimation.fast) {
+                    isExpanded.toggle()
+                }
+            }
+
+            if isExpanded, let detail = entry.detail {
+                Text(detail)
+                    .font(.system(.caption, design: .monospaced))
+                    .foregroundStyle(DSColor.textSecondary)
+                    .padding(.leading, 28)
+                    .padding(.vertical, 4)
+                    .padding(.horizontal, 8)
+                    .background(Color(.systemGray6))
+                    .cornerRadius(6)
+            }
+
+            if entry.detail != nil {
+                HStack {
+                    Spacer()
+                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                        .font(DSFont.caption2)
+                        .foregroundStyle(DSColor.textSecondary)
+                }
+            }
+        }
+        .padding(.vertical, 2)
+    }
+
+    private var icon: String {
+        switch entry.level {
+        case .info:     return "ℹ️"
+        case .success:  return "✅"
+        case .warning:  return "⚠️"
+        case .error:    return "❌"
+        case .pipeline: return "🔍"
+        }
+    }
+
+    private var color: Color {
+        switch entry.level {
+        case .info:     return .primary
+        case .success:  return .green
+        case .warning:  return .orange
+        case .error:    return .red
+        case .pipeline: return .secondary
+        }
+    }
+}
+
+#Preview("調試正文") {
+    BookSourceRuleDebugView(
+        source: BookSource(bookSourceUrl: "https://example.com", bookSourceName: "示例來源"),
+        initialTab: .content,
+        initialURL: "https://example.com/book/1/chapter/2.html"
+    )
+}

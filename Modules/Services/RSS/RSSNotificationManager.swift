@@ -1,0 +1,267 @@
+import FirebaseCore
+import UIKit
+import UserNotifications
+import os
+
+final class RSSNotificationManager: Sendable {
+    static let shared = RSSNotificationManager()
+
+    private enum Constants {
+        static let categoryIdentifier = "RSS_NEW_ARTICLE"
+        static let markReadActionIdentifier = "RSS_MARK_READ"
+        static let markStarredActionIdentifier = "RSS_MARK_STARRED"
+        static let openActionIdentifier = "RSS_OPEN_ARTICLE"
+        static let notificationIdentifierPrefix = "articleID:"
+        static let maxTitleLength = 1000
+        static let maxBodyLength = 300
+    }
+
+    private let isStarted = OSAllocatedUnfairLock(initialState: false)
+
+    private init() {}
+
+    // MARK: - Start
+
+    @MainActor
+    func start(store: RSSStore = .shared) {
+        let alreadyStarted = isStarted.withLock { started in
+            defer { started = true }
+            return started
+        }
+        guard !alreadyStarted else { return }
+
+        registerCategories()
+        UNUserNotificationCenter.current().requestAuthorization(options: [.badge, .sound, .alert]) { granted, _ in
+            if granted {
+                DispatchQueue.main.async {
+                    UIApplication.shared.registerForRemoteNotifications()
+                }
+            }
+        }
+        updateBadge(unreadCount: store.totalUnreadCount())
+    }
+
+    // MARK: - Badge
+
+    func updateBadge(unreadCount: Int) {
+        UNUserNotificationCenter.current().setBadgeCount(unreadCount)
+    }
+
+    // MARK: - Notify New Articles
+
+    /// Send local notifications for new unread articles whose source has notifications enabled.
+    @MainActor
+    func notifyNewArticles(_ articles: [RSSArticleRecord], source: RSSSource) {
+        guard source.newArticleNotificationsEnabled, !articles.isEmpty else { return }
+
+        let unreadCount = RSSStore.shared.totalUnreadCount()
+        for article in articles {
+            guard !article.isRead else { continue }
+
+            let content = UNMutableNotificationContent()
+            content.title = source.name
+            content.subtitle = truncatedTitle(article.title)
+            content.body = truncatedSummary(article.summary)
+            content.threadIdentifier = source.id
+            content.categoryIdentifier = Constants.categoryIdentifier
+            content.sound = .default
+            content.badge = NSNumber(value: unreadCount)
+            content.userInfo = [
+                "sourceID": source.id,
+                "articleID": article.id,
+                "articleLink": article.link
+            ]
+
+            let request = UNNotificationRequest(
+                identifier: notificationIdentifier(for: article.id),
+                content: content,
+                trigger: nil
+            )
+            UNUserNotificationCenter.current().add(request)
+        }
+    }
+
+    // MARK: - Remove Notifications
+
+    func removeDeliveredNotification(articleID: String) {
+        removeDeliveredNotifications(articleIDs: [articleID])
+    }
+
+    func removeDeliveredNotifications(articleIDs: [String]) {
+        let identifiers = articleIDs.map(notificationIdentifier(for:))
+        UNUserNotificationCenter.current().removeDeliveredNotifications(withIdentifiers: identifiers)
+    }
+
+    /// Listen for status changes and remove notifications for articles marked as read.
+    func onArticlesMarkedRead(articleIDs: [String]) {
+        removeDeliveredNotifications(articleIDs: articleIDs)
+    }
+
+    // MARK: - Handle Notification Action
+
+    /// The parts of a `UNNotificationResponse` this needs, read where the response arrives:
+    /// the response itself is not Sendable.
+    nonisolated static func articleAction(from response: UNNotificationResponse) -> (articleID: String?, actionIdentifier: String) {
+        (response.notification.request.content.userInfo["articleID"] as? String, response.actionIdentifier)
+    }
+
+    @MainActor
+    func handleNotificationAction(articleID: String?, actionIdentifier: String) {
+        guard let articleID else {
+            return
+        }
+        switch actionIdentifier {
+        case Constants.markReadActionIdentifier:
+            RSSStore.shared.markRead(articleId: articleID, isRead: true)
+        case Constants.markStarredActionIdentifier:
+            RSSStore.shared.toggleFavorite(articleId: articleID)
+        case Constants.openActionIdentifier, UNNotificationDefaultActionIdentifier:
+            break // Handled by SceneDelegate deep link
+        default:
+            break
+        }
+    }
+
+    // MARK: - Private
+
+    private func registerCategories() {
+        let openAction = UNNotificationAction(
+            identifier: Constants.openActionIdentifier,
+            title: localized("動作：開啟"),
+            options: [.foreground]
+        )
+        let markReadAction = UNNotificationAction(
+            identifier: Constants.markReadActionIdentifier,
+            title: localized("標為已讀"),
+            options: []
+        )
+        let markStarredAction = UNNotificationAction(
+            identifier: Constants.markStarredActionIdentifier,
+            title: localized("加星號"),
+            options: []
+        )
+        let category = UNNotificationCategory(
+            identifier: Constants.categoryIdentifier,
+            actions: [openAction, markStarredAction, markReadAction],
+            intentIdentifiers: [],
+            options: []
+        )
+        UNUserNotificationCenter.current().setNotificationCategories([category])
+    }
+
+    private func notificationIdentifier(for articleID: String) -> String {
+        Constants.notificationIdentifierPrefix + articleID
+    }
+
+    // MARK: - Content Formatting
+
+    private func truncatedTitle(_ title: String) -> String {
+        stripped(title, maxUTF8Length: Constants.maxTitleLength)
+    }
+
+    private func truncatedSummary(_ summary: String) -> String {
+        stripped(summary, maxUTF8Length: Constants.maxBodyLength)
+    }
+
+    private func stripped(_ text: String, maxUTF8Length: Int) -> String {
+        let stripped = text
+            .replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression)
+            .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !stripped.isEmpty else { return "" }
+
+        var result = ""
+        var byteCount = 0
+        for char in stripped {
+            let charBytes = String(char).utf8.count
+            if byteCount + charBytes > maxUTF8Length { break }
+            result.append(char)
+            byteCount += charBytes
+        }
+        return result
+    }
+}
+
+// MARK: - App Notification Delegate
+
+final class RSSAppNotificationDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
+    func application(
+        _ application: UIApplication,
+        didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
+    ) -> Bool {
+        if Bundle.main.path(forResource: "GoogleService-Info", ofType: "plist") != nil {
+            FirebaseApp.configure()
+        } else {
+            print("[RSS] GoogleService-Info.plist 缺失，跳过 Firebase 初始化")
+        }
+        // Crash/diagnostics context must come up right after Firebase is configured,
+        // so launch-time crashes and MetricKit payloads carry breadcrumbs.
+        MetricKitDiagnosticReporter.shared.start()
+        CrashContext.identifyInstall()
+        // After Firebase: it reports a stall the previous run died in through Crashlytics.
+        MainThreadMonitor.shared.start()
+        CrashContext.breadcrumb("app launch (build \(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "?"))")
+        UNUserNotificationCenter.current().delegate = self
+        RSSNotificationManager.shared.start()
+        RSSBackgroundRefresh.shared.register()
+        RSSBackgroundRefresh.shared.schedule()
+        return true
+    }
+
+    func application(
+        _ application: UIApplication,
+        supportedInterfaceOrientationsFor window: UIWindow?
+    ) -> UIInterfaceOrientationMask {
+        // The idiom of the window asking; without one, the iPhone mask, which iPad's contains.
+        ReaderOrientationController.shared.supportedMask(for: window?.traitCollection.userInterfaceIdiom ?? .phone)
+    }
+
+    // MARK: - Remote notifications (回饋中心)
+
+    // These two arrive only because Info.plist turns `FirebaseAppDelegateProxyEnabled` off.
+    // With it on, FirebaseAuth (started at launch by `FirebaseAuthManager`) has
+    // GoogleUtilities isa-swizzle SwiftUI's AppDelegate, which hands the token on only to an
+    // implementation on that class — and SwiftUI forwards it to this adaptor dynamically,
+    // so neither callback ever came here and no device registered for push (10-19 to 10-25;
+    // `FeedbackPushRegistrationTests` holds it). Nothing here needs the proxy: sign-in is
+    // Apple, Google and email. Phone-number or web OAuth sign-in would need these forwarded
+    // to Auth by hand (`setAPNSToken`, `canHandleNotification`, `canHandle(_:)`).
+    func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+        FeedbackPushRegistration.shared.didRegister(deviceToken: deviceToken)
+    }
+
+    func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
+        AppLogger.network("APNs registration failed", error: error)
+    }
+
+    // MARK: - UNUserNotificationCenterDelegate
+
+    nonisolated func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        willPresent notification: UNNotification,
+        withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
+    ) {
+        if notification.request.content.userInfo[FeedbackNotificationPresenter.threadKey] is String {
+            // An open 我的回饋 or conversation shows the news now, not at its next poll.
+            Task { @MainActor in FeedbackService.shared.refreshOpenStreams() }
+        }
+        completionHandler([.list, .banner, .badge, .sound])
+    }
+
+    nonisolated func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        didReceive response: UNNotificationResponse
+    ) async {
+        if let threadID = response.notification.request.content.userInfo[FeedbackNotificationPresenter.threadKey] as? String {
+            await MainActor.run { FeedbackNotificationPresenter.open(threadID: threadID) }
+            return
+        }
+        let action = RSSNotificationManager.articleAction(from: response)
+        await MainActor.run {
+            RSSNotificationManager.shared.handleNotificationAction(
+                articleID: action.articleID,
+                actionIdentifier: action.actionIdentifier
+            )
+        }
+    }
+}

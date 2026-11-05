@@ -1,0 +1,49 @@
+# Codemagic 构建配置 —— 与 .github/workflows/build-ipa.yml 等价
+#
+# 为什么有这份文件：GitHub Actions 的免费额度（每月 2000 分钟，macOS 按 10 倍
+# 计费）已经用尽。Codemagic 免费档每月给 500 分钟 macOS 构建时间，一台 M2 机器，
+# 一次完整构建大约 20～30 分钟，够跑十几次。
+#
+# 真正的构建逻辑不在这里，而是 scripts/ci_build_ipa.sh —— 那是从 GitHub 工作流
+# 的 run 步骤逐条导出的，两边跑的是同一套校验（API Key 长度、源码补丁、产物结构、
+# bundle id 对齐），所以产物完全一致。这个文件只负责「在 macOS 机器上把它跑起来」。
+#
+# 触发方式：
+#   1. Codemagic 界面里点 Start new build → 选 unsigned-ipa
+#   2. 或者带 token 调 API：
+#      curl -H "x-auth-token: $TOKEN" -H "Content-Type: application/json" \
+#        -d '{"appId":"<APP_ID>","workflowId":"unsigned-ipa","branch":"main"}' \
+#        https://api.codemagic.io/builds
+
+workflows:
+  unsigned-ipa:
+    name: Yuedu Unsigned IPA
+    instance_type: mac_mini_m2
+    max_build_duration: 120
+
+    environment:
+      # 必须锁 26.3：GitHub 上成功出包的那几次用的就是 Xcode 26.3.0
+      # （runner 日志:「选中: /Applications/Xcode_26.3.0.app」）。
+      # 工具链差异实测：
+      #   16.4  -> EPUBAttributedStringBuilder.swift:274 非 Sendable 结果跨隔离传递
+      #   26.6  -> ReaderViewportFragmentHost.swift:232 sending 'prepare' 数据竞争
+      #   26.3  -> 通过
+      # 这不是源码问题，是 26.4+ 收紧的并发诊断把既有写法判成错误。
+      xcode: 26.3
+      vars:
+        # 与 Actions 版一致的签名目标 App ID；留空则保持原包名 com.yuedu.reader。
+        SIGN_BUNDLE_ID: com.QpPL.pEorsl
+        # 精确 App ID 签不了扩展，打包时移除 PlugIns。
+        DROP_EXTENSIONS: "1"
+
+    scripts:
+      - name: 校验并构建（无签名 IPA）
+        script: |
+          set -e
+          chmod +x scripts/ci_codemagic.sh
+          bash scripts/ci_codemagic.sh
+
+    artifacts:
+      - Yuedu-unsigned.ipa
+      - build*.log
+      - crash-context.log
