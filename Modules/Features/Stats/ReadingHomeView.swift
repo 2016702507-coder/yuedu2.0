@@ -279,7 +279,7 @@ struct ReadingHomeView: View {
         } else {
             VStack(spacing: 8) {
                 Text(localized("書架還是空的")).font(PaperFont.serif(19))
-                Text(localized("去書架挑一本，這一頁就會亮起來。"))
+                Text(localized("去書架挑一本，這裡就會亮起來。"))
                     .font(.system(size: 12.5))
                     .foregroundStyle(PaperPalette.textSecondary(scheme))
             }
