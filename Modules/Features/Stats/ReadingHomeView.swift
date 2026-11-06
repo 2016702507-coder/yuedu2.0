@@ -231,16 +231,18 @@ struct ReadingHomeView: View {
             pageDots
         }
         .background {
+            // 四段停靠点代替 `.blur`：轮播在滑，模糊层每帧都要重算，会拖慢手指；
+            // 色阶本身已经够软，看不出是渐变。
             LinearGradient(
-                colors: [
-                    PaperPalette.page(scheme).opacity(0),
-                    PaperPalette.page(scheme).opacity(0.62),
-                    PaperPalette.page(scheme).opacity(0.88),
+                stops: [
+                    .init(color: PaperPalette.page(scheme).opacity(0), location: 0),
+                    .init(color: PaperPalette.page(scheme).opacity(0.55), location: 0.34),
+                    .init(color: PaperPalette.page(scheme).opacity(0.84), location: 0.72),
+                    .init(color: PaperPalette.page(scheme).opacity(0.92), location: 1),
                 ],
                 startPoint: .top,
                 endPoint: .bottom
             )
-            .blur(radius: 26)
             .allowsHitTesting(false)
         }
     }
