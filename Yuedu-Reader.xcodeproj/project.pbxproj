@@ -817,7 +817,7 @@
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "閱讀2.0";
+				INFOPLIST_KEY_CFBundleDisplayName = "阅读 2.0";
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.books";
 				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
@@ -882,7 +882,7 @@
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "閱讀2.0";
+				INFOPLIST_KEY_CFBundleDisplayName = "阅读 2.0";
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.books";
 				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
