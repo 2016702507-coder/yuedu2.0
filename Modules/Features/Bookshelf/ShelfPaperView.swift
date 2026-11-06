@@ -565,19 +565,21 @@ enum ShelfSort: String, CaseIterable, Identifiable {
 
 // MARK: - 黑白墨色
 
-/// The maintainer asked for plain black type instead of the ink-green paper palette:
-/// headings, body and captions now differ by weight and gray level, not by hue.
+/// Headings, body and captions differ by weight and level, not by hue — that part of the
+/// maintainer's 2026-11-04 reference stays. The levels now come from the appearance theme's
+/// own label colours (2026-11-06: the shelf has to follow the theme like every other page),
+/// instead of fixed greys that ignored it.
 enum ShelfInk {
     static func strong(_ scheme: ColorScheme) -> Color {
-        scheme == .dark ? Color(white: 0.96) : Color(white: 0.08)
+        Color(uiColor: DSUIColor.textPrimary)
     }
 
     static func soft(_ scheme: ColorScheme) -> Color {
-        scheme == .dark ? Color(white: 0.78) : Color(white: 0.32)
+        Color(uiColor: DSUIColor.textSecondary)
     }
 
     static func muted(_ scheme: ColorScheme) -> Color {
-        scheme == .dark ? Color(white: 0.60) : Color(white: 0.52)
+        Color(uiColor: DSUIColor.textTertiary)
     }
 }
 

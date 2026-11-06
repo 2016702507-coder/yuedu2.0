@@ -220,6 +220,13 @@ struct AppearanceThemePreset: Identifiable, Hashable {
     var keepsSystemBackgrounds = false
     /// The same for the dark palette, kept on the light one for `palette(for:)` to hand over.
     var keepsSystemDarkBackgrounds = false
+    /// A preview picture shipped inside the app (an asset catalog name), for a theme
+    /// whose artwork lives in the bundle rather than in `Assets/ReaderThemes` — 劍來
+    /// is the only one. Read by `ThemePreviewTile` ahead of the colour sketch; absent
+    /// everywhere else, where the tile keeps drawing its swatch.
+    var assetPreviewName: String?
+    /// The same picture for the dark slot; nil falls back to `assetPreviewName`.
+    var darkAssetPreviewName: String?
 
     var localizedName: String { displayName ?? localized(nameKey) }
     var backgroundColor: Color { Color(uiColor: background) }
@@ -296,6 +303,10 @@ struct AppearanceThemePreset: Identifiable, Hashable {
         dark.hasEditedColors = hasEditedColors
         dark.keepsSystemBackgrounds = keepsSystemDarkBackgrounds
         dark.keepsSystemDarkBackgrounds = keepsSystemDarkBackgrounds
+        // The bundle preview picture is not part of the palette, so the branches above —
+        // each of which mints a fresh preset — have to be handed it again.
+        dark.assetPreviewName = assetPreviewName
+        dark.darkAssetPreviewName = darkAssetPreviewName
         return dark
     }
 

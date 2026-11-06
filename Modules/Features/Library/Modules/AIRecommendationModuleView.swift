@@ -29,7 +29,7 @@ struct AIRecommendationModuleView: View {
                 actionsSection
             } else {
                 ContentUnavailableView {
-                    UnavailableLabel(localized("需要卡密"), systemImage: "lock.fill")
+                    UnavailableLabel(localized("需要尊享會員"), systemImage: "lock.fill")
                 } description: {
                     Text(localized("依你最近讀的書推薦作品")).font(DSFont.unavailableDescription).foregroundStyle(DSColor.textSecondary)
                 } actions: {

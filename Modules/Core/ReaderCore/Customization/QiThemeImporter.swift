@@ -14,11 +14,15 @@ enum QiThemeImportError: Error, LocalizedError, Equatable {
     case notAReedenTheme
     /// A Reeden pack whose manifest is encrypted with Reeden's own key.
     case encryptedReedenTheme
+    /// A `.zip` / `.theme` whose manifest is not 閱境's.
+    case notAYuejingTheme
 
     var errorDescription: String? {
         switch self {
         case .notAQiTheme:
             return localized("這不是可讀取的 QiReader 外觀包。")
+        case .notAYuejingTheme:
+            return localized("這不是可讀取的閱境外觀包。請確認 zip 裡有 manifest.json，且 format 為 yuejing.theme。")
         case .notAReedenTheme:
             return localized("這不是可讀取的 Reeden 主題包。")
         case .encryptedReedenTheme:

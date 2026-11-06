@@ -58,7 +58,7 @@ struct AIBookshelfOrganizerView: View {
             // instead of opening the paywall straight from the menu. No service details and
             // no way into AI 助手設定, which is Pro as well.
             ContentUnavailableView {
-                UnavailableLabel(localized("需要卡密"), systemImage: "lock.fill")
+                UnavailableLabel(localized("需要尊享會員"), systemImage: "lock.fill")
             } description: {
                 Text(localized("問書、整章翻譯、查詞與整理書架")).font(DSFont.unavailableDescription).foregroundStyle(DSColor.textSecondary)
             } actions: {

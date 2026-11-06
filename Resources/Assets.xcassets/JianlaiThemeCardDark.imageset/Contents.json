@@ -1,0 +1,12 @@
+{
+  "images" : [
+    {
+      "filename" : "jianlai_theme_card_dark.jpg",
+      "idiom" : "universal"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}

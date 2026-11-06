@@ -36,6 +36,8 @@ struct AppearanceThemeView: View {
     @State private var screenAlert: ThemeScreenAlert?
     /// The 匯入完成 sheet, up from the moment an import starts writing.
     @State private var importProgress: CustomizationImportProgress?
+    /// 劍來's tile is importing its pack — the tile shows a spinner and stops taking taps.
+    @State private var isInstallingBuiltInTheme = false
     /// Appearance the theme grid is editing: the 淺色／深色 tab's, which the whole window
     /// wears (`GlobalSettings.appearanceWindowColorScheme`), otherwise the one on screen.
     /// Read from the setting rather than `colorScheme` so a pick lands on the slot just
@@ -73,7 +75,12 @@ struct AppearanceThemeView: View {
     }
 
     private var customThemes: [AppearanceThemePreset] {
-        settings.customAppearanceThemes.map(AppearanceThemePreset.preset(from:))
+        // 劍來 has a tile of its own, ahead of these; once imported it is also a stored
+        // record, and showing it twice would read as two themes.
+        let builtInID = BuiltInAppearanceTheme.installedThemeID
+        return settings.customAppearanceThemes
+            .filter { $0.id != builtInID }
+            .map(AppearanceThemePreset.preset(from:))
     }
 
     private var gridColumns: [GridItem] {
@@ -321,12 +328,11 @@ struct AppearanceThemeView: View {
                 Button(localized("取消"), role: .cancel) {}
             }
 
-            if !customThemes.isEmpty {
-                themeGroupTitle(localized("自訂主題"))
-                LazyVGrid(columns: gridColumns, spacing: DSSpacing.lg) {
-                    ForEach(customThemes) { preset in
-                        themeOption(preset)
-                    }
+            themeGroupTitle(localized("自訂主題"))
+            LazyVGrid(columns: gridColumns, spacing: DSSpacing.lg) {
+                builtInThemeOption
+                ForEach(customThemes) { preset in
+                    themeOption(preset)
                 }
             }
 
@@ -407,6 +413,83 @@ struct AppearanceThemeView: View {
             .font(DSFont.subheadline.weight(.semibold))
             .foregroundStyle(DSColor.textSecondary)
             .padding(.top, DSSpacing.xs)
+    }
+
+    /// 出廠的劍來主題，排在自訂主題第一位。
+    ///
+    /// 它是會員權益：沒開通時卡片帶鎖，點它開的是開通面板，跟其他自訂主題一致。開通後點
+    /// 它才匯入——匯入一次，之後就是一條普通的自訂主題記錄，選中、切換都走同一條路，
+    /// 不再另存一份（`BuiltInAppearanceTheme.install`）。
+    private var builtInThemeOption: some View {
+        let locked = !subscriptionStore.hasAccess(.readerThemePacks)
+        let installedID = BuiltInAppearanceTheme.installedThemeID
+        // Only a stored record can be the selected one; the placeholder id never is.
+        let selected = installedID != nil && selectedTheme.id == installedID
+        let preview = BuiltInAppearanceTheme.previewPreset(for: editingScheme)
+
+        return Button {
+            guard !locked else {
+                paywallFeature = .readerThemePacks
+                return
+            }
+            guard !isInstallingBuiltInTheme else { return }
+            if let id = installedID,
+               let record = settings.customAppearanceThemes.first(where: { $0.id == id }) {
+                settings.setAppearanceTheme(
+                    AppearanceThemePreset.preset(from: record),
+                    for: editingScheme,
+                    activeAppearance: editingScheme
+                )
+                return
+            }
+            isInstallingBuiltInTheme = true
+            Task { @MainActor in
+                let id = await BuiltInAppearanceTheme.install()
+                isInstallingBuiltInTheme = false
+                guard let id,
+                      let record = settings.customAppearanceThemes.first(where: { $0.id == id })
+                else {
+                    screenAlert = ThemeScreenAlert(
+                        title: localized("匯入失敗"),
+                        message: localized("劍來主題沒能匯入，請稍後再試。")
+                    )
+                    return
+                }
+                settings.setAppearanceTheme(
+                    AppearanceThemePreset.preset(from: record),
+                    for: editingScheme,
+                    activeAppearance: editingScheme
+                )
+            }
+        } label: {
+            VStack(spacing: DSSpacing.sm) {
+                ZStack {
+                    ThemePreviewTile(
+                        preset: preview,
+                        isSelected: selected,
+                        isLocked: locked,
+                        colorScheme: editingScheme
+                    )
+                    if isInstallingBuiltInTheme {
+                        ProgressView()
+                            .tint(.white)
+                    }
+                }
+                Text(BuiltInAppearanceTheme.displayName)
+                    .font(DSFont.caption)
+                    .foregroundStyle(locked ? DSColor.textDisabled : DSColor.textPrimary)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.center)
+                    .minimumScaleFactor(0.72)
+                    .frame(minHeight: 32, alignment: .top)
+            }
+            .contentShape(Rectangle())
+        }
+        // Nothing to rename or delete here: the stored record is managed from 主題管理.
+        .buttonStyle(ThemeTileButtonStyle(onLongPress: nil))
+        .disabled(isInstallingBuiltInTheme)
+        .accessibilityLabel(BuiltInAppearanceTheme.displayName)
+        .accessibilityAddTraits(selected ? .isSelected : [])
     }
 
     private func themeOption(_ preset: AppearanceThemePreset) -> some View {
@@ -638,6 +721,8 @@ struct AppearanceThemeView: View {
                 .yueduReaderStyle,
                 UTType(filenameExtension: "qitheme") ?? .data,
                 UTType(filenameExtension: "red") ?? .data,
+                UTType(filenameExtension: "theme") ?? .data,
+                .zip,
             ],
             allowsMultipleSelection: false,
             onCompletion: handleThemeImport
@@ -688,8 +773,10 @@ struct AppearanceThemeView: View {
                 if didAccess { url.stopAccessingSecurityScopedResource() }
             }
             let data = try Data(contentsOf: url)
-            if QiThemeImporter.hasQiThemeExtension(url) || ReedenThemeImporter.hasRedExtension(url) {
-                handleQiThemeImport(data)
+            if QiThemeImporter.hasQiThemeExtension(url)
+                || ReedenThemeImporter.hasRedExtension(url)
+                || YuejingThemeImporter.hasYuejingExtension(url) {
+                handleQiThemeImport(data, fileExtension: url.pathExtension)
                 return
             }
             Task { @MainActor in
@@ -716,13 +803,14 @@ struct AppearanceThemeView: View {
         }
     }
 
-    /// QiReader `.qitheme` and Reeden `.red` packs are foreign archives `ReaderStylePackage`
-    /// cannot read, so they get their own parse before any of the native routes are tried.
-    private func handleQiThemeImport(_ data: Data) {
+    /// QiReader `.qitheme`, Reeden `.red` and 閱境 `.zip` packs are foreign archives
+    /// `ReaderStylePackage` cannot read, so they get their own parse before any of the
+    /// native routes are tried.
+    private func handleQiThemeImport(_ data: Data, fileExtension: String? = nil) {
         Task { @MainActor in
             do {
                 // Nothing to ask: the pack's reading setup is its theme's own.
-                applyQiTheme(try await QiThemeImportService.load(data))
+                applyQiTheme(try await QiThemeImportService.load(data, fileExtension: fileExtension))
             } catch let error as QiThemeImportError {
                 showImportFailure(error.errorDescription ?? localized("匯入主題失敗。"))
             } catch {
@@ -789,7 +877,7 @@ private struct ThemePreviewTile: View {
             .frame(height: tileHeight)
             .clipShape(RoundedRectangle(cornerRadius: DSRadius.lg, style: .continuous))
             .overlay(alignment: .topLeading) {
-                if !preset.isImagePreset {
+                if assetPreviewImage == nil, !preset.isImagePreset {
                     swatchContent
                 }
             }
@@ -835,7 +923,11 @@ private struct ThemePreviewTile: View {
 
     @ViewBuilder
     private var previewBackground: some View {
-        if preset.isImagePreset,
+        if let image = assetPreviewImage {
+            Image(uiImage: image)
+                .resizable()
+                .scaledToFill()
+        } else if preset.isImagePreset,
            let url = preset.backgroundImageURL(colorScheme: colorScheme),
            let image = UIImage(contentsOfFile: url.path) {
             Image(uiImage: image)
@@ -851,6 +943,17 @@ private struct ThemePreviewTile: View {
                 endPoint: .bottomTrailing
             )
         }
+    }
+
+    /// Themes whose artwork ships in the asset catalog rather than in
+    /// `Assets/ReaderThemes` — 劍來 is the only one. Its tile shows the real page behind
+    /// it instead of a colour sketch.
+    private var assetPreviewImage: UIImage? {
+        let name = colorScheme == .dark
+            ? (preset.darkAssetPreviewName ?? preset.assetPreviewName)
+            : preset.assetPreviewName
+        guard let name else { return nil }
+        return UIImage(named: name)
     }
 }
 

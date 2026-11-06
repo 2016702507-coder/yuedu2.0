@@ -226,7 +226,7 @@ struct AIRecommendationRow: View {
     @ViewBuilder
     private var status: some View {
         if !allowsAI {
-            message(localized("需要卡密"), systemImage: "lock.fill") {
+            message(localized("需要尊享會員"), systemImage: "lock.fill") {
                 Button(localized("升級")) { showsPaywall = true }
                     .buttonStyle(.onAccentProminent)
                     .accessibilityIdentifier("home.ai.upgrade")

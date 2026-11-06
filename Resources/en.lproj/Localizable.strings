@@ -4330,3 +4330,36 @@
 "點一下群號即可複製，再到 QQ 搜尋加入。" = "Tap the number to copy it, then search for it in QQ.";
 "群號已複製到剪貼簿。" = "The group number is on your clipboard.";
 "這些是 app 沒有照自己的規則運作的地方。匯出紀錄就能看到完整經過。" = "These are the places the app did not behave the way it says it does. Export the log to see what happened.";
+
+/* 尊享會員 / 兌換碼（2026-11-06 由「會員卡密」「卡密」改名） */
+"尊享會員" = "Premium Membership";
+"請輸入兌換碼" = "Enter your redemption code";
+"輸入兌換碼" = "Enter a redemption code";
+"支援月卡（30 天）與永久卡，一個兌換碼限一台裝置" = "Monthly (30 days) and lifetime plans. One code works on one device.";
+"輸入兌換碼以激活尊享會員（月卡 / 永久）" = "Enter a code to activate Premium (monthly / lifetime).";
+"兌換碼錯誤，請重新輸入" = "That code isn't valid. Please try again.";
+"此兌換碼已在其他裝置啟用" = "This code is already active on another device.";
+"此兌換碼已到期，請換一張新兌換碼" = "This code has expired. Please use a new one.";
+"需要尊享會員" = "Premium required";
+"新增、匯入與編輯書源需要尊享會員" = "Adding, importing, and editing book sources requires Premium.";
+
+/* 設定首頁閱讀身份卡（2026-11-06） */
+"林間讀者" = "Woodland Reader";
+"讓閱讀回到你喜歡的樣子" = "Reading, the way you like it";
+"編輯頭像與名稱" = "Edit photo and name";
+"只保存在這台裝置" = "Saved on this device only";
+"閱讀書籍" = "Books Read";
+"閱讀天數" = "Reading Days";
+"小時" = "h";
+"天" = "days";
+"暱稱" = "Name";
+"簽名" = "Signature";
+"頭像" = "Photo";
+"留空會顯示預設的暱稱與簽名。" = "Leave these empty to use the default name and signature.";
+"頭像、暱稱與簽名只保存在這台裝置，不會上傳。" = "The photo, name, and signature stay on this device and are never uploaded.";
+"編輯資料" = "Edit Profile";
+"恢復預設頭像" = "Restore Default Photo";
+
+/* 外觀主題 › 自訂主題 首張內建主題卡（2026-11-06） */
+"劍來" = "Jianlai";
+"劍來主題沒能匯入，請稍後再試。" = "Jianlai could not be imported. Please try again.";

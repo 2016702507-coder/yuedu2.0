@@ -55,7 +55,13 @@ enum QiThemeImportService {
 
     /// Reeden `.red` packs and QiReader `.qitheme` packs both land here; the container's
     /// own bytes say which, so a misnamed file still reaches the right parser.
-    static func load(_ data: Data) async throws -> QiThemeImport {
+    ///
+    /// 閱境's `.theme` / `.zip` is the exception: a plain zip has no header to sniff, so
+    /// the caller's file extension is what routes it.
+    static func load(_ data: Data, fileExtension: String? = nil) async throws -> QiThemeImport {
+        if let fileExtension, ["zip", "theme"].contains(fileExtension.lowercased()) {
+            return try await YuejingThemeImporter.parse(data)
+        }
         if ReedenThemeImporter.isReedenContainer(data) {
             return try await ReedenThemeImporter.parse(data)
         }

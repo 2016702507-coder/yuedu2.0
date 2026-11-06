@@ -20,10 +20,10 @@ struct CardKeyUnlockView: View {
                 .foregroundStyle(.yellow)
                 .padding(.top, 4)
 
-            Text(localized("會員卡密"))
+            Text(localized("尊享會員"))
                 .font(.title3.weight(.semibold))
 
-            Text(localized("支援月卡（30 天）與永久卡，一張卡密限一台裝置"))
+            Text(localized("支援月卡（30 天）與永久卡，一個兌換碼限一台裝置"))
                 .font(.footnote)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -34,7 +34,7 @@ struct CardKeyUnlockView: View {
                     .foregroundStyle(.secondary)
             }
 
-            TextField(localized("請輸入卡密"), text: $input)
+            TextField(localized("請輸入兌換碼"), text: $input)
                 .textFieldStyle(.roundedBorder)
                 // 卡密可能是大小写混排（兜底那条就是），全键盘 + 关掉自动大写和纠错，
                 // 否则 iOS 会把首字母改成大写、或者把 I 纠成 l，输对了也校验不过。
@@ -104,11 +104,11 @@ struct CardKeyUnlockView: View {
     /// 失败文案按原因区分：卡密对但设备不符时，提示「卡密错误」会让人一直重输。
     private var failureText: String {
         switch membership.lastFailureReason {
-        case "device_mismatch": return "此卡密已在其他裝置啟用"
-        case "expired": return "此卡密已到期，請換一張新卡密"
+        case "device_mismatch": return "此兌換碼已在其他裝置啟用"
+        case "expired": return "此兌換碼已到期，請換一張新兌換碼"
         case "already_forever": return "已是永久會員，無需再激活"
         case "network": return "網路連線失敗，請稍後重試"
-        default: return "卡密錯誤，請重新輸入"
+        default: return "兌換碼錯誤，請重新輸入"
         }
     }
 
@@ -156,7 +156,7 @@ struct CardKeyLockedPrompt: View {
             Button {
                 showsUnlock = true
             } label: {
-                Text(localized("輸入卡密"))
+                Text(localized("輸入兌換碼"))
                     .font(.body.weight(.semibold))
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)

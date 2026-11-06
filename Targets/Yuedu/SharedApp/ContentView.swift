@@ -110,6 +110,8 @@ struct ContentView: View {
         .onChange(of: selectedRootTab, initial: true) { _, _ in
             gs.endAppearanceSlotPreview()
         }
+        // 出廠的劍來主題不再在啟動時自動鋪開：它現在是「外觀主題 › 自訂主題」裡的一張卡，
+        // 開通會員後點它才匯入（`BuiltInAppearanceTheme.install`）。
         // Classic (默認) = the app's original look: no tint override at all.
         .tint(appearanceTheme?.accentColor)
         .accentColor(appearanceTheme?.accentColor)

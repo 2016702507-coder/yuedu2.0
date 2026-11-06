@@ -850,7 +850,7 @@ struct HomeView: View {
             // Two `Text`s: the second is the menu row's subtitle.
             Text(localized("AI 整理書架"))
             if locked {
-                Text(localized("需要卡密"))
+                Text(localized("需要尊享會員"))
             }
             Image(systemName: locked ? "lock.fill" : "sparkles")
         }

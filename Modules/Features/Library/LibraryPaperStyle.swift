@@ -3,69 +3,86 @@ import UIKit
 
 // MARK: - 資源庫 paper look
 //
-// 資源庫's own visual language (maintainer's reference, 2026-11-04): a warm off-white page,
-// a serif title, ink-green accents and cards that sit on the page like sheets rather than
-// panels. Deliberately scoped here: every other page keeps `DSColor` / `DSFont`, so this
-// cannot leak into 書架, 探索 or the reader.
+// 資源庫's visual language (maintainer's reference, 2026-11-04): a warm paper page, a serif
+// title, ink accents and cards that sit on the page like sheets rather than panels.
 //
-// Colours are resolved per `colorScheme` instead of going through `DSColor`, so an imported
-// appearance pack cannot turn the page into something else while this look is on.
+// The look used to pin its own colours, which meant 書架 and 主頁 — both of which draw
+// `PaperBackground` — kept the same warm off-white in every appearance theme and in dark
+// mode. User's call, 2026-11-06: 「不要原先的固定的了，就要跟随的」. Colours now come from
+// `DSColor` / `DSUIColor`, which resolve from the `appThemes` trait, so background, text and
+// accent repaint on a theme switch like the rest of the app. What stays is the paper
+// structure: a gradient that runs lighter at the top, cards one step off the page, hairlines.
 
 enum PaperPalette {
+    /// The page: the theme's own background, exactly as set.
     static func page(_ scheme: ColorScheme) -> Color {
-        scheme == .dark ? hex(0x15160F) : hex(0xF7F4EC)
+        Color(uiColor: DSUIColor.background)
     }
 
+    /// A step lighter than `page`, so the sheet still reads as paper with a lit top edge.
     static func pageTop(_ scheme: ColorScheme) -> Color {
-        scheme == .dark ? hex(0x1A1B13) : hex(0xFCFAF4)
+        blend(DSUIColor.background, .white, 0.035)
     }
 
     static func pageBottom(_ scheme: ColorScheme) -> Color {
-        scheme == .dark ? hex(0x121309) : hex(0xF2EEE1)
+        blend(DSUIColor.background, .black, 0.045)
     }
 
+    /// Cards: the theme's grouped surface, one step off the page.
     static func card(_ scheme: ColorScheme) -> Color {
-        scheme == .dark ? hex(0x21221A) : hex(0xFFFFFF)
+        Color(uiColor: DSUIColor.surface)
     }
 
-    /// 墨綠: the accent this page is built around.
+    /// The accent this page is built around: the theme's accent, not a fixed 墨綠.
     static func ink(_ scheme: ColorScheme) -> Color {
-        scheme == .dark ? hex(0x9DBBA4) : hex(0x2F4A3A)
+        DSColor.accent
     }
 
     static func textPrimary(_ scheme: ColorScheme) -> Color {
-        scheme == .dark ? hex(0xEFEDE4) : hex(0x23281E)
+        Color(uiColor: DSUIColor.textPrimary)
     }
 
     static func textSecondary(_ scheme: ColorScheme) -> Color {
-        scheme == .dark ? hex(0xA9AA9E) : hex(0x73776A)
+        Color(uiColor: DSUIColor.textSecondary)
     }
 
     static func textTertiary(_ scheme: ColorScheme) -> Color {
-        scheme == .dark ? hex(0x7C7D71) : hex(0x9B9E91)
+        Color(uiColor: DSUIColor.textTertiary)
     }
 
-    /// The square behind a card's symbol: warm paper, not the theme's tinted fill.
+    /// The square behind a card's symbol: one step in from the card, not a tinted fill.
     static func iconTile(_ scheme: ColorScheme) -> Color {
-        scheme == .dark ? hex(0x2C2D25) : hex(0xF1EDE0)
+        Color(uiColor: DSUIColor.surfaceTertiary)
     }
 
     static func hairline(_ scheme: ColorScheme) -> Color {
-        scheme == .dark ? hex(0x32332B) : hex(0xE8E3D5)
+        Color(uiColor: DSUIColor.separator)
     }
 
     static func shadow(_ scheme: ColorScheme) -> Color {
         Color.black.opacity(scheme == .dark ? 0.34 : 0.055)
     }
 
-    private static func hex(_ value: UInt32) -> Color {
-        Color(
-            .sRGB,
-            red: Double((value >> 16) & 0xFF) / 255,
-            green: Double((value >> 8) & 0xFF) / 255,
-            blue: Double(value & 0xFF) / 255,
-            opacity: 1
-        )
+    /// Mixes two colours **at draw time**, inside a dynamic provider, so the result follows
+    /// the `appThemes` trait and light/dark the way `DSUIColor`'s own tokens do. Resolving up
+    /// front would freeze the colour on whichever theme was active when the body ran — the
+    /// very bug `AppThemesTrait` was introduced to prevent (see its note).
+    private static func blend(_ base: UIColor, _ target: UIColor, _ amount: CGFloat) -> Color {
+        Color(uiColor: UIColor(dynamicProvider: { traits in
+            let from = base.resolvedColor(with: traits)
+            let to = target.resolvedColor(with: traits)
+            var r1: CGFloat = 0, g1: CGFloat = 0, b1: CGFloat = 0, a1: CGFloat = 0
+            var r2: CGFloat = 0, g2: CGFloat = 0, b2: CGFloat = 0, a2: CGFloat = 0
+            guard from.getRed(&r1, green: &g1, blue: &b1, alpha: &a1),
+                  to.getRed(&r2, green: &g2, blue: &b2, alpha: &a2) else { return from }
+            let t = min(max(amount, 0), 1)
+            return UIColor(
+                red: r1 + (r2 - r1) * t,
+                green: g1 + (g2 - g1) * t,
+                blue: b1 + (b2 - b1) * t,
+                alpha: a1 + (a2 - a1) * t
+            )
+        }))
     }
 }
 

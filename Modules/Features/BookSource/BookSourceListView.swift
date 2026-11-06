@@ -134,7 +134,7 @@ struct BookSourceListView: View {
             } else {
                 CardKeyLockedPrompt(
                     title: localized("來源配置管理"),
-                    message: localized("新增、匯入與編輯書源需要會員卡密")
+                    message: localized("新增、匯入與編輯書源需要尊享會員")
                 )
             }
         }

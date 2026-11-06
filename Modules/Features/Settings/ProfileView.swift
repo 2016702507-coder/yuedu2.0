@@ -42,11 +42,11 @@ struct SettingsView: View {
     /// 卡密失败文案：区分「设备已被占用」「已过期」和「卡密错误」
     private var cardKeyFailureText: String {
         switch cardKeyMembership.lastFailureReason {
-        case "device_mismatch": return "此卡密已在其他裝置啟用"
-        case "expired": return "此卡密已到期，請換一張新卡密"
+        case "device_mismatch": return "此兌換碼已在其他裝置啟用"
+        case "expired": return "此兌換碼已到期，請換一張新兌換碼"
         case "already_forever": return "已是永久會員，無需再激活"
         case "network": return "網路連線失敗，請稍後重試"
-        default: return "卡密錯誤，請重新輸入"
+        default: return "兌換碼錯誤，請重新輸入"
         }
     }
 
@@ -103,10 +103,22 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack(path: $path) {
                 Form {
+                    // 頭像、暱稱、簽名與閱讀統計，坐在「尊享會員」之上（maintainer,
+                    // 2026-11-06）。這一格自己不帶卡片底，讓頁面背景透上來 —— 參考圖裡
+                    // 它就是浮在紙上的一塊，而不是另一張列表卡。
+                    Section {
+                        ReaderProfileHeader()
+                            .listRowInsets(EdgeInsets())
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
+                            // The first row measures the form's scroll for the title's fade.
+                            .rootTabTitleScrollAnchor()
+                    }
+
                     Section {
                         DSSettingsRow(
                             icon: "crown.fill",
-                            title: localized("會員卡密"),
+                            title: localized("尊享會員"),
                             detail: cardKeyStatusText,
                             action: {
                                 // 这里的弹窗绑定的是 cardKeyAlert，不是 showCardKeyEntry；
@@ -119,8 +131,6 @@ struct SettingsView: View {
                             }
                         )
                         .accessibilityIdentifier("settings_card_key_row")
-                        // The first row measures the form's scroll for the title's fade.
-                        .rootTabTitleScrollAnchor()
                     }
                     .interfaceSectionSurface()
 
@@ -242,7 +252,7 @@ struct SettingsView: View {
                             // Named for what it is — the reader's panel is also called
                             // 「AI 助手」, and someone looking for 人物卡 went here first.
                             title: localized("AI 助手設定"),
-                            detail: isAILocked ? localized("需要卡密") : aiAssistantDetail,
+                            detail: isAILocked ? localized("需要尊享會員") : aiAssistantDetail,
                             isLocked: isAILocked,
                             action: {
                                 if isAILocked { showAIPaywall = true } else { showAISettings = true }
@@ -324,8 +334,8 @@ struct SettingsView: View {
             .sheet(isPresented: $showNetworkSettings) {
                 NetworkSettingsView()
             }
-            .alert(localized("會員卡密"), isPresented: $cardKeyAlert) {
-                TextField(localized("請輸入卡密"), text: $cardKeyInput)
+            .alert(localized("尊享會員"), isPresented: $cardKeyAlert) {
+                TextField(localized("請輸入兌換碼"), text: $cardKeyInput)
                     // 同 CardKeyUnlockView：卡密可含大小写，别让系统自动大写或纠错。
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
@@ -347,7 +357,7 @@ struct SettingsView: View {
                 Button(localized("取消"), role: .cancel) {}
             } message: {
                 // 卡密对但设备不符时，提示「卡密错误」会让人一直重输
-                Text(cardKeyWrongKey ? localized(cardKeyFailureText) : localized("輸入卡密以激活會員（月卡 / 永久）"))
+                Text(cardKeyWrongKey ? localized(cardKeyFailureText) : localized("輸入兌換碼以激活尊享會員（月卡 / 永久）"))
             }
             .sheet(isPresented: $showAISettings) {
                 AISettingsView()
