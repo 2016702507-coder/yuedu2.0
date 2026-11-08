@@ -228,7 +228,9 @@ final class ReaderRipplePageTurnRenderer: NSObject, MTKViewDelegate {
 
     var hasContent: Bool { oldTexture != nil && newTexture != nil }
 
-    private static var cachedLibrary: MTLLibrary?
+    /// `nonisolated(unsafe)`：渲染器是 `MTKViewDelegate`，不能在主线程隔离里声明；
+    /// 这块全局缓存由下面的 `libraryLock` 串行保护，因此按既有的锁语义标注。
+    private nonisolated(unsafe) static var cachedLibrary: MTLLibrary?
     private static let libraryLock = NSLock()
 
     /// Compiled once per process: 60 lines of MSL cost tens of milliseconds, and every

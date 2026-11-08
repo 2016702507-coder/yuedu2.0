@@ -5,6 +5,10 @@ import UIKit
 /// 两个实现：`ReaderRipplePageTurnView`（波纹，Metal 逐像素混合）和
 /// `ReaderVerticalPageTurnView`（上下翻页，两页垂直平移）。协调器只认这套方法，
 /// 换样式时不必再改一遍调用点。
+/// 两套翻页浮层共用的接口。`@MainActor` 不能省：两个实现都是 `UIView` 子类，
+/// 本身就活在主线程上；协议若不加隔离，Swift 6 会在 conformance 处报
+/// 「crosses into main actor-isolated code」（Xcode 26.3 实测报错）。
+@MainActor
 protocol ReaderPageTurnOverlay: AnyObject {
     /// 设备 / 编译期能力不足时返回 false，调用方退化成瞬间换页。
     var isSupported: Bool { get }
