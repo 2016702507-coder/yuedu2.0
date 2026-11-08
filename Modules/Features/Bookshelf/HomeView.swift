@@ -2512,7 +2512,7 @@ private extension View {
 
 /// 加入分組: 新建分組 first, which names a group in an alert and puts the books straight in,
 /// then each of the shelf's groups with how many books it holds, and 取消 on its own below.
-private struct BookshelfAddToGroupSheet: View {
+struct BookshelfAddToGroupSheet: View {
     let groups: [(name: String, count: Int)]
     let onChoose: (String) -> Void
 
