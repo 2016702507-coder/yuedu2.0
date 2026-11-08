@@ -480,7 +480,9 @@ struct ReaderQuickThemePanelView: View {
                     .font(DSFont.subheadline)
                     .lineLimit(1)
             }
-            .foregroundStyle(selected ? DSColor.textOnAccent : DSColor.textPrimary)
+            // 两个分支的类型不同（OnAccentTextStyle / Color），必须经 AnyShapeStyle 统一，
+            // 否则 Xcode 26.3 报 “result values in '? :' have mismatching types”。
+            .foregroundStyle(selected ? AnyShapeStyle(DSColor.textOnAccent) : AnyShapeStyle(DSColor.textPrimary))
             .padding(.horizontal, DSSpacing.md)
             .frame(minHeight: DSLayout.minimumTapTarget)
             .background(
