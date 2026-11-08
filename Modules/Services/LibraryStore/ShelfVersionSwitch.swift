@@ -104,6 +104,8 @@ struct ShelfVersionSwitch {
         taken.isInBookshelf = current.isInBookshelf
         taken.addedDate = current.addedDate
         taken.continueReadingHiddenAt = current.continueReadingHiddenAt
+        // 養肥 follows the reader's intent, not the copy: switching source keeps it there.
+        taken.fatteningAddedAt = current.fatteningAddedAt
         // The copy read from now on: 繼續閱讀 and 最近閱讀 lead with it, as an open does. A reader
         // the shelf's card opened never stamps its own open (`BookReaderView`).
         if current.lastOpenedDate != nil { taken.lastOpenedDate = Date() }

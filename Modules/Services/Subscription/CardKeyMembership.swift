@@ -1,6 +1,7 @@
 import Foundation
 import Combine
 import Security
+import CryptoKit
 
 /// 會員檔位。`forever` 永久，`month` 自首次激活起 30 天。
 enum CardKeyPlan: String {
@@ -40,6 +41,28 @@ final class CardKeyMembership: ObservableObject {
     /// 校驗接口。換服務端只動這一行。
     private static let verifyURL = URL(string: "https://1304789126-baexqdakfo.ap-shanghai.tencentscf.com")!
 
+    /// 服務端 Ed25519 簽名的公鑰（base64，32 字節 raw representation）。
+    ///
+    /// 私鑰只在 SCF 的環境變量 `CARDKEY_PRIVATE_KEY_B64` 裡，公鑰放客戶端沒有風險
+    /// —— 它只能驗籤，簽不出來。
+    ///
+    /// 換密鑰要發版：這串改了之後，舊版客戶端驗不過新版服務端的簽名。
+    private static let signingPublicKeyBase64 = "2jEmK/Vpmh6MP4BC//sCR7RJmFfb6IfWrgpZG7aarBM="
+
+    /// 是否強制要求服務端簽名。
+    ///
+    /// **必須是 `true`**：一旦允許「沒有 sig 就放行」，改包的人只要把 sig
+    /// 字段刪掉就能繞過整套驗籤。服務端已於 2026-11-07 上線簽名
+    /// （`cardkey` 函數 + 環境變量 `CARDKEY_PRIVATE_KEY_B64`），所以這裡收緊。
+    ///
+    /// 代價：服務端若丟了私鑰環境變量，複驗會被全部拒絕（已激活用戶保持現狀、
+    /// 不掉會員，但新激活會失敗）。重部署後記得檢查那條變量還在。
+    private static let requiresSignature = true
+
+    /// 響應的保鮮期：簽名只證明內容沒被改，不證明它是新的。
+    /// 這條擋的是「截獲一次 `valid=true` 之後反覆回放」。
+    private static let maxResponseAge: TimeInterval = 1_800
+
     private static let activatedFlag = "cardkey_membership_activated"
     /// 激活時用的是哪條卡密，複驗和收回都靠它。
     private static let activatedCard = "cardkey_membership_key"
@@ -51,8 +74,14 @@ final class CardKeyMembership: ObservableObject {
     private static let serverAnchorKey = "cardkey_membership_server_anchor"
     private static let localAnchorKey = "cardkey_membership_local_anchor"
 
-    /// 已激活用戶的複驗間隔：10 分鐘內重複啟動不重複請求。
-    private static let cacheTTL: TimeInterval = 600
+    /// 已激活用戶的複驗間隔：一小時內重複啟動不重複請求。
+    private static let cacheTTL: TimeInterval = 3_600
+
+    /// 重裝恢復**失敗**後的重試間隔（多半是斷網）。
+    ///
+    /// 不能跟著 `cacheTTL` 走：一小時是「已激活後多久複驗一次」的節律，
+    /// 而斷網重裝的人聯網後應該一分鐘內就接回來，不該等一小時。
+    private static let restoreRetryDelay: TimeInterval = 60
 
     /// 本機設備標識，進程內只讀一次。
     private static let deviceId = CardKeyDeviceIdentity.current()
@@ -74,6 +103,8 @@ final class CardKeyMembership: ObservableObject {
     var onStateChanged: (@MainActor () -> Void)?
 
     private var lastCheck: Date = .distantPast
+    /// 上次用 Keychain 卡密嘗試恢復的時間（內存即可，重啟後立刻可重試）。
+    private var lastRestoreAttempt: Date = .distantPast
     private var isRefreshing = false
     private var expiryTimer: Timer?
 
@@ -97,7 +128,47 @@ final class CardKeyMembership: ObservableObject {
         }
         scheduleExpiryTimer()
 
+        // 存量用戶：1.2 以前的卡密只寫在 UserDefaults，補一份進 Keychain ——
+        // 否則「重裝自動恢復」只對 1.3 之後新激活的人生效。
+        if let legacyKey = defaults.string(forKey: Self.activatedCard),
+           !legacyKey.isEmpty,
+           CardKeyStore.read() == nil {
+            CardKeyStore.write(legacyKey)
+        }
+
+        // 重裝：UserDefaults 被清空，但 Keychain 裡的卡密還在（設備標識就在那兒，
+        // 所以服務端仍認得這台機器）。下面的 `refreshIfNeeded` 會用它把會員接回來。
         Task { await refreshIfNeeded() }
+    }
+
+    /// 重裝或清空資料後，用 Keychain 裡的卡密把會員接回來。
+    ///
+    /// 只有在服務端**明確**回答有效時才恢復；網絡失敗一律保持現狀，下次啟動再試 ——
+    /// 斷網不該讓老用戶看到「未激活」。服務端明確拒絕（過期、吊銷、已綁別的設備）
+    /// 則把 Keychain 那條清掉，免得每次啟動都白問一次。
+    private func restoreFromKeychain(_ key: String) async {
+        guard !isUnlocked else { return }
+        // 剛試過就別再問：回前台、多個視圖的 onAppear 都會走到 refreshIfNeeded，
+        // 而服務端掛掉時這裡是每次都會失敗的。失敗只擋一小會兒，成功才進入
+        // `cacheTTL` 那一小時的複驗節律 —— 寫 lastCheck 是「複驗成功」的語義，
+        // 失敗不該佔用它。
+        if Date().timeIntervalSince(lastRestoreAttempt) < Self.restoreRetryDelay { return }
+        lastRestoreAttempt = Date()
+
+        guard let outcome = await verify(key) else { return }
+        guard outcome.valid else {
+            CardKeyStore.clear()
+            return
+        }
+
+        let defaults = UserDefaults.standard
+        defaults.set(true, forKey: Self.activatedFlag)
+        defaults.set(key, forKey: Self.activatedCard)
+        lastCheck = Date()
+        defaults.set(lastCheck, forKey: Self.checkStamp)
+        lastFailureReason = nil
+        apply(outcome)
+        onStateChanged?()
     }
 
     // MARK: - 到期判定
@@ -140,6 +211,18 @@ final class CardKeyMembership: ObservableObject {
         let serverNow: Date?
     }
 
+    /// 服務端返回體。`expiresAt` / `serverNow` 保留原始字符串 ——
+    /// 驗籤要用它們原樣拼進 payload，解析成 `Date` 會丟掉毫秒精度。
+    private struct VerifyReply: Decodable {
+        let valid: Bool
+        let reason: String?
+        let plan: String?
+        let expiresAt: String?
+        let serverNow: String?
+        /// 服務端 Ed25519 簽名（base64）。過渡期允許缺失，見 `requiresSignature`。
+        let sig: String?
+    }
+
     private static func parseDate(_ text: String?) -> Date? {
         guard let text, !text.isEmpty else { return nil }
         let formatter = ISO8601DateFormatter()
@@ -151,22 +234,16 @@ final class CardKeyMembership: ObservableObject {
     }
 
     private func verify(_ key: String) async -> Outcome? {
+        // 請求與驗籤必須用同一個設備號，取一次釘住。
+        let deviceId = Self.deviceId
         var request = URLRequest(url: Self.verifyURL)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.timeoutInterval = 8
         request.httpBody = try? JSONSerialization.data(withJSONObject: [
             "cardKey": key,
-            "deviceId": Self.deviceId
+            "deviceId": deviceId
         ])
-
-        struct Reply: Decodable {
-            let valid: Bool
-            let reason: String?
-            let plan: String?
-            let expiresAt: String?
-            let serverNow: String?
-        }
 
         guard let (data, response) = try? await URLSession.shared.data(for: request),
               let http = response as? HTTPURLResponse
@@ -175,8 +252,21 @@ final class CardKeyMembership: ObservableObject {
         // 429 限流、5xx 存儲異常都算「暫時失敗」，不動已有狀態
         if http.statusCode == 429 || http.statusCode >= 500 { return nil }
         guard http.statusCode == 200,
-              let reply = try? JSONDecoder().decode(Reply.self, from: data)
+              let reply = try? JSONDecoder().decode(VerifyReply.self, from: data)
         else { return nil }
+
+        // 簽名不對就當「不可信響應」，返回 nil（調用方保持原狀態）。
+        // 這裡**不能** revoke：否則任何人返回一段垃圾都能把付費用戶踢下線。
+        guard Self.signatureIsValid(reply, cardKey: key, deviceId: deviceId) else {
+            return nil
+        }
+
+        // 保鮮期：擋「截一次 valid=true 反覆回放」。服務端缺席時，過渡期放行。
+        if let serverNow = Self.parseDate(reply.serverNow) {
+            guard abs(serverNow.timeIntervalSinceNow) <= Self.maxResponseAge else { return nil }
+        } else if Self.requiresSignature {
+            return nil
+        }
 
         return Outcome(
             valid: reply.valid,
@@ -187,13 +277,83 @@ final class CardKeyMembership: ObservableObject {
         )
     }
 
+    // MARK: - 響應驗籤
+
+    /// 重建服務端簽過的那串內容。
+    ///
+    /// 順序、分隔符、空值寫法三方（SCF、這裡、測試腳本）必須一字不差。
+    /// 特別注意 `expiresAt` / `serverNow` 用的是**原始字符串**而不是解析後的
+    /// `Date` —— 一旦格式化再簽，毫秒位一變就對不上。
+    private static func signedPayload(
+        valid: Bool,
+        plan: String?,
+        expiresAt: String?,
+        cardKey: String,
+        deviceId: String,
+        serverNow: String?
+    ) -> Data {
+        let fields = [
+            "v1",
+            valid ? "true" : "false",
+            plan ?? "",
+            expiresAt ?? "",
+            cardKey,
+            deviceId,
+            serverNow ?? "",
+        ]
+        return Data(fields.joined(separator: "\n").utf8)
+    }
+
+    /// 公鑰是否已填。沒填時整段驗籤跳過 —— 寧可這版沒有防護，
+    /// 也不能因為忘了填公鑰讓所有人激活失敗。
+    private static var hasSigningKey: Bool {
+        guard let data = Data(base64Encoded: signingPublicKeyBase64) else { return false }
+        return data.count == 32
+    }
+
+    /// 驗籤。返回 false 表示響應不可信，調用方應按「暫時失敗」處理。
+    private static func signatureIsValid(
+        _ reply: VerifyReply,
+        cardKey: String,
+        deviceId: String
+    ) -> Bool {
+        guard hasSigningKey else { return true }
+
+        // 過渡期：服務端還沒加簽時放行；一旦帶了 sig，就必須驗過。
+        guard let sigBase64 = reply.sig, !sigBase64.isEmpty else {
+            return !requiresSignature
+        }
+        guard let sig = Data(base64Encoded: sigBase64),
+              let pubData = Data(base64Encoded: signingPublicKeyBase64),
+              let pub = try? Curve25519.Signing.PublicKey(rawRepresentation: pubData)
+        else { return false }
+
+        let payload = signedPayload(
+            valid: reply.valid,
+            plan: reply.plan,
+            expiresAt: reply.expiresAt,
+            cardKey: cardKey,
+            deviceId: deviceId,
+            serverNow: reply.serverNow
+        )
+        return pub.isValidSignature(sig, for: payload)
+    }
+
     /// 複驗已激活的卡密是否仍然有效。
     ///
     /// 只在「已激活 + 到了複驗時間」時請求。任何失敗都直接返回、保留手上的狀態 ——
     /// 斷網、服務端抽風、返回體寫壞，都不該把已經能用的會員瞬間變成不能用。
     func refreshIfNeeded(force: Bool = false) async {
+        // 未激活但有 Keychain 卡密：重裝後的第一次聯網。接回來再走正常流程 ——
+        // 放在這裡，App 回到前台時也會重試，斷網重裝的人不必再重啟一次。
+        if !isUnlocked {
+            if let storedKey = CardKeyStore.read() {
+                await restoreFromKeychain(storedKey)
+            }
+            return
+        }
+
         // 本地到期不需要等網絡：先把已經過期的收回。
-        if !isUnlocked { return }
         if Self.hasExpired(expiresAt) {
             revoke(reason: "expired")
             return
@@ -247,6 +407,8 @@ final class CardKeyMembership: ObservableObject {
         let defaults = UserDefaults.standard
         defaults.set(true, forKey: Self.activatedFlag)
         defaults.set(trimmed, forKey: Self.activatedCard)
+        // 卡密另存一份進 Keychain：UserDefaults 卸載即清，重裝後靠它自動恢復。
+        CardKeyStore.write(trimmed)
         lastCheck = Date()
         defaults.set(lastCheck, forKey: Self.checkStamp)
         lastFailureReason = nil
@@ -293,6 +455,8 @@ final class CardKeyMembership: ObservableObject {
         defaults.removeObject(forKey: Self.activatedCard)
         defaults.removeObject(forKey: Self.expiresKey)
         defaults.set(CardKeyPlan.none.rawValue, forKey: Self.planKey)
+        // 明確失效（過期、吊銷）才清 Keychain 那份；否則重裝後會把死卡密又撿回來。
+        CardKeyStore.clear()
 
         if let reason { lastFailureReason = reason }
         onStateChanged?()
@@ -331,6 +495,57 @@ final class CardKeyMembership: ObservableObject {
     var activeCardKey: String? {
         guard isUnlocked else { return nil }
         return UserDefaults.standard.string(forKey: Self.activatedCard)
+    }
+
+    /// 這台裝置在卡密後台的身份（Keychain 裡的 UUID，重裝不變）。
+    /// 顯示在「關於」裡，供換機、清空 Keychain 這類自動恢復接不回來的情況人工補綁。
+    var deviceCode: String { Self.deviceId }
+}
+
+/// 卡密明文：與設備標識一樣存 Keychain，卸載重裝仍在。
+///
+/// 這是「重裝後自動恢復會員」的依據。之前它只存在 `UserDefaults`，卸載即清，
+/// 而 `refreshIfNeeded` 又以「已激活」為前提 —— 兩者一疊，重裝後必得重輸卡密。
+/// 沒有打開 `kSecAttrSynchronizable`：這條卡密綁的是本機設備號，跟著 iCloud
+/// Keychain 跑到另一台裝置上沒有意義，也換不來恢復。
+private enum CardKeyStore {
+    private static let service = "com.yuedu.reader.cardkey"
+    private static let account = "activated_key"
+
+    private static func baseQuery() -> [String: Any] {
+        [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account
+        ]
+    }
+
+    static func read() -> String? {
+        var query = baseQuery()
+        query[kSecReturnData as String] = true
+        query[kSecMatchLimit as String] = kSecMatchLimitOne
+
+        var item: CFTypeRef?
+        guard SecItemCopyMatching(query as CFDictionary, &item) == errSecSuccess,
+              let data = item as? Data,
+              let value = String(data: data, encoding: .utf8),
+              !value.isEmpty
+        else { return nil }
+        return value
+    }
+
+    static func write(_ value: String) {
+        SecItemDelete(baseQuery() as CFDictionary)
+
+        var attributes = baseQuery()
+        attributes[kSecValueData as String] = Data(value.utf8)
+        // 與設備標識一致：首次解鎖後可讀，後台校驗也拿得到
+        attributes[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlock
+        SecItemAdd(attributes as CFDictionary, nil)
+    }
+
+    static func clear() {
+        SecItemDelete(baseQuery() as CFDictionary)
     }
 }
 

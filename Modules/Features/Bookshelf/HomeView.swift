@@ -360,6 +360,8 @@ struct HomeView: View {
             for: book, isRegularWidth: sizeClass == .regular
         )
         AppLogger.info("⟐ openBook tap bookID=\(book.id) title=\(book.title) pipelineKind=\(book.resolvedPipelineKind) useCard=\(usesCardTransition) hasGeometry=\(sourceGeometry != nil)")
+        // An audiobook's player grows out of the now-playing bar, as Apple Books opens one.
+        if NowPlayingHub.shared.openIfAudiobook(book, store: store) { return }
         if usesCardTransition {
             // Re-entrancy guard: once a card open is staged (readerBookID set)
             // or the reader is already on screen, ignore further shelf taps.

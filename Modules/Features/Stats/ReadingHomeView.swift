@@ -176,8 +176,8 @@ struct ReadingHomeView: View {
             .foregroundStyle(PaperPalette.textTertiary(scheme))
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
-            .background(Capsule().fill(PaperPalette.card(scheme).opacity(0.55)))
-            .overlay(Capsule().strokeBorder(PaperPalette.hairline(scheme).opacity(0.7), lineWidth: 0.8))
+            .interfaceCardSurface(in: Capsule(), fill: PaperPalette.card(scheme))
+            .overlay(Capsule().strokeBorder(PaperPalette.hairline(scheme).opacity(0.5), lineWidth: 0.6))
         }
         .buttonStyle(.plain)
     }
@@ -296,7 +296,10 @@ struct ReadingHomeView: View {
     private var continueButton: some View {
         Button {
             if let book = centeredBook {
-                readingBookID = book.id
+                // An audiobook's player grows out of the now-playing bar.
+                if !NowPlayingHub.shared.openIfAudiobook(book, store: store) {
+                    readingBookID = book.id
+                }
             } else {
                 onOpenBookshelf()
             }
@@ -385,15 +388,14 @@ struct ReadingHomeView: View {
             .padding(.horizontal, 18)
             .padding(.vertical, 16)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background {
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .fill(.ultraThinMaterial)
-            }
+            .interfaceCardSurface(
+                in: RoundedRectangle(cornerRadius: 24, style: .continuous),
+                fill: PaperPalette.card(scheme)
+            )
             .overlay {
                 RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .strokeBorder(PaperPalette.hairline(scheme).opacity(0.75), lineWidth: 0.8)
+                    .strokeBorder(PaperPalette.hairline(scheme).opacity(0.55), lineWidth: 0.6)
             }
-            .shadow(color: PaperPalette.shadow(scheme), radius: 16, x: 0, y: 8)
         }
         .buttonStyle(.plain)
         .padding(.horizontal, 22)

@@ -1004,9 +1004,10 @@ class BookStore: @MainActor ObservableObject, BookProvider {
         page: Int,
         totalChapters: Int,
         pageProgress: Double? = nil,
-        forceSave: Bool = false
+        forceSave: Bool = false,
+        notifyLibraryViews: Bool = true
     ) {
-        applyPositionUpdate(bookId: bookId, force: forceSave) { book in
+        applyPositionUpdate(bookId: bookId, force: forceSave, notifyLibraryViews: notifyLibraryViews) { book in
             book.mangaChapterIndex = chapter
             book.mangaPage = page
             if totalChapters > 0 {
@@ -1475,8 +1476,27 @@ class BookStore: @MainActor ObservableObject, BookProvider {
         return groups
     }
 
+    /// The shelf's groups in the group bar's order, each with how many books it holds.
+    var groupBookCounts: [(name: String, count: Int)] {
+        let counts = Dictionary(grouping: books.filter { !$0.group.isEmpty }, by: \.group)
+            .mapValues(\.count)
+        return allGroups.map { (name: $0, count: counts[$0] ?? 0) }
+    }
+
     func setGroup(_ group: String, for bookId: UUID) {
         setGroups([bookId: group])
+    }
+
+    // MARK: 養肥
+
+    /// Puts a book on the 養肥 shelf, or takes it off. The chip used to mean "never
+    /// opened", which swept in every new import; it is now a shelf the reader keeps.
+    /// The date is kept so the list can be sorted by when it was put there later.
+    func setFattening(_ isFattening: Bool, for bookId: UUID) {
+        guard let idx = records.firstIndex(where: { $0.id == bookId }) else { return }
+        guard records[idx].isFattening != isFattening else { return }
+        records[idx].fatteningAddedAt = isFattening ? Date() : nil
+        saveMeta()
     }
 
     /// Moves several books at once and saves once — AI 整理書架 applies a whole proposal.

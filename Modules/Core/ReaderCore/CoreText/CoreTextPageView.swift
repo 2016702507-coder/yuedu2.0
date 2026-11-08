@@ -2525,6 +2525,10 @@ final class CoreTextPageView: UIView, UIGestureRecognizerDelegate, @MainActor UI
 final class CoreTextPageViewController: UIViewController, ReaderBookmarkRibbonHosting {
     /// 段評面板外那層透明的點擊區（`installOutsideTapDismiss`）。
     private weak var reviewOutsideTapView: UIView?
+    /// 當前這段評面板。關它時只認這一個對象：這頁自己 `dismiss(_:)` 在它沒呈現任何東西時會
+    /// 沿呈現鏈上溯，而閱讀頁本身正是「被呈現的那一層」（首頁與書架都用 fullScreenCover 開
+    /// 閱讀頁），於是點一下面板外就把整本書退掉了。
+    private weak var reviewSheetHost: UIViewController?
     private let pageView = CoreTextPageView()
     private(set) var globalPageIndex: Int = 0
     private(set) var coreTextReadingPosition: CoreTextReadingPosition?
@@ -2784,12 +2788,11 @@ final class CoreTextPageViewController: UIViewController, ReaderBookmarkRibbonHo
             }
             return
         }
-        weak var weakHost: UIViewController?
-        let view = LegadoReviewBrowserView(target: target) { _ in
-            weakHost?.dismiss(animated: true)
+        let view = LegadoReviewBrowserView(target: target) { [weak self] _ in
+            self?.dismissReviewSheet()
         }
         let host = UIHostingController(rootView: view)
-        weakHost = host
+        reviewSheetHost = host
         // SwiftUI 的 `.presentationBackground` 只在 SwiftUI 自己發起的 sheet 裡生效：這條路徑是
         // UIKit 呈現，sheet 的底色就是 host.view 自己的底色（不透明），段評頁哪怕透明也只透出
         // 這層白底。清掉它，玻璃由 `LegadoReviewBrowserView` 自己那層 material 畫。
@@ -2823,6 +2826,10 @@ final class CoreTextPageViewController: UIViewController, ReaderBookmarkRibbonHo
     /// 面板自己的區域仍由面板接收，落在面板外的點按才到它，於是 dismiss。比往 window 上
     /// 掛手勢可靠：閱讀頁的翻頁手勢掛得更深，UIKit 會把識別機會讓給它。
     private func installOutsideTapDismiss(for controller: UIViewController, isEnabled: Bool) {
+        // 上一張面板留下的點擊區可能還在（面板被下拉關掉時它隨容器一起走，但換頁、換源
+        // 重新打開時不一定），先掃乾淨再舖新的，免得一個殘留的全屏透明視圖吃掉下一次點按。
+        reviewOutsideTapView?.removeFromSuperview()
+        reviewOutsideTapView = nil
         guard isEnabled,
               let presentation = controller.presentationController,
               let container = presentation.containerView,
@@ -2839,8 +2846,27 @@ final class CoreTextPageViewController: UIViewController, ReaderBookmarkRibbonHo
     }
 
     @objc private func reviewOutsideTapRecognized() {
+        reviewOutsideTapView?.removeFromSuperview()
         reviewOutsideTapView = nil
-        dismiss(animated: true)
+        dismissReviewSheet()
+    }
+
+    /// 關掉當前段評面板，且只關它。
+    ///
+    /// 這裡不能用 `dismiss(animated:)`：這頁只是閱讀頁裡的一頁正文，段評面板的呈現是 UIKit
+    /// 從上層發起的，這頁自己的 `presentedViewController` 通常是 nil；`dismiss(_:)` 於是沿
+    /// 呈現鏈往上走，找到的「有 presented」的祖先正是開閱讀頁的那個 fullScreenCover / push，
+    /// 面板連同整本書一起被關掉。改成在**面板自己**身上調 dismiss —— UIKit 的規矩是「在
+    /// presented 控制器上調，等於請它的 presenter 關掉它」，關掉的只有這一層。
+    private func dismissReviewSheet() {
+        reviewOutsideTapView?.removeFromSuperview()
+        reviewOutsideTapView = nil
+        guard let host = reviewSheetHost, host.presentingViewController != nil else {
+            reviewSheetHost = nil
+            return
+        }
+        reviewSheetHost = nil
+        host.dismiss(animated: true)
     }
 
     /// 把 sheet 容器上所有系統材質與底色清成透明，只留內容本身。

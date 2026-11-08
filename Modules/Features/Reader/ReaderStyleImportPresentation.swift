@@ -46,6 +46,16 @@ enum ReaderStyleImportRoute: String, Identifiable, Sendable {
         }
     }
 
+    /// Accepted types for the font importer. Shared with 全局字體: the picker greys a file
+    /// out before the importer ever sees it, so both entry points must list the same types
+    /// or `.ttc` becomes unselectable no matter what the storage layer allows.
+    static let fontContentTypes: [UTType] = [
+        .font,
+        UTType(filenameExtension: "ttf") ?? .data,
+        UTType(filenameExtension: "otf") ?? .data,
+        UTType(filenameExtension: "ttc") ?? .data,
+    ]
+
     /// MainActor: `ReaderSettingsImportService` is MainActor-isolated, and the
     /// only reader is the `.fileImporter` below, which runs in `body`.
     @MainActor
@@ -57,7 +67,7 @@ enum ReaderStyleImportRoute: String, Identifiable, Sendable {
         case .commentBubble, .chapterSayCard, .authorSayCard, .hotCommentCard:
             ReaderCommentStyleImporter.contentTypes
         case .readerFont:
-            [.font, UTType(filenameExtension: "ttf") ?? .data, UTType(filenameExtension: "otf") ?? .data]
+            ReaderStyleImportRoute.fontContentTypes
         }
     }
 

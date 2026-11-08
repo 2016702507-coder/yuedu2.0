@@ -22,6 +22,10 @@ enum TXTChapterParser {
     struct CachedIndexes: Sendable {
         let version: Int
         let indexes: [TXTMappedChapterIndex]
+        /// The `TXTTocRuleSet.fingerprint` the index was built with; nil for every index
+        /// written before chapter rules were editable (FB-139), which the hard-coded
+        /// patterns built.
+        let rulesFingerprint: String?
     }
     private struct TXTChapterIndexCache: Codable {
         let version: Int
@@ -29,6 +33,7 @@ enum TXTChapterParser {
         let fingerprint: String
         let encodingRawValue: UInt
         let indexes: [CodableChapterIndex]
+        let rulesFingerprint: String?
     }
 
     private struct CodableChapterIndex: Codable {
@@ -50,7 +55,7 @@ enum TXTChapterParser {
     }
 
     static func parseUnifiedChapters(_ text: String, bookTitle: String) -> [UnifiedChapter] {
-        parseChapters(text, bookTitle: bookTitle)
+        parseChapters(text, bookTitle: bookTitle, rules: TXTTocRuleStore.currentRuleSet())
             .enumerated()
             .map { index, chapter in
                 UnifiedChapter(
@@ -62,14 +67,16 @@ enum TXTChapterParser {
             }
     }
 
-    static func parseChapterIndexes(_ text: String, bookTitle: String) -> [TXTChapterIndex] {
+    static func parseChapterIndexes(
+        _ text: String, bookTitle: String, rules: TXTTocRuleSet = TXTTocRuleStore.currentRuleSet()
+    ) -> [TXTChapterIndex] {
         let nsText = text as NSString
         let totalLength = nsText.length
         guard totalLength > 0 else {
             return [TXTChapterIndex(index: 0, title: sanitizedTitle(bookTitle), contentRange: NSRange(location: 0, length: 0))]
         }
 
-        let titleMatches = detectTitleMatches(in: text)
+        let titleMatches = detectTitleMatches(in: text, rules: rules)
         if !titleMatches.isEmpty {
             var indexes: [TXTChapterIndex] = []
 
@@ -113,13 +120,16 @@ enum TXTChapterParser {
         return splitIntoBlockIndexes(text, blockSize: 3000, bookTitle: bookTitle)
     }
 
-    static func parseMappedChapterIndexes(_ mappedTextFile: TXTMappedTextFile, bookTitle: String) -> [TXTMappedChapterIndex] {
+    static func parseMappedChapterIndexes(
+        _ mappedTextFile: TXTMappedTextFile, bookTitle: String,
+        rules: TXTTocRuleSet = TXTTocRuleStore.currentRuleSet()
+    ) -> [TXTMappedChapterIndex] {
         let totalBytes = mappedTextFile.byteCount
         guard totalBytes > 0 else {
             return [TXTMappedChapterIndex(index: 0, title: sanitizedTitle(bookTitle), byteRange: 0..<0)]
         }
 
-        let titleMatches = detectMappedTitleMatches(in: mappedTextFile)
+        let titleMatches = detectMappedTitleMatches(in: mappedTextFile, rules: rules)
         if !titleMatches.isEmpty {
             var indexes: [TXTMappedChapterIndex] = []
 
@@ -280,17 +290,22 @@ enum TXTChapterParser {
             previousEnd = item.upper
         }
         guard !indexes.isEmpty else { throw TXTLocationMigration.Failure.invalidIndex }
-        return CachedIndexes(version: cache.version, indexes: indexes)
+        return CachedIndexes(version: cache.version, indexes: indexes, rulesFingerprint: cache.rulesFingerprint)
     }
 
-    static func writeCachedIndexes(_ indexes: [TXTMappedChapterIndex], bookId: UUID, fileSize: Int, fingerprint: String, encoding: String.Encoding) throws {
+    static func writeCachedIndexes(_ indexes: [TXTMappedChapterIndex], bookId: UUID, fileSize: Int, fingerprint: String,
+                                   encoding: String.Encoding, rulesFingerprint: String? = nil) throws {
         let cacheDir = cacheDirectoryURL()
         try FileManager.default.createDirectory(at: cacheDir, withIntermediateDirectories: true)
         let codable = indexes.map { CodableChapterIndex(index: $0.index, title: $0.title, lower: $0.byteRange.lowerBound, upper: $0.byteRange.upperBound) }
         // v7: Aozora markup removal changes rendered UTF-16 offsets; v6 keeps the
         // same source chapter boundaries. Callers must finish location migration
         // before replacing a v5/v6 index.
-        let cache = TXTChapterIndexCache(version: indexVersion, fileSize: fileSize, fingerprint: fingerprint, encodingRawValue: encoding.rawValue, indexes: codable)
+        // A chapter-rule change keeps v7 and changes `rulesFingerprint`: the old index then
+        // feeds location migration like a v5/v6 one (`TXTReaderPreparationService`).
+        let cache = TXTChapterIndexCache(version: indexVersion, fileSize: fileSize, fingerprint: fingerprint,
+                                         encodingRawValue: encoding.rawValue, indexes: codable,
+                                         rulesFingerprint: rulesFingerprint)
         try JSONEncoder().encode(cache).write(to: Self.cacheURL(for: bookId), options: .atomic)
     }
 
@@ -306,23 +321,6 @@ enum TXTChapterParser {
         cacheDirectoryURL().appendingPathComponent("\(bookId.uuidString).json")
     }
 
-    private static let chapterPatterns: [NSRegularExpression] = {
-        let patterns: [String] = [
-            "^\\s*第[零一二三四五六七八九十百千萬万\\d]+章[^\\n]*",
-            "^\\s*第[零一二三四五六七八九十百千萬万\\d]+[節节][^\\n]*",
-            "^\\s*第[零一二三四五六七八九十百千萬万\\d]+卷[^\\n]*",
-            "^\\s*第[零一二三四五六七八九十百千萬万\\d]+回[^\\n]*",
-            "^\\s*第[零一二三四五六七八九十百千萬万\\d]+篇[^\\n]*",
-            "^\\s*第[零一二三四五六七八九十百千萬万\\d]+部[^\\n]*",
-            "^\\s*卷[零一二三四五六七八九十百千萬万\\d]+[^\\n]*",
-            "^\\s*Chapter\\s*\\d+[^\\n]*",
-            "^\\s*CHAPTER\\s*\\d+[^\\n]*",
-            "^\\s*Part\\s*\\d+[^\\n]*",
-            "^\\s*PART\\s*\\d+[^\\n]*",
-        ]
-        return patterns.compactMap { try? NSRegularExpression(pattern: $0, options: .anchorsMatchLines) }
-    }()
-
     private static let specialTitlePattern: NSRegularExpression? = {
         let titles = [
             "序章", "序言", "序幕", "前言", "引子", "引言", "楔子",
@@ -334,8 +332,8 @@ enum TXTChapterParser {
         return try? NSRegularExpression(pattern: pattern, options: [.anchorsMatchLines, .caseInsensitive])
     }()
 
-    static func parseChapters(_ text: String, bookTitle: String) -> [ParsedChapter] {
-        let indexes = parseChapterIndexes(text, bookTitle: bookTitle)
+    static func parseChapters(_ text: String, bookTitle: String, rules: TXTTocRuleSet) -> [ParsedChapter] {
+        let indexes = parseChapterIndexes(text, bookTitle: bookTitle, rules: rules)
         return indexes.map { idx in
             let body = chapterText(text, range: idx.contentRange)
             return ParsedChapter(
@@ -428,23 +426,24 @@ enum TXTChapterParser {
         let title: String
     }
 
-    private static func detectTitleMatches(in text: String) -> [TitleMatch] {
+    private static func detectTitleMatches(in text: String, rules: TXTTocRuleSet) -> [TitleMatch] {
         // NSString indexes are UTF-16. This adapter feeds the same line scanner
         // and selector as a file, without a second multiline-regex policy.
         let units = text.utf16.map { $0.littleEndian }
         let file = TXTMappedTextFile(data: units.withUnsafeBytes { Data($0) }, encoding: .utf16LittleEndian)
-        return detectMappedTitleMatches(in: file).map {
+        return detectMappedTitleMatches(in: file, rules: rules).map {
             TitleMatch(range: NSRange(location: $0.lineByteRange.lowerBound / 2,
                                       length: $0.lineByteRange.count / 2), title: $0.title)
         }
     }
 
-    /// First characters accepted by `chapterPatterns` and `specialTitlePattern`.
-    /// Encoding them once lets the mapped parser reject body lines before it
-    /// allocates a String or runs regexes, including GB18030, Big5, CP932, EUC-JP, and EUC-KR books.
-    private static let titleStartCharacters = [
-        "C", "c", "P", "p", "E", "e", "I", "i",
-        "第", "卷", "序", "楔", "前", "引", "尾", "終", "终",
+    /// First characters `specialTitlePattern` accepts. With the built-in rules' own
+    /// (`TXTTocRuleDefaults.titleStarts`), encoding them once lets the mapped parser reject
+    /// body lines before it allocates a String or runs regexes, including GB18030, Big5,
+    /// CP932, EUC-JP, and EUC-KR books.
+    private static let specialTitleStartCharacters = [
+        "P", "p", "E", "e", "I", "i",
+        "序", "楔", "前", "引", "尾", "終", "终",
         "後", "后", "番", "結", "结",
     ]
 
@@ -452,9 +451,9 @@ enum TXTChapterParser {
         private let titlePrefixes: [UInt8: [[UInt8]]]
         private let whitespacePrefixes: [UInt8: [[UInt8]]]
 
-        init(encoding: String.Encoding) {
+        init(titleStarts: [String], encoding: String.Encoding) {
             titlePrefixes = Self.makePrefixTable(
-                strings: TXTChapterParser.titleStartCharacters,
+                strings: Array(Set(titleStarts)),
                 encoding: encoding
             )
             whitespacePrefixes = Self.makePrefixTable(
@@ -523,41 +522,129 @@ enum TXTChapterParser {
         }
     }
 
-    private static func detectMappedTitleMatches(in mappedTextFile: TXTMappedTextFile) -> [MappedTitleMatch] {
-        // Allocate one bucket per chapterPattern
-        var buckets: [[MappedTitleMatch]] = Array(repeating: [], count: chapterPatterns.count)
+    /// legado's `getTocRule` reads a book's first block to choose a rule. Rules the byte
+    /// prefilter cannot narrow run only on the lines starting in these first bytes, unless
+    /// they lead there.
+    static let selectionSampleBytes = 512_000
+
+    /// Picks the rule with the most headings more than `headingSpacing` characters apart,
+    /// ties to the rule higher in the list (legado's `getTocRule`, maintainer 2026-11-05).
+    ///
+    /// The app's own rules read the whole book: their byte prefilter keeps that cheap, and a
+    /// 512 KB lock once hid 章 headings that only start after a long preface (Technotes/
+    /// TXTChapterBoundaryMigration.md). Any other rule (legado's, the user's) decodes and
+    /// matches every line, ~20 ms a rule on a 200k-line book, so like legado it competes on
+    /// the first `selectionSampleBytes`: only the one leading there keeps running after it.
+    private static func detectMappedTitleMatches(
+        in mappedTextFile: TXTMappedTextFile,
+        rules: TXTTocRuleSet,
+        includesSpecialTitles: Bool = true
+    ) -> [MappedTitleMatch] {
+        let ruleList = rules.rules
+        var chapters: [[MappedTitleMatch]] = Array(repeating: [], count: ruleList.count)
+        var volumes: [[MappedTitleMatch]] = Array(repeating: [], count: ruleList.count)
         var specialMatches: [MappedTitleMatch] = []
 
-        let titleMatcher = EncodedTitleStartMatcher(encoding: mappedTextFile.encoding)
-
-        enumerateMappedTitleLines(in: mappedTextFile, matcher: titleMatcher) { lineByteRange, decodeLine in
-            // Decode the line and test patterns
-            let lineText = decodeLine()
-            let nsLine = lineText as NSString
-            guard nsLine.length <= 100 else { return }
-            let fullRange = NSRange(location: 0, length: nsLine.length)
-
-            for i in chapterPatterns.indices {
-                let regex = chapterPatterns[i]
-                guard let match = regex.firstMatch(in: lineText, range: fullRange),
-                      let range = Range(match.range, in: lineText) else { continue }
-                let title = String(lineText[range]).trimmingCharacters(in: .whitespacesAndNewlines)
-                guard !title.isEmpty else { continue }
-                buckets[i].append(MappedTitleMatch(lineByteRange: lineByteRange, title: sanitizedTitle(title)))
-            }
-
-            if let specialRegex = specialTitlePattern {
-                guard let match = specialRegex.firstMatch(in: lineText, range: fullRange),
-                      let range = Range(match.range, in: lineText) else { return }
-                let title = String(lineText[range]).trimmingCharacters(in: .whitespacesAndNewlines)
-                guard !title.isEmpty else { return }
-                specialMatches.append(MappedTitleMatch(lineByteRange: lineByteRange, title: sanitizedTitle(title)))
+        // Several built-in rules share one volume pattern: run each distinct one once a line.
+        var volumeSlots: [Int?] = []
+        var volumeRegexes: [NSRegularExpression] = []
+        for rule in ruleList {
+            guard let volume = rule.volume else { volumeSlots.append(nil); continue }
+            if let slot = volumeRegexes.firstIndex(where: { $0.pattern == volume.pattern }) {
+                volumeSlots.append(slot)
+            } else {
+                volumeSlots.append(volumeRegexes.count)
+                volumeRegexes.append(volume)
             }
         }
 
-        var selected = selectNumberedHeadings(buckets, range: { $0.lineByteRange }, isWhitespace: {
-            mappedTextFile.string(in: $0).trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        })
+        func best(among indices: [Int]) -> Int? {
+            var winner: Int?
+            var winnerScore = 0
+            for index in indices.sorted() {
+                let score = wellSpacedCount(chapters[index], in: mappedTextFile)
+                if score > winnerScore { winner = index; winnerScore = score }
+            }
+            return winner
+        }
+
+        // Rules the prefilter narrows (unedited built-ins) and special titles: only lines
+        // starting with one of their first characters can match them.
+        let prefiltered = ruleList.indices.filter { ruleList[$0].titleStarts != nil }
+        let prefilter = EncodedTitleStartMatcher(
+            titleStarts: prefiltered.flatMap { ruleList[$0].titleStarts ?? [] }
+                + (includesSpecialTitles ? specialTitleStartCharacters : []),
+            encoding: mappedTextFile.encoding)
+        // Every other rule while sampling; after it, the one leading the sample, if any.
+        var unfiltered = ruleList.indices.filter { ruleList[$0].titleStarts == nil }
+        var sampling = true
+        var lineMayBePrefiltered = false
+        func endSample() {
+            sampling = false
+            let leader = best(among: Array(ruleList.indices))
+            for index in unfiltered where index != leader {
+                chapters[index] = []
+                volumes[index] = []
+            }
+            unfiltered = unfiltered.filter { $0 == leader }
+        }
+
+        enumerateMappedTitleLines(
+            in: mappedTextFile,
+            mayBeTitle: { bytes, range in
+                if sampling, range.lowerBound >= selectionSampleBytes { endSample() }
+                lineMayBePrefiltered = prefilter.lineMayBeTitle(bytes: bytes, range: range)
+                return lineMayBePrefiltered || (!unfiltered.isEmpty && !range.isEmpty)
+            }
+        ) { lineByteRange, decodeLine in
+            let lineText = decodeLine()
+            let nsLine = lineText as NSString
+            guard nsLine.length <= 100 else { return }
+            // legado matches the whole text, so a rule's lookbehind (`(?<=[　\s])`) sees the
+            // line break before a heading. Give each line that break, outside the range.
+            // One UTF-16 NSString per line: a bridged Swift String is transcoded on every
+            // match, which cost twice the match itself (FB-139 timing).
+            let context = NSMutableString(capacity: nsLine.length + 1)
+            context.append("\n")
+            context.append(lineText)
+            let lineRange = NSRange(location: 1, length: nsLine.length)
+            func title(_ regex: NSRegularExpression) -> String? {
+                guard let match = regex.firstMatch(in: context as String, options: .withTransparentBounds,
+                                                   range: lineRange) else { return nil }
+                let title = context.substring(with: match.range).trimmingCharacters(in: .whitespacesAndNewlines)
+                return title.isEmpty ? nil : sanitizedTitle(title)
+            }
+
+            let running = lineMayBePrefiltered ? prefiltered + unfiltered : unfiltered
+            for index in running {
+                if let found = title(ruleList[index].chapter) {
+                    chapters[index].append(MappedTitleMatch(lineByteRange: lineByteRange, title: found))
+                }
+            }
+            var volumeTitles: [String?] = Array(repeating: nil, count: volumeRegexes.count)
+            var volumeTested = Array(repeating: false, count: volumeRegexes.count)
+            for index in running {
+                guard let slot = volumeSlots[index] else { continue }
+                if !volumeTested[slot] {
+                    volumeTitles[slot] = title(volumeRegexes[slot])
+                    volumeTested[slot] = true
+                }
+                if let found = volumeTitles[slot] {
+                    volumes[index].append(MappedTitleMatch(lineByteRange: lineByteRange, title: found))
+                }
+            }
+
+            if includesSpecialTitles, lineMayBePrefiltered, let specialRegex = specialTitlePattern,
+               let found = title(specialRegex) {
+                specialMatches.append(MappedTitleMatch(lineByteRange: lineByteRange, title: found))
+            }
+        }
+        var selected: [MappedTitleMatch] = []
+        if let chosen = best(among: prefiltered + unfiltered) {
+            selected = chapters[chosen] + associatedVolumes(volumes[chosen], primary: chapters[chosen]) {
+                mappedTextFile.string(in: $0).trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            }
+        }
 
         selected.append(contentsOf: specialMatches)
 
@@ -579,31 +666,70 @@ enum TXTChapterParser {
         return deduped
     }
 
-    /// Coordinates belong to the input adapter; structural decisions do not.
-    /// A secondary volume introduces a primary chapter, rather than an embedded
-    /// list followed by more prose. Require that association explicitly. Primary
-    /// headings retain short/empty chapters, and part-only books still select Part.
-    private static func selectNumberedHeadings<T>(
-        _ buckets: [[T]], range: (T) -> Range<Int>, isWhitespace: (Range<Int>) -> Bool
-    ) -> [T] {
-        guard let winner = buckets.indices.first(where: { buckets[$0].count >= 2 })
-                ?? buckets.indices.first(where: { !buckets[$0].isEmpty }) else { return [] }
-        let primary = buckets[winner]
-        guard [0, 1, 3].contains(winner) else { return primary }
-        var selected = primary
-        for bucket in [2, 4, 5, 6] {
-            var nextPrimary = 0
-            for candidate in buckets[bucket] {
-                let end = range(candidate).upperBound
-                while nextPrimary < primary.count, range(primary[nextPrimary]).lowerBound < end {
-                    nextPrimary += 1
-                }
-                guard nextPrimary < primary.count else { continue }
-                let next = range(primary[nextPrimary]).lowerBound
-                if isWhitespace(end..<next) { selected.append(candidate) }
+    /// The chapter titles a rule set finds in a book, without the book-level parts (front
+    /// matter, size cuts, 序章/番外 titles): what the rule editor previews.
+    static func previewTitles(in mappedTextFile: TXTMappedTextFile, rules: TXTTocRuleSet) -> [String] {
+        detectMappedTitleMatches(in: mappedTextFile, rules: rules, includesSpecialTitles: false).map(\.title)
+    }
+
+    /// legado's `getTocRule` spacing: headings closer than this to the previous counted one
+    /// (a table of contents, a heading repeated on the next line) count once.
+    static let headingSpacing = 1_000
+
+    private static func wellSpacedCount(_ matches: [MappedTitleMatch], in file: TXTMappedTextFile) -> Int {
+        var count = 0
+        var previousEnd: Int?
+        for match in matches {
+            if let end = previousEnd,
+               !exceedsCharacters(headingSpacing, from: end, to: match.lineByteRange.lowerBound, in: file) {
+                continue
             }
+            count += 1
+            previousEnd = match.lineByteRange.upperBound
         }
-        return selected
+        return count
+    }
+
+    /// Whether more than `limit` characters lie between two byte offsets. Exact for UTF-8
+    /// (scalars) and UTF-16 (code units, as legado's Java strings count); other encodings
+    /// are counted at two bytes a character, their CJK width, as legado estimates bytes per
+    /// character for a buffer.
+    private static func exceedsCharacters(_ limit: Int, from lower: Int, to upper: Int, in file: TXTMappedTextFile) -> Bool {
+        let bytes = upper - lower
+        switch file.encoding {
+        case .utf16LittleEndian, .utf16BigEndian, .utf16:
+            return bytes / 2 > limit
+        case .utf8:
+            if bytes <= limit { return false }
+            if bytes > limit * 4 { return true }
+            var scalars = 0
+            for offset in lower..<upper where file.data[offset] & 0xC0 != 0x80 {
+                scalars += 1
+                if scalars > limit { return true }
+            }
+            return false
+        default:
+            return bytes / 2 > limit
+        }
+    }
+
+    /// A volume heading is kept only when a chapter heading follows it with nothing but
+    /// whitespace between: a 第一卷 that opens 第1章, not a list of volumes inside a
+    /// chapter's text. Primary headings keep short/empty chapters.
+    private static func associatedVolumes(
+        _ candidates: [MappedTitleMatch], primary: [MappedTitleMatch], isWhitespace: (Range<Int>) -> Bool
+    ) -> [MappedTitleMatch] {
+        var kept: [MappedTitleMatch] = []
+        var nextPrimary = 0
+        for candidate in candidates {
+            let end = candidate.lineByteRange.upperBound
+            while nextPrimary < primary.count, primary[nextPrimary].lineByteRange.lowerBound < end {
+                nextPrimary += 1
+            }
+            guard nextPrimary < primary.count else { continue }
+            if isWhitespace(end..<primary[nextPrimary].lineByteRange.lowerBound) { kept.append(candidate) }
+        }
+        return kept
     }
 
     private static func skipLeadingWhitespace(in text: NSString, from start: Int, upperBound: Int) -> Int {
@@ -811,7 +937,7 @@ enum TXTChapterParser {
     /// rejects ordinary UTF-8/GB18030/Big5/CP932/EUC-JP/EUC-KR body lines before String allocation.
     private static func enumerateMappedTitleLines(
         in mappedTextFile: TXTMappedTextFile,
-        matcher: EncodedTitleStartMatcher,
+        mayBeTitle: (UnsafeBufferPointer<UInt8>, Range<Int>) -> Bool,
         _ body: (Range<Int>, () -> String) -> Void
     ) {
         let data = mappedTextFile.data
@@ -822,9 +948,7 @@ enum TXTChapterParser {
             func emitCandidate(_ range: Range<Int>) {
                 // Byte prefilter accommodates every supported encoding; the
                 // decoded UTF-16 limit above is shared with in-memory input.
-                guard range.count <= 400,
-                      matcher.lineMayBeTitle(bytes: bytes, range: range)
-                else { return }
+                guard range.count <= 400, mayBeTitle(bytes, range) else { return }
                 body(range, {
                     let line = mappedTextFile.string(in: range)
                     guard line.unicodeScalars.first == "\u{FEFF}" else { return line }
@@ -984,7 +1108,7 @@ struct TXTBookParser: BookParser {
                 return !ch.isASCII || ch.isLetter || ch.isNumber || ch.isPunctuation || ch.isWhitespace
             }
         let title = url.deletingPathExtension().lastPathComponent
-        let chapters = TXTChapterParser.parseChapters(text, bookTitle: title)
+        let chapters = TXTChapterParser.parseChapters(text, bookTitle: title, rules: TXTTocRuleStore.currentRuleSet())
             .map { chapter in
                 let trimmedTitle = chapter.title.trimmingCharacters(in: .whitespacesAndNewlines)
                 let body = chapter.paragraphs

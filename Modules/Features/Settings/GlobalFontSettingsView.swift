@@ -138,11 +138,7 @@ struct GlobalFontSettingsView: View {
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
-    private static let fontContentTypes: [UTType] = [
-        .font,
-        UTType(filenameExtension: "ttf") ?? .data,
-        UTType(filenameExtension: "otf") ?? .data,
-    ]
+    private static let fontContentTypes: [UTType] = ReaderStyleImportRoute.fontContentTypes
 
     private func handleImport(_ result: Result<[URL], Error>) {
         do {

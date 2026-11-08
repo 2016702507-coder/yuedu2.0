@@ -11,6 +11,7 @@
 		1E90D290C84CF7DFB61183AB /* yuedu_app_Widget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 4E4E1DDA4EE35F67778097F0 /* yuedu_app_Widget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		2EE60C00FD763A43CFCAC2A0 /* yuedu_app_ShareExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 81F92752186D8D0E971A17B9 /* yuedu_app_ShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		3021769152B9F41FC1F2CBA5 /* SwiftSoup in Frameworks */ = {isa = PBXBuildFile; productRef = 489E6E08B47AA3AC9F140CAD /* SwiftSoup */; };
+		BBBB2222BBBB2222BBBB0001 /* LNPopupUI-Static in Frameworks */ = {isa = PBXBuildFile; productRef = BBBB2222BBBB2222BBBB0002 /* LNPopupUI-Static */; };
 		3B275A36815844CE9EBD5086 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = E661223F57364063B509666C /* GoogleService-Info.plist */; };
 		460274852F710D7500486947 /* ReadiumAdapterLCPSQLite in Frameworks */ = {isa = PBXBuildFile; productRef = 460274842F710D7500486947 /* ReadiumAdapterLCPSQLite */; };
 		463C854D2FA4F48E008F9AD7 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 463C854C2FA4F48E008F9AD7 /* GoogleSignIn */; };
@@ -194,6 +195,7 @@
 				54FF42D0FA99075B5C91D59B /* ReadiumZIPFoundation in Frameworks */,
 				46A6AB672FCD4ED60071B397 /* FirebaseAnalyticsIdentitySupport in Frameworks */,
 				3021769152B9F41FC1F2CBA5 /* SwiftSoup in Frameworks */,
+				BBBB2222BBBB2222BBBB0001 /* LNPopupUI-Static in Frameworks */,
 				AAAA1111AAAA1111AAAA0001 /* Nuke in Frameworks */,
 				46A6AB732FCD4ED60071B397 /* FirebaseCrashlytics in Frameworks */,
 				46A6AB692FCD4ED60071B397 /* FirebaseAppCheck in Frameworks */,
@@ -332,6 +334,7 @@
 				8A11B0E22F9A1C7300A1B001 /* ReadiumFuzi */,
 				7F41A49C749809CDAB632913 /* ReadiumZIPFoundation */,
 				489E6E08B47AA3AC9F140CAD /* SwiftSoup */,
+				BBBB2222BBBB2222BBBB0002 /* LNPopupUI-Static */,
 				AAAA1111AAAA1111AAAA0002 /* Nuke */,
 				460274842F710D7500486947 /* ReadiumAdapterLCPSQLite */,
 				54FF42D2FA99075B5C91D59B /* ReadiumShared */,
@@ -484,6 +487,7 @@
 				4503FB56A177080D0D9E31E4 /* XCRemoteSwiftPackageReference "YueduCoreText" */,
 				D8654E038B484E472D6D37EA /* XCLocalSwiftPackageReference "Packages/CLexbor" */,
 				9E73816D0186A1DA34077B88 /* XCLocalSwiftPackageReference "Packages/SwiftSoup" */,
+				BBBB2222BBBB2222BBBB0003 /* XCLocalSwiftPackageReference "Packages/LNPopupUI" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 460D365A2F51C5B8006E774C /* Products */;
@@ -1179,6 +1183,10 @@
 			isa = XCLocalSwiftPackageReference;
 			relativePath = Packages/SwiftSoup;
 		};
+		BBBB2222BBBB2222BBBB0003 /* XCLocalSwiftPackageReference "Packages/LNPopupUI" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/LNPopupUI;
+		};
 		D8654E038B484E472D6D37EA /* XCLocalSwiftPackageReference "Packages/CLexbor" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = Packages/CLexbor;
@@ -1371,6 +1379,10 @@
 		489E6E08B47AA3AC9F140CAD /* SwiftSoup */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = SwiftSoup;
+		};
+		BBBB2222BBBB2222BBBB0002 /* LNPopupUI-Static */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = "LNPopupUI-Static";
 		};
 		54FF42D2FA99075B5C91D59B /* ReadiumShared */ = {
 			isa = XCSwiftPackageProductDependency;

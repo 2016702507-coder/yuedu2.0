@@ -69,9 +69,10 @@ extension View {
     }
 
     /// The surface a hand-drawn card sits on — settings rows built as buttons or
-    /// stacks rather than list rows, stat cards, detail-page cards. Same material
-    /// and same 分組卡片 switch as `interfaceSectionSurface()`; this one attaches as
-    /// a background because there is no list row to hand it to.
+    /// stacks rather than list rows, stat cards, detail-page cards, 書架's 接着讀.
+    /// Same material as `interfaceSectionSurface()` and always glass, so a page's
+    /// cards and its settings rows cannot drift into two different looks; this one
+    /// attaches as a background because there is no list row to hand it to.
     ///
     /// - Parameters:
     ///   - shape: The card's outline, matching whatever the caller already passed to
@@ -223,14 +224,21 @@ private struct InterfaceCardSurfaceModifier<SurfaceShape: Shape>: ViewModifier {
     let shape: SurfaceShape
     let fill: Color
 
-    @Bindable private var settings = GlobalSettings.shared
-
+    /// Glass is unconditional, like `interfaceSectionSurface`'s rows.
+    ///
+    /// It used to ride 分組卡片, which shipped off by Apple's rule that Liquid Glass belongs
+    /// to the functional layer — so every hand-drawn card in the app (書架's 接着讀, 首頁's
+    /// sheets, 探索's tiles) stayed opaque while 設定's rows were glass. Two surfaces on one
+    /// screen, which is the 不一致 the maintainer called out on 2026-11-07: 書架 also has to be
+    /// glass, and every page has to share one structure. Reduce Transparency inside
+    /// `InterfaceSurfaceModifier` still wins, so an opaque card is always one system setting
+    /// away rather than a per-app toggle.
     func body(content: Content) -> some View {
         content.modifier(
             InterfaceSurfaceModifier(
                 shape: shape,
                 fill: fill,
-                glassAllowed: settings.interfaceGlassCards
+                glassAllowed: true
             )
         )
     }

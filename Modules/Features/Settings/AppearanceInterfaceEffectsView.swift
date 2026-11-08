@@ -45,21 +45,10 @@ struct AppearanceInterfaceEffectsView: View {
             }
             .interfaceSectionSurface()
 
-            // Hidden with 毛玻璃 off: sections borrow that material, so the switch
-            // would be visibly inert. Same rule as 透明度 above.
-            if settings.interfaceFrostedGlass {
-                Section {
-                    Toggle(isOn: $settings.interfaceGlassCards) {
-                        Text(localized("分組卡片"))
-                            .font(DSFont.body)
-                            .foregroundStyle(DSColor.textPrimary)
-                    }
-                } footer: {
-                    Text(localized("系統設計建議玻璃只用於浮動控制項，所以預設關閉。"))
-                        .dsSectionFooter()
-                }
-                .interfaceSectionSurface()
-            }
+            // The 分組卡片 switch is gone (maintainer, 2026-11-07: 所有界面要保持一個結構).
+            // It only ever moved hand-drawn cards while settings rows were glass regardless,
+            // so the same screen could hold both looks; cards now follow the rows
+            // unconditionally, and Reduce Transparency is the one way to get solids back.
 
             // The switches first and the glow after, as the reference the user handed over
             // groups them (2026-09-29).

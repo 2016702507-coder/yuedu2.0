@@ -108,32 +108,86 @@ enum PaperFont {
 
 // MARK: - Background
 
-/// The page: a warm gradient with a faint sprig of leaves at the top trailing corner, the
-/// way the reference draws its paper.
+/// The page behind 書架 and 首頁.
+///
+/// It used to be an opaque sheet of paper with a warm gradient and a leaf sprig, and that
+/// sheet had two costs: an appearance theme's page background — 劍來's 山水, any imported
+/// pack's artwork — could never show on these two pages, and the glass on top of them had
+/// nothing to blur but one flat colour.
+///
+/// Now it paints the theme's own page with a soft wash of the accent behind it, keeps the
+/// leaf as a watermark, and steps aside entirely when a page background is set for the tab.
 struct PaperBackground: View {
+    /// Which tab's page background this sheet has to make room for. 書架 passes
+    /// `.bookshelf` — a background set for 書架 alone would otherwise never be seen,
+    /// because the lookup below only ever asked the global one.
+    var scope: AppearancePageBackgroundScope = .global
+
     @Environment(\.colorScheme) private var scheme
+    @Bindable private var gs = GlobalSettings.shared
+    @ObservedObject private var subscription = SubscriptionStore.shared
+
+    /// 讀者給這個 tab 設了頁面背景圖時，這裡整層讓開：tab 的 backdrop
+    /// (`ThemedSurfaceBackground`) 已經把那張圖鋪好了，這裡再畫一層不透明的紙，
+    /// 只會把它蓋掉 —— 書架此前一直看不到 劍來 的山水，就是這個原因。
+    private var yieldsToArtwork: Bool {
+        guard subscription.hasAccess(.readerThemePacks) else { return false }
+        return gs.resolvedPageBackgroundSlice(for: scope, colorScheme: scheme) != nil
+    }
 
     var body: some View {
         ZStack(alignment: .topTrailing) {
-            LinearGradient(
-                colors: [
-                    PaperPalette.pageTop(scheme),
-                    PaperPalette.page(scheme),
-                    PaperPalette.pageBottom(scheme),
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
+            PaperPageGround()
+                .opacity(yieldsToArtwork ? 0 : 1)
 
             PaperLeafSprig()
-                .stroke(PaperPalette.ink(scheme).opacity(scheme == .dark ? 0.10 : 0.075), lineWidth: 1)
+                .stroke(PaperPalette.ink(scheme).opacity(scheme == .dark ? 0.075 : 0.055), lineWidth: 1)
                 .frame(width: 190, height: 280)
                 .rotationEffect(.degrees(6))
                 .offset(x: 62, y: -46)
+                .opacity(yieldsToArtwork ? 0 : 1)
                 .allowsHitTesting(false)
                 .accessibilityHidden(true)
         }
         .ignoresSafeArea()
+    }
+}
+
+/// 頁面底色：主題漸層，加上兩團主題色柔光。
+///
+/// 柔光不是裝飾 —— 玻璃要透出東西才像玻璃。底色若是純色，`glassEffect` 底下什麼都沒有，
+/// 卡片看起來就跟原本的實心白卡一樣；有了這兩團很淡的色暈，玻璃才有深淺可抓。
+/// 顏色全部取自主題（`PaperPalette.ink` 就是主題強調色），所以換主題、深色模式都跟著走。
+private struct PaperPageGround: View {
+    @Environment(\.colorScheme) private var scheme
+
+    var body: some View {
+        GeometryReader { proxy in
+            let size = proxy.size
+            ZStack {
+                LinearGradient(
+                    colors: [
+                        PaperPalette.pageTop(scheme),
+                        PaperPalette.page(scheme),
+                        PaperPalette.pageBottom(scheme),
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+
+                Circle()
+                    .fill(PaperPalette.ink(scheme).opacity(scheme == .dark ? 0.12 : 0.10))
+                    .frame(width: size.width * 1.05, height: size.width * 1.05)
+                    .blur(radius: 120)
+                    .offset(x: -size.width * 0.34, y: -size.height * 0.16)
+
+                Circle()
+                    .fill(PaperPalette.ink(scheme).opacity(scheme == .dark ? 0.08 : 0.07))
+                    .frame(width: size.width * 0.9, height: size.width * 0.9)
+                    .blur(radius: 140)
+                    .offset(x: size.width * 0.42, y: size.height * 0.44)
+            }
+        }
     }
 }
 
@@ -199,8 +253,17 @@ private struct PaperLeafSprig: Shape {
 // MARK: - Surfaces
 
 extension View {
-    /// A sheet of paper on the page: white, generously rounded, with a hairline and a shadow
-    /// soft enough that cards read as stacked rather than floating.
+    /// A pane of glass on the page — the same surface every other card in the app sits on.
+    ///
+    /// It used to be an opaque sheet of paper with its own fill, hairline and shadow, which
+    /// is exactly why 書架 never matched 設定's glass rows: two surfaces, two looks. It now
+    /// routes through `interfaceCardSurface`, the app's single glass entry point, so 毛玻璃
+    /// and 透明度 reach it the way they reach every other card, and Reduce Transparency
+    /// still falls back to the theme's own card colour instead of something painted here.
+    ///
+    /// No shadow of its own: iOS 26's `glassEffect` lights the edge, and on older systems
+    /// `.regularMaterial` already reads as a surface above the page. A hand-drawn shadow on
+    /// top of that only muddied the glass.
     func paperCard(radius: CGFloat = 22) -> some View {
         modifier(PaperCardSurface(radius: radius))
     }
@@ -213,13 +276,11 @@ private struct PaperCardSurface: ViewModifier {
     func body(content: Content) -> some View {
         let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
         content
-            .background {
-                shape
-                    .fill(PaperPalette.card(scheme))
-                    .shadow(color: PaperPalette.shadow(scheme), radius: 14, x: 0, y: 6)
-            }
+            .interfaceCardSurface(in: shape, fill: PaperPalette.card(scheme))
             .overlay {
-                shape.strokeBorder(PaperPalette.hairline(scheme).opacity(0.85), lineWidth: 0.8)
+                // iOS 26 draws the glass edge itself; this hairline is for older systems,
+                // and keeps a pale theme's glass readable against a pale page.
+                shape.strokeBorder(PaperPalette.hairline(scheme).opacity(0.55), lineWidth: 0.6)
             }
     }
 }
@@ -329,15 +390,14 @@ struct PaperSearchField: View {
         }
         .padding(.horizontal, DSSpacing.lg)
         .frame(height: 44)
-        .background {
-            Capsule(style: .continuous)
-                .fill(PaperPalette.card(scheme).opacity(scheme == .dark ? 0.9 : 0.92))
-        }
+        .interfaceCardSurface(in: Capsule(style: .continuous), fill: PaperPalette.card(scheme))
         .overlay {
             Capsule(style: .continuous)
-                .strokeBorder(PaperPalette.hairline(scheme), lineWidth: 0.8)
+                .strokeBorder(
+                    PaperPalette.hairline(scheme).opacity(isFocused ? 0.9 : 0.55),
+                    lineWidth: isFocused ? 1 : 0.6
+                )
         }
-        .shadow(color: PaperPalette.shadow(scheme), radius: isFocused ? 10 : 6, x: 0, y: 3)
     }
 }
 

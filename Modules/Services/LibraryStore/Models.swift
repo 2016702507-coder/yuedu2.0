@@ -331,6 +331,14 @@ struct ReadingBook: Identifiable, Codable {
     /// `audioPlayMode` gives.
     var continueReadingHiddenAt: Date?
 
+    /// 養肥 (grow a book): set when the reader puts this book on the 養肥 shelf by hand
+    /// (書架 → 長按 → 加入養肥), cleared when they take it out. Until 1.3 the chip meant
+    /// "never opened", so every freshly imported book landed there whether the reader
+    /// wanted to watch it grow or not — the reader asked for it to be a shelf they keep
+    /// themselves. Optional and encoded only when present, for the reason `audioPlayMode`
+    /// gives: a default written into every book would change each one's sync hash.
+    var fatteningAddedAt: Date?
+
     /// The description the reader wrote in 編輯資訊 (unified library 5f-4d-2, decision 33). It
     /// comes before every place's (`CopyMetadata`), and nothing but the reader writes it, so
     /// a source refresh never replaces it. Kept here, not in `Works/decisions.json`, so that it
@@ -448,6 +456,7 @@ struct ReadingBook: Identifiable, Codable {
         aozora = try c.decodeIfPresent(AozoraBookSource.self, forKey: .aozora)
         mobi = try c.decodeIfPresent(MOBIBookSource.self, forKey: .mobi)
         continueReadingHiddenAt = try c.decodeIfPresent(Date.self, forKey: .continueReadingHiddenAt)
+        fatteningAddedAt = try c.decodeIfPresent(Date.self, forKey: .fatteningAddedAt)
         customIntro = try c.decodeIfPresent(String.self, forKey: .customIntro)
         module = try c.decodeIfPresent(ModuleBookReference.self, forKey: .module)
         versionOf = try c.decodeIfPresent(UUID.self, forKey: .versionOf)
@@ -467,6 +476,7 @@ struct ReadingBook: Identifiable, Codable {
         case aozora
         case mobi
         case continueReadingHiddenAt
+        case fatteningAddedAt
         case customIntro
         case module
         case versionOf
@@ -513,6 +523,11 @@ extension ReadingBook {
         guard let hidden = continueReadingHiddenAt else { return true }
         return hidden < opened
     }
+}
+
+extension ReadingBook {
+    /// On the 養肥 shelf: the reader put it there by hand, so it stays until taken out.
+    var isFattening: Bool { fatteningAddedAt != nil }
 }
 
 extension ReadingBook {

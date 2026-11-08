@@ -264,6 +264,17 @@ struct SettingsView: View {
                             title: localized("替換規則"),
                             action: { showReplaceRules = true }
                         )
+
+                        // FB-139: pushed, not a sheet like 替換規則 — its file importer needs a
+                        // first-level presenter on iOS 17.
+                        NavigationLink {
+                            TXTTocRuleListView()
+                        } label: {
+                            Label(localized("TXT 分章規則"), systemImage: "list.number")
+                                .foregroundColor(DSColor.textPrimary)
+                                .labelStyle(IconConsistentLabelStyle())
+                        }
+                        .accessibilityIdentifier("settings_txt_toc_rules")
                     } header: {
                         Text(localized("設定分組：閱讀"))
                             .foregroundStyle(DSColor.textSecondary)
@@ -420,7 +431,10 @@ private struct AboutSupportView: View {
     let feedbackMailURL: URL?
     let qqGroup: String
 
-    @State private var showCopiedGroup = false
+    @State private var copiedNotice: String?
+
+    /// 這台裝置在卡密後台的身份。Keychain 裡的 UUID，重裝不變、換機才變。
+    @ObservedObject private var cardKeyMembership = CardKeyMembership.shared
 
     /// 關於 is down to three facts (maintainer, 2026-11-05: 「關於裡面全都去掉，只保留
     /// 郵箱跟版本號，再加一個 QQ 交流群」). Everything the old page carried — policies,
@@ -473,7 +487,7 @@ private struct AboutSupportView: View {
 
                 Button {
                     UIPasteboard.general.string = qqGroup
-                    showCopiedGroup = true
+                    copiedNotice = localized("群號已複製到剪貼簿。")
                 } label: {
                     HStack(spacing: 12) {
                         Image(systemName: "person.2.fill")
@@ -506,15 +520,62 @@ private struct AboutSupportView: View {
                     .dsSectionFooter()
             }
             .interfaceSectionSurface()
+
+            // 設備碼：重裝、換機後自動恢復接不回來時的人工通道 —— 用戶複製給開發者，
+            // 後台按這串補綁。它存在 Keychain 裡，重裝不變，換機才會換。
+            Section {
+                Button {
+                    UIPasteboard.general.string = cardKeyMembership.deviceCode
+                    copiedNotice = localized("設備碼已複製到剪貼簿。")
+                } label: {
+                    HStack(spacing: 12) {
+                        Image(systemName: "iphone.gen3")
+                            .font(DSFont.fixed(size: 18, weight: .medium))
+                            .frame(width: 28, height: 28)
+                            .foregroundColor(DSColor.textPrimary)
+                            .accessibilityHidden(true)
+
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(localized("設備碼"))
+                                .foregroundColor(DSColor.textPrimary)
+                            Text(cardKeyMembership.deviceCode)
+                                .font(DSFont.fixed(size: 11, design: .monospaced))
+                                .foregroundColor(DSColor.textSecondary)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.7)
+                        }
+
+                        Spacer(minLength: 12)
+
+                        Image(systemName: "doc.on.doc")
+                            .font(DSFont.caption)
+                            .foregroundColor(DSColor.textSecondary)
+                            .accessibilityHidden(true)
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("about.device_code")
+            } footer: {
+                Text(localized("重裝或換機後會員沒有恢復，把這串發給開發者，可人工補綁。"))
+                    .dsSectionFooter()
+            }
+            .interfaceSectionSurface()
         }
         .softScrollEdges()
         .navigationTitle(localized("關於"))
         .toolbarTitleDisplayMode(.inline)
         .themedAppSurface(for: .settings)
-        .alert(localized("已複製"), isPresented: $showCopiedGroup) {
+        .alert(
+            localized("已複製"),
+            isPresented: Binding(
+                get: { copiedNotice != nil },
+                set: { if !$0 { copiedNotice = nil } }
+            )
+        ) {
             Button(localized("好"), role: .cancel) {}
         } message: {
-            Text(localized("群號已複製到剪貼簿。"))
+            Text(copiedNotice ?? "")
         }
     }
 }

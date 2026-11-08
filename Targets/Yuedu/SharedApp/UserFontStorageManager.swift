@@ -18,7 +18,7 @@ enum UserFontStorageError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .unsupportedFileType:
-            return localized("僅支援 TTF 或 OTF 字體")
+            return localized("僅支援 TTF、OTF 或 TTC 字體")
         case .invalidFontFile:
             return localized("無法讀取字體檔案")
         case .missingDocumentsDirectory:
@@ -29,6 +29,12 @@ enum UserFontStorageError: LocalizedError {
 
 final class UserFontStorageManager: Sendable {
     static let shared = UserFontStorageManager()
+
+    /// Fonts this app will import. TTC is a TrueType collection: `CoreText` reads one
+    /// descriptor per face and registers every face in the file, which is why a single
+    /// imported item can render as a whole family. Chinese collections are shipped almost
+    /// exclusively as `.ttc`, so leaving it out rejected most of them at the door.
+    static let supportedFileExtensions: Set<String> = ["ttf", "otf", "ttc"]
 
     private var fileManager: FileManager { .default }
 
@@ -47,7 +53,7 @@ final class UserFontStorageManager: Sendable {
     /// before this every import kept another 13–28 MB copy (a device reached 1 GB).
     func importFont(fileURL: URL, replacing existingFonts: [UserFontInfo] = []) throws -> UserFontInfo {
         let sourceExtension = fileURL.pathExtension.lowercased()
-        guard ["ttf", "otf"].contains(sourceExtension) else {
+        guard Self.supportedFileExtensions.contains(sourceExtension) else {
             throw UserFontStorageError.unsupportedFileType
         }
 
@@ -95,7 +101,7 @@ final class UserFontStorageManager: Sendable {
               )
         else { return }
 
-        for url in urls where ["ttf", "otf"].contains(url.pathExtension.lowercased()) {
+        for url in urls where Self.supportedFileExtensions.contains(url.pathExtension.lowercased()) {
             Self.registerFont(at: url)
         }
     }
@@ -127,7 +133,7 @@ final class UserFontStorageManager: Sendable {
         }
 
         for url in urls
-        where ["ttf", "otf"].contains(url.pathExtension.lowercased())
+        where Self.supportedFileExtensions.contains(url.pathExtension.lowercased())
             && !listedFiles.contains(url.lastPathComponent) {
             guard let metadata = Self.fontMetadata(from: url),
                   listedNames.contains(metadata.postScriptName) else { continue }
