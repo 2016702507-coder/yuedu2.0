@@ -2,7 +2,7 @@ import Combine
 import SwiftUI
 import UniformTypeIdentifiers
 
-// MARK: - 新增來源配置
+// MARK: - 新增来源配置
 
 /// The three ways in: an empty source in the editor, a pasted or picked JSON, or a JSON's address.
 enum BookSourceAddRoute: CaseIterable, Hashable {
@@ -12,9 +12,9 @@ enum BookSourceAddRoute: CaseIterable, Hashable {
 
     var titleKey: String {
         switch self {
-        case .add: "手動新增"
-        case .local: "本地導入"
-        case .network: "網路導入"
+        case .add: "手动新增"
+        case .local: "本地导入"
+        case .network: "网路导入"
         }
     }
 
@@ -35,8 +35,8 @@ private enum BookSourceFileImportRoute: Hashable {
     case document
 }
 
-/// 新增來源配置, 來源配置管理's 「+」 (Phase 5 plan, decision 31; 5h-4). 資源庫's ••• opened it too
-/// until 設定 became the one place to add a source (maintainer, 2026-10-27).
+/// 新增来源配置, 来源配置管理's 「+」 (Phase 5 plan, decision 31; 5h-4). 资源库's ••• opened it too
+/// until 设置 became the one place to add a source (maintainer, 2026-10-27).
 /// Moved out of `BookSourceListView` unchanged: every route parses, then waits on the
 /// confirmation list, and nothing is written until the reader confirms.
 ///
@@ -86,7 +86,7 @@ final class BookSourceAddFlow: ObservableObject {
 
     // MARK: Opening
 
-    /// Opens a route. 來源配置管理 asks for the source disclaimer as it opens, and 資源庫's •••,
+    /// Opens a route. 来源配置管理 asks for the source disclaimer as it opens, and 资源库's •••,
     /// which also opened routes until 2026-10-27, did not: a reader who has not accepted it sees it
     /// first, and the route follows its dismissal.
     func begin(_ route: BookSourceAddRoute) {
@@ -142,7 +142,7 @@ final class BookSourceAddFlow: ObservableObject {
         importJSON = ""
     }
 
-    /// The import sheet dismisses for two different reasons — the reader picked 從文件選取, or a
+    /// The import sheet dismisses for two different reasons — the reader picked 从文件选取, or a
     /// parsed pack is waiting for review. Only one is ever pending.
     func afterImportSheetDismissal() {
         if fileImportSequence.consumeAfterDismissal() == .document {
@@ -169,7 +169,7 @@ final class BookSourceAddFlow: ObservableObject {
             } catch {
                 AppLogger.error("Book source file could not be read", error: error,
                                 context: ["extension": url.pathExtension])
-                fail(localized("無法讀取文件"))
+                fail(localized("无法读取文件"))
                 return
             }
             do {
@@ -202,7 +202,7 @@ final class BookSourceAddFlow: ObservableObject {
     func importFromNetwork() {
         let urlString = importURLString.trimmingCharacters(in: .whitespacesAndNewlines)
         guard let url = URL(string: urlString) else {
-            fail(localized("無效的 URL"))
+            fail(localized("无效的 URL"))
             return
         }
         networkImportLoading = true
@@ -216,7 +216,7 @@ final class BookSourceAddFlow: ObservableObject {
                 return
             }
             guard let text = String(data: data, encoding: .utf8) ?? String(data: data, encoding: .isoLatin1) else {
-                fail(localized("無法解析伺服器回應"))
+                fail(localized("无法解析伺服器回应"))
                 return
             }
             importURLString = ""
@@ -225,12 +225,12 @@ final class BookSourceAddFlow: ObservableObject {
         }
     }
 
-    /// 粘貼源: imports the clipboard's book-source JSON (or fetches it when the clipboard holds
-    /// a URL), through the same import path as 本地導入.
+    /// 粘贴源: imports the clipboard's book-source JSON (or fetches it when the clipboard holds
+    /// a URL), through the same import path as 本地导入.
     func pasteFromClipboard() {
         guard let text = UIPasteboard.general.string,
               !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            fail(localized("剪貼簿為空"))
+            fail(localized("剪贴簿为空"))
             return
         }
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -267,7 +267,7 @@ final class BookSourceAddFlow: ObservableObject {
     func commitImportReview() {
         do {
             let count = try importCoordinator.confirmImport()
-            message = Message(isError: false, text: String(format: localized("成功匯入 %d 個來源配置"), count))
+            message = Message(isError: false, text: String(format: localized("成功汇入 %d 个来源配置"), count))
         } catch {
             fail(error.localizedDescription)
         }
@@ -296,7 +296,7 @@ private struct BookSourceAddFlowPresentations: ViewModifier {
             .sheet(isPresented: $flow.showsChooser, onDismiss: flow.afterChooserDismissal) {
                 AdaptiveSheetContainer(maxWidth: DSLayout.readableCompactWidth) {
                     DismissalSequencedActionChooser(
-                        title: localized("新增來源配置"),
+                        title: localized("新增来源配置"),
                         actions: BookSourceAddRoute.allCases.map(\.chooserAction),
                         onSelect: flow.choose
                     )
@@ -335,13 +335,13 @@ private struct BookSourceAddFlowPresentations: ViewModifier {
                 SourceDisclaimerView { flow.acceptDisclaimer() }
             }
             .alert(
-                flow.message?.isError == true ? localized("操作失敗") : localized("完成"),
+                flow.message?.isError == true ? localized("操作失败") : localized("完成"),
                 isPresented: Binding(
                     get: { flow.message != nil },
                     set: { if !$0 { flow.message = nil } }
                 )
             ) {
-                Button(localized("確定"), role: .cancel) {}
+                Button(localized("确定"), role: .cancel) {}
             } message: {
                 Text(flow.message?.text ?? "")
             }
@@ -371,7 +371,7 @@ struct BookSourceAddMenuItems: View {
     }
 }
 
-/// 來源配置管理's 「+」: a native menu from iOS 18; on iOS 17 a chooser, since every route is a
+/// 来源配置管理's 「+」: a native menu from iOS 18; on iOS 17 a chooser, since every route is a
 /// sheet or a document picker, which a still-dismissing menu can drop.
 struct BookSourceAddToolbarControl: View {
     let flow: BookSourceAddFlow
@@ -383,14 +383,14 @@ struct BookSourceAddToolbarControl: View {
             } label: {
                 Image(systemName: "plus")
             }
-            .accessibilityLabel(localized("新增來源配置"))
+            .accessibilityLabel(localized("新增来源配置"))
         } else {
             Menu {
                 BookSourceAddMenuItems(flow: flow)
             } label: {
                 Image(systemName: "plus")
             }
-            .accessibilityLabel(localized("新增來源配置"))
+            .accessibilityLabel(localized("新增来源配置"))
         }
     }
 }
@@ -405,7 +405,7 @@ private struct BookSourceImportSheet: View {
             VStack(spacing: 0) {
                 HStack(alignment: .top, spacing: 10) {
                     Image(systemName: "info.circle").foregroundColor(DSColor.accent)
-                    Text(localized("貼上 Legado 格式的來源配置 JSON（支援單個 {} 或陣列 []），或選取 .json 文件。"))
+                    Text(localized("贴上 Legado 格式的来源配置 JSON（支援单个 {} 或阵列 []），或选取 .json 文件。"))
                         .font(DSFont.caption).foregroundColor(DSColor.textSecondary)
                 }
                 .padding()
@@ -424,7 +424,7 @@ private struct BookSourceImportSheet: View {
                 Button {
                     flow.requestFileImport()
                 } label: {
-                    Label(localized("從文件選取 .json"), systemImage: "doc.badge.plus")
+                    Label(localized("从文件选取 .json"), systemImage: "doc.badge.plus")
                         .frame(maxWidth: .infinity).padding()
                         .background(Color.secondary.opacity(0.15))
                         .clipShape(RoundedRectangle(cornerRadius: 12))
@@ -435,7 +435,7 @@ private struct BookSourceImportSheet: View {
 
                 Spacer()
             }
-            .navigationTitle(localized("匯入來源配置"))
+            .navigationTitle(localized("汇入来源配置"))
             .toolbarTitleDisplayMode(.inline)
             .themedAppSurface(for: .settings)
             .toolbar {
@@ -445,7 +445,7 @@ private struct BookSourceImportSheet: View {
                     } label: {
                         Image(systemName: "xmark")
                     }
-                    .accessibilityLabel(localized("關閉"))
+                    .accessibilityLabel(localized("关闭"))
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
@@ -453,7 +453,7 @@ private struct BookSourceImportSheet: View {
                     } label: {
                         Image(systemName: "checkmark")
                     }
-                    .accessibilityLabel(localized("匯入"))
+                    .accessibilityLabel(localized("汇入"))
                     .disabled(flow.importJSON.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }
@@ -474,7 +474,7 @@ private struct BookSourceNetworkImportSheet: View {
             VStack(spacing: 0) {
                 HStack(alignment: .top, spacing: 10) {
                     Image(systemName: "network").foregroundColor(DSColor.accent)
-                    Text(localized("輸入來源配置 JSON 的網路地址，支援直接返回 JSON 的 URL。"))
+                    Text(localized("输入来源配置 JSON 的网路地址，支援直接返回 JSON 的 URL。"))
                         .font(DSFont.caption).foregroundColor(DSColor.textSecondary)
                 }
                 .padding()
@@ -496,7 +496,7 @@ private struct BookSourceNetworkImportSheet: View {
 
                 Spacer()
             }
-            .navigationTitle(localized("網路導入"))
+            .navigationTitle(localized("网路导入"))
             .toolbarTitleDisplayMode(.inline)
             .themedAppSurface(for: .settings)
             .toolbar {
@@ -506,7 +506,7 @@ private struct BookSourceNetworkImportSheet: View {
                     } label: {
                         Image(systemName: "xmark")
                     }
-                    .accessibilityLabel(localized("關閉"))
+                    .accessibilityLabel(localized("关闭"))
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
@@ -514,7 +514,7 @@ private struct BookSourceNetworkImportSheet: View {
                     } label: {
                         Image(systemName: "checkmark")
                     }
-                    .accessibilityLabel(localized("匯入"))
+                    .accessibilityLabel(localized("汇入"))
                     .disabled(
                         flow.importURLString.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                         || flow.networkImportLoading)
@@ -525,11 +525,11 @@ private struct BookSourceNetworkImportSheet: View {
 }
 
 #if DEBUG
-#Preview("網路導入") {
+#Preview("网路导入") {
     BookSourceNetworkImportSheet(flow: BookSourceAddFlow())
 }
 
-#Preview("匯入來源配置") {
+#Preview("汇入来源配置") {
     BookSourceImportSheet(flow: BookSourceAddFlow())
 }
 #endif

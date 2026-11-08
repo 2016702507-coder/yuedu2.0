@@ -19,7 +19,7 @@ import Foundation
 /// search, so is a Japanese one for a copy whose title has no kana; tags keep the copy title's
 /// script.
 ///
-/// Asked in the order 資料來源 lists it, checked by default (maintainer, 2026-10-15).
+/// Asked in the order 资料来源 lists it, checked by default (maintainer, 2026-10-15).
 @MainActor
 final class ModuleFillProvider: MetadataFillProvider {
     /// The fields a search result can give.
@@ -214,7 +214,7 @@ final class ModuleFillProvider: MetadataFillProvider {
         return values
     }
 
-    /// An author value naming several people (`山田鐘人、アベツカサ`).
+    /// An author value naming several people (`山田钟人、アベツカサ`).
     private static func names(_ author: String) -> [String] {
         author.components(separatedBy: CharacterSet(charactersIn: "、,，/／;；\n"))
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }

@@ -5,9 +5,9 @@ import Foundation
 enum RuleModulePreviewData {
     static func json(id: String, title: String) -> String {
         """
-        {"id":"\(id)","title":"\(title)","description":"某書店的新書與排行。","author":"someone","site":"https://example.com",
+        {"id":"\(id)","title":"\(title)","description":"某书店的新书与排行。","author":"someone","site":"https://example.com",
          "version":"1.0.0","hosts":["example.com","img.example.com"],
-         "modules":[{"id":"new","title":"新書","description":"每週新書","request":{"url":"https://example.com/new"},
+         "modules":[{"id":"new","title":"新书","description":"每周新书","request":{"url":"https://example.com/new"},
                      "list":{"items":"li","title":"h3@text"}}],
          "search":{"request":{"url":"https://example.com/s?q={{keyword}}"},"list":{"items":"li","title":"h3@text"}}}
         """
@@ -15,12 +15,12 @@ enum RuleModulePreviewData {
 
     /// A module whose first list has one parameter of each kind the section form offers.
     static let listsJSON = """
-        {"id":"preview.module","title":"某書店","description":"某書店的新書與排行。","version":"1.0.0","hosts":["example.com"],
-         "modules":[{"id":"new","title":"新書","params":[
-                       {"name":"q","title":"關鍵字","type":"input"},
-                       {"name":"n","title":"數量","type":"count","value":20},
+        {"id":"preview.module","title":"某书店","description":"某书店的新书与排行。","version":"1.0.0","hosts":["example.com"],
+         "modules":[{"id":"new","title":"新书","params":[
+                       {"name":"q","title":"关键字","type":"input"},
+                       {"name":"n","title":"数量","type":"count","value":20},
                        {"name":"sort","title":"排序","type":"enumeration",
-                        "enumOptions":[{"title":"熱門","value":"hot"},{"title":"最新","value":"new"}]},
+                        "enumOptions":[{"title":"热门","value":"hot"},{"title":"最新","value":"new"}]},
                        {"name":"page","type":"page"}],
                      "request":{"url":"https://example.com/new?q={{q}}&n={{n}}&sort={{sort}}&p={{page}}"},
                      "list":{"items":"li","title":"h3@text"}},
@@ -32,7 +32,7 @@ enum RuleModulePreviewData {
             return try JSONDecoder().decode(RuleModule.self, from: Data(listsJSON.utf8))
         } catch {
             AppLogger.error("Preview module not decoded", error: error, level: .warning)
-            return RuleModule(id: "preview.module", title: "某書店", description: nil, author: nil, site: nil, version: "1.0.0",
+            return RuleModule(id: "preview.module", title: "某书店", description: nil, author: nil, site: nil, version: "1.0.0",
                               requiredVersion: nil, hosts: [], rateLimit: nil, modules: [], search: nil)
         }
     }

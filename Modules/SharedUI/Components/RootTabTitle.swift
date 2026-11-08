@@ -5,14 +5,14 @@ import SwiftUI
 
 /// What a tab root's navigation bar does as its page scrolls.
 enum RootTabBarScrollBehavior {
-    /// The title fades as the page leaves its top and the buttons stay — 書架. The fade
+    /// The title fades as the page leaves its top and the buttons stay — 书架. The fade
     /// follows the page's own scroll position, which `rootTabTitleScrollAnchor()` reports
     /// from inside its scroll content, so whatever brings the page back to its top, a drag,
     /// a fling or a tap on the status bar, brings the title back with it.
     case fadesTitle
     /// The whole bar, title and buttons together, slides away as the page scrolls down and
     /// comes back as it scrolls up; a search field under the bar rises to the top in its
-    /// place — Apple Music's tabs — 探索, RSS, 設定, 搜索. This is iOS 27's own bar
+    /// place — Apple Music's tabs — 探索, RSS, 设置, 搜索. This is iOS 27's own bar
     /// minimization (`toolbarMinimizationBehavior`). iOS 17–26 have no bar minimization:
     /// there the title fades as with `fadesTitle`, and the buttons and the search field
     /// stay — so these pages carry the scroll anchor too.
@@ -20,7 +20,7 @@ enum RootTabBarScrollBehavior {
 }
 
 extension View {
-    /// The title of a tab's root page — 書架, 探索, RSS 訂閱, 設定, 搜索: large and bold at
+    /// The title of a tab's root page — 书架, 探索, RSS 订阅, 设置, 搜索: large and bold at
     /// the leading end of the navigation bar, on the row with the page's buttons, as
     /// Apple Music heads its tabs; `behavior` says what the bar does as the page scrolls.
     ///
@@ -32,7 +32,7 @@ extension View {
     ///
     /// Only the tab roots use this; every other page and sheet is `.inline`.
     ///
-    /// - Parameter overColor: the page draws a dark colour behind the bar — 探索's 頂部輪播圖
+    /// - Parameter overColor: the page draws a dark colour behind the bar — 探索's 顶部轮播图
     ///   (maintainer, 2026-10-27) — so the title is white, and the bar dark, which turns the
     ///   status bar's text white too.
     func rootTabTitle(_ title: String, onScroll behavior: RootTabBarScrollBehavior, overColor: Bool = false) -> some View {
@@ -54,7 +54,7 @@ extension View {
     }
 
     /// A bar under a tab root's title that fades with it as the page leaves its top and
-    /// is back only once the page is — 書架's group chips, which the page scrolls under from
+    /// is back only once the page is — 书架's group chips, which the page scrolls under from
     /// iOS 26. It keeps its room, so nothing under it moves. While VoiceOver runs it stays:
     /// it is how VoiceOver moves between the pages, which reads only the one in view.
     func fadesWithRootTabTitle() -> some View {
@@ -113,7 +113,7 @@ private struct RootTabTitleScrollAnchor: ViewModifier {
     @Environment(\.rootTabTitleFade) private var fade
 
     /// The content keeps its identity as the fade comes and goes — 探索 switches between the
-    /// two behaviors with 編輯首頁 — and only the measurer behind it does: on either side of
+    /// two behaviors with 编辑首页 — and only the measurer behind it does: on either side of
     /// an `if`, the whole page was made again, its sections crossfading instead of morphing.
     func body(content: Content) -> some View {
         content.background {

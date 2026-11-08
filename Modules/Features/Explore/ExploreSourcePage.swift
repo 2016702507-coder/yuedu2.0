@@ -5,14 +5,14 @@ import SwiftUI
 
 /// One explore source's whole discover page, opened from 探索's list: every category the
 /// source lists with the source's own filters above them — as Apple Books lays out a
-/// store, or as Legado lists them (發現頁顯示設定 › 佈局). The gear opens 發現頁設定, which
+/// store, or as Legado lists them (发现页显示设置 › 布局). The gear opens 发现页设置, which
 /// picks the categories the page shows; the avatar opens the source's login page — where
 /// Legado sources keep their settings.
 struct ExploreSourcePage: View {
     @StateObject private var discover: DiscoverViewModel
     @State private var showsLogin = false
     @State private var showsDiscoverSettings = false
-    /// A page link picked in 發現頁設定, opened once the sheet has gone: the browser
+    /// A page link picked in 发现页设置, opened once the sheet has gone: the browser
     /// covers the whole screen, which cannot come up while the sheet is still there.
     @State private var pendingPageAddress: String?
     @AppStorage(ExploreSettings.sourcePageLayoutKey) private var layout = ExploreSourcePageLayout.default
@@ -49,7 +49,7 @@ struct ExploreSourcePage: View {
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button { showsDiscoverSettings = true } label: {
-                        Label(localized("發現頁設定"), systemImage: "gearshape")
+                        Label(localized("发现页设置"), systemImage: "gearshape")
                     }
                 }
                 if hasLogin {
@@ -107,7 +107,7 @@ extension ExploreSourcePage {
 
 #Preview {
     var source = BookSource()
-    source.bookSourceName = "範例來源配置"
+    source.bookSourceName = "范例来源配置"
     source.bookSourceUrl = "https://example.com"
     source.loginUrl = "https://example.com/login"
     return NavigationStack {

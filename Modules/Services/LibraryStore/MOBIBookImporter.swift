@@ -122,10 +122,10 @@ enum MOBIBookImporter {
 extension MOBIError: LocalizedError, DiagnosableError {
     var errorDescription: String? {
         switch self {
-        case .encrypted: localized("這個 Kindle 檔案有 DRM 保護，無法開啟")
-        case .unknownCompression: localized("這個 Kindle 檔案的壓縮方式目前不支援")
+        case .encrypted: localized("这个 Kindle 档案有 DRM 保护，无法开启")
+        case .unknownCompression: localized("这个 Kindle 档案的压缩方式目前不支援")
         case .notMOBI, .unsupportedEncoding, .missingMOBIHeader, .truncatedRecord, .corruptText, .corruptIndex:
-            localized("無法讀取這個 Kindle 檔案")
+            localized("无法读取这个 Kindle 档案")
         }
     }
 
@@ -133,6 +133,6 @@ extension MOBIError: LocalizedError, DiagnosableError {
 }
 
 extension MOBIEPUBWriter.WriteError: LocalizedError, DiagnosableError {
-    var errorDescription: String? { localized("無法讀取這個 Kindle 檔案") }
+    var errorDescription: String? { localized("无法读取这个 Kindle 档案") }
     var diagnosticDescription: String { description }
 }

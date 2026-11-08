@@ -33,7 +33,7 @@ actor OfflineDownloadManager: OfflineDownloadManaging {
     private let chapterStore: any OfflineChapterStoring
     private let maximumConcurrentBooks: Int
     /// Fixed chapter concurrency, for tests that need a deterministic width. `nil` in the
-    /// app: the pool follows 網路設定 → 並發數.
+    /// app: the pool follows 网路设置 → 并发数.
     private let configuredChapterConcurrency: Int?
     /// Seconds to wait before the first automatic retry; later attempts scale with the
     /// attempt number. Injectable so tests exercise the retry path without real waiting.
@@ -75,7 +75,7 @@ actor OfflineDownloadManager: OfflineDownloadManaging {
 
     /// Legado gives each chapter three tries before recording a failure
     /// (`CacheBook.onPostError`). Paid sources, sources behind a login, and chapters that
-    /// also fetch 段評 all take longer and are the ones that lose to a single blip; failing
+    /// also fetch 段评 all take longer and are the ones that lose to a single blip; failing
     /// them on the first error is what made a download report failures it could have avoided.
     private static let maximumChapterAttempts = 3
 
@@ -168,7 +168,7 @@ actor OfflineDownloadManager: OfflineDownloadManaging {
     }
 
     func retryFailed(book: ReadingBook, store: BookStore) async {
-        // An explicit 重試 is a fresh verdict: the user may have logged into the source or
+        // An explicit 重试 is a fresh verdict: the user may have logged into the source or
         // bought the chapter since, so the automatic attempts already spent must not count
         // against this round.
         chapterAttempts.removeValue(forKey: book.id)
@@ -299,8 +299,8 @@ actor OfflineDownloadManager: OfflineDownloadManaging {
                 }
             }
 
-            // Validating a long book is one await per chapter, and 移除下載 can
-            // land in the middle of them (下載管理 even starts this pass on the
+            // Validating a long book is one await per chapter, and 移除下载 can
+            // land in the middle of them (下载管理 even starts this pass on the
             // same screen as the 移除 button). Merging into the task that is live
             // *now* is what keeps a removal removed: writing the pre-validation
             // snapshot back resurrected the task, and because removal had just
@@ -601,7 +601,7 @@ actor OfflineDownloadManager: OfflineDownloadManaging {
     /// Chapter fetches allowed in flight across EVERY downloading book at once — Legado's
     /// shared `threadCount` pool, not a per-book budget. Capacity is read when a book job
     /// starts, the same moment `CacheBookService` reads `AppConfig.threadCount`, so changing
-    /// 並發數 mid-download applies from the next book (or the next resume).
+    /// 并发数 mid-download applies from the next book (or the next resume).
     private var chapterSlotCapacity = 1
     private var chapterSlotsInUse = 0
     private var chapterSlotWaiters: [CheckedContinuation<Void, Never>] = []

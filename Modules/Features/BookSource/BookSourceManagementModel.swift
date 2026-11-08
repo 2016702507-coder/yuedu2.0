@@ -1,7 +1,7 @@
 import Combine
 import Foundation
 
-/// Everything 書源管理 derives from the library — row order, groups, the header counts,
+/// Everything 书源管理 derives from the library — row order, groups, the header counts,
 /// the current page and its selection — computed once per change instead of once per
 /// SwiftUI body evaluation.
 ///
@@ -57,7 +57,7 @@ final class BookSourceManagementModel: ObservableObject {
         }
     }
 
-    /// 全部／抓取異常／正文異常. A different page starts with nothing selected, so a
+    /// 全部／抓取异常／正文异常. A different page starts with nothing selected, so a
     /// selection made on one page can never be deleted from another.
     @Published var filter: ValidationListFilter = .all {
         didSet {
@@ -94,7 +94,7 @@ final class BookSourceManagementModel: ObservableObject {
     private var cancellables: Set<AnyCancellable> = []
 
     /// Legado keeps sources with an empty `bookSourceGroup` in a built-in default group.
-    let defaultGroupName = localized("默認分組")
+    let defaultGroupName = localized("默认分组")
 
     init(
         store: BookSourceStore = .shared,
@@ -109,7 +109,7 @@ final class BookSourceManagementModel: ObservableObject {
         rebuildLibrary()
 
         // `objectWillChange` fires before the store's mutation lands, and one edit can fire
-        // it several times (置頂 moves the source, then records the pin). Rebuilding once,
+        // it several times (置顶 moves the source, then records the pin). Rebuilding once,
         // after the current event has finished mutating, reads the settled library. The
         // main queue is drained before the run loop's next render pass, so the list never
         // draws the half-applied state.
@@ -123,7 +123,7 @@ final class BookSourceManagementModel: ObservableObject {
         observeGrouping(current: settings.bookSourceListGrouped)
     }
 
-    /// Rebuilds the rows when 分組 is switched. `withObservationTracking` reports the change
+    /// Rebuilds the rows when 分组 is switched. `withObservationTracking` reports the change
     /// before it lands and only once: the handler reads the new value after hopping to the
     /// main actor, skips an unchanged one, and re-arms.
     private func observeGrouping(current: Bool) {
@@ -177,7 +177,7 @@ final class BookSourceManagementModel: ObservableObject {
         selectionDidChange()
     }
 
-    /// 全選 for the current page: selects exactly what the page shows, or clears it when
+    /// 全选 for the current page: selects exactly what the page shows, or clears it when
     /// that is already the whole selection.
     func toggleSelectAll() {
         let pageIDs = Set(page.map { ids[$0] })
@@ -185,14 +185,14 @@ final class BookSourceManagementModel: ObservableObject {
         selectionDidChange()
     }
 
-    /// 反選 within the current page.
+    /// 反选 within the current page.
     func invertSelection() {
         let pageIDs = Set(page.map { ids[$0] })
         selectedIDs = pageIDs.subtracting(selectedIDs)
         selectionDidChange()
     }
 
-    /// 選擇該分組 — the group's members come from the current page.
+    /// 选择该分组 — the group's members come from the current page.
     func select(_ ids: Set<UUID>) {
         selectedIDs.formUnion(ids)
         selectionDidChange()
@@ -222,7 +222,7 @@ final class BookSourceManagementModel: ObservableObject {
     }
 
     /// Scrolls to the source once the library change that moved it has been rebuilt —
-    /// 置頂／置底 send a source to the other end of a long list.
+    /// 置顶／置底 send a source to the other end of a long list.
     func revealAfterNextRebuild(_ id: UUID) {
         pendingRevealID = id
     }
@@ -398,7 +398,7 @@ final class BookSourceManagementModel: ObservableObject {
             }
             if !topPinned.isEmpty {
                 append(BookSourceRowGroup(
-                    id: BookSourceRowGroup.topPinnedID, name: localized("置頂組"), sourceIDs: topPinned))
+                    id: BookSourceRowGroup.topPinnedID, name: localized("置顶组"), sourceIDs: topPinned))
             }
             for name in names {
                 append(BookSourceRowGroup(
@@ -408,7 +408,7 @@ final class BookSourceManagementModel: ObservableObject {
             }
             if !bottomPinned.isEmpty {
                 append(BookSourceRowGroup(
-                    id: BookSourceRowGroup.bottomPinnedID, name: localized("置底組"),
+                    id: BookSourceRowGroup.bottomPinnedID, name: localized("置底组"),
                     sourceIDs: bottomPinned))
             }
         } else {

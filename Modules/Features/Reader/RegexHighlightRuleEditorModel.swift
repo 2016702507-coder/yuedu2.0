@@ -24,7 +24,7 @@ final class RegexHighlightRuleEditorModel: ObservableObject {
 
     init(
         rule: RegexHighlightRule,
-        testText: String = "“Sample dialogue”\n「範例對話」",
+        testText: String = "“Sample dialogue”\n「范例对话」",
         onSave: @escaping (RegexHighlightRule) throws -> Void
     ) {
         original = rule
@@ -115,7 +115,7 @@ final class RegexHighlightRuleEditorModel: ObservableObject {
         try preview(testText, rule: draftRule(), appearance: appearance, baseTextColor: baseTextColor)
     }
 
-    /// 九宮格's own preview: a short quote and one that wraps, whatever the rule's
+    /// 九宫格's own preview: a short quote and one that wraps, whatever the rule's
     /// pattern matches — the corners are judged on the first, the stretched edges on
     /// the second.
     func framePreviewAttributedString(
@@ -125,7 +125,7 @@ final class RegexHighlightRuleEditorModel: ObservableObject {
         var rule = draftRule()
         rule.pattern = Self.framePreviewPattern
         return try preview(
-            localized("他說：「好。」\n她回答：「我知道你一定會回來，所以一直在這裡等著，從天亮等到天黑。」"),
+            localized("他说：「好。」\n她回答：「我知道你一定会回来，所以一直在这里等著，从天亮等到天黑。」"),
             rule: rule,
             appearance: appearance,
             baseTextColor: baseTextColor

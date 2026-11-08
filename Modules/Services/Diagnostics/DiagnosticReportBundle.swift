@@ -88,7 +88,7 @@ struct DiagnosticReportBundle: Transferable {
 
     /// Whether rendering this marks the log as reported, silencing the banner.
     ///
-    /// True for the whole log, which is what 匯出並回報 sends. **False for a filtered
+    /// True for the whole log, which is what 汇出并回报 sends. **False for a filtered
     /// subset**, and that is not a nicety: acknowledgement is a single high-water
     /// sequence, so a subset's highest sequence would also mark every lower-numbered
     /// anomaly as reported — including ones the filter excluded, which never left the
@@ -96,7 +96,7 @@ struct DiagnosticReportBundle: Transferable {
     var acknowledgesReport: Bool = true
 
     /// What the person wrote and the device facts, when the log goes out with a report
-    /// from 回饋與改進 (its 在其他應用程式中開啟). Printed ahead of the log.
+    /// from 回馈与改进 (its 在其他应用程式中开启). Printed ahead of the log.
     var preface: String? = nil
 
     static let exportedContentType = UTType.yueduLogFile
@@ -182,7 +182,7 @@ struct DiagnosticReportBundle: Transferable {
 
         // The log has now left the device, so the banner should stop asking for it.
         // Done here rather than at the button because both routes out — the ShareLink
-        // file representation and 複製全部 — go through `render()`.
+        // file representation and 复制全部 — go through `render()`.
         if acknowledgesReport, let highest = entries.map(\.sequence).max() {
             DiagnosticLog.shared.acknowledgeReported(through: highest)
         }

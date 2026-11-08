@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// A card of chips under a title, in equal columns as many to a row as fit — 發現頁設定's
+/// A card of chips under a title, in equal columns as many to a row as fit — 发现页设置's
 /// cards, and the category picker of a custom explore page.
 struct DiscoverChipCard<Content: View>: View {
     let title: String

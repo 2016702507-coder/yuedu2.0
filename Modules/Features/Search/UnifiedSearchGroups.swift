@@ -1,19 +1,19 @@
 import SwiftUI
 
-// Search 9c: the one list of works in groups by kind, as Emby's search lists 人物, 電影 and
-// 電視劇 under a header each, and the 類型 chip that narrows it to one.
+// Search 9c: the one list of works in groups by kind, as Emby's search lists 人物, 电影 and
+// 电视剧 under a header each, and the 类型 chip that narrows it to one.
 
 extension ContentKind {
-    /// The groups' order: 書籍, 漫畫, 有聲書, 影片.
+    /// The groups' order: 书籍, 漫画, 有声书, 影片.
     static let searchGroupOrder: [ContentKind] = [.text, .comic, .audio, .video]
 
-    /// A group's header, and the 類型 chip's choice.
+    /// A group's header, and the 类型 chip's choice.
     var searchGroupTitle: String {
         switch self {
-        case .text: localized("搜尋分組：書籍")
-        case .comic: localized("搜尋分組：漫畫")
-        case .audio: localized("搜尋分組：有聲書")
-        case .video: localized("搜尋分組：影片")
+        case .text: localized("搜寻分组：书籍")
+        case .comic: localized("搜寻分组：漫画")
+        case .audio: localized("搜寻分组：有声书")
+        case .video: localized("搜寻分组：影片")
         }
     }
 }
@@ -26,7 +26,7 @@ struct UnifiedSearchGroup<Row>: Identifiable {
 
     var id: ContentKind { kind }
 
-    /// `rows` in groups: 書籍, 漫畫, 有聲書, 影片, those with nothing left out; with a `filter`, its
+    /// `rows` in groups: 书籍, 漫画, 有声书, 影片, those with nothing left out; with a `filter`, its
     /// kind's group alone.
     static func groups(of rows: [Row], kind: (Row) -> ContentKind, filter: ContentKind?) -> [Self] {
         var byKind: [ContentKind: [Row]] = [:]
@@ -42,16 +42,16 @@ extension UnifiedSearchRow {
     var kind: ContentKind { work.lead.contentKind }
 }
 
-/// The 類型 chip: 全部, or one kind. A menu of one picker, so it opens no modal (no iOS 17
+/// The 类型 chip: 全部, or one kind. A menu of one picker, so it opens no modal (no iOS 17
 /// menu-to-sheet race); the choice lasts while the search page does.
 struct SearchKindFilterChip: View {
     let model: UnifiedSearchModel
 
-    private var title: String { model.kindFilter?.searchGroupTitle ?? localized("類型") }
+    private var title: String { model.kindFilter?.searchGroupTitle ?? localized("类型") }
 
     var body: some View {
         Menu {
-            Picker(localized("類型"), selection: Binding(get: { model.kindFilter }, set: { model.kindFilter = $0 })) {
+            Picker(localized("类型"), selection: Binding(get: { model.kindFilter }, set: { model.kindFilter = $0 })) {
                 Text(localized("全部")).tag(ContentKind?.none)
                 ForEach(ContentKind.searchGroupOrder, id: \.self) { kind in
                     Text(kind.searchGroupTitle).tag(ContentKind?.some(kind))
@@ -61,7 +61,7 @@ struct SearchKindFilterChip: View {
             SearchFilterChipLabel(title: title)
         }
         .searchFilterChip(isActive: model.kindFilter != nil)
-        .accessibilityLabel(localized("類型"))
+        .accessibilityLabel(localized("类型"))
         .accessibilityValue(model.kindFilter?.searchGroupTitle ?? localized("全部"))
         .accessibilityIdentifier("search.kindFilter")
         .searchFilterChipRowHeight()
@@ -94,17 +94,17 @@ extension View {
 
     /// The chips' row height. Applied after the chip's accessibility modifiers: on the frame,
     /// they make a container element around the control, and on iOS 17 activating that
-    /// element (a VoiceOver double tap, an XCUITest tap) never opened 類型's menu (search 9e).
+    /// element (a VoiceOver double tap, an XCUITest tap) never opened 类型's menu (search 9e).
     func searchFilterChipRowHeight() -> some View {
         frame(minHeight: DSLayout.minimumTapTarget)
     }
 }
 
 #if DEBUG
-#Preview("搜索：篩選條") {
+#Preview("搜索：筛选条") {
     HStack {
         SearchKindFilterChip(model: UnifiedSearchModel(sourceURL: { _ in nil }))
-        Button {} label: { SearchFilterChipLabel(title: "全部來源配置") }
+        Button {} label: { SearchFilterChipLabel(title: "全部来源配置") }
             .searchFilterChip(isActive: false)
             .searchFilterChipRowHeight()
         Spacer()

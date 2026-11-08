@@ -2,16 +2,16 @@ import Combine
 import Foundation
 
 /// The installed modules, as the app shows them (Phase 6e): the one owner every screen reads —
-/// 資源庫's 模組, a module's page, the name a module's book shows under. `RuleModuleStore` is
+/// 资源库's 模组, a module's page, the name a module's book shows under. `RuleModuleStore` is
 /// the disk; this is its published copy, read off the main actor and replaced after each write.
 ///
 /// The official modules (`OfficialRuleModules`, M2) are read with it and listed first, so every
 /// path that takes the installed modules — rows, search, fill, a section's form — takes them
-/// too. Only 資源庫 tells them apart: 官方模組 and 匯入的模組.
+/// too. Only 资源库 tells them apart: 官方模组 and 汇入的模组.
 ///
-/// 停用 (M6, maintainer 2026-10-17: 「加『停用』，一鍵全關」) takes a module out of `modules` —
+/// 停用 (M6, maintainer 2026-10-17: 「加『停用』，一键全关」) takes a module out of `modules` —
 /// and so out of every path above — while `official`, `imported` and `installed(id:)` still list
-/// it for the 模組 page, where it is turned back on.
+/// it for the 模组 page, where it is turned back on.
 @MainActor
 final class RuleModuleLibrary: ObservableObject {
     static let shared = RuleModuleLibrary()
@@ -19,16 +19,16 @@ final class RuleModuleLibrary: ObservableObject {
     /// The official modules this storefront has, then the imported ones, oldest install first;
     /// a module turned off (停用) is left out.
     @Published private(set) var modules: [InstalledRuleModule] = []
-    /// The imported ones alone: 匯入的模組.
+    /// The imported ones alone: 汇入的模组.
     @Published private(set) var imported: [InstalledRuleModule] = []
-    /// The official ones this storefront has: 官方模組.
+    /// The official ones this storefront has: 官方模组.
     @Published private(set) var official: [InstalledRuleModule] = []
     /// Folders that could not be read: reported, never overwritten (6c).
     @Published private(set) var failures: [RuleModuleStore.Failure] = []
     @Published private(set) var isLoaded = false
-    /// Turned off on the 模組 page (停用).
+    /// Turned off on the 模组 page (停用).
     @Published private(set) var disabled: Set<String>
-    /// Turned off with 在資源庫中展示: on the 模組 page only, still in use everywhere else.
+    /// Turned off with 在资源库中展示: on the 模组 page only, still in use everywhere else.
     @Published private(set) var hiddenInLibrary: Set<String>
 
     let store: RuleModuleStore
@@ -70,7 +70,7 @@ final class RuleModuleLibrary: ObservableObject {
         modules.first { $0.module.id == id }
     }
 
-    /// Every installed module, those turned off included: the 模組 page.
+    /// Every installed module, those turned off included: the 模组 page.
     var installed: [InstalledRuleModule] { official + imported }
 
     /// An installed module, in use or not: its page, and the name its books show under.
@@ -78,7 +78,7 @@ final class RuleModuleLibrary: ObservableObject {
         installed.first { $0.module.id == id }
     }
 
-    /// The file a module was read from, as its author wrote it: 匯出 (M6). An official module's
+    /// The file a module was read from, as its author wrote it: 汇出 (M6). An official module's
     /// is the bundled one.
     func file(of installed: InstalledRuleModule) -> URL? {
         guard installed.isOfficial else { return store.moduleFile(id: installed.module.id) }
@@ -95,7 +95,7 @@ final class RuleModuleLibrary: ObservableObject {
         publish()
     }
 
-    /// Whether its card is in 資源庫: a module turned off never is.
+    /// Whether its card is in 资源库: a module turned off never is.
     func isShownInLibrary(_ id: String) -> Bool { isEnabled(id) && !hiddenInLibrary.contains(id) }
 
     func setShownInLibrary(_ shown: Bool, id: String) {
@@ -103,7 +103,7 @@ final class RuleModuleLibrary: ObservableObject {
         preferences.set(hiddenInLibrary.sorted(), forKey: Self.hiddenInLibraryKey)
     }
 
-    /// The first read, for a screen that may open before 資源庫 has read it (the Explore home).
+    /// The first read, for a screen that may open before 资源库 has read it (the Explore home).
     func loadIfNeeded() async {
         guard !isLoaded else { return }
         await load()
@@ -165,7 +165,7 @@ final class RuleModuleLibrary: ObservableObject {
         return updated
     }
 
-    /// Deletes the module's folder, cache included, and its 停用 and 在資源庫中展示: installed
+    /// Deletes the module's folder, cache included, and its 停用 and 在资源库中展示: installed
     /// again, it starts on.
     func remove(id: String) async throws {
         let store = store

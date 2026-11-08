@@ -7,7 +7,7 @@ import UIKit
 //
 // Apple Books' audiobook player, as the maintainer recorded it (2026-11-05): a scrolling title,
 // a speed popover whose presets give way to a ruler when swiped, a sleep menu with a count-down
-// wheel for 自訂, the system's volume and AirPlay. `AudiobookReaderView` puts them together.
+// wheel for 自订, the system's volume and AirPlay. `AudiobookReaderView` puts them together.
 
 // MARK: Background
 
@@ -34,7 +34,7 @@ struct AudiobookPlayerPalette: Equatable {
 // MARK: Popovers
 
 extension View {
-    /// The player's popovers (倍速, 自訂睡眠) in the cover's tone, as the page behind them is:
+    /// The player's popovers (倍速, 自订睡眠) in the cover's tone, as the page behind them is:
     /// glass tinted with it from iOS 26, the tone itself before. Dark, like the page, whose tone
     /// is darkened for its white type (`CoverTint.background`). The system's own popover glass
     /// took the app's light appearance and came out milky white over the player (on device,
@@ -213,13 +213,13 @@ struct AudiobookSpeedPicker: View {
             }
             .frame(height: DSLayout.audiobookSpeedSelectedPresetSide + DSSpacing.sm)
 
-            Text(localized(showsRuler ? "調整播放速度" : "滑動以顯示更多速度"))
+            Text(localized(showsRuler ? "调整播放速度" : "滑动以显示更多速度"))
                 .font(DSFont.fixed(size: DSLayout.audiobookSpeedCaptionFontSize))
                 .foregroundStyle(DSColor.audiobookPlayerSecondary)
                 // The ruler's every tenth, a swipe up or down away: VoiceOver cannot swipe
                 // across the presets to reach it.
                 .accessibilityElement()
-                .accessibilityLabel(localized("調整播放速度"))
+                .accessibilityLabel(localized("调整播放速度"))
                 .accessibilityValue(AudiobookPlaybackRate.label(rate))
                 .accessibilityAdjustableAction { direction in
                     switch direction {
@@ -362,7 +362,7 @@ enum AudiobookSleepChoice: Hashable {
         .custom, .endOfChapter, .minutes(60), .minutes(45), .minutes(30), .minutes(15), .minutes(10), .minutes(5), .off,
     ]
 
-    /// The row the timer that is set belongs to; minutes no row offers are 自訂's.
+    /// The row the timer that is set belongs to; minutes no row offers are 自订's.
     init(_ option: AudiobookSleepOption) {
         switch option {
         case .off: self = .off
@@ -374,15 +374,15 @@ enum AudiobookSleepChoice: Hashable {
 
     var title: String {
         switch self {
-        case .custom: localized("自訂")
-        case .endOfChapter: localized("當目前章節結束時")
-        case .minutes(60): localized("1 小時")
-        case .minutes(let minutes): String(format: localized("%d 分鐘"), minutes)
-        case .off: localized("睡眠定時：關閉")
+        case .custom: localized("自订")
+        case .endOfChapter: localized("当目前章节结束时")
+        case .minutes(60): localized("1 小时")
+        case .minutes(let minutes): String(format: localized("%d 分钟"), minutes)
+        case .off: localized("睡眠定时：关闭")
         }
     }
 
-    /// What choosing the row sets; nil for 自訂, which asks how long first.
+    /// What choosing the row sets; nil for 自订, which asks how long first.
     var option: AudiobookSleepOption? {
         switch self {
         case .custom: nil
@@ -393,7 +393,7 @@ enum AudiobookSleepChoice: Hashable {
     }
 }
 
-/// 自訂睡眠計時器: hours and minutes on the system's count-down wheel, then 完成.
+/// 自订睡眠计时器: hours and minutes on the system's count-down wheel, then 完成.
 struct AudiobookCustomSleepTimer: View {
     let onDone: (Int) -> Void
 
@@ -401,7 +401,7 @@ struct AudiobookCustomSleepTimer: View {
 
     var body: some View {
         VStack(spacing: DSSpacing.md) {
-            Text(localized("自訂睡眠計時器"))
+            Text(localized("自订睡眠计时器"))
                 .font(DSFont.fixed(size: DSLayout.audiobookSleepTitleFontSize, weight: .semibold))
                 .foregroundStyle(DSColor.audiobookPlayerPrimary)
                 .accessibilityAddTraits(.isHeader)
@@ -422,7 +422,7 @@ struct AudiobookCustomSleepTimer: View {
         .frame(width: DSLayout.audiobookSleepPopoverWidth)
     }
 
-    /// `UIDatePicker`'s `.countDownTimer`: the wheel Apple Books shows, its 小時 and 分鐘 in
+    /// `UIDatePicker`'s `.countDownTimer`: the wheel Apple Books shows, its 小时 and 分钟 in
     /// the system's words. SwiftUI's `DatePicker` has no count-down mode.
     private struct CountDownPicker: UIViewRepresentable {
         @Binding var duration: TimeInterval
@@ -522,7 +522,7 @@ enum AudiobookPlayerTime {
         AudiobookReaderView.formatTime(max(0, date.timeIntervalSince(now).rounded(.up)))
     }
 
-    /// The count-down as VoiceOver reads it: 「44 分鐘 59 秒」 in the system's words.
+    /// The count-down as VoiceOver reads it: 「44 分钟 59 秒」 in the system's words.
     static func spokenCountdown(to date: Date, from now: Date) -> String {
         let seconds = Int(max(0, date.timeIntervalSince(now).rounded(.up)))
         return Duration.seconds(seconds).formatted(.units(allowed: [.hours, .minutes, .seconds], width: .wide))
@@ -537,13 +537,13 @@ enum AudiobookPlayerTime {
         .environment(\.colorScheme, .dark)
 }
 
-#Preview("自訂睡眠計時器") {
+#Preview("自订睡眠计时器") {
     AudiobookCustomSleepTimer { _ in }
         .background(AudiobookPlayerPalette(cover: nil).gradient)
         .environment(\.colorScheme, .dark)
 }
 
-#Preview("跑馬燈") {
+#Preview("跑马灯") {
     AudiobookMarqueeText(
         text: "Sunrise on the Reaping (The Hunger Games)",
         font: DSFont.fixed(size: 20, weight: .semibold),

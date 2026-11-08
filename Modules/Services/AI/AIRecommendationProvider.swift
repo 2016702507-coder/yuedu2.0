@@ -1,17 +1,17 @@
 import Foundation
 
-/// AI 推薦 on the Explore home (AI 推薦 plan 8c): the stored list, served with no request.
+/// AI 推荐 on the Explore home (AI 推荐 plan 8c): the stored list, served with no request.
 ///
 /// The home's row draws from `AIRecommendationStore` directly through `entries(from:)`, the
 /// same builder `load` uses, so a new list or an Open Library match shows in place without the
-/// row passing through its loading state (AI 推薦 plan review: a home sync per match would
+/// row passing through its loading state (AI 推荐 plan review: a home sync per match would
 /// flash the placeholder about twenty times while covers arrive).
 @MainActor
 final class AIRecommendationProvider: HomeSectionProviding {
     /// The section's source. `.library`: on-device data, not a library row.
     static let instanceKey = SourceInstanceKey(type: .library, id: "aiRecommendations")
-    /// The record of a suggestion Open Library did not match: data only, named 「AI 推薦」 in
-    /// 作品詳情 (`FilledMetadata.providerName`).
+    /// The record of a suggestion Open Library did not match: data only, named 「AI 推荐」 in
+    /// 作品详情 (`FilledMetadata.providerName`).
     static let recordInstance = SourceInstanceKey(type: .bibliographic, id: "aiRecommendations")
 
     private let store: AIRecommendationStore
@@ -21,7 +21,7 @@ final class AIRecommendationProvider: HomeSectionProviding {
     }
 
     var instance: SourceInstanceKey { Self.instanceKey }
-    var displayName: String { localized("AI 推薦") }
+    var displayName: String { localized("AI 推荐") }
     var availability: ProviderAvailability { .available }
     var hosts: [String] { [] }
 
@@ -34,7 +34,7 @@ final class AIRecommendationProvider: HomeSectionProviding {
         return Self.entries(from: list)
     }
 
-    /// Each work as a data-only item that opens 作品詳情: Open Library's record when it matched,
+    /// Each work as a data-only item that opens 作品详情: Open Library's record when it matched,
     /// otherwise one of its own. The title and author are the ones the AI gave; the cover is
     /// Open Library's, else the one the reader's book sources gave (`Entry.shownCover`).
     static func entries(from list: AIRecommendationList) -> [CollectionEntry] {
@@ -47,7 +47,7 @@ final class AIRecommendationProvider: HomeSectionProviding {
         }
     }
 
-    /// Each work's reason by its record's key (AI 推薦 8e); a blank one is left out.
+    /// Each work's reason by its record's key (AI 推荐 8e); a blank one is left out.
     static func reasons(from list: AIRecommendationList) -> [SourceItemKey: String] {
         list.entries.reduce(into: [:]) { reasons, entry in
             let reason = entry.work.reason.trimmingCharacters(in: .whitespacesAndNewlines)

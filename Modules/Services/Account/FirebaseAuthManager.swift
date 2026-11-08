@@ -837,35 +837,35 @@ enum AuthFlowError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .missingGoogleIDToken:
-            return localized("Google 登入缺少身份憑證")
+            return localized("Google 登入缺少身份凭证")
         case .missingAppleNonce:
-            return localized("Apple 登入安全驗證失敗")
+            return localized("Apple 登入安全验证失败")
         case .missingAppleIDToken:
-            return localized("Apple 登入缺少身份憑證")
+            return localized("Apple 登入缺少身份凭证")
         case .missingFirebaseUser:
-            return localized("目前沒有已登入的帳號")
+            return localized("目前没有已登入的帐号")
         case .missingPresenter:
-            return localized("無法取得登入視窗")
+            return localized("无法取得登入视窗")
         case .missingPendingCredential:
-            return localized("連結資訊已失效，請重新操作")
+            return localized("连结资讯已失效，请重新操作")
         case .pendingGatewayCredential:
-            return localized("此登入方式屬於另一個帳號。你可以改用它登入那個帳號，或先在那個帳號解除連結。")
+            return localized("此登入方式属于另一个帐号。你可以改用它登入那个帐号，或先在那个帐号解除连结。")
         case .requiresRecentLogin:
-            return localized("為了保護帳號安全，請重新登入後再試")
+            return localized("为了保护帐号安全，请重新登入后再试")
         case .requiresPassword:
-            return localized("請輸入密碼以確認刪除帳號")
+            return localized("请输入密码以确认删除帐号")
         case .requiresCurrentPassword:
-            return localized("請輸入目前的密碼以繼續")
+            return localized("请输入目前的密码以继续")
         case .providerAlreadyLinked:
-            return localized("此登入方式已綁定其他帳號，無法連結")
+            return localized("此登入方式已绑定其他帐号，无法连结")
         case .alreadyLinkedHere:
-            return localized("這個帳號已經連結過此登入方式")
+            return localized("这个帐号已经连结过此登入方式")
         case .providerLinkedToAnotherAccount:
-            return localized("此登入方式屬於另一個帳號。你可以改用它登入那個帳號，或先在那個帳號解除連結。")
+            return localized("此登入方式属于另一个帐号。你可以改用它登入那个帐号，或先在那个帐号解除连结。")
         case .cannotUnlinkLastProvider:
-            return localized("這是唯一的登入方式，解除後就無法再登入，請先連結另一種方式")
+            return localized("这是唯一的登入方式，解除后就无法再登入，请先连结另一种方式")
         case .appleRevokeFailed:
-            return localized("無法撤銷 Apple 授權，帳號沒有被刪除，請稍後再試")
+            return localized("无法撤销 Apple 授权，帐号没有被删除，请稍后再试")
         }
     }
 }

@@ -1,6 +1,6 @@
 import Foundation
 
-/// A book source (來源配置) on the Explore home (unified library 5b): its discover categories
+/// A book source (来源配置) on the Explore home (unified library 5b): its discover categories
 /// as rows, and the category the reader picked to stand for its 「最新」 (design §13.3).
 ///
 /// Pages come through the home's `DiscoverFirstPages` (Discovery Phase 7a-1), which primes the
@@ -67,7 +67,7 @@ final class BookSourceProvider: HomeSectionProviding {
 }
 
 extension CollectionEntry {
-    /// A book-source book as 作品詳情 opens it: a row of Explore's home (`BookSourceProvider`) and
+    /// A book-source book as 作品详情 opens it: a row of Explore's home (`BookSourceProvider`) and
     /// a result of 搜索 (`WorkDetailRoute(searchResult:)`, unified library 5f-4c) make the same item.
     ///
     /// - Parameters:
@@ -95,7 +95,7 @@ extension CollectionEntry {
 }
 
 extension WorkDetailRoute {
-    /// 搜索's result as 作品詳情 opens it (unified library 5f-4c, decision 29), built from the
+    /// 搜索's result as 作品详情 opens it (unified library 5f-4c, decision 29), built from the
     /// snapshot the route froze at the tap (Technotes/iOS17SearchWatchdogPostmortem.md, guardrail 1).
     /// The version is the origin the result's own page opens on — an audiobook's or a video's
     /// first origin of that kind, else the first — so the versions, the pin and the shelf lookup
@@ -120,7 +120,7 @@ extension WorkDetailRoute {
 
 extension HomeSection {
     /// The parameter holding the category picked for a book source's 「最新」 (design §13.3:
-    /// 「由使用者指定一個發現分類代表它」). One per source, on the one 「最新」 section.
+    /// 「由使用者指定一个发现分类代表它」). One per source, on the one 「最新」 section.
     static func latestCategoryKey(sourceURL: String) -> String {
         "latest.category:" + sourceURL
     }

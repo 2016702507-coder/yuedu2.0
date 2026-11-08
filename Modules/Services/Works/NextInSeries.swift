@@ -6,18 +6,18 @@ import Foundation
 /// For each book being read or read to the end, most recently opened first: the work of the
 /// same series, by the same author, with the smallest number after the book's own. Only books
 /// with a number count (decision 24): a series name alone does not say which book comes next.
-/// - A book read to the end counts although 標記為已讀完 takes it out of 繼續閱讀: finishing
-///   one is when the next is wanted. One taken out of 繼續閱讀 unfinished does not.
-/// - A work 繼續閱讀 shows, or one read to the end on this device, is never offered; the next
+/// - A book read to the end counts although 标记为已读完 takes it out of 继续阅读: finishing
+///   one is when the next is wanted. One taken out of 继续阅读 unfinished does not.
+/// - A work 继续阅读 shows, or one read to the end on this device, is never offered; the next
 ///   number after it is.
 /// - One card per series and per work, a shelf copy before an indexed file.
 ///
 /// Pure, and run off the main actor, as `RelatedWorks` is.
 enum NextInSeries {
     /// - Parameters:
-    ///   - seeds: 繼續閱讀's copies and the copies read to the end (`SourceItemKey.copy`), most
+    ///   - seeds: 继续阅读's copies and the copies read to the end (`SourceItemKey.copy`), most
     ///     recently opened first.
-    ///   - continueReading: 繼續閱讀's copies.
+    ///   - continueReading: 继续阅读's copies.
     ///   - finished: shelf copies read to the end (`ReadingBook.isReadToEnd`).
     ///   - shown: the nodes a card may stand for: shelf copies, and files a connection indexed.
     static func pick(in index: WorkIndex, seeds: [SourceItemKey], continueReading: Set<SourceItemKey>,

@@ -1,9 +1,9 @@
 import SwiftUI
 
-/// First-run 注意事項 screen shown before 書源管理 lets the user manage book sources.
+/// First-run 注意事项 screen shown before 书源管理 lets the user manage book sources.
 ///
 /// Layout: large title + lead-in line, the four compliance points in a card (each with an
-/// accent icon chip), and a full-width 繼續 button pinned to the bottom via
+/// accent icon chip), and a full-width 继续 button pinned to the bottom via
 /// `safeAreaInset` — the single way past the screen, per `docs/design.md` onboarding CTA
 /// pattern.
 struct SourceDisclaimerView: View {
@@ -13,7 +13,7 @@ struct SourceDisclaimerView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: DSSpacing.xl) {
-                    Text(localized("使用來源配置前請確認"))
+                    Text(localized("使用来源配置前请确认"))
                         .font(DSFont.headline)
                         .foregroundColor(DSColor.textSecondary)
 
@@ -25,7 +25,7 @@ struct SourceDisclaimerView: View {
             }
             .softScrollEdges()
             .background(PageBackgroundView(scope: .settings).ignoresSafeArea())
-            .navigationTitle(localized("注意事項"))
+            .navigationTitle(localized("注意事项"))
             .toolbarTitleDisplayMode(.inline)
             .safeAreaInset(edge: .bottom) {
                 HStack {
@@ -72,7 +72,7 @@ struct SourceDisclaimerView: View {
         Button {
             onDismiss?()
         } label: {
-            Text(localized("繼續"))
+            Text(localized("继续"))
                 .font(DSFont.headline)
                 .foregroundStyle(DSColor.textOnAccent)
                 .frame(maxWidth: .infinity)

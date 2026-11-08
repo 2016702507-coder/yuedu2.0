@@ -1,7 +1,7 @@
 import Foundation
 import UIKit
 
-/// 回饋中心's one service: sends reports and replies, uploads their attachments, and
+/// 回馈中心's one service: sends reports and replies, uploads their attachments, and
 /// keeps the inbox current. Views make one call each; everything that talks to the
 /// backend is here.
 ///
@@ -22,9 +22,9 @@ final class FeedbackService {
 
         var errorDescription: String? {
             switch self {
-            case .emptyReport: localized("請先描述問題或建議。")
-            case .attachmentTooLarge: localized("影片超過 50 MB，請剪短後再試。")
-            case .attachmentUnreadable: localized("無法讀取這個附件。")
+            case .emptyReport: localized("请先描述问题或建议。")
+            case .attachmentTooLarge: localized("影片超过 50 MB，请剪短后再试。")
+            case .attachmentUnreadable: localized("无法读取这个附件。")
             }
         }
     }
@@ -37,15 +37,15 @@ final class FeedbackService {
         if let error = error as? GatewayAPIError {
             switch error {
             case .notConfigured:
-                return localized("回報服務目前無法使用。")
+                return localized("回报服务目前无法使用。")
             case _ where error.isConnectivityFailure:
-                return localized("無法連線到回報服務，請檢查網路後再試。")
+                return localized("无法连线到回报服务，请检查网路后再试。")
             default:
-                return localized("回報服務暫時出了問題，請稍後再試。")
+                return localized("回报服务暂时出了问题，请稍后再试。")
             }
         }
         if (error as NSError).domain == NSURLErrorDomain {
-            return localized("無法連線到回報服務，請檢查網路後再試。")
+            return localized("无法连线到回报服务，请检查网路后再试。")
         }
         return error.localizedDescription
     }
@@ -57,7 +57,7 @@ final class FeedbackService {
         case sending
     }
 
-    /// How often an open 我的回饋 or conversation asks for news. A screen refresh
+    /// How often an open 我的回馈 or conversation asks for news. A screen refresh
     /// cadence, the Gateway's stand-in for Firestore's live listener — not a wait for
     /// state to settle. Own writes and returning to the foreground refresh at once.
     static let refreshInterval: Duration = .seconds(30)
@@ -154,7 +154,7 @@ final class FeedbackService {
         return threadID
     }
 
-    /// A follow-up in an existing thread. Answering a 待補充 request puts the thread
+    /// A follow-up in an existing thread. Answering a 待补充 request puts the thread
     /// back in the queue; the Gateway decides that from the stored status.
     func reply(to thread: FeedbackThread, text: String, attachments: [FeedbackDraftAttachment]) async throws {
         let body = String(text.trimmingCharacters(in: .whitespacesAndNewlines).prefix(FeedbackFirestoreSchema.textLimit))
@@ -317,7 +317,7 @@ final class FeedbackService {
         return stream
     }
 
-    /// Also called when a 回饋中心 notification arrives while the app is open.
+    /// Also called when a 回馈中心 notification arrives while the app is open.
     func refreshOpenStreams() {
         for wake in wakeups.values { wake.yield() }
     }

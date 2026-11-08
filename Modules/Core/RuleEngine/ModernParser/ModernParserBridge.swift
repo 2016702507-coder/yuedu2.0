@@ -206,7 +206,7 @@ class ModernParserBridge {
             body: body,
             timedOut: timedOut
         )
-        // Third reader of the same exchange: 書源除錯大師, when the user has capture
+        // Third reader of the same exchange: 书源除错大师, when the user has capture
         // on. `WebFetcher`'s capture points miss everything here — rule fetches and
         // `java.ajax` go through `URLSession` directly, not through `WebFetcher`.
         if timedOut {
@@ -631,7 +631,7 @@ class ModernParserBridge {
                 var body: String?
             }
             let pending = BlockingResult<NetworkResponse>()
-            // Pool at 16/host: this handler is ALWAYS set for the online reader, so plain 段評
+            // Pool at 16/host: this handler is ALWAYS set for the online reader, so plain 段评
             // ajaxAll requests land here — URLSession.shared would re-cap them at 6/host (why the
             // ajaxAll throttle raise alone left `⏱ chapter.jsNet` unchanged).
             let task = requestSession.dataTask(with: request) { data, response, error in
@@ -861,7 +861,7 @@ class ModernParserBridge {
     /// Runs `ruleContent.imageDecode` purely for its side effects, with no image bytes to hand.
     ///
     /// Legado calls the rule after an image is decoded, and sources hang per-image bookkeeping off
-    /// it — 同人小说网 clears the memory flag that makes `createSvg()` draw the 段評 bubble, so the
+    /// it — 同人小说网 clears the memory flag that makes `createSvg()` draw the 段评 bubble, so the
     /// next call (the user's tap) opens the review page instead. Images whose bytes we never
     /// downloaded because the source's own JS produced them (`LegadoImageSourceResolver`) still owe
     /// the source that call. `result` is bound to an empty byte array: the rules that use this hook
@@ -963,7 +963,7 @@ class ModernParserBridge {
     }
 
     /// Presents URLs that source JS opens via `java.showBrowser` / `java.startBrowser`.
-    /// Reading a 段評 bubble's click action means running the source's JS and seeing where it
+    /// Reading a 段评 bubble's click action means running the source's JS and seeing where it
     /// wants to send the user, so this has to be reachable from outside the parsing pipeline.
     var browserPresentHandler: ((SourceBrowserRequest, @escaping @Sendable (String?) -> Void) -> Void)? {
         get { jsEngine.browserPresentHandler }
@@ -977,7 +977,7 @@ class ModernParserBridge {
     }
 
     /// `java.toast` / `java.longToast`. A background parse only logs them; a host running a
-    /// script the reader started (a 簡介 button) shows them for that evaluation.
+    /// script the reader started (a 简介 button) shows them for that evaluation.
     var toastHandler: (@Sendable (String) -> Void)? {
         get { jsEngine.toastHandler }
         set { jsEngine.toastHandler = newValue }
@@ -1045,7 +1045,7 @@ class ModernParserBridge {
             onMissingLink: { withoutLink.append($0) }
         ).map { OnlineBook($0, source: source) }
         if !withoutLink.isEmpty {
-            // Why a row a source listed is not in 搜尋, on a device.
+            // Why a row a source listed is not in 搜寻, on a device.
             AppLogger.parse("Search rows without a book link were left out", context: [
                 "source": source.bookSourceName, "count": "\(withoutLink.count)",
                 "first": String(withoutLink[0].prefix(40)),
@@ -1204,7 +1204,7 @@ class ModernParserBridge {
         lastTOCRuntimeVariables = bookRuntimeVariables
 
         let formatJs = source.ruleToc.formatJs.trimmingCharacters(in: .whitespacesAndNewlines)
-        // Most sources have no 更新時間 rule; skipping it spares every row an evaluation.
+        // Most sources have no 更新时间 rule; skipping it spares every row an evaluation.
         let updateTimeRule = source.ruleToc.updateTime.trimmingCharacters(in: .whitespacesAndNewlines)
 
         var chapters: [OnlineChapterRef] = []
@@ -1413,7 +1413,7 @@ class ModernParserBridge {
         // getComments itself. Only semantic IDs/counts are logged — never chapter prose or token.
         let shouldProbeTongrenReviews =
             source.bookSourceName.contains("同人小说网")
-            || source.bookSourceName.contains("同人小說網")
+            || source.bookSourceName.contains("同人小说网")
         if shouldProbeTongrenReviews {
             _ = jsEngine.evaluate(
                 """
@@ -1572,7 +1572,7 @@ class ModernParserBridge {
             }
         }
         let _contentMs = Int(Date().timeIntervalSince(_contentStart) * 1000)
-        // Split a slow chapter.parse: 段評 sources fetch per-paragraph review counts from
+        // Split a slow chapter.parse: 段评 sources fetch per-paragraph review counts from
         // inside this content rule (java.ajaxAll), so that network hides here, not in
         // chapter.network. `chapter.parse − chapter.jsNet ≈ JS CPU (SVG generation etc.)`.
         let _jsNetMs = jsEngine.takeJSNetworkMs()
@@ -1622,7 +1622,7 @@ class ModernParserBridge {
         }
         // An empty chapter is almost always the source's own HTTP call coming back
         // with something its JS couldn't use. The exchange is recorded (not logged)
-        // per request, and only dumped here — otherwise every 段評 `ajaxAll` call
+        // per request, and only dumped here — otherwise every 段评 `ajaxAll` call
         // would print a body head.
         if content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             let net = lastJSNetworkExchange
@@ -1639,7 +1639,7 @@ class ModernParserBridge {
         // `sourceRegex` (资源正则) is not matched against the page. Legado uses it only to pick
         // a resource URL out of a web view's requests (`LegadoHeadlessWebView`); matching the
         // whole page with it here fed nothing but a log field, and on a long page the
-        // backtracking match was the stack behind a 90-second CPU exception during 書源檢查
+        // backtracking match was the stack behind a 90-second CPU exception during 书源检查
         // (Crashlytics a4c29d35, build 131).
         if let handedOver = handover.episodeContent {
             AppLogger.parse("⟐ video episode handed over", context: [
@@ -1749,10 +1749,10 @@ class ModernParserBridge {
         )
         // #region agent log
         if source.bookSourceName.contains("企点") {
-            NSLog("[企點診斷] searchBooks fetch URL → %@", finalUrl)
-            NSLog("[企點診斷] searchBooks response(前200字) → %@", String(body.prefix(200)))
+            NSLog("[企点诊断] searchBooks fetch URL → %@", finalUrl)
+            NSLog("[企点诊断] searchBooks response(前200字) → %@", String(body.prefix(200)))
         }
-        _dbgLog("聚合/JS 搜尋", data: [
+        _dbgLog("聚合/JS 搜寻", data: [
             "source": source.bookSourceName,
             "变量": Self.sourceVariableLogSummary(
                 BookSourceRuntimeStateStore.shared.sourceVariableJSON(
@@ -1781,7 +1781,7 @@ class ModernParserBridge {
             ruleUrl: source.searchUrl, key: keyword, page: page, pageScope: pageScope, on: host
         )
         // #region agent log
-        _dbgLog("聚合/JS 搜尋", data: [
+        _dbgLog("聚合/JS 搜寻", data: [
             "source": source.bookSourceName,
             "变量": Self.sourceVariableLogSummary(
                 BookSourceRuntimeStateStore.shared.sourceVariableJSON(
@@ -2137,8 +2137,8 @@ class ModernParserBridge {
     }
 
     /// The explore rule's JS threw before it produced anything. Not an empty category list:
-    /// the source has categories and we failed to read them (回饋中心 #124 showed this as
-    /// 「暫無發現內容」 after a TypeError in our jsoup bridge).
+    /// the source has categories and we failed to read them (回馈中心 #124 showed this as
+    /// 「暂无发现内容」 after a TypeError in our jsoup bridge).
     struct ExploreScriptError: LocalizedError {
         let message: String
         var errorDescription: String? { message }
@@ -2240,7 +2240,7 @@ class ModernParserBridge {
             result = parseExploreKindText(ruleStr)
         }
 
-        // An empty 發現頁 has four different causes that look identical on screen: the
+        // An empty 发现页 has four different causes that look identical on screen: the
         // rule JS threw, its API answered but with nothing usable, the payload decoded
         // to items with no `url` (dropped later as non-navigable), or it was never JSON
         // in the shape we decode. Only the payload itself tells them apart, and this is
@@ -2306,7 +2306,7 @@ class ModernParserBridge {
             return [single]
         }
         // Both shapes failed. A silent `return []` here is why a `style` type mismatch could empty
-        // 457 sources' 發現頁 with nothing to show for it: an empty discover list looks the same
+        // 457 sources' 发现页 with nothing to show for it: an empty discover list looks the same
         // whether the source has no categories or we failed to read the ones it has. Report the
         // decoder's own reason so the next such mismatch is one log line, not an audit.
         var reason = "unknown"
@@ -2337,7 +2337,7 @@ class ModernParserBridge {
                 guard !entry.isEmpty else { return nil }
 
                 guard let separator = entry.range(of: "::") else {
-                    // No `名稱::URL` split: either a bare category name or markup debris from a
+                    // No `名称::URL` split: either a bare category name or markup debris from a
                     // dead endpoint. Only the latter carries an actual HTML tag.
                     if Self.containsHTMLTag(entry) { return nil }
                     return DiscoverItem(title: entry, url: nil)
@@ -2360,7 +2360,7 @@ class ModernParserBridge {
     ///
     /// Deliberately narrower than `<[^>]+>`: that shape also matches legado's page-range syntax
     /// (`<,{{page}}>`), and screening whole rule lines with it silently deleted every category of
-    /// 38 sources in a 1912-source pack — their 發現頁 came up empty with no error anywhere.
+    /// 38 sources in a 1912-source pack — their 发现页 came up empty with no error anywhere.
     /// A tag name must start with a letter, which no page-range block does.
     static func containsHTMLTag(_ value: String) -> Bool {
         value.range(of: #"</?[a-zA-Z][^>]*>"#, options: .regularExpression) != nil
@@ -2570,10 +2570,10 @@ class ModernParserBridge {
     }
 
     /// Prime a site cookie that a source's discover endpoints read inline but never set themselves.
-    /// 起点's 榜單/分類 build URLs with `…&_csrfToken={{cookie.getKey("https://qidian.com","_csrfToken")}}`
+    /// 起点's 榜单/分类 build URLs with `…&_csrfToken={{cookie.getKey("https://qidian.com","_csrfToken")}}`
     /// AND 起点 requires the SAME token be SENT as a cookie (double-submit) — verified: param-only →
     /// `{"code":1,"msg":"失败"}` 0 books; param+cookie → 20 books. That token is only issued by browsing
-    /// a 起点 book/search page (NOT the homepage, NOT the qt 密鑰). So on iOS the discover is empty
+    /// a 起点 book/search page (NOT the homepage, NOT the qt 密钥). So on iOS the discover is empty
     /// unless we obtain it. We **always re-fetch a fresh token** (not just when absent): a STALE
     /// `_csrfToken` left over from old browsing is session-rejected by 起点, and a skip-if-present
     /// guard would keep using it → still 0 books. Fetching the source's own search page reissues a
@@ -2591,7 +2591,7 @@ class ModernParserBridge {
             before.count,
             searchUrl.count
         )
-        // 同人小說網 can mint a random `_csrfToken` for its review API. 起點's
+        // 同人小说网 can mint a random `_csrfToken` for its review API. 起点's
         // ranking API instead requires a token issued by the current web session.
         // Merely loading the search page while the random token is present does not
         // replace it, leaving query and cookie populated but session-invalid. Remove
@@ -2706,7 +2706,7 @@ class ModernParserBridge {
         // book)` builds it: a detail, TOC or content URL can read back what the book's search
         // row put (`{{java.get('bid')}}`, `@get:{bid}`) before that stage's own rules run.
         loadRuntimeVariables(runtimeVariables)
-        // The rule URL itself can be `@js:` calling into jsLib — a 發現頁 item's url is
+        // The rule URL itself can be `@js:` calling into jsLib — a 发现页 item's url is
         // literally `@js:getApiUrl('/novel/novels', {…})`. jsLib is evaluated when the
         // bridge is built, but a JS timeout resets the engine and only the paths that ask
         // get it back; this one never did, so the call evaluated to nothing and surfaced
@@ -2757,8 +2757,8 @@ class ModernParserBridge {
         }
 
         if sourceRuleData.source.bookSourceName.contains("企点") {
-            NSLog("[企點診斷] fetch 請求 URL → %@", request.url?.absoluteString ?? "nil")
-            NSLog("[企點診斷] fetch 請求 method → %@ body → %@",
+            NSLog("[企点诊断] fetch 请求 URL → %@", request.url?.absoluteString ?? "nil")
+            NSLog("[企点诊断] fetch 请求 method → %@ body → %@",
                   request.httpMethod ?? "GET",
                   request.httpBody.flatMap { String(data: $0, encoding: .utf8) } ?? "nil")
         }

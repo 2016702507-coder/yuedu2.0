@@ -1,21 +1,21 @@
 import Foundation
 
-/// The copy a version of a work is read from, taken as 開始閱讀 takes it: one path for 作品詳情's
-/// 目錄 and for 換源 (maintainer 2026-10-26: 「所有來源配置、WebDAV、Calibre、模組⋯都是相同地位」).
-/// A copy is itself; a 青空文庫 work, a module's book and a library's file each become their own
+/// The copy a version of a work is read from, taken as 开始阅读 takes it: one path for 作品详情's
+/// 目录 and for 换源 (maintainer 2026-10-26: 「所有来源配置、WebDAV、Calibre、模组⋯都是相同地位」).
+/// A copy is itself; a 青空文库 work, a module's book and a library's file each become their own
 /// reading copy, off the shelf until something puts one there (`AozoraLibraryDownloading`,
 /// `ModuleBookShelf`, `RemoteLibraryServing`), and reused when one was taken before.
 @MainActor
 struct VersionReadingCopy {
     /// A library item in no format this app reads.
     struct Unreadable: LocalizedError {
-        var errorDescription: String? { localized("這個版本的格式無法閱讀。") }
+        var errorDescription: String? { localized("这个版本的格式无法阅读。") }
     }
 
     let store: BookStore
     let dependencies: AppDependencies
 
-    /// How `version`'s copy is taken; nil for a version with none — a 來源配置's book (its own
+    /// How `version`'s copy is taken; nil for a version with none — a 来源配置's book (its own
     /// page reads it), a bibliographic record — or a library item not read yet, or in a format
     /// that does not read.
     /// - Parameters:

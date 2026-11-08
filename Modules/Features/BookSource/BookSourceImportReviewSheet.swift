@@ -3,7 +3,7 @@ import SwiftUI
 // MARK: - BookSourceImportReviewSheet
 
 /// The book-source import confirmation list, assembled once. Every route that reviews an
-/// import presents this: 書源管理's own importers, the `yuedu://import/…` deep link, and a
+/// import presents this: 书源管理's own importers, the `yuedu://import/…` deep link, and a
 /// pack shared in from another app.
 struct BookSourceImportReviewSheet: View {
     @ObservedObject var coordinator: BookSourceImportCoordinator
@@ -13,11 +13,11 @@ struct BookSourceImportReviewSheet: View {
     var body: some View {
         if let pending = coordinator.pending {
             SourceImportConfirmList(
-                title: localized("匯入來源配置"),
+                title: localized("汇入来源配置"),
                 plan: pending.plan,
                 existingClock: { coordinator.existingClock(for: $0) },
                 showsComments: $coordinator.showsComments,
-                confirmTitle: localized("匯入"),
+                confirmTitle: localized("汇入"),
                 extraOptions: {
                     BookSourceImportOptionsSection(
                         options: $coordinator.options,
@@ -39,7 +39,7 @@ struct BookSourceImportReviewSheet: View {
 /// shared in from another app, or the in-page WebView importer, which presents from UIKit.
 ///
 /// Owns the coordinator so the sheet's lifetime owns the pending plan; the routes above are
-/// one-shot, unlike 書源管理, which keeps its coordinator across several importers.
+/// one-shot, unlike 书源管理, which keeps its coordinator across several importers.
 struct BookSourceImportReviewHost: View {
     let sources: [BookSource]
     /// Called with the number of sources written once the user confirms.
@@ -63,14 +63,14 @@ struct BookSourceImportReviewHost: View {
             }
         }
         .alert(
-            localized("操作失敗"),
+            localized("操作失败"),
             isPresented: Binding(
                 get: { failureMessage != nil },
                 set: { if !$0 { failureMessage = nil } }
             ),
             presenting: failureMessage
         ) { _ in
-            Button(localized("確定"), role: .cancel) { failureMessage = nil }
+            Button(localized("确定"), role: .cancel) { failureMessage = nil }
         } message: { message in
             Text(message)
         }

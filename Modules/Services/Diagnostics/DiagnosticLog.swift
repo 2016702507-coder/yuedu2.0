@@ -5,7 +5,7 @@ import os
 ///
 /// Everything already flowed to `os_log`, which is the right sink for a developer
 /// with the phone plugged into a Mac and useless for the person actually hitting
-/// the bug. This keeps a bounded copy on disk so 設定 → 診斷與回報 can show it, and
+/// the bug. This keeps a bounded copy on disk so 设置 → 诊断与回报 can show it, and
 /// so the tail of a session survives the crash that ended it.
 ///
 /// **Ownership.** `AppLogger` is the only thing that should call `record` for
@@ -66,8 +66,8 @@ final class DiagnosticLog: @unchecked Sendable {
     /// fixed ring and attached to the next reportable entry.
     ///
     /// The reader's whole diagnostic narration — `[FlipTrace]`, `[FetchTrace]`, the
-    /// 162 `ttsLog` lines — is `.trace`, so with verbose off a user who hit "翻頁卡在
-    /// 載入中" exported a log containing the anomaly and nothing that explained it.
+    /// 162 `ttsLog` lines — is `.trace`, so with verbose off a user who hit "翻页卡在
+    /// 载入中" exported a log containing the anomaly and nothing that explained it.
     /// Turning all of it on instead would burn the export's 6000-line window on page
     /// turns and rotate the anomaly away. So it is recorded, and released only when
     /// something worth reporting happens.

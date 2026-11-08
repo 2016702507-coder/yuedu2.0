@@ -203,7 +203,7 @@ final class SubscriptionStore: ObservableObject {
     private var lastDropReportDate: Date?
     /// Persisted across launches: `true` once this device ever held a Pro
     /// entitlement. Cold-start drops (app relaunched while the entitlement is
-    /// already false — the common "退出重進就掉了" report pattern) only report
+    /// already false — the common "退出重进就掉了" report pattern) only report
     /// when this flag is set, so devices that never had Pro stay silent.
     private var hadProEver: Bool {
         get { UserDefaults.standard.bool(forKey: Self.hadProEverKey) }
@@ -225,7 +225,7 @@ final class SubscriptionStore: ObservableObject {
         #if DEBUG
         // `-debug-force-pro`: a simulator launch has no StoreKit configuration, so this is
         // the only way to look at Pro-only screens there (e.g. Apple Books' action row with
-        // AI 翻譯 in it). Debug builds only.
+        // AI 翻译 in it). Debug builds only.
         if ProcessInfo.processInfo.arguments.contains("-debug-force-pro") {
             debugForceProActive = true
             // An initializer's own assignment skips `didSet`.
@@ -241,8 +241,8 @@ final class SubscriptionStore: ObservableObject {
         // an update delivered while the app was backgrounded or during a
         // purchase interrupted by an Ask-to-Buy / SCA prompt.
         updatesListenerTask = listenForTransactions()
-        // 卡密會員到期／被遠端吊銷時，狀態是 `CardKeyMembership` 自己改的，
-        // 這裡跟著重算一次 `isProActive`，否則要等用戶重啟才掉權益。
+        // 卡密会员到期／被远端吊销时，状态是 `CardKeyMembership` 自己改的，
+        // 这里跟著重算一次 `isProActive`，否则要等用户重启才掉权益。
         CardKeyMembership.shared.onStateChanged = { [weak self] in
             self?.cardKeyMembershipDidChange()
         }
@@ -275,7 +275,7 @@ final class SubscriptionStore: ObservableObject {
 
     /// What the paywall shows right now: the offer, or its member page and whether
     /// that page still sells the lifetime upgrade. The paywall is the only Pro page —
-    /// Settings' 「閱讀Pro」 row always opens it — so there is nothing to disagree with.
+    /// Settings' 「阅读Pro」 row always opens it — so there is nothing to disagree with.
     var paywallPresentationState: PaywallPresentationState {
         PaywallPresentationPolicy.state(
             purchasedProductIDs: purchasedProductIDs,
@@ -374,14 +374,14 @@ final class SubscriptionStore: ObservableObject {
                 "Products loaded \(self.products.map(\.id).joined(separator: ","), privacy: .public) of \(ids.count) for storefront \(storefrontID ?? "nil", privacy: .public)"
             )
             if products.count != ProProduct.allCases.count {
-                lastErrorMessage = localized("無法載入訂閱項目，請稍後再試")
+                lastErrorMessage = localized("无法载入订阅项目，请稍后再试")
             }
         } catch {
             guard generation == productLoadGeneration else { return }
             Self.subscriptionLog.error(
                 "Products failed to load for storefront \(storefrontID ?? "nil", privacy: .public): \(String(describing: error), privacy: .public)"
             )
-            lastErrorMessage = localized("無法載入訂閱項目，請稍後再試")
+            lastErrorMessage = localized("无法载入订阅项目，请稍后再试")
         }
     }
 
@@ -402,7 +402,7 @@ final class SubscriptionStore: ObservableObject {
     func purchaseForSignedInAccount(_ product: Product) async -> Bool {
         guard await ensurePurchasesAllowed() else { return false }
         guard accountService.isAuthenticated else {
-            lastErrorMessage = localized("請先登入後再綁定會員")
+            lastErrorMessage = localized("请先登入后再绑定会员")
             return false
         }
         // Minting the token needs Cloud Functions, which is precisely what is
@@ -414,7 +414,7 @@ final class SubscriptionStore: ObservableObject {
         let token = try? await accountService.accountToken()
         let purchased = await purchase(product, accountToken: token)
         if purchased, token == nil {
-            lastErrorMessage = localized("購買成功，帳號服務暫時無法連線，恢復連線後會自動綁定")
+            lastErrorMessage = localized("购买成功，帐号服务暂时无法连线，恢复连线后会自动绑定")
         }
         return purchased
     }
@@ -451,7 +451,7 @@ final class SubscriptionStore: ObservableObject {
                         if !accountService.isRetryable(error) {
                             permanentBindFailureProductIDs.insert(transaction.productID)
                         }
-                        lastErrorMessage = localized("購買成功，但未能綁定帳號，請稍後使用恢復購買重試")
+                        lastErrorMessage = localized("购买成功，但未能绑定帐号，请稍后使用恢复购买重试")
                     }
                 }
                 await transaction.finish()
@@ -461,13 +461,13 @@ final class SubscriptionStore: ObservableObject {
                 return false
             case .pending:
                 // Ask-to-Buy / SCA: entitlement arrives later via the listener.
-                lastErrorMessage = localized("購買待確認，完成後將自動解鎖")
+                lastErrorMessage = localized("购买待确认，完成后将自动解锁")
                 return false
             @unknown default:
                 return false
             }
         } catch {
-            lastErrorMessage = localized("購買失敗，請稍後再試")
+            lastErrorMessage = localized("购买失败，请稍后再试")
             return false
         }
     }
@@ -482,7 +482,7 @@ final class SubscriptionStore: ObservableObject {
         case .ignore:
             return
         case .reportUnavailable:
-            lastErrorMessage = localized("目前無法開啟優惠碼兌換，請稍後再試")
+            lastErrorMessage = localized("目前无法开启优惠码兑换，请稍后再试")
             return
         case .present:
             break
@@ -503,7 +503,7 @@ final class SubscriptionStore: ObservableObject {
                 await bindCurrentStoreKitEntitlementsToAccount()
             }
         } catch {
-            lastErrorMessage = localized("目前無法開啟優惠碼兌換，請稍後再試")
+            lastErrorMessage = localized("目前无法开启优惠码兑换，请稍后再试")
         }
     }
 
@@ -520,7 +520,7 @@ final class SubscriptionStore: ObservableObject {
             // App Store Pro from the account and the iCloud mirror again.
             await readAllEntitlements()
             if !isProActive {
-                lastErrorMessage = localized("沒有找到可恢復的訂閱")
+                lastErrorMessage = localized("没有找到可恢复的订阅")
             }
             return
         }
@@ -538,7 +538,7 @@ final class SubscriptionStore: ObservableObject {
             await bindCurrentStoreKitEntitlementsToAccount()
         }
         if !isProActive {
-            lastErrorMessage = localized("沒有找到可恢復的訂閱")
+            lastErrorMessage = localized("没有找到可恢复的订阅")
         }
     }
 
@@ -754,7 +754,7 @@ final class SubscriptionStore: ObservableObject {
         }
         recomputeEntitlement()
         if didFailBinding {
-            lastErrorMessage = localized("無法將購買綁定到此帳號")
+            lastErrorMessage = localized("无法将购买绑定到此帐号")
         }
     }
 

@@ -10,7 +10,7 @@ final class ReaderAutoReadRevealHandle {
     var setProgress: ((Double) -> Void)?
 }
 
-/// The 自動閱讀 curtain: the next page, unmasked from the top down.
+/// The 自动阅读 curtain: the next page, unmasked from the top down.
 ///
 /// legado's `AutoPager.onDraw` in one view. Nothing translates and nothing
 /// animates — the next page is drawn over the current one and a clip rectangle
@@ -18,7 +18,7 @@ final class ReaderAutoReadRevealHandle {
 /// accent colour marking the edge. When the edge reaches the bottom the reader
 /// turns the page instantly, unanimated, and the curtain restarts from the top.
 ///
-/// This is why the reader's 仿真／覆蓋／滑動 setting has no effect during auto-read:
+/// This is why the reader's 仿真／覆盖／滑动 setting has no effect during auto-read:
 /// legado bypasses its `PageDelegate` entirely here, and so do we.
 final class AutoReadRevealView: UIView {
 

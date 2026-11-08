@@ -2,12 +2,12 @@ import PhotosUI
 import SwiftUI
 import UIKit
 
-/// 回饋中心 › 回饋與改進: write a bug report or a suggestion, attach up to five images or
+/// 回馈中心 › 回馈与改进: write a bug report or a suggestion, attach up to five images or
 /// videos, and send it with the device facts and this launch's diagnostic log.
 ///
-/// The log is also reachable without a report (僅上傳日誌) and as a file for another app
-/// (在其他應用程式中開啟), the way round when Google's servers are unreachable from the
-/// person's network. Pushed from 回饋中心, or presented as a sheet by the screenshot
+/// The log is also reachable without a report (仅上传日志) and as a file for another app
+/// (在其他应用程式中开启), the way round when Google's servers are unreachable from the
+/// person's network. Pushed from 回馈中心, or presented as a sheet by the screenshot
 /// prompt (`isSheet`), so `.inline` either way.
 struct FeedbackComposeView: View {
     var isSheet = false
@@ -33,7 +33,7 @@ struct FeedbackComposeView: View {
         }
         .softScrollEdges()
         .themedAppSurface(for: .settings)
-        .navigationTitle(localized("回饋與改進"))
+        .navigationTitle(localized("回馈与改进"))
         .toolbarTitleDisplayMode(.inline)
         .toolbar {
             if isSheet {
@@ -54,7 +54,7 @@ struct FeedbackComposeView: View {
             presenting: model.alert
         ) { alert in
             if case .logSent(let reportID) = alert {
-                Button(localized("複製編號")) { UIPasteboard.general.string = reportID }
+                Button(localized("复制编号")) { UIPasteboard.general.string = reportID }
             }
             Button(localized("好"), role: .cancel) {
                 if case .submitted = alert { dismiss() }
@@ -74,7 +74,7 @@ struct FeedbackComposeView: View {
                 Image(systemName: "list.clipboard")
                     .foregroundStyle(DSColor.textSecondary)
                     .accessibilityHidden(true)
-                Text(model.diagnostics == nil ? localized("正在準備反饋數據…") : localized("反饋數據已準備就緒"))
+                Text(model.diagnostics == nil ? localized("正在准备反馈数据…") : localized("反馈数据已准备就绪"))
                     .foregroundStyle(DSColor.textPrimary)
                 Spacer(minLength: DSSpacing.sm)
                 if model.diagnostics == nil {
@@ -92,7 +92,7 @@ struct FeedbackComposeView: View {
 
     private var descriptionSection: some View {
         Section {
-            Picker(localized("類型"), selection: $model.kind) {
+            Picker(localized("类型"), selection: $model.kind) {
                 ForEach(FeedbackKind.allCases) { kind in
                     Text(kind.localizedName).tag(kind)
                 }
@@ -103,10 +103,10 @@ struct FeedbackComposeView: View {
             TextField(model.kind.placeholder, text: $model.text, axis: .vertical)
                 .lineLimit(6...14)
                 .focused($textFocused)
-                .accessibilityLabel(localized("問題描述"))
+                .accessibilityLabel(localized("问题描述"))
                 .accessibilityIdentifier("feedback_compose_text")
         } header: {
-            Text(localized("問題描述"))
+            Text(localized("问题描述"))
                 .foregroundStyle(DSColor.textSecondary)
         }
         .interfaceSectionSurface()
@@ -128,13 +128,13 @@ struct FeedbackComposeView: View {
                     matching: .any(of: [.images, .videos]),
                     preferredItemEncoding: .compatible
                 ) {
-                    Label(localized("新增圖片或影片"), systemImage: "photo.on.rectangle")
+                    Label(localized("新增图片或影片"), systemImage: "photo.on.rectangle")
                         .frame(maxWidth: .infinity)
                 }
                 .accessibilityIdentifier("feedback_compose_add_media")
             }
         } header: {
-            Text(String(format: localized("圖片或影片（可選，最多 %d 個）"), FeedbackFirestoreSchema.attachmentLimit))
+            Text(String(format: localized("图片或影片（可选，最多 %d 个）"), FeedbackFirestoreSchema.attachmentLimit))
                 .foregroundStyle(DSColor.textSecondary)
         }
         .interfaceSectionSurface()
@@ -146,10 +146,10 @@ struct FeedbackComposeView: View {
                 ThemedLabeledContent(row.title, value: row.value)
             }
         } header: {
-            Text(localized("設備資訊"))
+            Text(localized("设备资讯"))
                 .foregroundStyle(DSColor.textSecondary)
         } footer: {
-            Text(localized("提交時會一併上傳以上資訊與這次啟動的診斷紀錄（含書名與來源配置網址，帳號、密碼與網址參數已移除）。"))
+            Text(localized("提交时会一并上传以上资讯与这次启动的诊断纪录（含书名与来源配置网址，帐号、密码与网址参数已移除）。"))
                 .dsSectionFooter()
         }
         .interfaceSectionSurface()
@@ -176,7 +176,7 @@ struct FeedbackComposeView: View {
                     item: model.shareBundle(from: diagnostics),
                     preview: SharePreview(diagnostics.filename)
                 ) {
-                    Label(localized("在其他應用程式中開啟"), systemImage: "square.and.arrow.up")
+                    Label(localized("在其他应用程式中开启"), systemImage: "square.and.arrow.up")
                         .font(DSFont.bodyBold)
                         .frame(maxWidth: .infinity)
                 }
@@ -190,13 +190,13 @@ struct FeedbackComposeView: View {
             Button {
                 model.uploadLogOnly()
             } label: {
-                Text(localized("僅上傳日誌"))
+                Text(localized("仅上传日志"))
                     .font(DSFont.bodyBold)
                     .frame(maxWidth: .infinity)
             }
             .disabled(model.diagnostics == nil || model.isWorking)
         } header: {
-            Text(localized("診斷"))
+            Text(localized("诊断"))
                 .foregroundStyle(DSColor.textSecondary)
         }
         .interfaceSectionSurface()
@@ -220,7 +220,7 @@ struct FeedbackDraftAttachmentStrip: View {
                         .fill(DSColor.surfaceTertiary)
                         .frame(width: DSLayout.feedbackThumbnailSide, height: DSLayout.feedbackThumbnailSide)
                         .overlay { ProgressView() }
-                        .accessibilityLabel(localized("正在處理附件"))
+                        .accessibilityLabel(localized("正在处理附件"))
                 }
             }
             .padding(.vertical, DSSpacing.xs)
@@ -233,7 +233,7 @@ struct FeedbackDraftAttachmentStrip: View {
             .scaledToFill()
             .frame(width: DSLayout.feedbackThumbnailSide, height: DSLayout.feedbackThumbnailSide)
             .clipShape(RoundedRectangle(cornerRadius: DSRadius.md, style: .continuous))
-            .accessibilityLabel(attachment.kind == .video ? localized("影片") : localized("圖片"))
+            .accessibilityLabel(attachment.kind == .video ? localized("影片") : localized("图片"))
             .overlay(alignment: .bottomLeading) {
                 if attachment.kind == .video {
                     Image(systemName: "video.fill")
@@ -254,7 +254,7 @@ struct FeedbackDraftAttachmentStrip: View {
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel(attachment.kind == .video ? localized("移除影片") : localized("移除圖片"))
+                .accessibilityLabel(attachment.kind == .video ? localized("移除影片") : localized("移除图片"))
             }
             .accessibilityElement(children: .contain)
     }
@@ -275,21 +275,21 @@ final class FeedbackComposeModel {
         var title: String {
             switch self {
             case .submitted: localized("已提交")
-            case .logSent: localized("已傳送")
-            case .failed: localized("傳送失敗")
+            case .logSent: localized("已传送")
+            case .failed: localized("传送失败")
             }
         }
 
         var message: String {
             switch self {
             case .submitted:
-                localized("可以在「我的回饋」查看處理進度與回覆。")
+                localized("可以在「我的回馈」查看处理进度与回复。")
             case .logSent(let reportID):
-                String(format: localized("回報編號：%@。把這個編號告訴開發者，就能找到你的紀錄。"), reportID)
+                String(format: localized("回报编号：%@。把这个编号告诉开发者，就能找到你的纪录。"), reportID)
             case .failed(let reason):
                 // Sending needs Google's servers, which some networks cannot reach; the
                 // file does not, so it is offered as the way round.
-                String(format: localized("%@\n可以改用「在其他應用程式中開啟」把紀錄分享給開發者。"), reason)
+                String(format: localized("%@\n可以改用「在其他应用程式中开启」把纪录分享给开发者。"), reason)
             }
         }
     }
@@ -323,13 +323,13 @@ final class FeedbackComposeModel {
     var submitTitle: String {
         switch stage {
         case .uploadingAttachment(let index, let total):
-            String(format: localized("正在上傳附件 %1$d／%2$d…"), index, total)
+            String(format: localized("正在上传附件 %1$d／%2$d…"), index, total)
         case .uploadingLog:
-            localized("正在上傳日誌…")
+            localized("正在上传日志…")
         case .sending:
-            localized("傳送中…")
+            localized("传送中…")
         case nil:
-            localized("提交反饋")
+            localized("提交反馈")
         }
     }
 

@@ -7,7 +7,7 @@ enum HighlightPackImportError: LocalizedError, Equatable {
     case unreadable
 
     var errorDescription: String? {
-        localized("這不是可讀取的高亮規則包。")
+        localized("这不是可读取的高亮规则包。")
     }
 }
 
@@ -221,7 +221,7 @@ enum HighlightPackImporter {
         var dropped: Set<String> = []
         var scaled = false
         for rule in source {
-            let name = rule.name?.trimmedNonEmpty ?? localized("高亮規則")
+            let name = rule.name?.trimmedNonEmpty ?? localized("高亮规则")
             guard let pattern = rule.regex, !pattern.isEmpty else {
                 skipped.append(name)
                 continue
@@ -329,28 +329,28 @@ enum HighlightPackImporter {
         }
         if !skipped.isEmpty {
             notes.append(String(
-                format: localized("下列高亮規則的正則無法使用，已略過：%@"),
+                format: localized("下列高亮规则的正则无法使用，已略过：%@"),
                 skipped.joined(separator: localized("、"))
             ))
         }
         if !unreadableArtwork.isEmpty {
             notes.append(String(
-                format: localized("下列高亮規則的背景圖片無法讀取，已略過：%@"),
+                format: localized("下列高亮规则的背景图片无法读取，已略过：%@"),
                 unreadableArtwork.joined(separator: localized("、"))
             ))
         }
         if !missingFonts.isEmpty {
             notes.append(String(
-                format: localized("高亮規則使用的字型未安裝：%@，已改用閱讀字型顯示。"),
+                format: localized("高亮规则使用的字型未安装：%@，已改用阅读字型显示。"),
                 missingFonts.sorted().joined(separator: localized("、"))
             ))
         }
         if scaled {
-            notes.append(localized("高亮背景圖的縮放比例沒有對應設定，已依文字高度縮放。"))
+            notes.append(localized("高亮背景图的缩放比例没有对应设置，已依文字高度缩放。"))
         }
         if !dropped.isEmpty {
             notes.append(String(
-                format: localized("高亮規則的下列樣式沒有對應設定，已略過：%@"),
+                format: localized("高亮规则的下列样式没有对应设置，已略过：%@"),
                 dropped.sorted().joined(separator: localized("、"))
             ))
         }

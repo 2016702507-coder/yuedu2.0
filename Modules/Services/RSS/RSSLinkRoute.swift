@@ -99,7 +99,7 @@ extension RSSSource {
         return RSSRequestFactory.requestURL(for: self)
     }
 
-    /// Where 開啟首頁 goes; `nil` when the source has no homepage.
+    /// Where 开启首页 goes; `nil` when the source has no homepage.
     var homepageLinkRoute: RSSLinkRoute? {
         guard let homepageURL,
               !homepageURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {

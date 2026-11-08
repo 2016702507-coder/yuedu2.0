@@ -2,8 +2,8 @@ import CoreTransferable
 import Foundation
 import UniformTypeIdentifiers
 
-/// Reads a 段評氣泡 style or a card template file into 氣泡設定's library and wears it — the
-/// one route behind every 匯入樣式 on those pages, run by `readerStyleImportPresentation`.
+/// Reads a 段评气泡 style or a card template file into 气泡设置's library and wears it — the
+/// one route behind every 汇入样式 on those pages, run by `readerStyleImportPresentation`.
 @MainActor
 enum ReaderCommentStyleImporter {
     enum Target: Equatable, Sendable {
@@ -30,7 +30,7 @@ enum ReaderCommentStyleImporter {
         }
     }
 
-    // MARK: - 段評氣泡
+    // MARK: - 段评气泡
 
     /// A `bubble.json` keeps its colours and size; a bare SVG is taken as it is.
     static func importBubble(_ data: Data, fileName: String) throws -> String {
@@ -42,33 +42,33 @@ enum ReaderCommentStyleImporter {
                 settings.commentBubbleScale = GlobalSettings.sanitizedCommentBubbleScale(scale)
             }
             settings.commentBubbleFollowsSourceSVG = false
-            return localized("已套用自訂段評氣泡 SVG。")
+            return localized("已套用自订段评气泡 SVG。")
         }
         guard let svg = String(data: data, encoding: .utf8) else {
-            throw Failure(message: localized("檔案不是可讀取的 SVG。"))
+            throw Failure(message: localized("档案不是可读取的 SVG。"))
         }
         let trimmed = svg.trimmingCharacters(in: .whitespacesAndNewlines)
         if let message = bubbleValidationMessage(for: trimmed) { throw Failure(message: message) }
         settings.upsertCommentBubbleCustomStyle(
-            ReaderCommentBubbleCustomStyle(name: fileName.isEmpty ? localized("自訂 SVG") : fileName, svg: trimmed)
+            ReaderCommentBubbleCustomStyle(name: fileName.isEmpty ? localized("自订 SVG") : fileName, svg: trimmed)
         )
         settings.commentBubbleFollowsSourceSVG = false
-        return localized("已套用自訂段評氣泡 SVG。")
+        return localized("已套用自订段评气泡 SVG。")
     }
 
-    /// Why `svg` cannot be a 段評 bubble, or nil when it can.
+    /// Why `svg` cannot be a 段评 bubble, or nil when it can.
     static func bubbleValidationMessage(for svg: String) -> String? {
         if svg.utf8.count > CommentBubbleSVGRecognizer.maximumUserTemplateSVGByteCount {
             return String(
-                format: localized("SVG 檔案過大，請使用小於 %d KB 的氣泡樣式。"),
+                format: localized("SVG 档案过大，请使用小于 %d KB 的气泡样式。"),
                 CommentBubbleSVGRecognizer.maximumUserTemplateSVGByteCount / 1024
             )
         }
         guard svg.lowercased().contains("<svg") else {
-            return localized("檔案不是可讀取的 SVG。")
+            return localized("档案不是可读取的 SVG。")
         }
         guard CommentBubbleSVGRecognizer.recognizeUserTemplate(svg) != nil else {
-            return localized("這個 SVG 沒有可繪製的內容，無法作為段評氣泡。")
+            return localized("这个 SVG 没有可绘制的内容，无法作为段评气泡。")
         }
         return nil
     }
@@ -83,11 +83,11 @@ enum ReaderCommentStyleImporter {
             style = package.makeStyle()
         } else {
             guard let svg = String(data: data, encoding: .utf8) else {
-                throw Failure(message: localized("檔案不是可讀取的 SVG。"))
+                throw Failure(message: localized("档案不是可读取的 SVG。"))
             }
             style = ReaderCommentCardCustomStyle(
                 kind: kind,
-                name: fileName.isEmpty ? localized("自訂模板") : fileName,
+                name: fileName.isEmpty ? localized("自订模板") : fileName,
                 svg: svg.trimmingCharacters(in: .whitespacesAndNewlines)
             )
         }
@@ -102,16 +102,16 @@ enum ReaderCommentStyleImporter {
 
     static func appliedMessage(for kind: ReaderCommentCardKind) -> String {
         switch kind {
-        case .chapterSay: return localized("已套用自訂本章說模板。")
-        case .authorSay: return localized("已套用自訂作者說模板。")
-        case .hotComment: return localized("已套用自訂神評論模板。")
+        case .chapterSay: return localized("已套用自订本章说模板。")
+        case .authorSay: return localized("已套用自订作者说模板。")
+        case .hotComment: return localized("已套用自订神评论模板。")
         }
     }
 }
 
 // MARK: - Export
 
-/// 匯出目前樣式 as a bare `.svg`: the built-in styles, and custom ones with nothing else to carry.
+/// 汇出目前样式 as a bare `.svg`: the built-in styles, and custom ones with nothing else to carry.
 ///
 /// `ShareLink` rather than `.fileExporter`, as a direct Form row, for the reason recorded in
 /// `Technotes/iOS17MenuModalPresentation.md`.
@@ -133,7 +133,7 @@ struct CommentStyleSVGExport: Transferable {
     }
 }
 
-/// 匯出目前樣式 as JSON: a 段評 bubble's `bubble.json`, or a card template's package — the
+/// 汇出目前样式 as JSON: a 段评 bubble's `bubble.json`, or a card template's package — the
 /// forms that keep colours a bare `.svg` would lose.
 struct CommentStyleJSONExport: Transferable {
     let filename: String

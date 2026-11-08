@@ -1,7 +1,7 @@
 import Combine
 import Foundation
 
-/// One AI 查詞 request and its streamed answer. Owned by the card: closing the card cancels
+/// One AI 查词 request and its streamed answer. Owned by the card: closing the card cancels
 /// the request.
 @MainActor
 final class AIWordLookupModel: ObservableObject {

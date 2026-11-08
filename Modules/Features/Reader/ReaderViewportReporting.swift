@@ -68,8 +68,8 @@ struct ReaderSideInsets: Equatable {
 /// The side safe area is drawn conservatively: a folded iPhone Duo reports 84pt down its whole
 /// right side, though the camera housing it is for covers only the top 82pt of it (measured on
 /// iOS 27.1, 2026-10-27). Where the system also reports that housing (iOS 27.1), anything
-/// running past it — the text, the 頁腳 — has the full width, as a page of 微信讀書 does; only
-/// what sits beside it, the 頁眉, keeps clear.
+/// running past it — the text, the 页脚 — has the full width, as a page of 微信读书 does; only
+/// what sits beside it, the 页眉, keeps clear.
 struct ReaderWindowObstructions: Equatable {
     var windowWidth: CGFloat = 0
     var windowHeight: CGFloat = 0

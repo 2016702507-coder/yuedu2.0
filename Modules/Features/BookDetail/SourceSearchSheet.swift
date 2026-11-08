@@ -1,10 +1,10 @@
 import SwiftUI
 
-/// 換源 for a book opened outside search: searches the enabled sources for the title
+/// 换源 for a book opened outside search: searches the enabled sources for the title
 /// and lists every match, grouped by book, with the current source checked.
 ///
-/// On 作品詳情 (unified library 5f-3) the work's other known reading sources come first — its
-/// shelf copy, a library's file read from (decision 32) — so the page has one 來源 control: this sheet, opened by a button, never
+/// On 作品详情 (unified library 5f-3) the work's other known reading sources come first — its
+/// shelf copy, a library's file read from (decision 32) — so the page has one 来源 control: this sheet, opened by a button, never
 /// a modal from a menu (iOS 17 drops those; Technotes/iOS17MenuModalPresentation.md).
 struct SourceSearchSheet: View {
     let query: String
@@ -23,7 +23,7 @@ struct SourceSearchSheet: View {
             content
                 .background(PageBackgroundView(scope: .global).ignoresSafeArea())
                 .pageBackgroundToolbar(for: .global)
-                .navigationTitle(localized("選擇來源"))
+                .navigationTitle(localized("选择来源"))
                 .toolbarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .topBarLeading) {
@@ -33,7 +33,7 @@ struct SourceSearchSheet: View {
                     if aggregator.isSearching && !aggregator.results.isEmpty {
                         ToolbarItem(placement: .topBarTrailing) {
                             ProgressView()
-                                .accessibilityLabel(localized("搜尋來源配置中…"))
+                                .accessibilityLabel(localized("搜寻来源配置中…"))
                         }
                     }
                 }
@@ -54,7 +54,7 @@ struct SourceSearchSheet: View {
     private var content: some View {
         if !otherVersions.isEmpty {
             List {
-                Section(localized("已知的閱讀來源")) {
+                Section(localized("已知的阅读来源")) {
                     ForEach(otherVersions) { version in
                         SourceVersionRow(title: version.title) {
                             onSelectVersion(version.id)
@@ -64,13 +64,13 @@ struct SourceSearchSheet: View {
                 }
                 if aggregator.isSearching && aggregator.results.isEmpty {
                     Section {
-                        ProgressView(localized("搜尋來源配置中…"))
+                        ProgressView(localized("搜寻来源配置中…"))
                             .frame(maxWidth: .infinity)
                             .listRowBackground(Color.clear)
                     }
                 } else if aggregator.results.isEmpty {
                     Section {
-                        Text(localized("未找到其他來源配置"))
+                        Text(localized("未找到其他来源配置"))
                             .font(DSFont.body)
                             .foregroundStyle(DSColor.textSecondary)
                             .listRowBackground(Color.clear)
@@ -83,11 +83,11 @@ struct SourceSearchSheet: View {
             .scrollContentBackground(.hidden)
             .softScrollEdges()
         } else if aggregator.isSearching && aggregator.results.isEmpty {
-            ProgressView(localized("搜尋來源配置中…"))
+            ProgressView(localized("搜寻来源配置中…"))
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else if aggregator.results.isEmpty {
             ContentUnavailableView {
-                UnavailableLabel(localized("未找到其他來源配置"), systemImage: "magnifyingglass")
+                UnavailableLabel(localized("未找到其他来源配置"), systemImage: "magnifyingglass")
             }
         } else {
             List {
@@ -129,8 +129,8 @@ struct SourceSearchSheet: View {
     }
 }
 
-#Preview("換源，作品的其他版本") {
-    SourceSearchSheet(query: "紅樓夢", currentSourceId: UUID(), currentBookURL: "https://example.com/book",
-                      otherVersions: [.init(id: "copy", title: "書架 · 已讀 42%"), .init(id: "webdav", title: "家中 NAS")],
+#Preview("换源，作品的其他版本") {
+    SourceSearchSheet(query: "红楼梦", currentSourceId: UUID(), currentBookURL: "https://example.com/book",
+                      otherVersions: [.init(id: "copy", title: "书架 · 已读 42%"), .init(id: "webdav", title: "家中 NAS")],
                       onSelectOrigin: { _ in })
 }

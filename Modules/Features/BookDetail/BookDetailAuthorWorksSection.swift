@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// 作者其他作品 at the foot of 作品詳情: the author's other works as a shelf of covers, drawn as
+/// 作者其他作品 at the foot of 作品详情: the author's other works as a shelf of covers, drawn as
 /// Explore's home draws a row of them. Not shown at all until the works are read — no header
 /// over a spinner that could then vanish and move the page — nor when there is no other work
 /// (`AuthorWorksModel.State.hidden`). A failed read keeps its retry.
@@ -42,7 +42,7 @@ struct BookDetailAuthorWorksSection: View {
                                  identifier: "detail.authorWorks.book", onSelect: onSelect)
         case .failed:
             Button(action: onRetry) {
-                Label(localized("載入失敗，點按重試"), systemImage: "arrow.clockwise")
+                Label(localized("载入失败，点按重试"), systemImage: "arrow.clockwise")
                     .font(DSFont.subheadline)
                     .foregroundStyle(DSColor.accent)
                     .frame(maxWidth: .infinity, minHeight: DSLayout.discoverShelfCoverHeight)
@@ -55,7 +55,7 @@ struct BookDetailAuthorWorksSection: View {
     }
 }
 
-/// A row of covers under a section header of 作品詳情 (作者其他作品, 同系列), as Explore's
+/// A row of covers under a section header of 作品详情 (作者其他作品, 同系列), as Explore's
 /// home draws one.
 struct BookDetailCoverShelf: View {
     let cards: [HomeCardContent]
@@ -91,7 +91,7 @@ struct BookDetailCoverShelf: View {
     }
 }
 
-/// A public library's author page pushed from 作品詳情: a book on it opens that book's 作品詳情
+/// A public library's author page pushed from 作品详情: a book on it opens that book's 作品详情
 /// on top, keeping the author's page to come back to.
 struct WorkDetailAuthorPage: View {
     let destination: PublicLibraryAuthorDestination
@@ -102,8 +102,8 @@ struct WorkDetailAuthorPage: View {
     }
 }
 
-/// A 青空文庫 分類's works, from 作品詳情's hero: the list 依分類 opens, each work opening its
-/// 作品詳情 on top.
+/// A 青空文库 分类's works, from 作品详情's hero: the list 依分类 opens, each work opening its
+/// 作品详情 on top.
 struct WorkDetailAozoraWorksPage: View {
     let title: String
     let works: [AozoraWork]
@@ -131,11 +131,11 @@ private struct OpensWorkDetail: ViewModifier {
 }
 
 private extension View {
-    /// A public library's book on this page opens its 作品詳情 on the same stack.
+    /// A public library's book on this page opens its 作品详情 on the same stack.
     func opensWorkDetail() -> some View { modifier(OpensWorkDetail()) }
 }
 
-/// An author's page in a public library: Gutenberg's feed of their books, or 青空文庫's list of
+/// An author's page in a public library: Gutenberg's feed of their books, or 青空文库's list of
 /// their works. A book on it opens through `openPublicLibraryBooks`, as the page's host sets it.
 struct PublicLibraryAuthorPage: View {
     let destination: PublicLibraryAuthorDestination
@@ -151,7 +151,7 @@ struct PublicLibraryAuthorPage: View {
     }
 }
 
-#Preview("青空文庫分類") {
+#Preview("青空文库分类") {
     let index = AozoraCatalogIndex.preview
     return NavigationStack {
         WorkDetailAozoraWorksPage(title: localized("小説・物語"), works: index.newWorks, index: index)

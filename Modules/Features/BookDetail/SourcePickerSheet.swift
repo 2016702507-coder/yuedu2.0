@@ -1,11 +1,11 @@
 import SwiftUI
 
-// MARK: - Source picker (換源 among a search result's origins)
+// MARK: - Source picker (换源 among a search result's origins)
 
 /// The sources a search result was found in, as a plain list with the current one
 /// checked — the way iOS marks the selected row of a choice list.
 ///
-/// On 作品詳情 (unified library 5f-4c) the work's known reading sources come first, as in
+/// On 作品详情 (unified library 5f-4c) the work's known reading sources come first, as in
 /// `SourceSearchSheet`; the result's own origins follow, kept apart (decision 32).
 struct SourcePickerSheet: View {
     let searchBook: SearchBook
@@ -22,7 +22,7 @@ struct SourcePickerSheet: View {
                 if otherVersions.isEmpty {
                     origins
                 } else {
-                    Section(localized("已知的閱讀來源")) {
+                    Section(localized("已知的阅读来源")) {
                         ForEach(otherVersions) { version in
                             SourceVersionRow(title: version.title) {
                                 onSelectVersion(version.id)
@@ -39,7 +39,7 @@ struct SourcePickerSheet: View {
             .background(PageBackgroundView(scope: .global).ignoresSafeArea())
             .pageBackgroundToolbar(for: .global)
             .navigationTitle(
-                String(format: localized("選擇來源（%d 個）"), searchBook.origins.count)
+                String(format: localized("选择来源（%d 个）"), searchBook.origins.count)
             )
             .toolbarTitleDisplayMode(.inline)
             .toolbar {
@@ -68,7 +68,7 @@ struct SourcePickerSheet: View {
 
 // MARK: - Shared pieces
 
-/// One source in a 換源 list: its name and latest chapter, the content kind when it
+/// One source in a 换源 list: its name and latest chapter, the content kind when it
 /// is not plain text (a different kind asks before switching), and a checkmark on
 /// the source the page currently shows.
 struct SourceOriginRow: View {
@@ -80,8 +80,8 @@ struct SourceOriginRow: View {
     private var kindLabel: String? {
         switch kind {
         case .text: nil
-        case .audio: localized("有聲書")
-        case .manga: localized("漫畫")
+        case .audio: localized("有声书")
+        case .manga: localized("漫画")
         case .video: localized("影片")
         }
     }
@@ -128,8 +128,8 @@ struct SourceOriginRow: View {
     }
 }
 
-/// A known reading source of the work in a 換源 list (decision 32): picking it switches
-/// 作品詳情 to that version once the sheet has dismissed.
+/// A known reading source of the work in a 换源 list (decision 32): picking it switches
+/// 作品详情 to that version once the sheet has dismissed.
 struct SourceVersionRow: View {
     let title: String
     let action: () -> Void
@@ -147,43 +147,43 @@ struct SourceVersionRow: View {
     }
 }
 
-/// Leading close button of the 換源 sheets.
+/// Leading close button of the 换源 sheets.
 struct SourceSheetCloseButton: View {
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
-            Label(localized("關閉"), systemImage: "xmark")
+            Label(localized("关闭"), systemImage: "xmark")
                 .labelStyle(.iconOnly)
         }
     }
 }
 
-#Preview("選擇來源") {
+#Preview("选择来源") {
     let sourceId = UUID()
-    let origins = ["示範來源配置", "另一個來源配置"].enumerated().map { index, name in
+    let origins = ["示范来源配置", "另一个来源配置"].enumerated().map { index, name in
         BookOrigin(
             sourceId: index == 0 ? sourceId : UUID(), sourceName: name,
             bookUrl: "https://example.com/\(index)", tocUrl: "", coverUrl: "",
-            intro: "", lastChapter: "第 1450 章 終章", wordCount: "", kind: "",
+            intro: "", lastChapter: "第 1450 章 终章", wordCount: "", kind: "",
             runtimeVariables: nil
         )
     }
-    let book = SearchBook(name: "斗羅大陸", author: "唐家三少", origins: origins)
+    let book = SearchBook(name: "斗罗大陆", author: "唐家三少", origins: origins)
     return SourcePickerSheet(searchBook: book, currentOrigin: origins.first, onSelectOrigin: { _ in })
 }
 
-#Preview("選擇來源，作品的已知閱讀來源") {
-    let origins = ["示範來源配置", "另一個來源配置"].enumerated().map { index, name in
+#Preview("选择来源，作品的已知阅读来源") {
+    let origins = ["示范来源配置", "另一个来源配置"].enumerated().map { index, name in
         BookOrigin(
             sourceId: UUID(), sourceName: name,
             bookUrl: "https://example.com/\(index)", tocUrl: "", coverUrl: "",
-            intro: "", lastChapter: "第 1450 章 終章", wordCount: "", kind: "",
+            intro: "", lastChapter: "第 1450 章 终章", wordCount: "", kind: "",
             runtimeVariables: nil
         )
     }
-    let book = SearchBook(name: "斗羅大陸", author: "唐家三少", origins: origins)
+    let book = SearchBook(name: "斗罗大陆", author: "唐家三少", origins: origins)
     return SourcePickerSheet(searchBook: book, currentOrigin: origins.first,
-                             otherVersions: [.init(id: "copy", title: "書架 · 已讀 42%")],
+                             otherVersions: [.init(id: "copy", title: "书架 · 已读 42%")],
                              onSelectOrigin: { _ in })
 }

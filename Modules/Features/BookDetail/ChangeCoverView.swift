@@ -1,14 +1,14 @@
 import Combine
 import SwiftUI
 
-/// 換封面 — covers taken from the book sources the user has installed.
+/// 换封面 — covers taken from the book sources the user has installed.
 ///
 /// Streams candidates through the shared `BookOriginSearchService` fan-out — the
-/// same search 換源 runs — and keeps the covers whose source actually returned
+/// same search 换源 runs — and keeps the covers whose source actually returned
 /// one. Deduped by cover URL: aggregation sources hand back the same CDN image
 /// under several channels, and a grid of the identical picture is worthless.
 ///
-/// Legado runs this and its 封面規則 web lookup inside one dialog; here they are
+/// Legado runs this and its 封面规则 web lookup inside one dialog; here they are
 /// two entries, so 封面搜索 (web) stays usable for a book with no matching source.
 @MainActor
 final class ChangeCoverViewModel: ObservableObject {
@@ -19,11 +19,11 @@ final class ChangeCoverViewModel: ObservableObject {
     private var searchTask: Task<Void, Never>?
     private var seenCoverUrls = Set<String>()
 
-    /// Seeds from the 換源 result cache when one is fresh, so a book whose sources
+    /// Seeds from the 换源 result cache when one is fresh, so a book whose sources
     /// were already searched shows its covers immediately.
     ///
     /// Read-only on purpose: this search skips sources with no cover rule, so
-    /// writing its narrower result set back would degrade 換源's cached list.
+    /// writing its narrower result set back would degrade 换源's cached list.
     func start(bookId: UUID, title: String, author: String, fetcher: BookSourceFetching) {
         guard !isSearching else { return }
         candidates = []
@@ -86,7 +86,7 @@ final class ChangeCoverViewModel: ObservableObject {
     }
 }
 
-/// The 換封面 screen. Picking a cover hands it back to 書籍資訊, which owns the
+/// The 换封面 screen. Picking a cover hands it back to 书籍资讯, which owns the
 /// download and the book record.
 struct ChangeCoverView: View {
     let bookId: UUID
@@ -104,16 +104,16 @@ struct ChangeCoverView: View {
                 candidates: model.candidates,
                 isSearching: model.isSearching,
                 hasSearched: model.hasSearched,
-                emptyHint: localized("可以改用「封面搜索」上網找，或從相簿選一張圖片。")
+                emptyHint: localized("可以改用「封面搜索」上网找，或从相簿选一张图片。")
             ) { candidate in
                 model.stop()
                 onSelect(candidate)
                 dismiss()
             }
         }
-        .navigationTitle(localized("換封面"))
+        .navigationTitle(localized("换封面"))
         // Pushed page: the back button is the way out (this screen is entered
-        // from 書籍資訊, sheet or push, through a NavigationLink).
+        // from 书籍资讯, sheet or push, through a NavigationLink).
         .toolbarTitleDisplayMode(.inline)
         .themedAppSurface(for: .bookshelf)
         .toolbar {
@@ -130,7 +130,7 @@ struct ChangeCoverView: View {
                     Image(systemName: model.isSearching ? "stop.circle" : "arrow.clockwise")
                 }
                 .accessibilityLabel(
-                    model.isSearching ? localized("停止搜索") : localized("重新搜尋")
+                    model.isSearching ? localized("停止搜索") : localized("重新搜寻")
                 )
             }
         }
@@ -152,7 +152,7 @@ struct ChangeCoverView: View {
     NavigationStack {
         ChangeCoverView(
             bookId: UUID(),
-            title: "紅樓夢",
+            title: "红楼梦",
             author: "曹雪芹",
             onSelect: { _ in }
         )

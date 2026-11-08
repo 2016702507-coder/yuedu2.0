@@ -10,7 +10,7 @@ struct ModuleListRoute: Hashable, Sendable {
     let parameters: [String: String]
 }
 
-/// The list page by page, each asked for by the reader (載入更多), through the module's
+/// The list page by page, each asked for by the reader (载入更多), through the module's
 /// provider: the same requests, host gate and cache as its home row.
 @MainActor
 final class ModuleListModel: ObservableObject {
@@ -98,7 +98,7 @@ final class ModuleListModel: ObservableObject {
         }
         entries += fresh
         // A site that ignores the page parameter answers every page with the same books. A page
-        // that brings no new book ends the list, rather than offering 載入更多 for ever and
+        // that brings no new book ends the list, rather than offering 载入更多 for ever and
         // drawing a card twice. It stays as long as module sites can ignore their paging.
         next = fresh.isEmpty ? nil : page.next
     }

@@ -62,7 +62,7 @@ extension RuleModule.Entry {
 }
 
 extension RuleModule.Param {
-    /// The section's own value, else the option in `language` (the reader's 中繼資料語言偏好推薦,
+    /// The section's own value, else the option in `language` (the reader's 中继资料语言偏好推荐,
     /// a `MetadataLanguage` tag) for a parameter that follows it, else the default, else an
     /// enumeration's first option.
     func currentValue(in parameters: [String: String], language: String?) -> String {
@@ -81,7 +81,7 @@ extension RuleModule.Param {
 
 /// Reads a module's pages: the request its entry describes, through `WebFetcher` under the
 /// module's `rateLimit`, then its list rules on a bare `ModernRuleEngine` (no JS evaluator,
-/// never `BookSourceSession`), through the mapping 來源配置 use.
+/// never `BookSourceSession`), through the mapping 来源配置 use.
 ///
 /// Every address it sends to passes `safeURL` and the module's `hosts`, a redirect included;
 /// a refused redirect is never sent.
@@ -268,7 +268,7 @@ struct RuleModuleClient: Sendable {
         return page.data
     }
 
-    /// A module file, for 新增模組 and 檢查更新: through the same `WebFetcher` path as the
+    /// A module file, for 新增模组 and 检查更新: through the same `WebFetcher` path as the
     /// module's own requests, `safeURL` on the address and on every redirect (a refused redirect
     /// is never sent). Any host: the module's `hosts` bind its requests, not where it is shared.
     nonisolated static func download(_ address: String, fetcher: WebFetcher = .shared) async throws -> (data: Data, url: URL) {

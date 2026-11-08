@@ -72,7 +72,7 @@ final class SourceHealthStore {
 
     /// A source returned without timing out → it is reachable; clear any strikes.
     /// When the caller measured the round-trip, fold it into the source's
-    /// response-time EMA (used to rank 換源 candidates by speed).
+    /// response-time EMA (used to rank 换源 candidates by speed).
     func recordSuccess(_ id: UUID, responseMs: Double? = nil) {
         var health = map[id.uuidString] ?? Health()
         health.consecutiveFailures = 0
@@ -93,7 +93,7 @@ final class SourceHealthStore {
         persist()
     }
 
-    /// Ranking key for "fastest first" ordering (換源 candidate list): measured
+    /// Ranking key for "fastest first" ordering (换源 candidate list): measured
     /// sources sort by their EMA; unmeasured ones sort after any measured one.
     func responseSortKey(_ id: UUID) -> Double {
         map[id.uuidString]?.averageResponseMs ?? Double.greatestFiniteMagnitude
@@ -135,7 +135,7 @@ final class SourceHealthStore {
     }
 
     /// Write-back. Called when a search run reaches a resting point (finished,
-    /// paused, 載入更多 done) — never per source.
+    /// paused, 载入更多 done) — never per source.
     func flush() {
         guard needsPersist else { return }
         needsPersist = false

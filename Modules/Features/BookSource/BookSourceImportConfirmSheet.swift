@@ -20,7 +20,7 @@ struct BookSourceImportConfirmSheet: View {
         } else {
             NavigationStack {
                 content
-                    .navigationTitle(localized("匯入來源配置"))
+                    .navigationTitle(localized("汇入来源配置"))
                     .navigationBarTitleDisplayMode(.inline)
                     .toolbar {
                         ToolbarItem(placement: .cancellationAction) {
@@ -68,7 +68,7 @@ struct BookSourceImportConfirmSheet: View {
             resultView(
                 systemImage: "checkmark.circle.fill",
                 tint: DSColor.success,
-                message: String(format: localized("成功匯入 %d 個來源配置"), count),
+                message: String(format: localized("成功汇入 %d 个来源配置"), count),
                 actionTitle: localized("完成")
             ) { handler.finish() }
         case .failed(let message):
@@ -83,12 +83,12 @@ struct BookSourceImportConfirmSheet: View {
 
     private func confirmingView(sourceURL: URL) -> some View {
         VStack(alignment: .leading, spacing: DSSpacing.md) {
-            Text(localized("確認從外部連結匯入來源配置？"))
+            Text(localized("确认从外部连结汇入来源配置？"))
                 .font(DSFont.headline)
                 .foregroundStyle(DSColor.textPrimary)
 
             VStack(alignment: .leading, spacing: DSSpacing.xs) {
-                Text(localized("來源："))
+                Text(localized("来源："))
                     .font(DSFont.caption)
                     .foregroundStyle(DSColor.textSecondary)
                 Text(sourceURL.absoluteString)
@@ -108,7 +108,7 @@ struct BookSourceImportConfirmSheet: View {
             Button {
                 handler.confirm()
             } label: {
-                Label(localized("確認匯入"), systemImage: "square.and.arrow.down")
+                Label(localized("确认汇入"), systemImage: "square.and.arrow.down")
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.onAccentProminent)
@@ -124,7 +124,7 @@ struct BookSourceImportConfirmSheet: View {
             Spacer()
             ProgressView()
                 .controlSize(.large)
-            Text(localized("匯入中，請稍候…"))
+            Text(localized("汇入中，请稍候…"))
                 .font(DSFont.subheadline)
                 .foregroundStyle(DSColor.textSecondary)
             Spacer()

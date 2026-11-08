@@ -1,7 +1,7 @@
 import SwiftUI
 import UIKit
 
-/// The reading text 氣泡設定's previews are drawn in: the reader's font and size, on the
+/// The reading text 气泡设置's previews are drawn in: the reader's font and size, on the
 /// reading theme it is set to by day, or the night theme.
 @MainActor
 struct CommentStylePreviewContext {
@@ -53,7 +53,7 @@ struct CommentCardTemplatePreview: View {
         .background(Color(uiColor: context.theme.uiBackgroundColor))
         .clipShape(RoundedRectangle(cornerRadius: DSRadius.md, style: .continuous))
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(localized(isNight ? "夜間預覽" : "白天預覽"))
+        .accessibilityLabel(localized(isNight ? "夜间预览" : "白天预览"))
         .accessibilityValue(failure ?? "")
         .task(id: renderKey(context)) {
             await render(context)
@@ -78,7 +78,7 @@ struct CommentCardTemplatePreview: View {
             )
             guard !Task.isCancelled else { return }
             image = drawn
-            failure = drawn == nil ? localized("預覽無法繪製。") : nil
+            failure = drawn == nil ? localized("预览无法绘制。") : nil
         } catch {
             guard !Task.isCancelled else { return }
             image = nil
@@ -161,7 +161,7 @@ struct OptionalHexColorRows: View {
     }
 }
 
-/// `#RRGGBB` for the colours 氣泡設定 stores.
+/// `#RRGGBB` for the colours 气泡设置 stores.
 enum CommentStyleHex {
     static func string(from color: UIColor) -> String {
         String(format: "#%06X", color.rgbHex ?? 0)

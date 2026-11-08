@@ -1,8 +1,8 @@
 import Foundation
 
-// 中繼資料語言偏好推薦 (maintainer, 2026-10-21), in 聚合設定: one language, from a menu whose first
-// item, 跟隨 App 語言, is the choice until the reader picks another. Its books come first and the
-// others follow (優先推薦, fixed). It replaced 偏好閱讀語言, several languages in order, and 推薦範圍
+// 中继资料语言偏好推荐 (maintainer, 2026-10-21), in 聚合设置: one language, from a menu whose first
+// item, 跟随 App 语言, is the choice until the reader picks another. Its books come first and the
+// others follow (优先推荐, fixed). It replaced 偏好阅读语言, several languages in order, and 推荐范围
 // (Unified library 5d-3d, Phase 5 plan, decision 21). The interface language says what the
 // buttons read in; this says whose books come first, so a Traditional Chinese interface can
 // still put Japanese originals first.
@@ -31,7 +31,7 @@ struct ReadingLanguagePreferences: Equatable, Sendable {
 
     /// A section's books by `rank`, each rank keeping the source's order among its books;
     /// none is left out. Places (an index's groups, a feed's) go first: a row draws them apart
-    /// from the books, as chips, in their own order. A list (專題集合) goes by its best-placed
+    /// from the books, as chips, in their own order. A list (专题集合) goes by its best-placed
     /// book's language.
     func arrange(_ entries: [CollectionEntry]) -> [CollectionEntry] {
         let ranked = entries.enumerated().map { offset, entry -> (Rank, Int, CollectionEntry) in
@@ -47,22 +47,22 @@ struct ReadingLanguagePreferences: Equatable, Sendable {
     }
 }
 
-/// 偏好閱讀語言 and 推薦範圍 as saved until 2026-10-21. Still read, for the choice the reader made
+/// 偏好阅读语言 and 推荐范围 as saved until 2026-10-21. Still read, for the choice the reader made
 /// there (`MetadataLanguage.choice(migrating:interfaceLanguage:)`), and kept as stored.
 struct LegacyReadingLanguages: Codable, Equatable, Sendable {
     /// Base codes, most wanted first.
     var languages: [String]
-    /// `prefer`, `only` or `any`; 優先推薦 alone is left.
+    /// `prefer`, `only` or `any`; 优先推荐 alone is left.
     var scope: String
 }
 
-/// 中繼資料語言偏好推薦's menu.
+/// 中继资料语言偏好推荐's menu.
 enum MetadataLanguage {
-    /// 跟隨 App 語言: the menu's first item, and the choice until the reader picks another.
+    /// 跟随 App 语言: the menu's first item, and the choice until the reader picks another.
     static let followApp = "app"
 
-    /// The languages after it: Chinese in each script (趨勢's lists are written in one), then the
-    /// ones Yuedu's libraries hold most (Gutenberg's largest, 青空文庫's Japanese).
+    /// The languages after it: Chinese in each script (趋势's lists are written in one), then the
+    /// ones Yuedu's libraries hold most (Gutenberg's largest, 青空文库's Japanese).
     static let offered = ["zh-Hant", "zh-Hans", "en", "ja", "ko", "fr", "de", "es", "it", "pt", "ru", "nl", "la"]
 
     static let choices = [followApp] + offered
@@ -79,7 +79,7 @@ enum MetadataLanguage {
         return Locale.Language(identifier: code).maximalIdentifier.contains("Hans") ? "zh-Hans" : "zh-Hant"
     }
 
-    /// The choice 偏好閱讀語言 made: its first language, unless that was the app's, which is
+    /// The choice 偏好阅读语言 made: its first language, unless that was the app's, which is
     /// following the app. Its codes had no script: Chinese becomes Traditional, the app's own
     /// language (zh-Hant is its source). Nil when nothing was saved.
     static func choice(migrating legacy: LegacyReadingLanguages?, interfaceLanguage: String?) -> String? {
@@ -90,7 +90,7 @@ enum MetadataLanguage {
 
     /// The menu's text for a choice.
     static func name(of choice: String) -> String {
-        choice == followApp ? localized("跟隨 App 語言") : ReadingLanguage.name(of: choice)
+        choice == followApp ? localized("跟随 App 语言") : ReadingLanguage.name(of: choice)
     }
 }
 
@@ -101,7 +101,7 @@ enum ReadingLanguage {
         return base.lowercased()
     }
 
-    /// The language's own name (中文, English, 日本語, Français; 繁體中文 for `zh-Hant`), as a
+    /// The language's own name (中文, English, 日本语, Français; 繁体中文 for `zh-Hant`), as a
     /// language list shows it to someone who reads it; no string table needed.
     static func name(of code: String) -> String {
         let locale = Locale(identifier: code)

@@ -156,13 +156,13 @@ struct GutenbergShelf: Identifiable {
     let symbol: String
     let url: URL
 
-    /// 熱門, 最新, then a shelf for each of the reader's languages (偏好閱讀語言, 5d-3d) in
+    /// 热门, 最新, then a shelf for each of the reader's languages (偏好阅读语言, 5d-3d) in
     /// their order, and English, Gutenberg's largest, when they leave it out. Before 5d-3d the
     /// language shelf followed the interface language, which says nothing of what the reader
     /// reads.
     static func shelves(languages: [String], endpoint: GutenbergEndpoint = .current) -> [Self] {
         var shelves = [
-            Self(id: "popular", title: localized("熱門"), symbol: "chart.bar", url: endpoint.popularURL),
+            Self(id: "popular", title: localized("热门"), symbol: "chart.bar", url: endpoint.popularURL),
             Self(id: "latest", title: localized("最新"), symbol: "clock", url: endpoint.latestURL),
         ]
         var codes: [String] = []

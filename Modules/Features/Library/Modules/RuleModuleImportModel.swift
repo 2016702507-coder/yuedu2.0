@@ -1,7 +1,7 @@
 import Combine
 import Foundation
 
-/// 新增模組 and 檢查更新 (Phase 6e): a module file is read, checked and shown — its name,
+/// 新增模组 and 检查更新 (Phase 6e): a module file is read, checked and shown — its name,
 /// author, version, lists and the sites it will send requests to — and nothing is written until
 /// the reader confirms. An update that adds sites says which before it replaces anything.
 @MainActor
@@ -10,7 +10,7 @@ final class RuleModuleImportModel: ObservableObject {
         let module: RuleModule
         let data: Data
         let subscriptionURL: URL?
-        /// The installed version this would replace (檢查更新); nil when adding.
+        /// The installed version this would replace (检查更新); nil when adding.
         let replacing: InstalledRuleModule?
 
         /// Sites the update sends requests to that the installed version did not.
@@ -61,7 +61,7 @@ final class RuleModuleImportModel: ObservableObject {
 
     // MARK: Reading
 
-    /// 從網址: a module, or a repository's index (M6), told apart by the file itself.
+    /// 从网址: a module, or a repository's index (M6), told apart by the file itself.
     func fetch() async {
         let address = address.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !address.isEmpty else { return }
@@ -84,7 +84,7 @@ final class RuleModuleImportModel: ObservableObject {
         }
     }
 
-    /// 從檔案: the picker's URL is security-scoped.
+    /// 从档案: the picker's URL is security-scoped.
     func read(file result: Result<URL, any Error>) {
         do {
             let url = try result.get()
@@ -93,15 +93,15 @@ final class RuleModuleImportModel: ObservableObject {
             show(try Data(contentsOf: url), from: nil, replacing: nil)
         } catch {
             AppLogger.error("Module file unreadable", error: error, level: .error)
-            phase = .failed(String(format: localized("無法讀取檔案：%@"), error.localizedDescription))
+            phase = .failed(String(format: localized("无法读取档案：%@"), error.localizedDescription))
         }
     }
 
-    /// 從剪貼簿: an address is fetched, anything else is read as the file itself.
+    /// 从剪贴簿: an address is fetched, anything else is read as the file itself.
     func read(clipboard text: String?) async {
         let text = text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         guard !text.isEmpty else {
-            phase = .failed(localized("剪貼簿為空"))
+            phase = .failed(localized("剪贴簿为空"))
             return
         }
         let lowered = text.lowercased()
@@ -113,7 +113,7 @@ final class RuleModuleImportModel: ObservableObject {
         }
     }
 
-    /// 檢查更新: the subscription address again; only a higher version is offered.
+    /// 检查更新: the subscription address again; only a higher version is offered.
     func checkForUpdate(_ installed: InstalledRuleModule) async {
         guard let subscription = installed.subscriptionURL else { return }
         phase = .loading
@@ -126,7 +126,7 @@ final class RuleModuleImportModel: ObservableObject {
     }
 
     /// A repository's module (M6): installed, or offered as an update to the installed one, from
-    /// the address the repository lists, which then is its subscription for 檢查更新.
+    /// the address the repository lists, which then is its subscription for 检查更新.
     func offer(_ entry: RuleModuleRepositoryIndex.Entry) async {
         phase = .loading
         do {
@@ -142,7 +142,7 @@ final class RuleModuleImportModel: ObservableObject {
         // An index has no address of its own when it comes from a file or pasted text: nothing to
         // resolve its modules' addresses against, nor to read again when the page opens.
         if subscriptionURL == nil, RuleModuleRepositoryIndex.isIndex(data) {
-            phase = .failed(localized("模組倉庫要用網址加入"))
+            phase = .failed(localized("模组仓库要用网址加入"))
             return
         }
         let module: RuleModule
@@ -178,7 +178,7 @@ final class RuleModuleImportModel: ObservableObject {
 
     private func fail(downloading error: any Error) {
         AppLogger.network("module download failed", error: SourceFailure.loggable(error), context: ["address": address])
-        phase = .failed(String(format: localized("無法下載模組：%@"), error.localizedDescription))
+        phase = .failed(String(format: localized("无法下载模组：%@"), error.localizedDescription))
     }
 
     // MARK: Writing

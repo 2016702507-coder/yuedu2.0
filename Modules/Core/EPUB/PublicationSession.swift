@@ -330,11 +330,11 @@ enum PublicationSessionError: LocalizedError, DiagnosableError {
 
     var errorDescription: String? {
         switch self {
-        case .fileNotFound: localized("找不到這本 EPUB 的檔案")
-        case .chapterOutOfRange: localized("這本 EPUB 沒有這一章")
-        case .parsingFailed: localized("無法讀取這本 EPUB")
-        case .resourceNotFound: localized("這本 EPUB 缺少需要的檔案")
-        case .resourceReadFailed: localized("無法讀取這本 EPUB 裡的檔案")
+        case .fileNotFound: localized("找不到这本 EPUB 的档案")
+        case .chapterOutOfRange: localized("这本 EPUB 没有这一章")
+        case .parsingFailed: localized("无法读取这本 EPUB")
+        case .resourceNotFound: localized("这本 EPUB 缺少需要的档案")
+        case .resourceReadFailed: localized("无法读取这本 EPUB 里的档案")
         }
     }
 

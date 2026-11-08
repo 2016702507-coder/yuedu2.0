@@ -1,24 +1,24 @@
 import SwiftUI
 
-// Unified library 5d-5: 選擇內容來源 (design §13.3; Phase 5 plan, decision 23), grouped as
-// 資源庫 groups them: App 資料, 書庫 (the reader's connections), 來源配置, 官方模組 (AI 推薦,
-// 古騰堡, 青空文庫, the bundled modules; M2b), 模組 (the imported ones). A source pushes its items: a
-// connection's feeds, Gutenberg's lists and feeds, 青空文庫's indexes, a book source's discover
+// Unified library 5d-5: 选择内容来源 (design §13.3; Phase 5 plan, decision 23), grouped as
+// 资源库 groups them: App 资料, 书库 (the reader's connections), 来源配置, 官方模组 (AI 推荐,
+// 古腾堡, 青空文库, the bundled modules; M2b), 模组 (the imported ones). A source pushes its items: a
+// connection's feeds, Gutenberg's lists and feeds, 青空文库's indexes, a book source's discover
 // categories. 「目前」 marks the group and source in use; a check mark, the item.
-// - 加入清單 of a layout of lists (maintainer, 2026-10-27: 「預設全部、可增減」): each source's
-//   items start with 全部清單, every list it offers as a card each, up to
+// - 加入清单 of a layout of lists (maintainer, 2026-10-27: 「预设全部、可增减」): each source's
+//   items start with 全部清单, every list it offers as a card each, up to
 //   `HomeSection.listCardLimit` with the cards already there.
 //
 // A sheet over the form, or pushed in the form's stack when the form is a sheet already on
 // iOS 17 (`isPushed`), as the design says.
 
 extension EnvironmentValues {
-    /// 選擇輪播數據 (maintainer, 2026-10-27): the picker offers only what draws books
-    /// (`HomeSectionBinding.showsBooks`), for the 頂部輪播圖's band of covers.
+    /// 选择轮播数据 (maintainer, 2026-10-27): the picker offers only what draws books
+    /// (`HomeSectionBinding.showsBooks`), for the 顶部轮播图's band of covers.
     @Entry var homePickerOffersBooksOnly = false
 }
 
-/// What 選擇內容來源 gives the form.
+/// What 选择内容来源 gives the form.
 struct HomeContentChoice: Equatable {
     let binding: HomeSectionBinding
     var parameters: [String: String] = [:]
@@ -44,9 +44,9 @@ struct HomeContentSourcePicker: View {
     let parameters: [String: String]
     let isPushed: Bool
     /// The page's title: the name of the row or button that opened it.
-    var title = localized("選擇內容來源")
+    var title = localized("选择内容来源")
     let choose: (HomeContentChoice) -> Void
-    /// 全部清單, for 加入清單: nil offers none.
+    /// 全部清单, for 加入清单: nil offers none.
     var chooseAll: (([HomeContentChoice]) -> Void)?
     let cancel: () -> Void
 
@@ -58,7 +58,7 @@ struct HomeContentSourcePicker: View {
     @ObservedObject private var modules = RuleModuleLibrary.shared
 
     init(current: HomeSectionBinding?, parameters: [String: String] = [:], isPushed: Bool,
-         title: String = localized("選擇內容來源"),
+         title: String = localized("选择内容来源"),
          choose: @escaping (HomeContentChoice) -> Void, chooseAll: (([HomeContentChoice]) -> Void)? = nil,
          cancel: @escaping () -> Void) {
         self.current = current
@@ -87,7 +87,7 @@ struct HomeContentSourcePicker: View {
                     }
                 }
             } header: {
-                Text(localized("App 資料"))
+                Text(localized("App 资料"))
             }
             .interfaceSectionSurface()
 
@@ -103,7 +103,7 @@ struct HomeContentSourcePicker: View {
                         }
                     }
                 } header: {
-                    Text(localized("書庫"))
+                    Text(localized("书库"))
                 }
                 .interfaceSectionSurface()
             }
@@ -112,14 +112,14 @@ struct HomeContentSourcePicker: View {
                 NavigationLink {
                     HomeSourceChoices(current: current, parameters: parameters, choose: choose, chooseAll: chooseAll)
                 } label: {
-                    ownerLabel(localized("來源配置"), systemImage: "square.grid.2x2.fill",
+                    ownerLabel(localized("来源配置"), systemImage: "square.grid.2x2.fill",
                                isCurrent: { if case .bookSource = owner { true } else { false } }())
                 }
                 .accessibilityIdentifier("homePicker.bookSources")
             }
             .interfaceSectionSurface()
 
-            // As 資源庫 groups them (M2b): AI 推薦, 古騰堡, 青空文庫, then the bundled modules.
+            // As 资源库 groups them (M2b): AI 推荐, 古腾堡, 青空文库, then the bundled modules.
             Section {
                 ForEach(HomeSectionBinding.official, id: \.self) { binding in
                     HomeChoiceRow(title: HomeSection(layout: .row, binding: binding).displayTitle(sourceName: ""),
@@ -137,7 +137,7 @@ struct HomeContentSourcePicker: View {
                     NavigationLink {
                         HomeAozoraChoices(current: current, choose: choose, chooseAll: chooseAll)
                     } label: {
-                        ownerLabel(localized("青空文庫"), systemImage: SourceKindSymbol.symbol(for: .aozora),
+                        ownerLabel(localized("青空文库"), systemImage: SourceKindSymbol.symbol(for: .aozora),
                                    isCurrent: owner == .aozora)
                     }
                 }
@@ -146,7 +146,7 @@ struct HomeContentSourcePicker: View {
                     moduleLink(installed)
                 }
             } header: {
-                Text(localized("官方模組"))
+                Text(localized("官方模组"))
             }
             .interfaceSectionSurface()
 
@@ -157,7 +157,7 @@ struct HomeContentSourcePicker: View {
                         moduleLink(installed)
                     }
                 } header: {
-                    Text(localized("模組"))
+                    Text(localized("模组"))
                 }
                 .interfaceSectionSurface()
             }
@@ -229,8 +229,8 @@ private struct HomeChoiceRow: View {
     }
 }
 
-/// 全部清單: every list the page offers, as 加入清單's cards. Nothing when the page offers none
-/// (yet) or 加入清單 did not open it.
+/// 全部清单: every list the page offers, as 加入清单's cards. Nothing when the page offers none
+/// (yet) or 加入清单 did not open it.
 private struct HomeAllListsRow: View {
     let choices: [HomeContentChoice]
     let chooseAll: (([HomeContentChoice]) -> Void)?
@@ -239,14 +239,14 @@ private struct HomeAllListsRow: View {
         if let chooseAll, !choices.isEmpty {
             Section {
                 Button { chooseAll(choices) } label: {
-                    Text(localized("全部清單"))
+                    Text(localized("全部清单"))
                         .foregroundStyle(DSColor.textPrimary)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .contentShape(Rectangle())
                 }
                 .accessibilityIdentifier("homePicker.allLists")
             } footer: {
-                Text(String(format: localized("每個清單一張卡片，最多 %d 張。"), HomeSection.listCardLimit))
+                Text(String(format: localized("每个清单一张卡片，最多 %d 张。"), HomeSection.listCardLimit))
                     .dsSectionFooter()
             }
             .interfaceSectionSurface()
@@ -254,7 +254,7 @@ private struct HomeAllListsRow: View {
     }
 }
 
-// MARK: - 書庫
+// MARK: - 书库
 
 /// A library that speaks OPDS: Gutenberg's bundled lists first (no request), then the feeds its
 /// catalog lists, fetched when this opens.
@@ -299,7 +299,7 @@ private struct HomeFeedChoices: View {
         }
     }
 
-    /// 全部清單: Gutenberg's shelves and bundled lists (精選書單 is them all already) before its
+    /// 全部清单: Gutenberg's shelves and bundled lists (精选书单 is them all already) before its
     /// feeds; a library's feeds, or its root when it lists none.
     private var allLists: [HomeContentChoice] {
         var choices: [HomeContentChoice] = []
@@ -320,7 +320,7 @@ private struct HomeFeedChoices: View {
         List {
             HomeAllListsRow(choices: allLists, chooseAll: chooseAll)
             if case .gutenberg = source {
-                // Gutenberg's shelves, as its storefront lists them: 熱門, 最新, the reader's
+                // Gutenberg's shelves, as its storefront lists them: 热门, 最新, the reader's
                 // languages. Kept by id, so they follow the endpoint (5d-6a).
                 Section {
                     ForEach(GutenbergShelf.shelves(languages: aggregation.readingLanguages.languages)) { shelf in
@@ -361,7 +361,7 @@ private struct HomeFeedChoices: View {
                         Text(message)
                             .font(DSFont.footnote)
                             .foregroundStyle(DSColor.textSecondary)
-                        Button(localized("重試")) { Task { await load() } }
+                        Button(localized("重试")) { Task { await load() } }
                             .buttonStyle(.bordered)
                     }
                 }
@@ -377,7 +377,7 @@ private struct HomeFeedChoices: View {
     /// The catalog's navigation feeds. An item-only catalog has none: its root is the one feed.
     private func load() async {
         guard let provider else {
-            state = .failed(localized("此目錄沒有內容"))
+            state = .failed(localized("此目录没有内容"))
             return
         }
         state = .loading
@@ -397,7 +397,7 @@ private struct HomeFeedChoices: View {
     }
 }
 
-/// 青空文庫: 新着 and its three indexes, read from the catalog.
+/// 青空文库: 新着 and its three indexes, read from the catalog.
 private struct HomeAozoraChoices: View {
     let current: HomeSectionBinding?
     let choose: (HomeContentChoice) -> Void
@@ -418,13 +418,13 @@ private struct HomeAozoraChoices: View {
             }
             .interfaceSectionSurface()
         }
-        .navigationTitle(localized("青空文庫"))
+        .navigationTitle(localized("青空文库"))
         .toolbarTitleDisplayMode(.inline)
         .themedAppSurface(for: .explore)
     }
 }
 
-// MARK: - 模組
+// MARK: - 模组
 
 /// A module's lists (Phase 6f): the one in use is checked.
 struct HomeModuleChoices: View {
@@ -455,10 +455,10 @@ struct HomeModuleChoices: View {
     }
 }
 
-// MARK: - 來源配置
+// MARK: - 来源配置
 
 /// Every book source 探索 lists, searchable: a reader can have thousands, so only the rows on
-/// screen are built (`HostedCollectionList`, as 書源管理).
+/// screen are built (`HostedCollectionList`, as 书源管理).
 struct HomeSourceChoices: View {
     let current: HomeSectionBinding?
     /// The section's parameters, for the filter values each source's categories list under.
@@ -508,7 +508,7 @@ struct HomeSourceChoices: View {
             if sources.isEmpty {
                 if query.isEmpty {
                     ContentUnavailableView {
-                        UnavailableLabel(localized("沒有可用的來源配置，請先啟用來源配置"), systemImage: "puzzlepiece.extension")
+                        UnavailableLabel(localized("没有可用的来源配置，请先启用来源配置"), systemImage: "puzzlepiece.extension")
                     }
                 } else {
                     UnavailableSearchView(text: query)
@@ -516,8 +516,8 @@ struct HomeSourceChoices: View {
             }
         }
         .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always),
-                    prompt: localized("搜尋來源配置名稱或網址"))
-        .navigationTitle(localized("來源配置"))
+                    prompt: localized("搜寻来源配置名称或网址"))
+        .navigationTitle(localized("来源配置"))
         .toolbarTitleDisplayMode(.inline)
         .themedAppSurface(for: .explore)
         .navigationDestination(item: $opened) { url in
@@ -535,7 +535,7 @@ struct HomeSourceChoices: View {
 /// A book source's discover categories, under the group labels it draws, searchable, with the
 /// source's filters above them. A filter changed here lists the categories again under it for
 /// this section only (`SourceCategoryListing`); the source's discover page keeps its own.
-/// 全部清單 gives the categories it lists, under the filters set, as 加入清單's cards.
+/// 全部清单 gives the categories it lists, under the filters set, as 加入清单's cards.
 struct HomeCategoryChoices: View {
     let current: HomeSectionBinding?
     let choose: (HomeContentChoice) -> Void
@@ -563,7 +563,7 @@ struct HomeCategoryChoices: View {
         DiscoverCategoryGroup.filtered(listing.groups, matching: trimmedQuery)
     }
 
-    /// A category as 選擇內容來源 gives it: with the filter values it is listed under.
+    /// A category as 选择内容来源 gives it: with the filter values it is listed under.
     private func choice(_ reference: ExploreCategoryReference) -> HomeContentChoice {
         let values = listing.filterValues
         return HomeContentChoice(binding: .sourceCategories([reference]),
@@ -571,7 +571,7 @@ struct HomeCategoryChoices: View {
                                  filterValues: values)
     }
 
-    /// 全部清單: the categories listed, as the search narrows them.
+    /// 全部清单: the categories listed, as the search narrows them.
     private var allLists: [HomeContentChoice] {
         guard listing.state == .loaded else { return [] }
         return groups.flatMap(\.items).compactMap { listing.reference(for: $0).map(choice) }
@@ -592,11 +592,11 @@ struct HomeCategoryChoices: View {
                         .accessibilityIdentifier("homePicker.filter.\(filter.paramKey)")
                     }
                 } header: {
-                    Text(localized("篩選"))
+                    Text(localized("筛选"))
                 } footer: {
                     // Under the filters, not over them: the reader changes one back from here.
                     if listing.state == .empty {
-                        Text(localized("暫無發現內容")).dsSectionFooter()
+                        Text(localized("暂无发现内容")).dsSectionFooter()
                     }
                 }
                 .interfaceSectionSurface()
@@ -624,21 +624,21 @@ struct HomeCategoryChoices: View {
             case .empty:
                 if listing.filters.isEmpty {
                     ContentUnavailableView {
-                        UnavailableLabel(localized("暫無發現內容"), systemImage: "sparkles")
+                        UnavailableLabel(localized("暂无发现内容"), systemImage: "sparkles")
                     }
                 }
             case .failed(let message):
                 ContentUnavailableView {
-                    UnavailableLabel(localized("載入失敗"), systemImage: "exclamationmark.triangle")
+                    UnavailableLabel(localized("载入失败"), systemImage: "exclamationmark.triangle")
                 } description: {
-                    Text(String(format: localized("%@：%@"), localized("來源配置腳本錯誤"), message))
+                    Text(String(format: localized("%@：%@"), localized("来源配置脚本错误"), message))
                 }
             case .loaded:
                 if !trimmedQuery.isEmpty, groups.isEmpty { UnavailableSearchView(text: trimmedQuery) }
             }
         }
         .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always),
-                    prompt: localized("搜尋發現項目"))
+                    prompt: localized("搜寻发现项目"))
         .navigationTitle(listing.source.bookSourceName)
         .toolbarTitleDisplayMode(.inline)
         .themedAppSurface(for: .explore)
@@ -646,22 +646,22 @@ struct HomeCategoryChoices: View {
     }
 }
 
-#Preview("模組的清單") {
+#Preview("模组的清单") {
     NavigationStack {
         HomeModuleChoices(module: RuleModulePreviewData.module(), current: .module(moduleID: "preview.module", entryID: "new"),
                           choose: { _ in })
     }
 }
 
-#Preview("選擇內容來源") {
+#Preview("选择内容来源") {
     NavigationStack {
         HomeContentSourcePicker(current: .continueReading, isPushed: false, choose: { _ in }, cancel: {})
     }
 }
 
-#Preview("選擇輪播數據") {
+#Preview("选择轮播数据") {
     NavigationStack {
-        HomeContentSourcePicker(current: .continueReading, isPushed: true, title: localized("選擇輪播數據"), choose: { _ in }, cancel: {})
+        HomeContentSourcePicker(current: .continueReading, isPushed: true, title: localized("选择轮播数据"), choose: { _ in }, cancel: {})
     }
     .environment(\.homePickerOffersBooksOnly, true)
 }

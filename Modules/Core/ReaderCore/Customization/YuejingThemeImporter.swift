@@ -168,7 +168,7 @@ enum YuejingThemeImporter {
     private static func translate(_ manifest: Manifest, root: URL) -> QiThemeImport {
         var notes: [String] = []
         let rawName = manifest.name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        let name = rawName.isEmpty ? localized("閱境外觀包") : rawName
+        let name = rawName.isEmpty ? localized("阅境外观包") : rawName
 
         let light = manifest.palette?.light
         let dark = manifest.palette?.dark
@@ -223,7 +223,7 @@ enum YuejingThemeImporter {
         var darkTabIcons: [QiThemeImport.TabIconImport] = []
         for (label, asset) in manifest.ui?.tabIconAssets ?? [:] {
             guard let tab = tabID(for: label) else {
-                notes.append(String(format: localized("圖示「%@」在本 App 沒有對應的分頁，已略過。"), label))
+                notes.append(String(format: localized("图示「%@」在本 App 没有对应的分页，已略过。"), label))
                 continue
             }
             if let image = imageFile(asset.path, root: root) {
@@ -282,7 +282,7 @@ enum YuejingThemeImporter {
         // 不查系統是否已安裝這支字型：`UIFont(name:size:)` 在少數系統版本上要求主執行緒，
         // 而這裡是解析階段。有沒有裝，使用者一導入就看得出來。
         if let fontName = manifest.ui?.typography?.titleFontName, !fontName.isEmpty {
-            notes.append(String(format: localized("主題指定了字型「%@」，但外觀包裡沒有附字型檔，已沿用目前的字型。"), fontName))
+            notes.append(String(format: localized("主题指定了字型「%@」，但外观包里没有附字型档，已沿用目前的字型。"), fontName))
         }
 
         let themeFile = AppearanceThemeExportFile(
@@ -339,11 +339,11 @@ enum YuejingThemeImporter {
     /// 因為這個檔案在 Core 模組裡，看不到 app target 的 `RootTabItem`。
     private static func tabID(for label: String) -> String? {
         switch label {
-        case "首页", "首頁": return "library"
-        case "书架", "書架": return "bookshelf"
-        case "书源", "書源": return "explore"
-        case "我的", "設定", "设置": return "settings"
-        case "搜索", "搜尋": return "search"
+        case "首页", "首页": return "library"
+        case "书架", "书架": return "bookshelf"
+        case "书源", "书源": return "explore"
+        case "我的", "设置", "设置": return "settings"
+        case "搜索", "搜寻": return "search"
         default: return nil
         }
     }

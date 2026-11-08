@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// 選集: one 線路's episodes, the 線路 picked above them as Swiftfin picks a season. Opened
+/// 选集: one 线路's episodes, the 线路 picked above them as Swiftfin picks a season. Opened
 /// from the player and from the detail page's 全部.
 struct VideoEpisodeSheet: View {
     let guide: VideoEpisodeGuide
@@ -27,7 +27,7 @@ struct VideoEpisodeSheet: View {
                 List {
                     if guide.routes.count > 1 {
                         Section {
-                            Picker(localized("線路"), selection: $routeID) {
+                            Picker(localized("线路"), selection: $routeID) {
                                 ForEach(guide.routes) { route in
                                     Text(VideoEpisodeNaming.routeName(route)).tag(route.id)
                                 }
@@ -45,12 +45,12 @@ struct VideoEpisodeSheet: View {
                     if let current { proxy.scrollTo(current, anchor: .center) }
                 }
             }
-            .navigationTitle(localized("選集"))
+            .navigationTitle(localized("选集"))
             .toolbarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button { dismiss() } label: { Image(systemName: "xmark") }
-                        .accessibilityLabel(localized("關閉"))
+                        .accessibilityLabel(localized("关闭"))
                 }
             }
         }
@@ -82,10 +82,10 @@ struct VideoEpisodeSheet: View {
     }
 }
 
-/// How an episode and a 線路 are named where the source gives no name.
+/// How an episode and a 线路 are named where the source gives no name.
 enum VideoEpisodeNaming {
     static func routeName(_ route: VideoEpisodeGuide.Route) -> String {
-        route.title.flatMap { $0.isEmpty ? nil : $0 } ?? String(format: localized("線路 %d"), route.id + 1)
+        route.title.flatMap { $0.isEmpty ? nil : $0 } ?? String(format: localized("线路 %d"), route.id + 1)
     }
 
     /// The source's title, or 「第 N 集」 when it has none.
@@ -95,7 +95,7 @@ enum VideoEpisodeNaming {
         return String(format: localized("第 %d 集"), guide.episodeNumber(of: chapterIndex) ?? chapterIndex + 1)
     }
 
-    /// Where 繼續播放 picks up: the episode, after its 線路 when there are several.
+    /// Where 继续播放 picks up: the episode, after its 线路 when there are several.
     static func resumeDetail(_ chapterIndex: Int, in guide: VideoEpisodeGuide, title: (Int) -> String) -> String {
         let episode = episodeName(chapterIndex, in: guide, title: title)
         guard guide.routes.count > 1, let route = guide.route(containing: chapterIndex) else { return episode }
@@ -105,10 +105,10 @@ enum VideoEpisodeNaming {
 
 #Preview {
     let chapters = [
-        OnlineChapterRef(index: 0, title: "線路一", url: "", isVolume: true),
+        OnlineChapterRef(index: 0, title: "线路一", url: "", isVolume: true),
         OnlineChapterRef(index: 1, title: "第1集", url: "https://example.com/1.m3u8"),
         OnlineChapterRef(index: 2, title: "第2集", url: "https://example.com/2.m3u8"),
-        OnlineChapterRef(index: 3, title: "線路二", url: "", isVolume: true),
+        OnlineChapterRef(index: 3, title: "线路二", url: "", isVolume: true),
         OnlineChapterRef(index: 4, title: "", url: "https://example.com/b1.m3u8"),
     ]
     VideoEpisodeSheet(

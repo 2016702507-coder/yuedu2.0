@@ -2,33 +2,33 @@ import Combine
 import SwiftUI
 import UIKit
 
-/// 沒有自訂頭像時用的內建圖：劍來主題包的 `assets/artwork/avatar.png`（圓形水墨劍，
-/// 四角本來就是透明的），縮到 384px 放進 Assets。使用者一換頭像就只用他自己的。
+/// 没有自订头像时用的内建图：剑来主题包的 `assets/artwork/avatar.png`（圆形水墨剑，
+/// 四角本来就是透明的），缩到 384px 放进 Assets。使用者一换头像就只用他自己的。
 enum ReaderDefaultAvatar {
     static let imageName = "ReaderDefaultAvatar"
 
     static var image: UIImage? { UIImage(named: imageName) }
 }
 
-/// 本機閱讀身份：頭像、暱稱、簽名。
+/// 本机阅读身份：头像、暱称、签名。
 ///
-/// maintainer, 2026-11-06：這張卡放在設定首頁「尊享會員」之上，而且「名字和頭像要可以
-/// 更改的。並且只在本地保存」。所以它刻意不進 `GlobalSettings` —— 那邊的帳號欄位會寫進
-/// Firestore，換一台裝置就同步出去了；這裡只有兩個 UserDefaults 字串和 Library 下的一個
-/// JPEG，不聯網、不上傳、不參與任何同步。
+/// maintainer, 2026-11-06：这张卡放在设置首页「尊享会员」之上，而且「名字和头像要可以
+/// 更改的。并且只在本地保存」。所以它刻意不进 `GlobalSettings` —— 那边的帐号栏位会写进
+/// Firestore，换一台装置就同步出去了；这里只有两个 UserDefaults 字串和 Library 下的一个
+/// JPEG，不联网、不上传、不参与任何同步。
 @MainActor
 final class ReaderIdentityStore: ObservableObject {
     static let shared = ReaderIdentityStore()
 
-    /// 第一次打開時顯示的文字，取自維護者的參考圖。
-    static let sampleName = "林間讀者"
-    static let sampleSignature = "讓閱讀回到你喜歡的樣子"
+    /// 第一次打开时显示的文字，取自维护者的参考图。
+    static let sampleName = "林间读者"
+    static let sampleSignature = "让阅读回到你喜欢的样子"
 
-    /// 暱稱與簽名的長度上限：再長就不是一行名字、一句話了。
+    /// 暱称与签名的长度上限：再长就不是一行名字、一句话了。
     static let nameLimit = 16
     static let signatureLimit = 24
 
-    /// 使用者自己填的暱稱；空白代表沒設過，顯示時退回 `sampleName`。
+    /// 使用者自己填的暱称；空白代表没设过，显示时退回 `sampleName`。
     @Published private(set) var name: String
     @Published private(set) var signature: String
     @Published private(set) var avatar: UIImage?
@@ -38,7 +38,7 @@ final class ReaderIdentityStore: ObservableObject {
         static let signature = "yd_reader_identity_signature"
     }
 
-    /// 512px 的 JPEG，和閱讀統計放在同一個地方（Library 根下）。
+    /// 512px 的 JPEG，和阅读统计放在同一个地方（Library 根下）。
     private let avatarURL: URL
 
     private init() {
@@ -50,7 +50,7 @@ final class ReaderIdentityStore: ObservableObject {
         avatar = UIImage(contentsOfFile: avatarURL.path)
     }
 
-    // MARK: - 顯示用
+    // MARK: - 显示用
 
     var displayName: String {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -62,9 +62,9 @@ final class ReaderIdentityStore: ObservableObject {
         return trimmed.isEmpty ? localized(Self.sampleSignature) : trimmed
     }
 
-    // MARK: - 寫入
+    // MARK: - 写入
 
-    /// 一次提交編輯頁的三樣東西。`avatar` 給 `nil` 就是「沒有頭像」，檔案一併刪掉。
+    /// 一次提交编辑页的三样东西。`avatar` 给 `nil` 就是「没有头像」，档案一并删掉。
     func commit(name newName: String, signature newSignature: String, avatar newAvatar: UIImage?) {
         let trimmedName = newName.trimmingCharacters(in: .whitespacesAndNewlines)
         name = String(trimmedName.prefix(Self.nameLimit))
@@ -84,9 +84,9 @@ final class ReaderIdentityStore: ObservableObject {
         avatar = UIImage(data: data)
     }
 
-    // MARK: - 圖片
+    // MARK: - 图片
 
-    /// 縮到 512px 再壓 JPEG：頭像最大只畫 76pt，原圖存下來沒有意義，還會讓備份變大。
+    /// 缩到 512px 再压 JPEG：头像最大只画 76pt，原图存下来没有意义，还会让备份变大。
     private static func normalizedJPEG(_ image: UIImage) -> Data? {
         let maxSide: CGFloat = 512
         let longestSide = max(image.size.width, image.size.height)

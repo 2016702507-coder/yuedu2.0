@@ -2,9 +2,9 @@ import Foundation
 import SwiftUI
 
 /// The one route a highlight-rule pack from another reader takes, whether it was picked
-/// with 正則高亮's 匯入規則 or shared in from Files: parse, wear, and merge into the
+/// with 正则高亮's 汇入规则 or shared in from Files: parse, wear, and merge into the
 /// user's rules. The result is an ordinary reading-settings plan, applied like any other
-/// 正則高亮 import.
+/// 正则高亮 import.
 @MainActor
 enum HighlightPackImportService {
     static func plan(
@@ -50,7 +50,7 @@ enum HighlightPackPlanError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .nothingUsable(let notes):
-            return ([localized("這個高亮規則包裡沒有本 App 能使用的規則。")] + notes)
+            return ([localized("这个高亮规则包里没有本 App 能使用的规则。")] + notes)
                 .joined(separator: "\n")
         }
     }

@@ -35,9 +35,9 @@ enum OnlineTOCCommitPolicy {
 /// failure carries the information.
 ///
 /// The list outlives the book it describes: the TOC cache is keyed by `(sourceId, url)`, so it
-/// belongs to the source, and deleting a book then re-adding it from 發現頁 gets the same
-/// possibly-expired URLs back. That is why a book could fail on every chapter after 移除下載
-/// and recover only on 換源 — a different source id is a different cache key.
+/// belongs to the source, and deleting a book then re-adding it from 发现页 gets the same
+/// possibly-expired URLs back. That is why a book could fail on every chapter after 移除下载
+/// and recover only on 换源 — a different source id is a different cache key.
 enum StaleTOCSuspicion {
     enum Decision: Equatable {
         case keepWaiting
@@ -63,8 +63,8 @@ enum StaleTOCSuspicion {
 /// What a table-of-contents reconcile may do to cached chapter files whose ref no longer
 /// matches. Marking is always performed — only deletion is conditional.
 ///
-/// Deleting is reserved for the two actions where the user asked for it: 換源 (a confirmed
-/// rebinding of the book to a different source) and 移除下載. Every table-of-contents
+/// Deleting is reserved for the two actions where the user asked for it: 换源 (a confirmed
+/// rebinding of the book to a different source) and 移除下载. Every table-of-contents
 /// refresh — automatic or manual — preserves content, because a refresh is a question about
 /// chapter *lists*, never a request to discard chapter *bytes*.
 public enum OfflineContentDisposition: Equatable, Sendable {

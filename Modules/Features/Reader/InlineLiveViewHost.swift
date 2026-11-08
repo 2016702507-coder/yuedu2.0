@@ -52,7 +52,7 @@ enum InlineLiveContent {
         case .web(let embed):
             let title = embed.title?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
             let name = title.isEmpty ? embed.host : title
-            return name.isEmpty ? localized("內嵌網頁") : String(format: localized("載入內嵌網頁：%@"), name)
+            return name.isEmpty ? localized("内嵌网页") : String(format: localized("载入内嵌网页：%@"), name)
         }
     }
 }

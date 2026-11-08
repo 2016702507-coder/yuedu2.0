@@ -1,15 +1,15 @@
 import SwiftUI
 
 // Unified search 4c-3: the 搜索 tab's root as one list of works. Every part's finds (the
-// shelf, the saved libraries, 青空文庫, the book sources, Open Library) are merged by
-// `SearchWorkResolver`; each row is a work, opening 作品詳情 with all its members as versions.
+// shelf, the saved libraries, 青空文库, the book sources, Open Library) are merged by
+// `SearchWorkResolver`; each row is a work, opening 作品详情 with all its members as versions.
 
 /// One part's find, frozen when found: what its row draws and what opening it needs.
 enum UnifiedSearchPayload {
     case shelf(ShelfSearchMatch)
     /// A saved library's book, Gutenberg's, or a module's or Open Library's (`ItemOpening.bibliographic`).
     case library(LibrarySearchMatch)
-    /// A 青空文庫 work.
+    /// A 青空文库 work.
     case publicLibrary(WorkDetailRoute)
     /// A row of the book sources' results: its publication snapshot.
     case bookSource(SearchBook)
@@ -50,7 +50,7 @@ enum UnifiedSearchPayload {
         }
     }
 
-    /// The version it is in 作品詳情, with a book-source row's result for its page's 換源; nil
+    /// The version it is in 作品详情, with a book-source row's result for its page's 换源; nil
     /// for a row whose source is gone (logged by `WorkDetailRoute(searchResult:)`).
     @MainActor
     fileprivate func version(sources: BookSourceStore) -> (route: WorkDetailRoute, result: SearchBook?)? {
@@ -69,7 +69,7 @@ struct UnifiedSearchSelection {
     let lead: UnifiedSearchPayload
     let others: [UnifiedSearchPayload]
 
-    /// 作品詳情's route, its other versions, and each book-source version's result. A lead whose
+    /// 作品详情's route, its other versions, and each book-source version's result. A lead whose
     /// source is gone gives way to the next member; nil when none is left.
     @MainActor
     func destination(sources: BookSourceStore = .shared) -> UnifiedSearchDestinationParts? {
@@ -111,7 +111,7 @@ struct UnifiedSearchParts {
     var libraries: [LibrarySearchMatch] = []
     var publicLibrary: [WorkDetailRoute] = []
     var sources: [SearchBook] = []
-    /// 青空文庫's whole list when more matched than the list takes.
+    /// 青空文库's whole list when more matched than the list takes.
     var publicLibraryOverflow: PublicLibraryRoute? = nil
 
     init(shelf: [ShelfSearchMatch] = [], libraries: [LibrarySearchMatch] = [], publicLibrary: [WorkDetailRoute] = [],
@@ -135,7 +135,7 @@ struct UnifiedSearchParts {
 @MainActor
 final class UnifiedSearchModel {
     private(set) var rows: [UnifiedSearchRow] = []
-    /// The 類型 chip's choice (search 9c); nil lists every kind. Kept while the page lives.
+    /// The 类型 chip's choice (search 9c); nil lists every kind. Kept while the page lives.
     var kindFilter: ContentKind?
     private(set) var publicLibraryOverflow: PublicLibraryRoute?
     /// A merge is running for finds not yet on screen.
@@ -188,7 +188,7 @@ final class UnifiedSearchModel {
         UnifiedSearchGroup.groups(of: rows, kind: \.kind, filter: kindFilter)
     }
 
-    /// Works were found, and 類型 leaves none of them.
+    /// Works were found, and 类型 leaves none of them.
     var isFilteredOut: Bool {
         kindFilter != nil && !rows.isEmpty && !rows.contains { $0.kind == kindFilter }
     }
@@ -223,13 +223,13 @@ final class UnifiedSearchModel {
 
 extension SearchBookListRowContent {
     /// A work of 搜索's one list: its lead's title and author, then whether it is on the shelf,
-    /// readable or data only, and how many places it can be read from — 「在書架上 · 3 源」.
+    /// readable or data only, and how many places it can be read from — 「在书架上 · 3 源」.
     /// VoiceOver hears the same parts as pauses (§16 item 7).
     init(work: UnifiedSearchResult, lead: UnifiedSearchPayload) {
         let availability = switch work.availability {
-        case .onShelf: localized("在書架上")
-        case .readable: localized("可閱讀")
-        case .dataOnly: localized("只有資料")
+        case .onShelf: localized("在书架上")
+        case .readable: localized("可阅读")
+        case .dataOnly: localized("只有资料")
         }
         let parts = [availability] + (work.sourceCount > 0 ? [String(format: localized("%d 源"), work.sourceCount)] : [])
         self.init(title: lead.title, titleTag: work.lead.contentKind.mediaTag,
@@ -250,18 +250,18 @@ struct UnifiedSearchStatus: Equatable {
     ///   - isSearching: the sources are still asked, or the finds are being merged.
     ///   - othersSearching: a saved library or Open Library is still asked.
     ///   - submittedQuery: the query submitted, when it is still the one in the field.
-    ///   - filteredOut: works were found and the 類型 chip leaves none (search 9c).
+    ///   - filteredOut: works were found and the 类型 chip leaves none (search 9c).
     init(hasRows: Bool, isSearching: Bool, isPaused: Bool, othersSearching: Bool, submittedQuery: String?,
          failures: [LibrarySearchFailure], filteredOut: Bool = false) {
         if !hasRows {
             if isSearching || othersSearching {
                 leading = localized("搜索中…")
             } else if isPaused {
-                leading = localized("已暫停")
+                leading = localized("已暂停")
             } else if filteredOut {
-                leading = localized("沒有這個類型的作品")
+                leading = localized("没有这个类型的作品")
             } else if let submittedQuery {
-                leading = String(format: localized("沒有找到「%@」"), submittedQuery)
+                leading = String(format: localized("没有找到「%@」"), submittedQuery)
             }
         }
         trailing = (hasRows && othersSearching ? [localized("搜索中…")] : []) + failures.map(\.line)
@@ -281,7 +281,7 @@ struct UnifiedSearchFeed: View {
     @ObservedObject private var aozora = AozoraCatalogStore.shared
     @State private var publicLibrary = PublicLibrarySearchModel()
 
-    /// 青空文庫's matches the list takes; the rest are behind 顯示全部.
+    /// 青空文库's matches the list takes; the rest are behind 显示全部.
     static let publicLibraryLimit = 50
 
     /// What the list is made from, compared cheaply: a source row that gained origins keeps its
@@ -290,18 +290,18 @@ struct UnifiedSearchFeed: View {
         let query: String
         let shelf: [ShelfSearchMatch]
         let libraries: [UUID]
-        /// 青空文庫's matches for this query, counted; nil until they are found.
+        /// 青空文库's matches for this query, counted; nil until they are found.
         let publicLibrary: Int?
         let sources: Int
     }
 
-    /// What 青空文庫 is searched for: once per query, not per publication.
+    /// What 青空文库 is searched for: once per query, not per publication.
     private struct PublicLibraryQuery: Equatable {
         let query: String
         let catalogLoaded: Bool
     }
 
-    /// This query's 青空文庫 answer, once found; nil while the public libraries are not offered.
+    /// This query's 青空文库 answer, once found; nil while the public libraries are not offered.
     private var publicLibraryAnswer: PublicLibrarySearchModel.Answer? {
         guard offersPublicLibraries, let answer = publicLibrary.answer, answer.query == query else { return nil }
         return answer
@@ -360,7 +360,7 @@ struct UnifiedSearchCover: View {
 }
 
 /// The list's rows on iOS 18 and later, inside the page's `List`: the leading status line,
-/// the works in groups by kind under a header each (search 9c), 青空文庫's full list, then the
+/// the works in groups by kind under a header each (search 9c), 青空文库's full list, then the
 /// trailing lines.
 @available(iOS 18.0, *)
 struct UnifiedSearchRows: View {
@@ -396,7 +396,7 @@ struct UnifiedSearchRows: View {
             }
         }
         if let overflow = model.publicLibraryOverflow {
-            NavigationLink(localized("顯示全部"), value: overflow)
+            NavigationLink(localized("显示全部"), value: overflow)
                 .listRowBackground(Color.clear)
         }
         ForEach(Array(status.trailing.enumerated()), id: \.offset) { offset, line in
@@ -416,22 +416,22 @@ struct UnifiedSearchRows: View {
 
 #if DEBUG
 @available(iOS 18.0, *)
-#Preview("搜索：一張作品清單") {
+#Preview("搜索：一张作品清单") {
     let store = BookStore()
     let model = UnifiedSearchModel(sourceURL: { _ in nil })
     let rows = UnifiedSearchParts(sources: [
-        SearchBook(name: "三體", author: "劉慈欣"),
-        SearchBook(name: "三體II：黑暗森林", author: "劉慈欣"),
+        SearchBook(name: "三体", author: "刘慈欣"),
+        SearchBook(name: "三体II：黑暗森林", author: "刘慈欣"),
     ])
-    let failure = LibrarySearchFailure(id: "calibre", name: "Calibre", reason: "無法連線到伺服器")
+    let failure = LibrarySearchFailure(id: "calibre", name: "Calibre", reason: "无法连线到伺服器")
     return NavigationStack {
         List {
             UnifiedSearchRows(model: model,
                               status: UnifiedSearchStatus(hasRows: true, isSearching: false, isPaused: false,
-                                                          othersSearching: true, submittedQuery: "三體", failures: [failure]))
+                                                          othersSearching: true, submittedQuery: "三体", failures: [failure]))
         }
         .listStyle(.plain)
-        .task { await model.update(rows, query: "三體") }
+        .task { await model.update(rows, query: "三体") }
     }
     .environmentObject(store)
 }

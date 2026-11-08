@@ -5,10 +5,10 @@ import UIKit
 import YueduCoreText
 
 private enum ReaderSettingsDeferredPresentationRoute {
-    /// 匯入字體 / 匯入閱讀設定 / 匯入正則高亮 — the settings sheet's document pickers,
+    /// 汇入字体 / 汇入阅读设置 / 汇入正则高亮 — the settings sheet's document pickers,
     /// handed to this first-level presenter because they live inside that sheet.
     case styleImporter(ReaderStyleImportRoute)
-    /// A locked control inside settings (匯入字體 without Pro) asked for the paywall.
+    /// A locked control inside settings (汇入字体 without Pro) asked for the paywall.
     case paywall(PremiumFeature)
 }
 
@@ -19,7 +19,7 @@ struct ReaderView: View {
     init(bookId: UUID, openingTOCTarget: ReaderTOCTarget? = nil) {
         self.bookId = bookId
         _pendingOpeningTOCTarget = State(initialValue: openingTOCTarget)
-        // The book's 整章翻譯 setting is part of the first layout, so a translated book never
+        // The book's 整章翻译 setting is part of the first layout, so a translated book never
         // opens on its untranslated text first.
         _readerTranslation = State(initialValue: ReaderTranslationSettingsStore.presentation(for: bookId))
         // A reader of this book closed mid-narration and the narration is still going: this
@@ -32,7 +32,7 @@ struct ReaderView: View {
     @Environment(\.appDependencies) var dependencies
     @Environment(\.presentationMode) var presentationMode
     @Environment(\.readerNavigator) var readerNavigator
-    /// 換源 to another version of the work hands the reader over to it (`BookReaderView`).
+    /// 换源 to another version of the work hands the reader over to it (`BookReaderView`).
     @Environment(\.readerVersionSwitch) var readerVersionSwitch
     @Environment(\.rootTabBarVisibility) var rootTabBarVisibility
     @Environment(\.scenePhase) private var scenePhase
@@ -104,12 +104,14 @@ struct ReaderView: View {
     /// What the quick panel asked to open. iOS drops a sheet requested while the
     /// sheet it came from is still dismissing, so the request is recorded here and
     /// run from the panel's real `onDismiss` — the same contract
-    /// `Technotes/iOS17MenuModalPresentation.md` sets out, and the reason 現代's
-    /// book card lost 聽書 before it was applied there.
+    /// `Technotes/iOS17MenuModalPresentation.md` sets out, and the reason 现代's
+    /// book card lost 听书 before it was applied there.
     @State var quickPanelDeferredRoute: ReaderQuickPanelRoute?
+    /// 浮层九宫格推进来的那一页：半屏、可透视后面的书页。
+    @State var readerSectionSheet: ReaderSectionSheet?
     @State var showReaderSearch = false
     @State var readerSearchSelection = ""
-    /// 全書搜尋: the last search and its results while the book is open, and the hit the
+    /// 全书搜寻: the last search and its results while the book is open, and the hit the
     /// reader is stepping through.
     @State var bookSearch = ReaderBookSearchSession()
     /// The hit last jumped to, washed on the page while nothing is being read aloud.
@@ -119,7 +121,7 @@ struct ReaderView: View {
     @State var readerTranslationSelection = ""
     @State var showReaderTranslation = false
     @State var showTOC = false
-    /// 目錄's uncached chapters as last read from the cache (`scanTOCCacheMarks`); nil until
+    /// 目录's uncached chapters as last read from the cache (`scanTOCCacheMarks`); nil until
     /// then, and for a book that is not online.
     @State var tocUncachedChapters: Set<Int>?
     /// The offline download's finished chapters at that read: only what it finishes afterwards
@@ -129,15 +131,15 @@ struct ReaderView: View {
     /// The confirmation that pops up after a bookmark is added or removed.
     @State var bookmarkToast: ReaderBookmarkToast?
     @Environment(\.accessibilityReduceMotion) var accessibilityReduceMotion
-    /// 目前正在編輯的段落筆記；nil 表示沒有開著編輯頁。
+    /// 目前正在编辑的段落笔记；nil 表示没有开著编辑页。
     @State var noteEditorRoute: ReaderNoteEditorRoute?
-    /// 待確認的筆記刪除（alert 由這個值驅動）。
+    /// 待确认的笔记删除（alert 由这个值驱动）。
     @State var noteDeleteRoute: ReaderNoteDeleteRoute?
-    /// 在筆記編輯頁裡按了刪除／續訂：alert 與付費牆都要等編輯頁真的關掉才彈，否則 iOS 17
-    /// 會在 sheet 還在收的時候把它吃掉（Technotes/iOS17MenuModalPresentation.md 的同一類問題）。
+    /// 在笔记编辑页里按了删除／续订：alert 与付费墙都要等编辑页真的关掉才弹，否则 iOS 17
+    /// 会在 sheet 还在收的时候把它吃掉（Technotes/iOS17MenuModalPresentation.md 的同一类问题）。
     @State private var noteEditorFollowUp =
         DismissalSequencedPresentation<ReaderNoteEditorFollowUp>()
-    /// 開著的付費牆；`nil` 表示沒開。
+    /// 开著的付费墙；`nil` 表示没开。
     @State var paywallFeature: PremiumFeature?
     @State var showTouchZoneEditor = false
     @State var readerOverlaySVGAssetStore: ReaderOverlaySVGAssetStore?
@@ -169,20 +171,20 @@ struct ReaderView: View {
     /// renderer holds the engine start (`EPUBPageRenderer.pendingStartBookId`).
     @State var readerViewportSize: CGSize = .zero
     /// What the window keeps the reader clear of, from `reportsReaderWindowObstructions`: the text
-    /// and the 頁眉／頁腳 each keep clear of what reaches their own height (`readerTextSideInsets`,
+    /// and the 页眉／页脚 each keep clear of what reaches their own height (`readerTextSideInsets`,
     /// `readerBarSideInsets`). Nothing in an iPhone's portrait.
     @State var readerWindowObstructions: ReaderWindowObstructions = .none
     @StateObject private var volumeHandler = VolumeKeyHandler()
 
     /// Not private: the footer pill in `ReaderView+Footer` reads its running state.
     @StateObject var autoReader = AutoReadController()
-    /// This reader's key for 閱讀時螢幕常亮 in `ScreenAwakeController`.
+    /// This reader's key for 阅读时萤幕常亮 in `ScreenAwakeController`.
     @State private var screenAwakeOwner = ScreenAwakeController.Owner()
     /// Between `onAppear` and `onDisappear`. A page pushed over the reader, or a
     /// full-screen cover, takes it off screen; a sheet does not.
     @State private var readerIsOnScreen = false
 
-    /// Builds 頁眉／頁腳 for any page the paged engine asks about. A reference type
+    /// Builds 页眉／页脚 for any page the paged engine asks about. A reference type
     /// so the escaping closure the engine holds cannot freeze a copy of this
     /// struct's state — see `bindPageBarsProvider`.
     /// `@State`, not `@StateObject`: it publishes nothing, and a `@MainActor`
@@ -191,9 +193,9 @@ struct ReaderView: View {
     /// Bumped when the bars say something new without the pagination changing, so
     /// pages already on screen get told.
     @State var pageBarsRevision: UInt = 0
-    /// 自動閱讀's route into the scroll view, filled in by `CoreTextScrollHostView`.
+    /// 自动阅读's route into the scroll view, filled in by `CoreTextScrollHostView`.
     @State var autoScrollHandle = ReaderAutoScrollHandle()
-    /// 自動閱讀's route to the curtain layer, filled in by the paged host.
+    /// 自动阅读's route to the curtain layer, filled in by the paged host.
     @State var autoReadRevealHandle = ReaderAutoReadRevealHandle()
     @StateObject var ttsCoordinator: TTSCoordinator
     /// This reader's key in `NowPlayingHub`'s set of readers hosting the mini-player.
@@ -223,7 +225,7 @@ struct ReaderView: View {
         }
     }
 
-    /// 閱讀時螢幕常亮: the screen stays on while this reader is on screen with the app in
+    /// 阅读时萤幕常亮: the screen stays on while this reader is on screen with the app in
     /// the foreground. Re-run whenever any of the three changes.
     private func applyReadingScreenAwake() {
         let holdsScreen = settings.readerKeepsScreenAwake
@@ -250,13 +252,13 @@ struct ReaderView: View {
     @State var showTTSPanel = false
     @State var showAIAssistantPanel = false
     @State var aiLaunch: AIReadingLaunch?
-    /// 整章翻譯 for this book, and the sheet that sets it.
+    /// 整章翻译 for this book, and the sheet that sets it.
     @State var readerTranslation: ReaderTranslationPresentation
     @State var showTranslationSheet = false
     /// Scroll mode keeps neighbouring chapters sliced; those whose translations changed off
     /// screen are laid out again when they become the chapter on screen.
     @State var staleTranslatedChapters: Set<Int> = []
-    /// AI 查詞's card, and the assistant launch its 繼續問 AI asks for once the card is gone.
+    /// AI 查词's card, and the assistant launch its 继续问 AI asks for once the card is gone.
     @State var wordLookup: ReaderWordLookupRoute?
     @State var aiLaunchAfterWordLookup: AIReadingLaunch?
     @State var aiCitationTask: Task<Void, Never>?
@@ -272,22 +274,22 @@ struct ReaderView: View {
     @State var showWorkDetail = false
     @State var workDetailSnapshot: WorkDetailRoute?
     @State var pendingDetailTOCTarget: ReaderTOCTarget?
-    /// 作品詳情's 目錄 entry this reader was opened at. The opening restore lands on its spine
-    /// item first; the entry's anchor is then reached by the reader's own 目錄 jump, once.
+    /// 作品详情's 目录 entry this reader was opened at. The opening restore lands on its spine
+    /// item first; the entry's anchor is then reached by the reader's own 目录 jump, once.
     @State var pendingOpeningTOCTarget: ReaderTOCTarget?
-    /// Bumped by every chapter jump: a 目錄 jump still waiting on its spine item's layout lands
+    /// Bumped by every chapter jump: a 目录 jump still waiting on its spine item's layout lands
     /// only if no other jump came since.
     @State var chapterJumpGeneration = 0
-    /// Scroll mode's 目錄 entry waiting for its anchor's spine item (`jumpToTOCEntry`).
+    /// Scroll mode's 目录 entry waiting for its anchor's spine item (`jumpToTOCEntry`).
     @State var pendingScrollTOCEntry: ReaderPendingTOCEntry?
-    /// 現代 interface: the card hanging off the cover thumbnail in the top bar.
+    /// 现代 interface: the card hanging off the cover thumbnail in the top bar.
     @State var showModernBookCard = false
-    /// 書卡裡按下的動作。每個動作都要開 sheet，而 sheet 在 popover 還在收的時候會被系統丟掉
-    /// （聽書就是這樣「面板縮回圓圈、但 sheet 沒出來」），所以先記在這裡，等 popover 真的關掉
-    /// 才開——跟 Technotes/iOS17MenuModalPresentation.md 是同一類邊界。
+    /// 书卡里按下的动作。每个动作都要开 sheet，而 sheet 在 popover 还在收的时候会被系统丢掉
+    /// （听书就是这样「面板缩回圆圈、但 sheet 没出来」），所以先记在这里，等 popover 真的关掉
+    /// 才开——跟 Technotes/iOS17MenuModalPresentation.md 是同一类边界。
     @State var modernBookCardPresentation =
         DismissalSequencedPresentation<ReaderModernBookCardRoute>()
-    /// Cover art for the 現代 chrome, read from disk once instead of on every body
+    /// Cover art for the 现代 chrome, read from disk once instead of on every body
     /// pass (the top bar and the book card both draw it).
     @State var modernCoverImage: UIImage?
     /// Whether the auto-read controls are showing over the page. Not private: the
@@ -371,7 +373,7 @@ struct ReaderView: View {
         get { openingRestore.target }
         nonmutating set { openingRestore.target = newValue }
     }
-    /// 換源 sheet 內的變量編輯入口 (Legado 設置書籍變量/設置源變量)。
+    /// 换源 sheet 内的变量编辑入口 (Legado 设置书籍变量/设置源变量)。
     @State var showBookVariableEditor = false
     @State var showSourceVariableEditor = false
     @State private var isApplyingCoreTextRestore = false
@@ -387,11 +389,11 @@ struct ReaderView: View {
 
     // Source change
     @State var showChangeSourceSheet = false
-    /// 換源's 書庫與模組: the work's versions in the libraries and modules.
+    /// 换源's 书库与模组: the work's versions in the libraries and modules.
     @State var versionFinder = ReaderVersionFinder()
-    /// The source whose 來源配置登入 the book card opened.
+    /// The source whose 来源配置登入 the book card opened.
     @State var sourceLoginTarget: BookSource?
-    /// 調試正文's 調試規則, from 更多.
+    /// 调试正文's 调试规则, from 更多.
     @State var contentDebugTarget: ReaderContentDebugTarget?
     @State private var replaceRuleDraft: ReplaceRule?
     @State var reviewTarget: ReaderHTMLUtilities.ReviewTarget?
@@ -466,7 +468,7 @@ struct ReaderView: View {
     }
 
     /// Puts the background of the reader's mode on screen: the built-in one it sits on,
-    /// and over it the palette of a saved background or — under 綁定閱讀主題 › 跟隨外觀主題
+    /// and over it the palette of a saved background or — under 绑定阅读主题 › 跟随外观主题
     /// — of the appearance theme. `readerBackgroundResolution` decides; this is the one
     /// place that applies it, so the button's symbol, which reads the mode, and the page
     /// cannot part ways (reported 2026-09-30: switched by hand the symbol stayed as it
@@ -511,7 +513,7 @@ struct ReaderView: View {
         usesReadableReaderWidth ? DSLayout.readableOverlayWidth : .infinity
     }
 
-    /// 左右邊距 as laid out: the reader's own margin, measured from what the text keeps clear of
+    /// 左右边距 as laid out: the reader's own margin, measured from what the text keeps clear of
     /// on each side and the same on both sides. `effectivePageMargins` adds those sides to it.
     var effectivePageMarginH: CGFloat {
         pageMarginH(for: activeReaderDisplayMode)
@@ -545,8 +547,8 @@ struct ReaderView: View {
     /// What the text keeps clear of on each side in `mode`, before the reader's own margin.
     ///
     /// Only what reaches the text's own height: on a folded iPhone Duo the camera housing ends
-    /// above the first line, so the text runs the full width beneath it, as 微信讀書's does, and
-    /// only the 頁眉 beside the camera keeps clear (`readerBarSideInsets`; maintainer's choice,
+    /// above the first line, so the text runs the full width beneath it, as 微信读书's does, and
+    /// only the 页眉 beside the camera keeps clear (`readerBarSideInsets`; maintainer's choice,
     /// 2026-10-27). In a two-page spread on a screen that folds, every page also clears the fold.
     func readerTextSideInsets(for mode: ReaderDisplayMode) -> ReaderSideInsets {
         readerSideInsets(across: readerTextBand(for: mode))
@@ -726,7 +728,7 @@ struct ReaderView: View {
         currentTOCChapter?.id
     }
 
-    /// The 目錄 entry narration is in, for 聽書's chapter list; the reader's while nothing is read.
+    /// The 目录 entry narration is in, for 听书's chapter list; the reader's while nothing is read.
     private var ttsTOCChapterID: UUID? {
         guard let spine = ttsChapterIndex else { return currentTOCChapterID }
         let offset = ttsPlaybackAnchor.flatMap { $0.spineIndex == spine ? $0.charOffset : nil } ?? 0
@@ -918,7 +920,7 @@ struct ReaderView: View {
     /// chapter that never arrives is not a dead end: the toolbar is the only way to
     /// refresh, change source, or leave, and without it the reader had to be force-quit.
     func toggleReaderChrome() {
-        // 自動閱讀's panel is chrome too, and it goes first: one tap puts it away,
+        // 自动阅读's panel is chrome too, and it goes first: one tap puts it away,
         // the next one is what raises the reading menu.
         guard !consumeTapForAutoReadPanel() else { return }
         setReaderChromeVisible(!showBars)
@@ -1160,7 +1162,7 @@ struct ReaderView: View {
         visiblePosition: CoreTextReadingPosition? = nil
     ) {
         DispatchQueue.main.async {
-            // Every settled page, turned by hand, by 朗讀 or by 自動翻頁: timed, so a stall
+            // Every settled page, turned by hand, by 朗读 or by 自动翻页: timed, so a stall
             // during one names it.
             SourcePerfTrace.span("reader.page.changed", "page=\(newPage)", thresholdMs: 5) {
                 handleCoreTextPageChanged(newPage, engine: engine, visiblePosition: visiblePosition)
@@ -1470,8 +1472,8 @@ struct ReaderView: View {
     /// Footer intrinsic height (points), excluding safe area bottom.
     let footerOverlayHeight: CGFloat = ReaderLayoutMetrics.footerHeight
 
-    /// 一頁一個書籤：目前這一頁在章節內的字元範圍。頂部書籤鈕、觸控區動作、
-    /// 翻頁模式的下拉手勢全部以它為準，所以三者永遠談的是同一個書籤。
+    /// 一页一个书签：目前这一页在章节内的字元范围。顶部书签钮、触控区动作、
+    /// 翻页模式的下拉手势全部以它为准，所以三者永远谈的是同一个书签。
     var currentPageBookmarkRange: ReaderPageBookmarkRange? {
         if let engine = epubRenderer.engine, usesCoreTextEPUB {
             let displayed = displayedCoreTextPosition(in: engine)
@@ -1484,8 +1486,8 @@ struct ReaderView: View {
         if !allPages.isEmpty {
             let index = min(currentPage, allPages.count - 1)
             let page = allPages[index]
-            // 舊的 allPages 路徑沒有字元位移，頁在章內的序號就是它的位置。
-            // 同一章的頁在 allPages 裡是連續的，所以章首頁減一下就是章內頁號。
+            // 旧的 allPages 路径没有字元位移，页在章内的序号就是它的位置。
+            // 同一章的页在 allPages 里是连续的，所以章首页减一下就是章内页号。
             let localPage = index - (findChapterFirstPage(page.chapterIndex) ?? index)
             return ReaderPageBookmarkRange(
                 spineIndex: page.chapterIndex, startOffset: localPage, endOffset: localPage + 1)
@@ -1500,9 +1502,9 @@ struct ReaderView: View {
         return store.isPageBookmarked(bookId: bookId, range: range)
     }
 
-    /// 加書籤／移除書籤：頂部書籤鈕、觸控區動作與下拉手勢共用這一條路徑，
-    /// 成功後的提示也只在這裡發。
-    /// - Returns: `true` 加入、`false` 移除；沒有可用的頁面範圍、什麼都沒做時是 `nil`。
+    /// 加书签／移除书签：顶部书签钮、触控区动作与下拉手势共用这一条路径，
+    /// 成功后的提示也只在这里发。
+    /// - Returns: `true` 加入、`false` 移除；没有可用的页面范围、什么都没做时是 `nil`。
     @discardableResult
     func toggleCurrentPageBookmark() -> Bool? {
         guard let range = currentPageBookmarkRange else { return nil }
@@ -1521,7 +1523,7 @@ struct ReaderView: View {
         return added
     }
 
-    /// The title a spine item reads under: the 目錄 entry it starts in. An EPUB's spine index
+    /// The title a spine item reads under: the 目录 entry it starts in. An EPUB's spine index
     /// does not index `chapters`, which is its TOC; a spine item before the first entry (a
     /// cover) takes its own title.
     func chapterTitle(forSpineIndex chapterIndex: Int) -> String {
@@ -1555,8 +1557,8 @@ struct ReaderView: View {
         return String(content.prefix(30))
     }
 
-    /// 書籤卡片上的摘錄。比 `currentPageExcerpt` 長，因為卡片留了兩行給它；
-    /// 30 字只填得滿一行，第二行會空著。
+    /// 书签卡片上的摘录。比 `currentPageExcerpt` 长，因为卡片留了两行给它；
+    /// 30 字只填得满一行，第二行会空著。
     var currentPageBookmarkExcerpt: String {
         if let engine = epubRenderer.engine, usesCoreTextEPUB {
             if effectiveScrollMode {
@@ -1638,11 +1640,11 @@ struct ReaderView: View {
         return (page.pageInChapter + 1, total)
     }
 
-    /// The line under the bottom bar's slider: 「12 / 28 頁 · 全書 6%」.
+    /// The line under the bottom bar's slider: 「12 / 28 页 · 全书 6%」.
     var readerProgressText: String {
         guard let position = chapterPagePosition else { return "" }
         return String(
-            format: localized("%d / %d 頁 · 全書 %d%%"),
+            format: localized("%d / %d 页 · 全书 %d%%"),
             position.page, position.count, Int((totalProgressFraction * 100).rounded(.down))
         )
     }
@@ -1662,7 +1664,7 @@ struct ReaderView: View {
     /// from a narration unit — so they supply the words alone and the render paths search
     /// for them exactly as they always have.
     ///
-    /// 全書搜尋's hit shares the slot and gives way to anything playing: the wash follows
+    /// 全书搜寻's hit shares the slot and gives way to anything playing: the wash follows
     /// what is being read aloud.
     var activePlaybackHighlight: ReaderPlaybackHighlight? {
         if mediaOverlayCoordinator.playbackState != .stopped {
@@ -1732,7 +1734,7 @@ struct ReaderView: View {
                 .paragraphStyle: paragraph
             ]
             let rect = CGRect(x: 56, y: 64, width: size.width - 112, height: size.height - 128)
-            let titleString = displayTitle.isEmpty ? "閱讀" : displayTitle
+            let titleString = displayTitle.isEmpty ? "阅读" : displayTitle
             (titleString as NSString).draw(
                 with: rect,
                 options: [.usesLineFragmentOrigin, .truncatesLastVisibleLine],
@@ -1781,7 +1783,7 @@ struct ReaderView: View {
         // audiobook opens its player. Closing it comes back here. Not the app root's to present:
         // this reader may be presented full screen, and presenting from the root closed it.
         // Outside the reader's own NavigationStack, not on its root: iOS 26.4.x builds a cover on
-        // a stack's root again whenever anything is presented over it (the player's 目錄 or 定時,
+        // a stack's root again whenever anything is presented over it (the player's 目录 or 定时,
         // here; #51).
         .fullScreenCover(item: $artworkDestination) { destination in
             NowPlayingArtworkDestinationView(destination: destination)
@@ -1826,7 +1828,7 @@ struct ReaderView: View {
         chapters.isEmpty || isHoldingContentForOpeningTransition
     }
 
-    /// 「無法開啟書籍」 is on screen. The book has no engine and so nothing to page, scroll
+    /// 「无法开启书籍」 is on screen. The book has no engine and so nothing to page, scroll
     /// or report in the bars, whose placeholder lists would only say 1/1 and 0%.
     var showsBookOpenFailure: Bool {
         bookOpenFailure != nil && !usesCoreTextEPUB
@@ -1879,7 +1881,7 @@ struct ReaderView: View {
             if showsLoadingChrome {
                 VStack {
                     Spacer()
-                    ProgressView(localized("載入中…"))
+                    ProgressView(localized("载入中…"))
                     Spacer()
                 }
                 .frame(maxWidth: .infinity)
@@ -1935,7 +1937,7 @@ struct ReaderView: View {
                 } else {
                     // No engine yet, in either mode: a local EPUB still opening. There is
                     // nothing to page or scroll, so the reader's background and status lines
-                    // show; a tap still raises the chrome, so back and 換源 stay in reach. Paged
+                    // show; a tap still raises the chrome, so back and 换源 stay in reach. Paged
                     // mode once drew nothing here, and every tap went unanswered (2026-10-16). A
                     // clear colour is no accessibility element of its own, so VoiceOver gets one
                     // made for it.
@@ -1951,7 +1953,7 @@ struct ReaderView: View {
                     scrollBody
                     if epubRenderer.scrollEngine != nil, !epubRenderer.scrollEngineReady {
                         readerSurfaceBackground
-                            .overlay { ProgressView(localized("載入中…")) }
+                            .overlay { ProgressView(localized("载入中…")) }
                             .readerLoadingChromeTap { toggleReaderChrome() }
                             .transition(.opacity)
                     }
@@ -2002,7 +2004,7 @@ struct ReaderView: View {
             } else {
                 VStack {
                     Spacer()
-                    ProgressView(localized("載入中…"))
+                    ProgressView(localized("载入中…"))
                     Spacer()
                 }
                 .frame(maxWidth: .infinity)
@@ -2128,7 +2130,7 @@ struct ReaderView: View {
             if bookSearch.isNavigating, !showBars {
                 VStack {
                     Spacer()
-                    // On the footer band, like 聽書's prompt: a hit can sit on the page's
+                    // On the footer band, like 听书's prompt: a hit can sit on the page's
                     // last lines, and the bar must not cover it.
                     bookSearchNavigationBar
                         .padding(.bottom, footerBandBottomPadding(forHeight: DSLayout.minimumTapTarget))
@@ -2270,25 +2272,25 @@ struct ReaderView: View {
             showModernBookCard = false
         }
         // The reveal holds while the reading menu or one of the panel's own sheets
-        // is over the page — and only then. 目錄 and 設置 used to let it run on
+        // is over the page — and only then. 目录 and 设置 used to let it run on
         // behind them, because the pause was keyed to the panel closing.
         .onChange(of: autoReadIsCoveredBySurface) { _, _ in
             applyAutoReadPause()
         }
         .hidesRootTabBar()
         .confirmationDialog(
-            localized("回到搜尋前的位置？"),
+            localized("回到搜寻前的位置？"),
             isPresented: $showBookSearchExitConfirmation,
             titleVisibility: .visible
         ) {
             Button(localized("回到原位置")) { endBookSearch(returningToOrigin: true) }
-            Button(localized("留在這裡")) { endBookSearch(returningToOrigin: false) }
+            Button(localized("留在这里")) { endBookSearch(returningToOrigin: false) }
             Button(localized("取消"), role: .cancel) {}
         }
-        .alert(localized("TXT 目錄修復未完成"), isPresented: $showTXTIndexFailure) {
-            Button(localized("確定"), role: .cancel) { setReaderChromeVisible(true) }
+        .alert(localized("TXT 目录修复未完成"), isPresented: $showTXTIndexFailure) {
+            Button(localized("确定"), role: .cancel) { setReaderChromeVisible(true) }
         } message: {
-            Text(localized("為避免閱讀進度或書籤錯移，尚未套用新目錄。原有位置資料已保留。請保留原始 TXT，並匯出診斷記錄以供檢查。"))
+            Text(localized("为避免阅读进度或书签错移，尚未套用新目录。原有位置资料已保留。请保留原始 TXT，并汇出诊断记录以供检查。"))
         }
         )
         let lifecycleLayers = AnyView(
@@ -2352,7 +2354,7 @@ struct ReaderView: View {
             // Allow the in-reader mini-player the whole time the reader is on screen,
             // independent of the bars — bar visibility only repositions it now.
             setTTSFloatingOverlayVisible(true)
-            ttsCoordinator.nextChapterLoadingStatusTitle = localized("正在載入下一章…")
+            ttsCoordinator.nextChapterLoadingStatusTitle = localized("正在载入下一章…")
             ttsCoordinator.onNextNarrationUnit = {
                 ttsLog("[TTS][Reader] onChapterFinished ttsChapter=\(ttsChapterIndex.map(String.init) ?? "nil") currentChapter=\(currentChapterIndex)")
                 return advanceTTSChapterFromEngine()
@@ -2574,7 +2576,7 @@ struct ReaderView: View {
             let renderedChapterText = effectiveScrollMode
                 ? epubRenderer.scrollEngine?.chapterText(forSpine: request.spineIndex) ?? epubRenderer.engine?.chapterText(forSpine: request.spineIndex)
                 : epubRenderer.engine?.chapterText(forSpine: request.spineIndex)
-            // 查詞's 繼續問 AI continues as 解釋 of the same selection.
+            // 查词's 继续问 AI continues as 解释 of the same selection.
             var launch = AIReadingLaunch(action: request.action == .lookup ? .explain : request.action,
                 selection: .init(bookID: bookId, spineIndex: request.spineIndex, range: request.range, text: request.text),
                 renderedChapterText: renderedChapterText)
@@ -2717,36 +2719,21 @@ struct ReaderView: View {
             positionObservationLayers
                 .sheet(isPresented: $showSettings, onDismiss: presentDeferredReaderSettingsRoute) {
             AdaptiveSheetContainer(maxWidth: DSLayout.readableListWidth) {
-                ReaderSettingsView(
-                    fontSize: Binding(
-                        get: { fontSize },
-                        set: { fontSize = $0 }
-                    ),
-                    theme: Binding(
-                        get: { readerTheme },
-                        set: { readerTheme = $0 }
-                    ),
-                    readerSafeTop: effectiveReaderSafeTop,
-                    readerSafeBottom: effectiveReaderSafeBottom,
-                    pageMarginHUpperBound: pageMarginHUpperBound,
-                    readerWindowCanHoldSpread: ReaderSpreadPolicy.windowCanHoldSpread(
-                        viewportSize: readerViewportSize
-                    ),
-                    capabilities: readerCapabilities,
-                    allowsUserSelectedReaderFont: book?.allowsUserSelectedReaderFont == true,
-                    usesPublicationFontDefault: book?.resolvedPipelineKind == .epub,
-                    isVerticalWritingMode: bookDirection.principalMode.isVertical,
-                    allowsVerticalWritingMode: (book ?? snapshotBook)?.allowsVerticalWritingMode == true,
-                    hasParagraphReviews: currentBookHasParagraphReviews,
-                    onOpenTouchZoneEditor: {
-                        guard subscriptionStore.isProActive, !effectiveScrollMode else { return }
-                        setReaderChromeVisible(false)
-                        showTouchZoneEditor = true
-                    },
-                    onOpenStyleImporter: requestFirstLevelReaderStyleImporter,
-                    onOpenPaywall: readerSettingsPaywallAction
-                )
+                readerSettingsContent(sections: nil)
             }
+            // 整頁設定也是玻璃：後面是正在讀的那一頁，改之前先看見它。
+            .presentationBackground(.ultraThinMaterial)
+        }
+        // 浮层的格子推进来的一页。单独一张半屏卡，不是把整份设置再推高，
+        // 这样后面的正文留在原地，拖滑杆时看得见行距在动。
+        .sheet(item: $readerSectionSheet) { route in
+            AdaptiveSheetContainer(maxWidth: DSLayout.readableListWidth) {
+                readerSettingsContent(sections: route.sections)
+            }
+            // 半屏、半透明：后面的书页不盖掉，拖滑杆时看得见正文在动。
+            .presentationDetents([.medium, .large])
+            .presentationBackground(.ultraThinMaterial)
+            .presentationDragIndicator(.visible)
         }
         .sheet(isPresented: $showQuickThemePanel, onDismiss: presentDeferredQuickPanelRoute) {
             ReaderQuickThemePanelView(
@@ -2777,7 +2764,16 @@ struct ReaderView: View {
                 onOpenPaywall: { feature in
                     quickPanelDeferredRoute = .paywall(feature)
                     showQuickThemePanel = false
-                }
+                },
+                onOpenTTS: {
+                    quickPanelDeferredRoute = .tts
+                    showQuickThemePanel = false
+                },
+                onOpenSection: { sections in
+                    quickPanelDeferredRoute = .settingsSection(sections)
+                    showQuickThemePanel = false
+                },
+                usesPublicationFontDefault: book?.resolvedPipelineKind == .epub
             )
         }
         .sheet(isPresented: $showReaderSearch, onDismiss: { bookSearchSheetDidDismiss() }) {
@@ -2863,7 +2859,7 @@ struct ReaderView: View {
                     isPresented: $showTOC
                 )
             }
-            // Each time 目錄 opens, and again if the list changed under it (a refresh landing).
+            // Each time 目录 opens, and again if the list changed under it (a refresh landing).
             .task(id: book?.onlineChapters?.count) { await scanTOCCacheMarks() }
         }
         .sheet(isPresented: $showBookmarkList) {
@@ -2873,9 +2869,9 @@ struct ReaderView: View {
                     bookmarks: book?.bookmarks ?? [],
                     pageNumber: { inChapterPageNumber(for: $0) },
                     chapterTitle: { index in
-                        // 章節已經不在目錄裡（換源、目錄重抓）就回空字串，讓清單退回
-                        // 書籤存檔時的章名——`chapterTitle(forSpineIndex:)` 最後一手會回
-                        // 「目前章節」，掛在別章的書籤上是錯的。
+                        // 章节已经不在目录里（换源、目录重抓）就回空字串，让清单退回
+                        // 书签存档时的章名——`chapterTitle(forSpineIndex:)` 最后一手会回
+                        // 「目前章节」，挂在别章的书签上是错的。
                         guard spineChapters.indices.contains(index) else { return "" }
                         return chapterTitle(forSpineIndex: index).converted(to: settings.textConversion)
                     },
@@ -2939,22 +2935,22 @@ struct ReaderView: View {
                 .tint(DSColor.accent)
         }
         .alert(
-            localized("刪除筆記"),
+            localized("删除笔记"),
             isPresented: Binding(
                 get: { noteDeleteRoute != nil },
                 set: { if !$0 { noteDeleteRoute = nil } }
             ),
             presenting: noteDeleteRoute
         ) { route in
-            Button(localized("刪除筆記和標註"), role: .destructive) {
+            Button(localized("删除笔记和标注"), role: .destructive) {
                 deleteNote(route, removesAnnotation: true)
             }
-            Button(localized("只刪除筆記"), role: .destructive) {
+            Button(localized("只删除笔记"), role: .destructive) {
                 deleteNote(route, removesAnnotation: false)
             }
             Button(localized("取消"), role: .cancel) {}
         } message: { _ in
-            Text(localized("標註可以保留下來，或是連同筆記一起刪除。"))
+            Text(localized("标注可以保留下来，或是连同笔记一起删除。"))
         }
         .sheet(isPresented: $showAIAssistantPanel, onDismiss: { aiLaunch = nil }) {
             let sourceContext = aiCurrentSourceContext
@@ -2992,8 +2988,8 @@ struct ReaderView: View {
                     }
                 )
                 .task { await gatherAIBookText() }
-                .alert(localized("引用定位未驗證"), isPresented: Binding(get: { aiCitationError != nil }, set: { if !$0 { aiCitationError = nil } })) {
-                    Button(localized("確定"), role: .cancel) { aiCitationError = nil }
+                .alert(localized("引用定位未验证"), isPresented: Binding(get: { aiCitationError != nil }, set: { if !$0 { aiCitationError = nil } })) {
+                    Button(localized("确定"), role: .cancel) { aiCitationError = nil }
                 } message: { Text(aiCitationError ?? "") }
             }
         }
@@ -3069,9 +3065,9 @@ struct ReaderView: View {
                     )
                 } else {
                     ContentUnavailableView {
-                        UnavailableLabel(localized("媒體旁白"), systemImage: "waveform")
+                        UnavailableLabel(localized("媒体旁白"), systemImage: "waveform")
                     } description: {
-                        Text(localized("目前章節沒有媒體旁白")).font(DSFont.unavailableDescription).foregroundStyle(DSColor.textSecondary)
+                        Text(localized("目前章节没有媒体旁白")).font(DSFont.unavailableDescription).foregroundStyle(DSColor.textSecondary)
                     }
                 }
             }
@@ -3180,9 +3176,49 @@ struct ReaderView: View {
         switch route {
         case .settings:
             showSettings = true
+        case .settingsSection(let sections):
+            readerSectionSheet = ReaderSectionSheet(sections: sections)
+        case .tts:
+            showTTSPanel = true
         case .paywall(let feature):
             paywallFeature = feature
         }
+    }
+
+    /// The full settings sheet and the half-height section cards share one set of
+    /// arguments; only `sections` decides which of the two is drawn.
+    @ViewBuilder
+    private func readerSettingsContent(sections: Set<ReaderSettingsSection>?) -> some View {
+        ReaderSettingsView(
+            fontSize: Binding(
+                get: { fontSize },
+                set: { fontSize = $0 }
+            ),
+            theme: Binding(
+                get: { readerTheme },
+                set: { readerTheme = $0 }
+            ),
+            sections: sections,
+            readerSafeTop: effectiveReaderSafeTop,
+            readerSafeBottom: effectiveReaderSafeBottom,
+            pageMarginHUpperBound: pageMarginHUpperBound,
+            readerWindowCanHoldSpread: ReaderSpreadPolicy.windowCanHoldSpread(
+                viewportSize: readerViewportSize
+            ),
+            capabilities: readerCapabilities,
+            allowsUserSelectedReaderFont: book?.allowsUserSelectedReaderFont == true,
+            usesPublicationFontDefault: book?.resolvedPipelineKind == .epub,
+            isVerticalWritingMode: bookDirection.principalMode.isVertical,
+            allowsVerticalWritingMode: (book ?? snapshotBook)?.allowsVerticalWritingMode == true,
+            hasParagraphReviews: currentBookHasParagraphReviews,
+            onOpenTouchZoneEditor: {
+                guard subscriptionStore.isProActive, !effectiveScrollMode else { return }
+                setReaderChromeVisible(false)
+                showTouchZoneEditor = true
+            },
+            onOpenStyleImporter: requestFirstLevelReaderStyleImporter,
+            onOpenPaywall: readerSettingsPaywallAction
+        )
     }
 
     private func presentDeferredReaderSettingsRoute() {
@@ -3198,7 +3234,7 @@ struct ReaderView: View {
     }
 
     func handleTouchAction(_ action: TouchAction) {
-        // While 自動閱讀's panel is up the page behaves like the area outside
+        // While 自动阅读's panel is up the page behaves like the area outside
         // legado's `AutoReadDialog`: the first touch anywhere dismisses it and does
         // nothing else, whichever tap zone it landed in. Only the touch after that
         // means what the zone says.
@@ -3245,7 +3281,7 @@ struct ReaderView: View {
         // on it made `needsRepair` true on EVERY open of such a book, firing a background
         // `refreshOnlineBookMetadata(forceInfoRefresh: true)` that re-fetches the book info AND
         // re-traverses the whole multi-page TOC (serial, ~13s for 神魔/捞尸人). That refetch
-        // contends with the opening chapter's 段評 fetch on the same per-source bridge/network,
+        // contends with the opening chapter's 段评 fetch on the same per-source bridge/network,
         // dragging a ~3s first-chapter open out to ~10s — every single time. Runtime variables
         // that a source DOES need are captured per-chapter during content parse (runtimeBox),
         // not from this open-time repair, so dropping the check doesn't starve them.
@@ -3444,7 +3480,7 @@ struct ReaderView: View {
 
     func handleScrollModeChanged(_ enabled: Bool) {
         let targetMode: ReaderDisplayMode = enabled ? .scroll : .paged
-        // The mode switch carries the reader's own position; a 目錄 anchor still waiting stays behind.
+        // The mode switch carries the reader's own position; a 目录 anchor still waiting stays behind.
         pendingScrollTOCEntry = nil
         let position: CoreTextReadingPosition
         if enabled {
@@ -3517,13 +3553,13 @@ struct ReaderView: View {
     // Extracted to ReaderView+PageBuilding.swift
 }
 
-/// One AI 查詞 card: the selected word, its sentence, and the assistant launch that
-/// 繼續問 AI opens for the same selection.
+/// One AI 查词 card: the selected word, its sentence, and the assistant launch that
+/// 继续问 AI opens for the same selection.
 struct ReaderWordLookupRoute: Identifiable {
     let id = UUID()
     let term: String
     let context: String
-    /// Nil when the word is in a translation (整章翻譯): the assistant cites the book, and a
+    /// Nil when the word is in a translation (整章翻译): the assistant cites the book, and a
     /// translation has no place in it.
     let launch: AIReadingLaunch?
 }

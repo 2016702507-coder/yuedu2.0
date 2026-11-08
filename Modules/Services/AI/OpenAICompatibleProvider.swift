@@ -169,7 +169,7 @@ final class OpenAICompatibleProvider: LLMProviding, @unchecked Sendable {
             throw LLMError.networkError(error.localizedDescription)
         }
         guard let http = response as? HTTPURLResponse else {
-            throw LLMError.networkError(localized("非 HTTP 回應"))
+            throw LLMError.networkError(localized("非 HTTP 回应"))
         }
         AIDiagnostics.current?.event("http", ["status": "\(http.statusCode)"])
         switch http.statusCode {
@@ -177,7 +177,7 @@ final class OpenAICompatibleProvider: LLMProviding, @unchecked Sendable {
             guard let body = try? JSONDecoder().decode(ChatResponseBody.self, from: data),
                   let content = body.choices?.first?.message?.content
             else {
-                throw LLMError.providerError(localized("回應解析失敗"))
+                throw LLMError.providerError(localized("回应解析失败"))
             }
             return LLMRawResponse(content: content, provider: identifier, model: body.model ?? useModel,
                 finishReason: body.choices?.first?.finish_reason, usage: body.usage, httpStatus: http.statusCode)
@@ -209,7 +209,7 @@ final class OpenAICompatibleProvider: LLMProviding, @unchecked Sendable {
         do {
             let wire = try makeURLRequest(for: request, model: model, stream: true)
             let (bytes, response) = try await session.bytes(for: wire)
-            guard let http = response as? HTTPURLResponse else { throw LLMError.networkError(localized("非 HTTP 回應")) }
+            guard let http = response as? HTTPURLResponse else { throw LLMError.networkError(localized("非 HTTP 回应")) }
             AIDiagnostics.current?.event("http", ["status": "\(http.statusCode)", "transport": "sse"])
             guard (200...299).contains(http.statusCode) else {
                 if http.statusCode == 401 { throw LLMError.unauthorized }
@@ -226,13 +226,13 @@ final class OpenAICompatibleProvider: LLMProviding, @unchecked Sendable {
                 if LLMStreamDecoding.isDone(line) { done = true; break }
                 guard let payload = LLMStreamDecoding.payload(ofDataLine: line), !payload.isEmpty else { continue }
                 guard let chunk = try? JSONDecoder().decode(GenerationChunk.self, from: Data(payload.utf8)),
-                      chunk.choices != nil else { throw LLMError.providerError(localized("回應解析失敗")) }
+                      chunk.choices != nil else { throw LLMError.providerError(localized("回应解析失败")) }
                 if let text = chunk.choices?.first?.delta?.content { content += text }
                 if let finish = chunk.choices?.first?.finish_reason { reason = finish }
                 if let value = chunk.usage { usage = value }
                 if let value = chunk.model { servedModel = value }
             }
-            guard done else { throw LLMError.networkError(localized("串流回應在完成標記前中斷")) }
+            guard done else { throw LLMError.networkError(localized("串流回应在完成标记前中断")) }
             return .init(content: content, provider: identifier, model: servedModel, finishReason: reason, usage: usage, httpStatus: http.statusCode)
         } catch is CancellationError { throw CancellationError() }
         catch let error as URLError where error.code == .cancelled { throw CancellationError() }
@@ -248,7 +248,7 @@ final class OpenAICompatibleProvider: LLMProviding, @unchecked Sendable {
         let useModel = model ?? defaultModel
         guard let urlRequest = try? makeURLRequest(for: request, model: useModel, stream: true) else {
             return AsyncThrowingStream {
-                $0.finish(throwing: LLMError.providerError(localized("請求序列化失敗")))
+                $0.finish(throwing: LLMError.providerError(localized("请求序列化失败")))
             }
         }
         // Bound to a `let` before capture: Swift 6 reads a captured `var URLRequest` as a
@@ -260,7 +260,7 @@ final class OpenAICompatibleProvider: LLMProviding, @unchecked Sendable {
                 do {
                     let (bytes, response) = try await session.bytes(for: sendableRequest)
                     guard let http = response as? HTTPURLResponse else {
-                        continuation.finish(throwing: LLMError.networkError(localized("非 HTTP 回應")))
+                        continuation.finish(throwing: LLMError.networkError(localized("非 HTTP 回应")))
                         return
                     }
                     switch http.statusCode {
@@ -304,7 +304,7 @@ final class OpenAICompatibleProvider: LLMProviding, @unchecked Sendable {
                     // error — deliberately not a retry, and deliberately not silence.
                     guard receivedDone else {
                         continuation.finish(
-                            throwing: LLMError.networkError(localized("串流回應在完成標記前中斷"))
+                            throwing: LLMError.networkError(localized("串流回应在完成标记前中断"))
                         )
                         return
                     }

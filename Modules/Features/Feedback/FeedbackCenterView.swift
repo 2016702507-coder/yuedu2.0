@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// 設定 › 回饋中心: send a report, follow the ones already sent, and choose whether a
-/// screenshot offers a shortcut here. The diagnostic log viewer (診斷紀錄) lives here too —
+/// 设置 › 回馈中心: send a report, follow the ones already sent, and choose whether a
+/// screenshot offers a shortcut here. The diagnostic log viewer (诊断纪录) lives here too —
 /// it is what a report carries.
 struct FeedbackCenterView: View {
     @AppStorage(FeedbackScreenshotPrompt.enabledKey) private var screenshotPromptEnabled = true
@@ -15,9 +15,9 @@ struct FeedbackCenterView: View {
                 } label: {
                     Label {
                         VStack(alignment: .leading, spacing: DSSpacing.xxs) {
-                            Text(localized("回饋與改進"))
+                            Text(localized("回馈与改进"))
                                 .foregroundStyle(DSColor.textPrimary)
-                            Text(localized("回報使用問題，與支援團隊溝通"))
+                            Text(localized("回报使用问题，与支援团队沟通"))
                                 .font(DSFont.subheadline)
                                 .foregroundStyle(DSColor.textSecondary)
                         }
@@ -39,16 +39,16 @@ struct FeedbackCenterView: View {
                                 .padding(.horizontal, DSSpacing.sm)
                                 .padding(.vertical, DSSpacing.xxs)
                                 .background(DSColor.destructive, in: Capsule())
-                                .accessibilityLabel(String(format: localized("%d 則未讀回覆"), unreadCount))
+                                .accessibilityLabel(String(format: localized("%d 则未读回复"), unreadCount))
                         }
                     } label: {
-                        SettingsRowLabel(localized("我的回饋"), systemImage: "bubble.left.and.text.bubble.right")
+                        SettingsRowLabel(localized("我的回馈"), systemImage: "bubble.left.and.text.bubble.right")
                     }
                 }
                 .accessibilityIdentifier("feedback_center_list")
 
                 Toggle(isOn: $screenshotPromptEnabled) {
-                    SettingsRowLabel(localized("截圖後顯示意見回饋入口"), systemImage: "camera.viewfinder")
+                    SettingsRowLabel(localized("截图后显示意见回馈入口"), systemImage: "camera.viewfinder")
                 }
             }
             .interfaceSectionSurface()
@@ -57,18 +57,18 @@ struct FeedbackCenterView: View {
                 NavigationLink {
                     DiagnosticsView()
                 } label: {
-                    SettingsRowLabel(localized("診斷紀錄"), systemImage: "stethoscope")
+                    SettingsRowLabel(localized("诊断纪录"), systemImage: "stethoscope")
                 }
             }
             .interfaceSectionSurface()
         }
         .softScrollEdges()
         .themedAppSurface(for: .settings)
-        .navigationTitle(localized("回饋中心"))
+        .navigationTitle(localized("回馈中心"))
         .toolbarTitleDisplayMode(.inline)
         .task {
             // The badge follows the inbox while the page is open; a failure leaves it at
-            // zero (the listener logs it, and 我的回饋 shows the error itself).
+            // zero (the listener logs it, and 我的回馈 shows the error itself).
             do {
                 for try await threads in FeedbackService.shared.threadUpdates() {
                     unreadCount = threads.filter(\.isUnread).count

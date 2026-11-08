@@ -6,7 +6,7 @@ import SwiftUI
 final class ReaderViewModel: ObservableObject {
     @Published private(set) var chapterStates: [Int: ChapterLoadState] = [:]
     /// The book shows paragraph-review bubbles — a review link or a bubble SVG in a
-    /// chapter loaded so far. Gates 閱讀設定 › 段評氣泡.
+    /// chapter loaded so far. Gates 阅读设置 › 段评气泡.
     @Published private(set) var hasParagraphReviews = false
 
     /// Chapter cache availability validated by the loading pipeline. This is deliberately
@@ -20,10 +20,10 @@ final class ReaderViewModel: ObservableObject {
     @Published private(set) var changeSourceLoading: Bool = false
     @Published private(set) var changeSourceError: String? = nil
     /// Normalized source-qualified keys of origins that failed to switch (TOC fetch threw),
-    /// so the 換源 list can flag them. Backed by `ChangeSourceCache`.
+    /// so the 换源 list can flag them. Backed by `ChangeSourceCache`.
     @Published private(set) var changeSourceFailedKeys: Set<String> = []
     /// Non-nil while a tapped source is being switched to. The sheet renders a cancellable
-    /// "正在載入目錄…" over the row instead of looking frozen — Legado shows a `WaitDialog`
+    /// "正在载入目录…" over the row instead of looking frozen — Legado shows a `WaitDialog`
     /// on the same event, and its cancel listener aborts the fetch.
     @Published private(set) var changeSourcePendingOrigin: BookOrigin?
     /// Non-nil while another version of the work is being switched to (`ShelfVersionSwitch`),
@@ -52,7 +52,7 @@ final class ReaderViewModel: ObservableObject {
     /// uses `ChapterFetching` asynchronously instead of synchronously reading files from a
     /// SwiftUI update callback.
     private var paragraphReviewInspectionAttempted: Set<CachedChapterInspectionKey> = []
-    /// The current 換源 (source switch) search, so a re-open cancels the previous run.
+    /// The current 换源 (source switch) search, so a re-open cancels the previous run.
     private var changeSourceSearchTask: Task<Void, Never>?
     /// The switch the user just tapped, while its TOC is being prepared. Drives the sheet's
     /// cancellable loading state (Legado's `WaitDialog`), and holding the task is what makes
@@ -60,11 +60,11 @@ final class ReaderViewModel: ObservableObject {
     private var changeSourceSwitchTask: Task<Void, Never>?
     /// Background TOC warm-up feeding `searchTOCCache` (see `warmSearchTOCCacheIfEnabled`).
     private var tocWarmTask: Task<Void, Never>?
-    /// TOCs captured during the search fan-out when 搜索時載入目錄 is on — Legado's `tocMap`.
+    /// TOCs captured during the search fan-out when 搜索时载入目录 is on — Legado's `tocMap`.
     /// A tap that hits this switches with no network round trip at all.
     private var searchTOCCache: [String: TOCPackage] = [:]
     /// Total chapters held in `searchTOCCache`. Legado caps the same map at 30 000 chapters
-    /// so a few long 萬章 novels can't pin the whole TOC set in memory.
+    /// so a few long 万章 novels can't pin the whole TOC set in memory.
     private var searchTOCChapterCount = 0
     private static let searchTOCChapterLimit = 30_000
 
@@ -113,11 +113,11 @@ final class ReaderViewModel: ObservableObject {
         chapterStates.removeValue(forKey: chapterIndex)
     }
 
-    /// Drops every chapter's load state. Required on 換源, where the states describe the
+    /// Drops every chapter's load state. Required on 换源, where the states describe the
     /// *previous* source's chapters while `book.onlineChapters` — and therefore every cache
     /// lookup the reader makes — has already been replaced. Keeping them made
     /// `ReaderChapterPresentation.overlayState` compare a stale `.ready` against the new
-    /// source's (necessarily empty) cache and render the 資料不一致 failure overlay on
+    /// source's (necessarily empty) cache and render the 资料不一致 failure overlay on
     /// every source switch.
     func resetAllChapterStates() {
         for (_, request) in inFlightRequests {
@@ -126,9 +126,9 @@ final class ReaderViewModel: ObservableObject {
         inFlightRequests.removeAll()
         chapterStates.removeAll()
         // The single-chapter form (`resetChapterState`) drops this too. Leaving it behind
-        // made every chapter keep claiming "content available" against a cache that 移除下載
+        // made every chapter keep claiming "content available" against a cache that 移除下载
         // had just emptied, and `overlayState` consults it first — so the reader painted
-        // 資料不一致 over chapters it could simply have refetched.
+        // 资料不一致 over chapters it could simply have refetched.
         availableChapterIndexes.removeAll()
     }
 
@@ -166,7 +166,7 @@ final class ReaderViewModel: ObservableObject {
 
         // A previous failure is about to be re-evaluated. The cache probe below is an actor
         // hop plus metadata/artifact reads and a checksum, and the reader renders the failure
-        // overlay straight off this state — leaving `.failed` in place paints "章節載入失敗"
+        // overlay straight off this state — leaving `.failed` in place paints "章节载入失败"
         // over a chapter that is actively being loaded again.
         if case .failed = chapterStates[chapterIndex] {
             chapterStates[chapterIndex] = .loading
@@ -298,7 +298,7 @@ final class ReaderViewModel: ObservableObject {
 
     /// Searches for alternative book sources with the same title. Results update changeSourceOrigins.
     ///
-    /// Honors 網路設定 →「搜索結果快取天數」: unless `forceRefresh` is set, a fresh cached
+    /// Honors 网路设置 →「搜索结果快取天数」: unless `forceRefresh` is set, a fresh cached
     /// result for this book is reused instead of re-running the full cross-source search.
     func loadOtherOrigins(
         book: ReadingBook,
@@ -373,20 +373,20 @@ final class ReaderViewModel: ObservableObject {
             // Fastest sources first (respondTime EMA), then persist that order so
             // the cached list reopens pre-sorted and TOC warm-up hits the best ones.
             self.sortChangeSourceOriginsByHealth()
-            // Persist results so reopening the sheet is instant (honors 快取天數). A list cut
-            // short by 自動暫停 is stored as partial: reopening searches again instead of
+            // Persist results so reopening the sheet is instant (honors 快取天数). A list cut
+            // short by 自动暂停 is stored as partial: reopening searches again instead of
             // serving it as everything the sources have (feedback #16).
             ChangeSourceCache.shared.store(
                 origins: self.changeSourceOrigins,
                 for: bookId,
                 isComplete: outcome == .completed
             )
-            // Only when 搜索時載入目錄 is on; otherwise a tap fetches its own TOC.
+            // Only when 搜索时载入目录 is on; otherwise a tap fetches its own TOC.
             self.warmSearchTOCCacheIfEnabled()
         }
     }
 
-    /// Orders 換源 candidates: origins that previously failed to switch sink to
+    /// Orders 换源 candidates: origins that previously failed to switch sink to
     /// the bottom; the rest sort by their source's measured response time
     /// (unmeasured sources keep arrival order after measured ones).
     private func sortChangeSourceOriginsByHealth() {
@@ -429,7 +429,7 @@ final class ReaderViewModel: ObservableObject {
         else {
             throw NSError(
                 domain: "ReaderViewModel", code: -1,
-                userInfo: [NSLocalizedDescriptionKey: localized("找不到來源配置")])
+                userInfo: [NSLocalizedDescriptionKey: localized("找不到来源配置")])
         }
         // A search result almost never carries a tocUrl: it belongs to the book's
         // DETAIL page, so `parseSearchResults` leaves it empty on purpose (an empty
@@ -449,7 +449,7 @@ final class ReaderViewModel: ObservableObject {
         var tocUrl = origin.tocUrl.trimmingCharacters(in: .whitespacesAndNewlines)
         var tocRuntimeVariables = origin.runtimeVariables
         if tocUrl.isEmpty {
-            // Hand over what the 換源 search already established, so a detail page that omits a
+            // Hand over what the 换源 search already established, so a detail page that omits a
             // field keeps the origin's value instead of blanking it. name/author are deliberately
             // left empty: `BookOrigin` carries none (a source switch keeps the book's identity,
             // which lives on the ReadingBook, not on the origin), and this path exists only to
@@ -496,7 +496,7 @@ final class ReaderViewModel: ObservableObject {
             ])
             throw NSError(
                 domain: "ReaderViewModel", code: -2,
-                userInfo: [NSLocalizedDescriptionKey: localized("此來源配置取不到目錄")])
+                userInfo: [NSLocalizedDescriptionKey: localized("此来源配置取不到目录")])
         }
         cacheSearchTOC(package, forKey: key)
         return package
@@ -569,7 +569,7 @@ final class ReaderViewModel: ObservableObject {
         searchTOCCache[key] = package
     }
 
-    /// Fills `searchTOCCache` for the found candidates when 搜索時載入目錄 is on, so tapping one
+    /// Fills `searchTOCCache` for the found candidates when 搜索时载入目录 is on, so tapping one
     /// switches with no network wait.
     ///
     /// Legado fetches each TOC inline inside that source's search coroutine, which makes the
@@ -642,7 +642,7 @@ final class ReaderViewModel: ObservableObject {
     }
 
     /// Drops an origin's failure flag once it has switched successfully, so the row stops
-    /// showing 載入失敗. `markFailed` only ever appended, so without this a source that
+    /// showing 载入失败. `markFailed` only ever appended, so without this a source that
     /// failed once stayed badged for good — the flag is persisted, so even relaunching
     /// kept it.
     func clearOriginFailure(bookId: UUID, sourceId: UUID, bookUrl: String) {
@@ -655,7 +655,7 @@ final class ReaderViewModel: ObservableObject {
     }
 
     /// Searches one source with a timeout, off the main actor. Returns nil on error
-    /// or timeout so a slow/hung source can't stall the whole 換源 search.
+    /// or timeout so a slow/hung source can't stall the whole 换源 search.
     /// `nonisolated` so concurrent tasks don't serialize back onto the MainActor.
     // MARK: - Private
 
@@ -731,8 +731,8 @@ final class ReaderViewModel: ObservableObject {
 
     /// The chapter-supply story, in the log.
     ///
-    /// Every long-running complaint in this area — 無限加載中, 莫名其妙章節載入失敗,
-    /// 鎖屏聽書停止 — was a question about which state a chapter ended up in and how it
+    /// Every long-running complaint in this area — 无限加载中, 莫名其妙章节载入失败,
+    /// 锁屏听书停止 — was a question about which state a chapter ended up in and how it
     /// got there (`Technotes/ReaderChapterSupply.md`). That was only answerable with a
     /// Mac attached. This is the single funnel every state change passes through.
     private func recordChapterStateTransition(
@@ -807,7 +807,7 @@ final class ReaderViewModel: ObservableObject {
                 // one shape: `CancellationError` thrown directly, and `URLError.cancelled`
                 // (-999) from a URLSession or WKWebView navigation torn down mid-flight.
                 // Only the first was recognised, so the second reached the catch-all below
-                // and surfaced as 章節載入失敗 on a chapter that fetched fine the moment it
+                // and surfaced as 章节载入失败 on a chapter that fetched fine the moment it
                 // was asked again — the failure users worked around by refreshing.
                 if Self.isCancellation(error) || Task.isCancelled {
                     self.clearInFlight(chapterIndex: chapterIndex, token: token)

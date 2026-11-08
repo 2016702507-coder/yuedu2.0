@@ -41,7 +41,7 @@ struct IOS17RemoteCover: Equatable {
 }
 
 /// A shelf copy's cover for the UIKit row, taken from the shelf's own `BookshelfCoverPlan`:
-/// its own artwork (saved or filled), else its catalog cover (`coverURL`), else 預設封面,
+/// its own artwork (saved or filled), else its catalog cover (`coverURL`), else 预设封面,
 /// else the generated cover. Loaded through `CoverImagePipeline`, as the shelf's slots are.
 struct IOS17ShelfCover: Equatable {
     var own: CoverImageSource?

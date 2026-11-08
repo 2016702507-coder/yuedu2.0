@@ -45,10 +45,10 @@ struct UserDetailView: View {
 
                     if gs.isLoggedIn {
                         ImageSourcePickerButton(
-                            accessibilityTitle: localized("修改頭像"),
+                            accessibilityTitle: localized("修改头像"),
                             onPick: handleAvatarPick
                         ) {
-                            Label(localized("修改頭像"), systemImage: "photo")
+                            Label(localized("修改头像"), systemImage: "photo")
                                 .font(DSFont.fixed(size: 13, weight: .semibold))
                         }
                         .disabled(isSigningOut)
@@ -58,7 +58,7 @@ struct UserDetailView: View {
                         HStack(spacing: 4) {
                             Image(systemName: syncStatusIcon)
                                 .accessibilityHidden(true)
-                            Text(gs.isLoggedIn ? firestoreSync.statusTitle : localized("登入後可同步進度"))
+                            Text(gs.isLoggedIn ? firestoreSync.statusTitle : localized("登入后可同步进度"))
                                 .font(DSFont.fixed(size: 12, weight: .semibold))
                         }
                         .accessibilityElement(children: .combine)
@@ -74,14 +74,14 @@ struct UserDetailView: View {
                         }
 
                         if !gs.isLoggedIn {
-                            Text(localized("登入後可跨設備同步書籍與進度"))
+                            Text(localized("登入后可跨设备同步书籍与进度"))
                                 .font(DSFont.fixed(size: 10))
                                 .foregroundStyle(DSColor.textSecondary)
 
                             Button {
                                 showLogin = true
                             } label: {
-                                Text(localized("登入 / 註冊"))
+                                Text(localized("登入 / 注册"))
                                     .font(DSFont.fixed(size: 15, weight: .semibold))
                                     .foregroundStyle(DSColor.textOnAccent)
                                     .frame(maxWidth: .infinity)
@@ -105,7 +105,7 @@ struct UserDetailView: View {
                 // Same surface as every other section here. This used to pin the card to
                 // an opaque `DSColor.surface` — correct for Light/Dark, but it predates
                 // `interfaceSectionSurface`, so once the other sections started following
-                // 毛玻璃／分組卡片／透明度 this one stayed flat white above them.
+                // 毛玻璃／分组卡片／透明度 this one stayed flat white above them.
                 .interfaceSectionSurface()
             }
 
@@ -119,7 +119,7 @@ struct UserDetailView: View {
                         // The app's own icon, as on the Pro page it opens: Pro is this app.
                         AppIconImage(size: DSLayout.settingsRowIconSize)
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(localized("閱讀Pro"))
+                            Text(localized("阅读Pro"))
                                 .foregroundStyle(DSColor.textPrimary)
                             Text(proRowSubtitle)
                                 .font(DSFont.caption)
@@ -127,7 +127,7 @@ struct UserDetailView: View {
                         }
                         Spacer(minLength: 0)
                         if subscriptionStore.isProActive {
-                            Text(localized("已啟用"))
+                            Text(localized("已启用"))
                                 .font(DSFont.caption.weight(.semibold))
                                 .foregroundStyle(DSColor.success)
                         }
@@ -142,12 +142,12 @@ struct UserDetailView: View {
             }
             .interfaceSectionSurface()
 
-            Section(header: Text(localized("閱讀工具")).foregroundStyle(DSColor.textSecondary)) {
+            Section(header: Text(localized("阅读工具")).foregroundStyle(DSColor.textSecondary)) {
                 Button {
                     showReadingStats = true
                 } label: {
                     HStack {
-                        SettingsRowLabel(localized("閱讀統計"), systemImage: "chart.bar.fill")
+                        SettingsRowLabel(localized("阅读统计"), systemImage: "chart.bar.fill")
                         Spacer()
                         Image(systemName: "chevron.right")
                             .font(DSFont.fixed(size: 13, weight: .semibold))
@@ -159,16 +159,16 @@ struct UserDetailView: View {
             .interfaceSectionSurface()
 
             if gs.isLoggedIn {
-                Section(header: Text(localized("帳號資訊")).foregroundStyle(DSColor.textSecondary)) {
+                Section(header: Text(localized("帐号资讯")).foregroundStyle(DSColor.textSecondary)) {
                     Button {
                         draftDisplayName = gs.accountDisplayName
                         showRenameAlert = true
                     } label: {
                         HStack {
-                            Text(localized("用戶名"))
+                            Text(localized("用户名"))
                                 .foregroundStyle(DSColor.textPrimary)
                             Spacer()
-                            Text(gs.accountDisplayName.isEmpty ? localized("未設定") : gs.accountDisplayName)
+                            Text(gs.accountDisplayName.isEmpty ? localized("未设置") : gs.accountDisplayName)
                                 .foregroundStyle(DSColor.textSecondary)
                                 .lineLimit(1)
                             Image(systemName: "chevron.right")
@@ -180,7 +180,7 @@ struct UserDetailView: View {
 
                     if !gs.accountEmail.isEmpty {
                         HStack {
-                            Text(localized("帳號"))
+                            Text(localized("帐号"))
                                 .foregroundStyle(DSColor.textPrimary)
                             Spacer()
                             Text(gs.accountEmail)
@@ -195,7 +195,7 @@ struct UserDetailView: View {
                 Section {
                     linkRow(title: "Google", providerID: "google.com")
                     linkRow(title: "Apple", providerID: "apple.com")
-                    linkRow(title: localized("電子郵件"), providerID: "password")
+                    linkRow(title: localized("电子邮件"), providerID: "password")
 
                     if let linkErrorMessage {
                         VStack(alignment: .leading, spacing: DSSpacing.sm) {
@@ -204,7 +204,7 @@ struct UserDetailView: View {
                                 .foregroundColor(.red)
 
                             if auth.hasPendingSignInCredential {
-                                Button(localized("改用該帳號登入")) {
+                                Button(localized("改用该帐号登入")) {
                                     switchToPendingAccount()
                                 }
                                 .font(DSFont.fixed(size: 15, weight: .semibold))
@@ -213,10 +213,10 @@ struct UserDetailView: View {
                         }
                     }
                 } header: {
-                    Text(localized("連結登入方式"))
+                    Text(localized("连结登入方式"))
                         .foregroundStyle(DSColor.textSecondary)
                 } footer: {
-                    Text(localized("連結後可用任一方式登入同一個帳號，並且至少要保留一種。"))
+                    Text(localized("连结后可用任一方式登入同一个帐号，并且至少要保留一种。"))
                         .dsSectionFooter()
                 }
                 .interfaceSectionSurface()
@@ -226,7 +226,7 @@ struct UserDetailView: View {
                         showSignOutConfirmation = true
                     } label: {
                         HStack {
-                            Text(localized("退出當前帳號"))
+                            Text(localized("退出当前帐号"))
                             Spacer()
                             if isSigningOut {
                                 ProgressView()
@@ -235,7 +235,7 @@ struct UserDetailView: View {
                     }
                     .disabled(isSigningOut)
                     .alert(
-                        localized("登出帳號"),
+                        localized("登出帐号"),
                         isPresented: $showSignOutConfirmation
                     ) {
                         Button(localized("登出"), role: .destructive) {
@@ -244,7 +244,7 @@ struct UserDetailView: View {
 
                         Button(localized("取消"), role: .cancel) {}
                     } message: {
-                        Text(localized("登出後此裝置會停止使用目前帳號同步。"))
+                        Text(localized("登出后此装置会停止使用目前帐号同步。"))
                     }
                 }
                 .interfaceSectionSurface()
@@ -254,7 +254,7 @@ struct UserDetailView: View {
                         showDeleteAccountConfirmation = true
                     } label: {
                         HStack {
-                            Text(localized("刪除帳號"))
+                            Text(localized("删除帐号"))
                             Spacer()
                             if isDeletingAccount {
                                 ProgressView()
@@ -263,20 +263,20 @@ struct UserDetailView: View {
                     }
                     .disabled(isDeletingAccount || isSigningOut)
                     .alert(
-                        localized("刪除帳號"),
+                        localized("删除帐号"),
                         isPresented: $showDeleteAccountConfirmation
                     ) {
-                        Button(localized("永久刪除帳號"), role: .destructive) {
+                        Button(localized("永久删除帐号"), role: .destructive) {
                             performAccountDeletion()
                         }
 
                         Button(localized("取消"), role: .cancel) {}
                     } message: {
-                        Text(localized("刪除帳號將登出此裝置，並永久刪除已同步的書庫、來源配置、替換規則、RSS 與頭像資料。此操作無法復原。"))
+                        Text(localized("删除帐号将登出此装置，并永久删除已同步的书库、来源配置、替换规则、RSS 与头像资料。此操作无法复原。"))
                     }
                 } footer: {
                     VStack(alignment: .leading, spacing: DSSpacing.xs) {
-                        Text(localized("無法復原。本機的內容檔不會被刪除。"))
+                        Text(localized("无法复原。本机的内容档不会被删除。"))
                             .dsSectionFooter()
                         if let deleteAccountErrorMessage {
                             Text(deleteAccountErrorMessage)
@@ -290,7 +290,7 @@ struct UserDetailView: View {
         .softScrollEdges()
         .listStyle(.insetGrouped)
         .themedAppSurface(for: .settings)
-        .navigationTitle(localized("個人資料"))
+        .navigationTitle(localized("个人资料"))
         .toolbarTitleDisplayMode(.inline)
         .hidesRootTabBar()
         .sheet(isPresented: $showReadingStats) {
@@ -306,54 +306,54 @@ struct UserDetailView: View {
                 showLogin = false
             }
         }
-        .alert(localized("修改用戶名"), isPresented: $showRenameAlert) {
-            TextField(localized("用戶名"), text: $draftDisplayName)
-            Button(localized("儲存")) {
+        .alert(localized("修改用户名"), isPresented: $showRenameAlert) {
+            TextField(localized("用户名"), text: $draftDisplayName)
+            Button(localized("储存")) {
                 gs.updateAccountDisplayName(draftDisplayName)
             }
             Button(localized("取消"), role: .cancel) {}
         } message: {
-            Text(localized("名稱會先儲存在此裝置，並同步至帳號；同步失敗時仍會保留。"))
+            Text(localized("名称会先储存在此装置，并同步至帐号；同步失败时仍会保留。"))
         }
-        .alert(localized("確認刪除帳號"), isPresented: $showDeletePasswordAlert) {
-            SecureField(localized("請輸入密碼"), text: $deletePassword)
+        .alert(localized("确认删除帐号"), isPresented: $showDeletePasswordAlert) {
+            SecureField(localized("请输入密码"), text: $deletePassword)
                 .textInputAutocapitalization(.never)
-            Button(localized("永久刪除帳號"), role: .destructive) {
+            Button(localized("永久删除帐号"), role: .destructive) {
                 let password = deletePassword
                 deletePassword = ""
                 runAccountDeletion(emailPassword: password)
             }
             Button(localized("取消"), role: .cancel) { deletePassword = "" }
         } message: {
-            Text(localized("請輸入密碼以確認刪除帳號"))
+            Text(localized("请输入密码以确认删除帐号"))
         }
         .alert(
-            localized("解除連結"),
+            localized("解除连结"),
             isPresented: Binding(
                 get: { unlinkTarget != nil },
                 set: { if !$0 { unlinkTarget = nil } }
             ),
             presenting: unlinkTarget
         ) { target in
-            Button(localized("解除連結"), role: .destructive) {
+            Button(localized("解除连结"), role: .destructive) {
                 performUnlink(target.id)
                 unlinkTarget = nil
             }
             Button(localized("取消"), role: .cancel) { unlinkTarget = nil }
         } message: { target in
-            Text("\(target.title)\n\(localized("解除後就不能再用這個方式登入此帳號，帳號本身與已同步的資料不受影響。"))")
+            Text("\(target.title)\n\(localized("解除后就不能再用这个方式登入此帐号，帐号本身与已同步的资料不受影响。"))")
         }
         .alert(
-            localized("輸入目前的密碼"),
+            localized("输入目前的密码"),
             isPresented: Binding(
                 get: { passwordGatedLinkProvider != nil },
                 set: { if !$0 { passwordGatedLinkProvider = nil } }
             ),
             presenting: passwordGatedLinkProvider
         ) { providerID in
-            SecureField(localized("請輸入密碼"), text: $linkCurrentPassword)
+            SecureField(localized("请输入密码"), text: $linkCurrentPassword)
                 .textInputAutocapitalization(.never)
-            Button(localized("繼續")) {
+            Button(localized("继续")) {
                 let password = linkCurrentPassword
                 linkCurrentPassword = ""
                 passwordGatedLinkProvider = nil
@@ -364,15 +364,15 @@ struct UserDetailView: View {
                 passwordGatedLinkProvider = nil
             }
         } message: { _ in
-            Text(localized("連結新的登入方式前，請先輸入這個帳號的密碼。"))
+            Text(localized("连结新的登入方式前，请先输入这个帐号的密码。"))
         }
-        .alert(localized("連結電子郵件"), isPresented: $showLinkEmailAlert) {
-            TextField(localized("請輸入您的 Email"), text: $linkEmail)
+        .alert(localized("连结电子邮件"), isPresented: $showLinkEmailAlert) {
+            TextField(localized("请输入您的 Email"), text: $linkEmail)
                 .keyboardType(.emailAddress)
                 .textInputAutocapitalization(.never)
-            SecureField(localized("請輸入密碼"), text: $linkPassword)
+            SecureField(localized("请输入密码"), text: $linkPassword)
                 .textInputAutocapitalization(.never)
-            Button(localized("連結")) {
+            Button(localized("连结")) {
                 let email = linkEmail
                 let password = linkPassword
                 linkEmail = ""
@@ -384,7 +384,7 @@ struct UserDetailView: View {
                 linkPassword = ""
             }
         } message: {
-            Text(localized("連結後可用任一方式登入同一個帳號"))
+            Text(localized("连结后可用任一方式登入同一个帐号"))
         }
     }
 
@@ -395,24 +395,24 @@ struct UserDetailView: View {
                 .foregroundStyle(DSColor.textPrimary)
             Spacer(minLength: 0)
             if auth.linkedProviderIDs.contains(providerID) {
-                Label(localized("已連結"), systemImage: "checkmark.circle.fill")
+                Label(localized("已连结"), systemImage: "checkmark.circle.fill")
                     .font(DSFont.fixed(size: 13, weight: .semibold))
                     .foregroundColor(.green)
 
                 if auth.canUnlinkProvider {
-                    Button(localized("解除連結"), role: .destructive) {
+                    Button(localized("解除连结"), role: .destructive) {
                         unlinkTarget = UnlinkTarget(id: providerID, title: title)
                     }
                     .font(DSFont.fixed(size: 15, weight: .semibold))
                     .disabled(isLinking)
-                    .accessibilityLabel(String(format: localized("%@ 解除連結"), title))
+                    .accessibilityLabel(String(format: localized("%@ 解除连结"), title))
                 }
             } else if isLinking {
                 ProgressView()
             } else {
-                Button(localized("連結")) { startLink(providerID) }
+                Button(localized("连结")) { startLink(providerID) }
                     .font(DSFont.fixed(size: 15, weight: .semibold))
-                    .accessibilityLabel(String(format: localized("%@ 連結"), title))
+                    .accessibilityLabel(String(format: localized("%@ 连结"), title))
             }
         }
         .buttonStyle(.borderless)
@@ -485,15 +485,15 @@ struct UserDetailView: View {
         }
     }
 
-    /// Under 閱讀Pro: what Pro unlocks, led by AI — or the plan they hold. Lifetime is not
+    /// Under 阅读Pro: what Pro unlocks, led by AI — or the plan they hold. Lifetime is not
     /// a subscription, and Pro from the Yuedu account or the iCloud mirror names no plan
     /// on this Apple Account, so each gets its own line.
     private var proRowSubtitle: String {
-        guard subscriptionStore.isProActive else { return localized("解鎖 AI 閱讀助手與高級個人化") }
+        guard subscriptionStore.isProActive else { return localized("解锁 AI 阅读助手与高级个人化") }
         switch subscriptionStore.ownedPlan {
-        case .lifetime?: return localized("永久會員，感謝支持")
-        case .monthly?: return localized("已訂閱，感謝支持")
-        case nil: return localized("感謝你的支持")
+        case .lifetime?: return localized("永久会员，感谢支持")
+        case .monthly?: return localized("已订阅，感谢支持")
+        case nil: return localized("感谢你的支持")
         }
     }
 
@@ -564,18 +564,18 @@ struct UserDetailView: View {
             applyAvatar(data: data)
         case .success(.file(let url)):
             guard let data = try? Data(contentsOf: url) else {
-                avatarErrorMessage = localized("無法讀取頭像圖片")
+                avatarErrorMessage = localized("无法读取头像图片")
                 return
             }
             applyAvatar(data: data)
         case .failure:
-            avatarErrorMessage = localized("無法讀取頭像圖片")
+            avatarErrorMessage = localized("无法读取头像图片")
         }
     }
 
     private func applyAvatar(data: Data) {
         guard let avatarData = normalizedAvatarData(from: data) else {
-            avatarErrorMessage = localized("無法讀取頭像圖片")
+            avatarErrorMessage = localized("无法读取头像图片")
             return
         }
         avatarErrorMessage = nil

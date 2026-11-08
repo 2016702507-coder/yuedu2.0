@@ -155,7 +155,7 @@ struct CommentBubbleSVGRecognizer {
 
     // MARK: - Bubble render caches
     //
-    // 段評-heavy chapters carry hundreds of paragraph bubbles, and the counts repeat
+    // 段评-heavy chapters carry hundreds of paragraph bubbles, and the counts repeat
     // heavily ("0", "1", "99+"…). Producing a bubble is a pure function of (svg, size,
     // theme, settings), yet nothing memoized it: every paragraph re-ran ~15 regex to
     // parse the SVG and a full @3× draw + per-pixel transparent-trim. These caches
@@ -167,7 +167,7 @@ struct CommentBubbleSVGRecognizer {
     private static let bubbleImageCache = ConcurrentCache<UIImage>(countLimit: 512)
 
     // Cache-hit telemetry so the win is visible on device: filter Console for
-    // "⟐ bubble cache" — a 段評 chapter should show draws ≪ hits once counts repeat.
+    // "⟐ bubble cache" — a 段评 chapter should show draws ≪ hits once counts repeat.
     private static let bubbleStats = OSAllocatedUnfairLock(initialState: (hits: 0, draws: 0))
     private static func noteBubbleCache(hit: Bool) {
         let (hits, draws) = bubbleStats.withLock { stats in
@@ -187,10 +187,10 @@ struct CommentBubbleSVGRecognizer {
 
     /// Returns a stable template identity and the count currently embedded in the SVG.
     ///
-    /// 起點把同一個氣泡外形重複內嵌在每一段文字中，唯一變化通常只有 `<text>` 裡的數字。
-    /// 直接用完整 data URI 當 key 會讓每個數字都重新跑整份 SVG parser。把數字換成
-    /// `$displayText` 後，解析結果可以跨段落共享；實際數字仍在回傳前換回去，所以外觀和
-    /// 點擊資料完全不變。
+    /// 起点把同一个气泡外形重复内嵌在每一段文字中，唯一变化通常只有 `<text>` 里的数字。
+    /// 直接用完整 data URI 当 key 会让每个数字都重新跑整份 SVG parser。把数字换成
+    /// `$displayText` 后，解析结果可以跨段落共享；实际数字仍在回传前换回去，所以外观和
+    /// 点击资料完全不变。
     private static func normalizedTemplateInput(_ svg: String) -> (template: String, displayText: String?) {
         let textPattern = #"<text\b[^>]*>(.*?)</text>"#
         guard let regex = try? NSRegularExpression(
@@ -259,7 +259,7 @@ struct CommentBubbleSVGRecognizer {
     ///   There, *exactly one count-formatted `<text>`* is the only thing separating a real
     ///   bubble from an arbitrary source illustration, so it must stay strict — relaxing it
     ///   would make every `<image>`-only source picture render as a bubble.
-    /// - `.userTemplate` parses an SVG the user picked as their bubble in 段評氣泡 settings.
+    /// - `.userTemplate` parses an SVG the user picked as their bubble in 段评气泡 settings.
     ///   Nothing needs sniffing there, so artwork-only templates (no `<text>` at all — the
     ///   shape QiReader exports with `showLabel:false`) are accepted and drawn without a
     ///   count, which is what their author intended.
@@ -276,7 +276,7 @@ struct CommentBubbleSVGRecognizer {
     }
 
     /// Checks if the given image source or SVG string represents a recognizable simple comment bubble.
-    /// If so, decodes and parses it into a CommentBubbleSVG representation. Memoized: a 段評
+    /// If so, decodes and parses it into a CommentBubbleSVG representation. Memoized: a 段评
     /// chapter calls this 2–3× per bubble (gate + resolve + template) over hundreds of paragraphs,
     /// and the parse is pure, so the first occurrence of each distinct SVG pays it and the rest hit.
     static func recognize(src: String, svgContent: String?) -> CommentBubbleSVG? {
@@ -285,7 +285,7 @@ struct CommentBubbleSVGRecognizer {
 
     /// Whether a chapter's HTML carries a picture this recognizer takes for a comment
     /// bubble: the `data:` SVGs that `OnlineImageLoader` and the renderer send here, and
-    /// that 段評氣泡's settings then restyle. A bubble whose tap handler this app cannot
+    /// that 段评气泡's settings then restyle. A bubble whose tap handler this app cannot
     /// run — or that has none — gets no review link, yet is drawn and restyled like any
     /// other, so the reader asks this before hiding those settings.
     static func containsRecognizedBubble(inChapterHTML html: String) -> Bool {
@@ -350,7 +350,7 @@ struct CommentBubbleSVGRecognizer {
         svg cleaned: String,
         mode: RecognitionMode
     ) -> CommentBubbleSVG? {
-        // Bound the parse, but generously: iconfont 段評 bubbles (企点/光遇) embed a full
+        // Bound the parse, but generously: iconfont 段评 bubbles (企点/光遇) embed a full
         // outline <path> (~1.4–1.9k chars). The structural checks below — a count-formatted
         // <text> plus a shape — are what actually gate non-bubble SVGs, so a tight length
         // cap only mis-rejected real bubbles (光遇's is ~1916 chars).
@@ -718,7 +718,7 @@ struct CommentBubbleSVGRecognizer {
         let viewBoxFit = parseViewBoxFit(extractAttribute("preserveAspectRatio", in: svgTag))
 
         // The SVG-level `color` (attribute or `style="color: …"`) is what `currentColor`
-        // resolves to on descendants. 光遇 段評 bubbles paint their shapes with
+        // resolves to on descendants. 光遇 段评 bubbles paint their shapes with
         // `stroke="currentColor"` + a root `style="color: #xxx"`, so without this the outline
         // would be drawn with no colour at all (invisible bubble).
         let rootColor = resolveColor(styleProperty("color", in: svgTag) ?? extractAttribute("color", in: svgTag),
@@ -727,7 +727,7 @@ struct CommentBubbleSVGRecognizer {
         var elements: [CommentBubbleSVG.Element] = []
 
         // Map every element to the composed transform of the <g> groups wrapping it.
-        // 起点/企点/光遇 段評 bubbles draw an iconfont <path> inside
+        // 起点/企点/光遇 段评 bubbles draw an iconfont <path> inside
         // `<g transform="rotate(…) scale(…) translate(…)">`; without honoring it the
         // shape lands rotated/offset in an oversized viewBox.
         let groupSpans = parseGroupSpans(svg)
@@ -776,7 +776,7 @@ struct CommentBubbleSVGRecognizer {
             }
         }
         
-        // 3b. Parse <circle> / <ellipse> tags. 光遇 has a round 段評 bubble style; without this the
+        // 3b. Parse <circle> / <ellipse> tags. 光遇 has a round 段评 bubble style; without this the
         // SVG has no shape element, recognition fails, and it drops to the slow WebView rasterizer.
         // A circle/ellipse is drawn as a fully-rounded rect (corner radii == radii).
         let circlePattern = #"<(?:circle|ellipse)\b[^>]*>"#
@@ -1191,7 +1191,7 @@ struct CommentBubbleSVGRecognizer {
 
     /// Resolves an SVG paint (`fill`/`stroke`) honoring, in priority order, the element's inline
     /// `style="fill: …"`, then its presentation attribute; resolves `currentColor` against
-    /// `inheritedColor`; and folds the matching `*-opacity` in as alpha. 光遇 段評 bubbles carry
+    /// `inheritedColor`; and folds the matching `*-opacity` in as alpha. 光遇 段评 bubbles carry
     /// their colour exclusively via `style=` + `currentColor`, which the bare attribute read missed.
     private static func resolvePaint(_ property: String, in tag: String, inheritedColor: UIColor?) -> UIColor? {
         let raw = styleProperty(property, in: tag) ?? extractAttribute(property, in: tag)
@@ -1394,7 +1394,7 @@ extension CommentBubbleSVGRecognizer {
 
                 // legado (AndroidSVG) draws the count at the size the SVG gives it, scaled with
                 // the viewBox like every other element. The 50% clamp and the reader's
-                // 數字字號比例 that replaced it set the number against the bubble's height
+                // 数字字号比例 that replaced it set the number against the bubble's height
                 // instead, which is how 光遇's and the bubble packs' 99+ outgrew their frames.
                 let canvasFontSize = max(1, fontSize * scaleY)
                 let textColor = color ?? themeTextColor

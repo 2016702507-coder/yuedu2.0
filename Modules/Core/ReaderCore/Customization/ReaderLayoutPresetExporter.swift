@@ -48,6 +48,11 @@ enum ReaderLayoutPresetExporter {
         case .slide: return 0
         case .cover: return 1
         case .curl: return 2
+        // Not a legado value: legado reads it as "unknown" and keeps its own choice,
+        // while our own round trip through `pageTurnStyle(from:)` restores it.
+        case .ripple: return 4
+        // 同上：legado 读到 5 也只会当作「不认识」，本机往返能原样恢复。
+        case .vertical: return 5
         // legado has no "no animation" value; the importer maps anything else to
         // `nil` and leaves the receiving device's own choice alone.
         case .none: return -1

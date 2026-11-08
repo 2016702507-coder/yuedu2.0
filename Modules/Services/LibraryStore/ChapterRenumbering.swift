@@ -5,7 +5,7 @@ import Foundation
 ///
 /// A reading place is `(spineIndex, charOffset)` and a bookmark names its chapter by index, so
 /// both must move with the chapter. The text is the same chapter's from the same source, so the
-/// offset inside it is kept — unlike 換源 (`OnlineBookSourceSwitch`), which lands on another
+/// offset inside it is kept — unlike 换源 (`OnlineBookSourceSwitch`), which lands on another
 /// source's text and starts the chapter from the top. Feedback #95: a source inserted one entry
 /// ahead of the reader and the book reopened one chapter back.
 struct ChapterRenumbering: Equatable, Sendable {

@@ -2,8 +2,8 @@ import SwiftUI
 
 // MARK: - Per-source actions (Legado's explore long-press menu)
 
-/// The actions Legado's explore page offers on a source — 編輯、置頂、登入、搜索、
-/// 刷新、刪除, identical across the original, legado-E and MD3 — plus 設置源變量.
+/// The actions Legado's explore page offers on a source — 编辑、置顶、登入、搜索、
+/// 刷新、删除, identical across the original, legado-E and MD3 — plus 设置源变量.
 /// 探索 shows them on every source in its list; 刷新 only where there is a loaded
 /// page to reload.
 struct BookSourceActionMenuItems: View {
@@ -22,10 +22,10 @@ struct BookSourceActionMenuItems: View {
 
     var body: some View {
         Button(action: onEdit) {
-            Label(localized("編輯"), systemImage: "square.and.pencil")
+            Label(localized("编辑"), systemImage: "square.and.pencil")
         }
         Button(action: onPinToTop) {
-            Label(localized("置頂"), systemImage: "arrow.up.to.line")
+            Label(localized("置顶"), systemImage: "arrow.up.to.line")
         }
         if hasLogin {
             Button(action: onLogin) {
@@ -41,11 +41,11 @@ struct BookSourceActionMenuItems: View {
             }
         }
         Button(action: onSetVariable) {
-            Label(localized("設置源變量"), systemImage: "curlybraces")
+            Label(localized("设置源变量"), systemImage: "curlybraces")
         }
         Divider()
         Button(role: .destructive, action: onDelete) {
-            Label(localized("刪除"), systemImage: "trash")
+            Label(localized("删除"), systemImage: "trash")
         }
     }
 }
@@ -85,7 +85,7 @@ extension View {
                 case .variable(let source):
                     AdaptiveSheetContainer(maxWidth: DSLayout.readablePanelWidth) {
                         RuntimeVariableEditorView(
-                            title: localized("設置源變量"),
+                            title: localized("设置源变量"),
                             comment: SourceVariableEditing.comment(source: source),
                             initialValue: SourceVariableEditing.currentValue(for: source)
                         ) { value in
@@ -96,7 +96,7 @@ extension View {
                 }
             }
             .confirmationDialog(
-                localized("刪除來源配置"),
+                localized("删除来源配置"),
                 isPresented: Binding(
                     get: { pendingDeletion.wrappedValue != nil },
                     set: { if !$0 { pendingDeletion.wrappedValue = nil } }
@@ -104,7 +104,7 @@ extension View {
                 titleVisibility: .visible,
                 presenting: pendingDeletion.wrappedValue
             ) { source in
-                Button(localized("刪除"), role: .destructive) {
+                Button(localized("删除"), role: .destructive) {
                     _ = BookSourceStore.shared.delete(id: source.id)
                 }
                 Button(localized("取消"), role: .cancel) {}

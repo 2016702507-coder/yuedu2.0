@@ -2,7 +2,7 @@ import Foundation
 
 /// The single cross-source "find this exact book in every enabled source" fan-out.
 ///
-/// 換源 and 封面搜索 ask the same question of the same sources — Legado runs both
+/// 换源 and 封面搜索 ask the same question of the same sources — Legado runs both
 /// through `WebBook.searchBookAwait` for the same reason — so the search lives
 /// here and each screen only decides what to do with the origins it receives.
 /// A second copy of this loop is how the two would drift apart on matching,
@@ -14,7 +14,7 @@ import Foundation
 enum BookOriginSearchService {
 
     /// How a fan-out ended. Only `.completed` saw every source: a result cut short by
-    /// `shouldStop` (搜索自動暫停) or by cancellation is partial and must not be cached as
+    /// `shouldStop` (搜索自动暂停) or by cancellation is partial and must not be cached as
     /// the book's full origin list (feedback #16: a 10-result pause was reused for 5 days).
     enum Outcome: Equatable {
         case completed
@@ -23,13 +23,13 @@ enum BookOriginSearchService {
     }
 
     /// Runs the fan-out until every source has answered, `shouldStop` reports that
-    /// enough matches are in (搜索自動暫停), or the surrounding task is cancelled.
+    /// enough matches are in (搜索自动暂停), or the surrounding task is cancelled.
     ///
     /// - Parameters:
     ///   - title: the book's title; also the search query, as Legado does.
     ///   - author: used for same-book matching only.
-    ///   - concurrency: active sources at a time (網路設定 → 搜索並發數).
-    ///   - excludingOriginKey: an origin to hide — 換源 excludes the one in use.
+    ///   - concurrency: active sources at a time (网路设置 → 搜索并发数).
+    ///   - excludingOriginKey: an origin to hide — 换源 excludes the one in use.
     ///   - sourceFilter: decides whether a source is worth querying at all;
     ///     封面搜索 skips sources whose search rule has no cover field.
     ///   - requiresAuthor: keep only results whose source gave an author, so title and author
@@ -201,7 +201,7 @@ enum BookOriginSearchService {
             return first
         }
         if books != nil {
-            // Feed the response-time EMA so the 換源 list can rank fast sources first.
+            // Feed the response-time EMA so the 换源 list can rank fast sources first.
             let elapsedMs = (ProcessInfo.processInfo.systemUptime - startedAt) * 1000
             let sourceId = source.id
             await MainActor.run {

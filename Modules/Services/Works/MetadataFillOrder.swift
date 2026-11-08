@@ -2,12 +2,12 @@ import Combine
 import Foundation
 
 // Phase 6h: which places fill a copy's empty fields, and in what order. Maintainer,
-// 2026-10-15: as Emby's 中繼資料下載器 — one list under 自動補齊書籍資料, each place checked
+// 2026-10-15: as Emby's 中继资料下载器 — one list under 自动补齐书籍资料, each place checked
 // or not and dragged into priority order; a newly installed module joins checked.
 
 /// A place the filler can ask.
 enum MetadataFillPlace: Hashable, Sendable {
-    /// Every enabled 來源配置 together (`BookSourceFillProvider`).
+    /// Every enabled 来源配置 together (`BookSourceFillProvider`).
     case bookSources
     /// An installed module with a search (`ModuleFillProvider`).
     case module(String)
@@ -50,7 +50,7 @@ struct MetadataFillOrder: Equatable, Sendable {
     static let builtIn: [MetadataFillPlace] = [.bookSources]
 
     /// Phase 3's order, what a reader who never opened the list has: Open Library first, then
-    /// 來源配置, then the other modules in the library's order.
+    /// 来源配置, then the other modules in the library's order.
     static func defaultOrder(modules: [String]) -> [MetadataFillPlace] {
         let leading = modules.filter { $0 == OfficialRuleModules.openLibraryID }
         return leading.map(MetadataFillPlace.module) + builtIn

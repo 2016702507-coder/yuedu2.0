@@ -1,7 +1,7 @@
 import Foundation
 
 /// The source disclaimer in front of anything that adds content the app does not ship: a
-/// 來源配置 or a module (Phase 6e). It is asked once (`sourceDisclaimerAccepted`); the route asked
+/// 来源配置 or a module (Phase 6e). It is asked once (`sourceDisclaimerAccepted`); the route asked
 /// for before it was accepted opens once it has gone.
 @MainActor
 struct SourceDisclaimerGate<Route> {

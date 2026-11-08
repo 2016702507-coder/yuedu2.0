@@ -25,13 +25,13 @@ struct PaywallShowcase: View {
         .accessibilityHidden(true)
     }
 
-    // MARK: - AI 讀懂一本書
+    // MARK: - AI 读懂一本书
 
     private var understanding: some View {
         VStack(alignment: .leading, spacing: DSSpacing.sm) {
             HStack {
                 Spacer(minLength: DSSpacing.xl)
-                Text(localized("這段在說什麼？"))
+                Text(localized("这段在说什么？"))
                     .font(DSFont.subheadline)
                     .foregroundStyle(DSColor.textOnAccent)
                     .padding(.horizontal, DSSpacing.md)
@@ -45,7 +45,7 @@ struct PaywallShowcase: View {
             textLine(widthRatio: 0.86)
             HStack(spacing: DSSpacing.sm) {
                 textLine(widthRatio: 0.55)
-                Label(localized("原文出處"), systemImage: "text.quote")
+                Label(localized("原文出处"), systemImage: "text.quote")
                     .font(DSFont.caption2.weight(.semibold))
                     .foregroundStyle(DSColor.accent)
                     .padding(.horizontal, DSSpacing.sm)
@@ -68,7 +68,7 @@ struct PaywallShowcase: View {
         .frame(height: DSSpacing.sm)
     }
 
-    // MARK: - 讀得更舒服
+    // MARK: - 读得更舒服
 
     private var comfort: some View {
         HStack(spacing: -DSSpacing.lg) {
@@ -125,7 +125,7 @@ struct PaywallShowcase: View {
         }
     }
 
-    // MARK: - 照你的習慣讀
+    // MARK: - 照你的习惯读
 
     private var habits: some View {
         let symbols: [String?] = [

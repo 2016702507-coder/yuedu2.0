@@ -9,10 +9,10 @@ extension View {
     /// reorders the page's accessibility elements by position: a full-screen UIKit view (the
     /// reader's page) lands between a bar at the top and one at the bottom. VoiceOver's touch
     /// takes the first element in that order under the finger, so the page took every touch on
-    /// the reader's bottom bar — 目錄, 書籤, 深色, 設置 and the progress slider read the chapter
-    /// instead, on every reader pushed from a detail page, while 書架's reader, which has no
+    /// the reader's bottom bar — 目录, 书签, 深色, 设置 and the progress slider read the chapter
+    /// instead, on every reader pushed from a detail page, while 书架's reader, which has no
     /// reservation, worked (feedback #15; the maintainer's recording, 2026-10-20). As an overlay
-    /// the order is the one 書架 has, the page last; `accessibilityHidden` on the reservation
+    /// the order is the one 书架 has, the page last; `accessibilityHidden` on the reservation
     /// does not restore it.
     func reservingNavigationBackSwipe() -> some View {
         overlay(NavigationBackSwipeReservation().frame(width: 0, height: 0))
@@ -174,7 +174,7 @@ final class NavigationBackSwipeReservationController: NSObject, UIGestureRecogni
 
 #Preview {
     NavigationStack {
-        Text(localized("閱讀"))
+        Text(localized("阅读"))
             .reservingNavigationBackSwipe()
     }
 }

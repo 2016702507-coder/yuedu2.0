@@ -1,9 +1,9 @@
 import SwiftUI
 
-/// 設定 → 遠端書庫 (unified library 2b): every WebDAV, OPDS and Calibre connection in one place,
+/// 设置 → 远端书库 (unified library 2b): every WebDAV, OPDS and Calibre connection in one place,
 /// as configuration. A connection is a library the reader adds, edits or removes here;
-/// browsing it is Explore's job (its 範圍 menu). Since unified library 5c-5 this is also
-/// the only place to add one, and holds OPDS's 範例目錄, both once in the bookshelf ＋ menu.
+/// browsing it is Explore's job (its 范围 menu). Since unified library 5c-5 this is also
+/// the only place to add one, and holds OPDS's 范例目录, both once in the bookshelf ＋ menu.
 ///
 /// The editor is pushed, as the bookshelf's library list pushes it; nothing here presents a
 /// modal, so the iOS 17 menu-to-sheet rule does not apply. No browse route is registered in
@@ -27,7 +27,7 @@ struct RemoteLibrarySettingsView: View {
                         }
                         .swipeActions(edge: .trailing) {
                             Button(role: .destructive) { catalogStore.remove(connection) } label: {
-                                Label(localized("刪除"), systemImage: "trash")
+                                Label(localized("删除"), systemImage: "trash")
                             }
                         }
                     }
@@ -42,7 +42,7 @@ struct RemoteLibrarySettingsView: View {
                 }
                 .interfaceSectionSurface()
                 if kind == .opds, !examples.isEmpty {
-                    Section(localized("範例目錄")) {
+                    Section(localized("范例目录")) {
                         ForEach(examples, id: \.url) { preset in
                             Button {
                                 catalogStore.add(name: preset.name, url: preset.url, username: nil, password: nil)
@@ -57,7 +57,7 @@ struct RemoteLibrarySettingsView: View {
             }
         }
         .softScrollEdges()
-        .navigationTitle(localized("遠端書庫"))
+        .navigationTitle(localized("远端书库"))
         .toolbarTitleDisplayMode(.inline)
         .themedAppSurface(for: .settings)
     }
@@ -101,7 +101,7 @@ private struct RemoteLibraryConnectionRow: View {
 
 #Preview("Row states") {
     List {
-        ForEach([WebDAVIndexStatus.indexing(128), .indexed(2_431), .pausedNotOnWiFi, .limitReached(20_000), .failed("認證失敗，請確認帳號和密碼")], id: \.self) { status in
+        ForEach([WebDAVIndexStatus.indexing(128), .indexed(2_431), .pausedNotOnWiFi, .limitReached(20_000), .failed("认证失败，请确认帐号和密码")], id: \.self) { status in
             RemoteLibraryConnectionRow(connection: OPDSCatalog(name: "NAS", url: "https://nas.local/books/", kind: .webDAV), status: status)
         }
     }

@@ -10,7 +10,7 @@ import Foundation
 /// `gateway/src/feedbackPolicy.ts`) — compressed, with the install's scale and identifiers
 /// beside it, and ties it to this install's Crashlytics reports through the install id
 /// (`CrashContext.installID`), so one number leads to the user's hangs and crashes as well.
-/// Through the Gateway, like the rest of 回饋中心, because Firestore is unreachable from the
+/// Through the Gateway, like the rest of 回馈中心, because Firestore is unreachable from the
 /// mainland.
 ///
 /// Fetch a report: `python3 scripts/decode_diagnostic_report.py <report-id>` (see the script).
@@ -24,12 +24,12 @@ enum DiagnosticReportUploader {
 
     enum UploadError: LocalizedError {
         case compressionFailed(Error)
-        /// The Gateway refused or could not be reached; reads as 回饋中心's two sentences.
+        /// The Gateway refused or could not be reached; reads as 回馈中心's two sentences.
         case relay(GatewayAPIError)
 
         var errorDescription: String? {
             switch self {
-            case .compressionFailed: localized("紀錄無法壓縮。")
+            case .compressionFailed: localized("纪录无法压缩。")
             case .relay(let error): FeedbackService.userMessage(for: error)
             }
         }

@@ -1,13 +1,13 @@
 import Combine
 import Foundation
 
-/// Unified library 5a: the Explore home, `explore_home.json`; since 5d-4 every 首頁配置 in it
+/// Unified library 5a: the Explore home, `explore_home.json`; since 5d-4 every 首页配置 in it
 /// (`HomeConfigurations`, Phase 5 plan, decision 22).
 ///
 /// - It is read once, when the store is made. `home` is nil until something saves one; the
 ///   home decides when to save `HomePageDefaults` (5c).
-/// - `page`, `edit` and `save` act on the selected configuration, so 編輯首頁, a section's long
-///   press and 聚合設定's 首頁欄目 edit whichever one 範圍 shows.
+/// - `page`, `edit` and `save` act on the selected configuration, so 编辑首页, a section's long
+///   press and 聚合设置's 首页栏目 edit whichever one 范围 shows.
 /// - Writes replace the file atomically on one serial queue.
 /// - A file of this version that does not decode is copied aside
 ///   (`explore_home.corrupt-<mtime>.json`) before anything is written over it.
@@ -16,11 +16,11 @@ import Foundation
 ///   never written over: writing it back would drop what this build cannot name.
 /// - The custom pages move in once (5d-4): when a file older than 5d-4 is read, or when the
 ///   first home is made. `custom_explore_pages.json` is left where it is.
-/// - A 預設 still as the defaults of 2026-10-13 to 2026-10-25 made it takes the 2026-10-25
+/// - A 预设 still as the defaults of 2026-10-13 to 2026-10-25 made it takes the 2026-10-25
 ///   layouts once (`HomeDefaultsRhythmMigration`).
-/// - 預設's official modules' lists follow the language, as the home reads it
+/// - 预设's official modules' lists follow the language, as the home reads it
 ///   (`HomeDefaultsLanguageSwap`).
-/// - 為你推薦, deleted 2026-10-27, is taken off every 首頁配置 that still has it
+/// - 为你推荐, deleted 2026-10-27, is taken off every 首页配置 that still has it
 ///   (`removeDeletedForYou`).
 @MainActor
 final class HomePageStore: ObservableObject {
@@ -37,29 +37,29 @@ final class HomePageStore: ObservableObject {
 
     var selectedConfiguration: HomeConfigurationID { home?.selectedID ?? .defaults }
 
-    /// 首頁配置's page: the reader's own, with 預設 where it was moved to unless it was deleted.
+    /// 首页配置's page: the reader's own, with 预设 where it was moved to unless it was deleted.
     var configurations: [HomeConfigurationListing] {
         (home ?? HomeConfigurations(sections: [])).listings
     }
 
-    /// Each 首頁配置's photo, in a folder beside the file.
+    /// Each 首页配置's photo, in a folder beside the file.
     let photos: HomeConfigurationPhotos
-    /// 大圖卡片's cards' photos, in another.
+    /// 大图卡片's cards' photos, in another.
     let cardPhotos: HomeListCardPhotos
 
     /// Whether saves stay in memory this launch, because the file could not be read or comes
     /// from a newer build.
     private(set) var isReadOnly = false
 
-    /// The 最新 sections' 排除的來源 the file still holds from before 5d-3f, which
-    /// `AggregationSettingsStore` adopts as 顯示在最新. Read once, with the file.
+    /// The 最新 sections' 排除的来源 the file still holds from before 5d-3f, which
+    /// `AggregationSettingsStore` adopts as 显示在最新. Read once, with the file.
     private(set) var legacyLatestExcluded: [SourceInstanceKey] = []
 
     private let fileURL: URL
     private let customPagesURL: URL
     private let defaults: UserDefaults
     private let queue = DispatchQueue(label: "com.yuedu.explore.home")
-    /// Whether this store gives an untouched 預設 the 2026-10-25 layouts once; only the app's own
+    /// Whether this store gives an untouched 预设 the 2026-10-25 layouts once; only the app's own
     /// does, so a test's home is read as it was saved.
     private let appliesDefaultsRhythmOnce: Bool
 
@@ -71,24 +71,24 @@ final class HomePageStore: ObservableObject {
             ?? fileURL.deletingLastPathComponent().appendingPathComponent("custom_explore_pages.json")
         self.defaults = defaults
         self.appliesDefaultsRhythmOnce = appliesDefaultsRhythmOnce
-        // 首頁配置's form draws its photo at 96pt, three pixels a point.
+        // 首页配置's form draws its photo at 96pt, three pixels a point.
         photos = HomeConfigurationPhotos(directory: fileURL.deletingLastPathComponent()
             .appendingPathComponent("HomeConfigurationPhotos", isDirectory: true),
             pixelSize: CGSize(width: 288, height: 288))
-        // A 大圖卡片 card is about 400pt across on a phone, three pixels a point.
+        // A 大图卡片 card is about 400pt across on a phone, three pixels a point.
         cardPhotos = HomeListCardPhotos(directory: fileURL.deletingLastPathComponent()
             .appendingPathComponent("HomeListCardPhotos", isDirectory: true),
             pixelSize: CGSize(width: 1200, height: (1200 / DSLayout.homeBannerAspect).rounded()))
         load()
-        // A card's photo goes with its card, its section or its 首頁配置, gone since the last
-        // launch, or with a 新增欄目 left with 取消; never from a home this build only reads.
+        // A card's photo goes with its card, its section or its 首页配置, gone since the last
+        // launch, or with a 新增栏目 left with 取消; never from a home this build only reads.
         if let home, !isReadOnly {
             cardPhotos.removePhotos(keeping: HomeListCardPhotoID.all(in: home))
         }
     }
 
-    /// The selected configuration, or the defaults for this reader as 預設, saved now so they
-    /// never change under them (5a step 3), with the custom pages moved in beside it. Only 預設's
+    /// The selected configuration, or the defaults for this reader as 预设, saved now so they
+    /// never change under them (5a step 3), with the custom pages moved in beside it. Only 预设's
     /// official modules' lists change after, when `languages` does (`followLanguage`).
     ///
     /// Call it only once the book-source library is read (`ExploreTabModel.isLoaded`): before
@@ -120,7 +120,7 @@ final class HomePageStore: ObservableObject {
         return page ?? defaultPage
     }
 
-    /// 編輯首頁 and a section's long press (5d-2): changes the selected configuration. Nothing
+    /// 编辑首页 and a section's long press (5d-2): changes the selected configuration. Nothing
     /// to change before the home has read or made one.
     func edit(_ change: (inout HomePage) -> Void) {
         guard var page else { return }
@@ -129,7 +129,7 @@ final class HomePageStore: ObservableObject {
     }
 
     /// Replaces the selected configuration's sections; before any home, makes one with them
-    /// as 預設.
+    /// as 预设.
     func save(_ page: HomePage) {
         if var home {
             home.setSections(page.sections, of: home.selectedID)
@@ -140,15 +140,15 @@ final class HomePageStore: ObservableObject {
         write()
     }
 
-    // MARK: 首頁配置
+    // MARK: 首页配置
 
     func select(_ id: HomeConfigurationID) {
         change { $0.selected = id == .defaults ? nil : id }
     }
 
-    /// 新增首頁配置 from a template: 空白模板 with no section; 預設配置 with the defaults the app
-    /// keeps for this reader, whatever their 預設 has become (maintainer, 2026-10-23: they emptied
-    /// 預設 and 預設配置 copied it, empty). The new one is selected.
+    /// 新增首页配置 from a template: 空白模板 with no section; 预设配置 with the defaults the app
+    /// keeps for this reader, whatever their 预设 has become (maintainer, 2026-10-23: they emptied
+    /// 预设 and 预设配置 copied it, empty). The new one is selected.
     func createConfiguration(named name: String, from template: HomeConfigurationTemplate,
                              defaults context: HomePageDefaults.Context) {
         let sections = switch template {
@@ -157,7 +157,7 @@ final class HomePageStore: ObservableObject {
         }
         change { home in
             let id = home.create(named: name, sections: sections)
-            AppLogger.cache("⟐ 首頁配置 made from a template", context: [
+            AppLogger.cache("⟐ 首页配置 made from a template", context: [
                 "configuration": id.rawValue, "template": template.rawValue, "mode": context.mode.rawValue,
                 "sections": "\(sections.count)",
             ])
@@ -175,12 +175,12 @@ final class HomePageStore: ObservableObject {
         photos.removePhoto(for: id)
     }
 
-    /// 首頁配置's 編輯: the list reordered, 預設 among the reader's own.
+    /// 首页配置's 编辑: the list reordered, 预设 among the reader's own.
     func moveConfigurations(fromOffsets offsets: IndexSet, toOffset destination: Int) {
         change { $0.move(fromOffsets: offsets, toOffset: destination) }
     }
 
-    /// 加入首頁配置.
+    /// 加入首页配置.
     func addCategory(_ reference: ExploreCategoryReference, to id: HomeConfigurationID) {
         change { $0.addCategory(reference, to: id) }
     }
@@ -225,10 +225,10 @@ final class HomePageStore: ObservableObject {
     }
     #endif
 
-    // MARK: - 為你推薦, deleted
+    // MARK: - 为你推荐, deleted
 
-    /// Takes 為你推薦 off 預設 and every 首頁配置 (`HomeSectionBinding.isDeletedForYou`; maintainer,
-    /// 2026-10-27): its sections, the 頂部輪播圖 among them, and its cards in a section of lists,
+    /// Takes 为你推荐 off 预设 and every 首页配置 (`HomeSectionBinding.isDeletedForYou`; maintainer,
+    /// 2026-10-27): its sections, the 顶部轮播图 among them, and its cards in a section of lists,
     /// whose section goes with its last card. On every read, not once: nothing puts it on a home
     /// any more, so a home without it is left as it is. Returns whether any was taken off.
     @discardableResult
@@ -253,16 +253,16 @@ final class HomePageStore: ObservableObject {
         strip(&home.sections)
         for index in home.configurations.indices { strip(&home.configurations[index].sections) }
         guard removed > 0 else { return false }
-        AppLogger.cache("⟐ 為你推薦 taken off the saved home", context: ["removed": "\(removed)"])
+        AppLogger.cache("⟐ 为你推荐 taken off the saved home", context: ["removed": "\(removed)"])
         return true
     }
 
     // MARK: - The 2026-10-25 layouts
 
-    /// Set once 預設 has been looked at for the 2026-10-25 layouts, or made with them.
+    /// Set once 预设 has been looked at for the 2026-10-25 layouts, or made with them.
     static let defaultsRhythmKey = "home.defaultsRhythm20261025"
 
-    /// An untouched 預設 takes the 2026-10-25 layouts once (`HomeDefaultsRhythmMigration`), so a
+    /// An untouched 预设 takes the 2026-10-25 layouts once (`HomeDefaultsRhythmMigration`), so a
     /// reader who puts a section back the way it was keeps it. Not on a file this build only
     /// reads. Returns whether a section changed.
     @discardableResult
@@ -270,13 +270,13 @@ final class HomePageStore: ObservableObject {
         guard appliesDefaultsRhythmOnce, !isReadOnly, !defaults.bool(forKey: Self.defaultsRhythmKey) else { return false }
         defaults.set(true, forKey: Self.defaultsRhythmKey)
         guard !home.defaultsDeleted, let outcome = HomeDefaultsRhythmMigration.apply(to: home.sections) else {
-            AppLogger.cache("⟐ 預設 keeps its layouts: not the defaults of 2026-10-13 to 2026-10-25", context: [
+            AppLogger.cache("⟐ 预设 keeps its layouts: not the defaults of 2026-10-13 to 2026-10-25", context: [
                 "sections": "\(home.sections.count)", "defaultsDeleted": "\(home.defaultsDeleted)",
             ])
             return false
         }
         home.sections = outcome.sections
-        AppLogger.cache("⟐ 預設 takes the 2026-10-25 layouts", context: [
+        AppLogger.cache("⟐ 预设 takes the 2026-10-25 layouts", context: [
             "changed": "\(outcome.changed)", "kept": "\(outcome.kept)",
         ])
         return outcome.changed > 0
@@ -284,8 +284,8 @@ final class HomePageStore: ObservableObject {
 
     // MARK: - The language
 
-    /// 預設's official modules' lists follow the language (`HomeDefaultsLanguageSwap`); the
-    /// reader's own 首頁配置 are theirs. A 預設 saved before 2026-10-27 did not say whose lists it
+    /// 预设's official modules' lists follow the language (`HomeDefaultsLanguageSwap`); the
+    /// reader's own 首页配置 are theirs. A 预设 saved before 2026-10-27 did not say whose lists it
     /// holds, so its lists say it: when they include the language's, or there are none, nothing
     /// changes. Not on a file this build only reads. Returns whether the file changed.
     private func followLanguage(in home: inout HomeConfigurations, context: HomePageDefaults.Context) -> Bool {
@@ -294,7 +294,7 @@ final class HomePageStore: ObservableObject {
             ?? HomeDefaultsLanguageSwap.languages(of: home.sections, publicLibrariesAvailable: context.publicLibrariesAvailable)
         if home.defaultsLanguages == nil, held.isEmpty || held.contains(where: context.languages.contains) {
             home.defaultsLanguages = context.languages
-            AppLogger.cache("⟐ 預設's lists taken as the language's", context: [
+            AppLogger.cache("⟐ 预设's lists taken as the language's", context: [
                 "lists": held.joined(separator: ","), "language": context.languages.joined(separator: ","),
             ])
             return true
@@ -302,7 +302,7 @@ final class HomePageStore: ObservableObject {
         let outcome = HomeDefaultsLanguageSwap.apply(to: home.sections, from: held, to: context)
         home.sections = outcome.sections
         home.defaultsLanguages = context.languages
-        AppLogger.cache("⟐ 預設 follows the language", context: [
+        AppLogger.cache("⟐ 预设 follows the language", context: [
             "from": held.joined(separator: ","), "to": context.languages.joined(separator: ","),
             "removed": "\(outcome.removed)", "added": "\(outcome.added)",
         ])
@@ -311,7 +311,7 @@ final class HomePageStore: ObservableObject {
 
     // MARK: - Custom pages
 
-    /// The custom pages as configurations; the 首頁頁面 the reader had chosen, if a page,
+    /// The custom pages as configurations; the 首页页面 the reader had chosen, if a page,
     /// becomes the selected one (the deleted setting, `ExploreSettings.legacyLandingKey`).
     /// A file that could not be read is tried again on the next launch.
     private func moveCustomPages(into home: inout HomeConfigurations) {
@@ -324,7 +324,7 @@ final class HomePageStore: ObservableObject {
         case .pages(let pages):
             home.adopt(pages)
             home.customPagesPending = false
-            AppLogger.cache("⟐ custom pages moved into 首頁配置", context: ["pages": "\(pages.count)"])
+            AppLogger.cache("⟐ custom pages moved into 首页配置", context: ["pages": "\(pages.count)"])
         }
         let pagePrefix = "page:"
         if let landing = defaults.string(forKey: ExploreSettings.legacyLandingKey), landing.hasPrefix(pagePrefix) {
@@ -407,7 +407,7 @@ final class HomePageStore: ObservableObject {
             }
             var read: HomeConfigurations
             if version < 2 {
-                // Before 5d-4: the one home, which becomes 預設, and the custom pages move in.
+                // Before 5d-4: the one home, which becomes 预设, and the custom pages move in.
                 read = HomeConfigurations(sections: try JSONDecoder().decode(HomePage.self, from: data).sections)
                 readLegacyLatestExcluded(data)
                 moveCustomPages(into: &read)
@@ -418,7 +418,7 @@ final class HomePageStore: ObservableObject {
                 return
             }
             read = try JSONDecoder().decode(HomeConfigurations.self, from: data)
-            // Before the layouts, which recognise a 預設 by its sections without 為你推薦.
+            // Before the layouts, which recognise a 预设 by its sections without 为你推荐.
             let removed = removeDeletedForYou(from: &read)
             let restyled = applyDefaultsRhythmOnce(to: &read)
             if read.customPagesPending {
@@ -440,7 +440,7 @@ final class HomePageStore: ObservableObject {
             legacyLatestExcluded = try JSONDecoder().decode(LegacyLatest.self, from: data).excluded
         } catch {
             // The page itself decoded; only the old list is lost, and with it nothing to move.
-            AppLogger.cache("⟐ explore home's old 排除的來源 could not be read", error: error)
+            AppLogger.cache("⟐ explore home's old 排除的来源 could not be read", error: error)
         }
     }
 

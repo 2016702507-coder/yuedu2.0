@@ -1,9 +1,9 @@
 import Combine
 import Foundation
 
-/// Discovery 7b-2 (maintainer, 2026-10-13): 作品詳情's 「尋找可用來源」. When the page opens
-/// (maintainer, 2026-10-17: 「點進去自動尋找並列出可用來源」), and again when its row is tapped,
-/// it searches the enabled sources for the work's title, as 換源 does (`SearchAggregator`), and
+/// Discovery 7b-2 (maintainer, 2026-10-13): 作品详情's 「寻找可用来源」. When the page opens
+/// (maintainer, 2026-10-17: 「点进去自动寻找并列出可用来源」), and again when its row is tapped,
+/// it searches the enabled sources for the work's title, as 换源 does (`SearchAggregator`), and
 /// keeps the books found of the work — its title and a compatible author, one per source
 /// (`WorkOffers.books`). The page lists them among its versions for as long as it is open;
 /// nothing is stored.
@@ -12,9 +12,9 @@ final class WorkSourceFinder: ObservableObject {
     enum State: Equatable {
         case idle
         case searching
-        /// `more`: the search paused itself (網路設定's 自動暫停) with sources left to ask.
+        /// `more`: the search paused itself (网路设置's 自动暂停) with sources left to ask.
         case done(more: Bool)
-        /// No source answered: every one asked failed or timed out, which is not 「沒有找到」.
+        /// No source answered: every one asked failed or timed out, which is not 「没有找到」.
         case failed
         case noSources
     }
@@ -109,8 +109,8 @@ final class WorkSourceFinder: ObservableObject {
         return listed + found.filter { sources.insert($0.record.key.instance).inserted }
     }
 
-    /// The version 作品詳情 takes on as the search finds books (maintainer, 2026-10-24: 「有可用的
-    /// 閱讀來源立馬就先換上」): the first readable one, while nothing listed reads and no version
+    /// The version 作品详情 takes on as the search finds books (maintainer, 2026-10-24: 「有可用的
+    /// 阅读来源立马就先换上」): the first readable one, while nothing listed reads and no version
     /// was picked. The page is then pinned to it: later answers reorder `found`, and each reorder
     /// would otherwise remount the source's page under the reader.
     static func shownOnFinding(listed: [WorkDetailRoute], found: [WorkDetailRoute],

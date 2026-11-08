@@ -3,7 +3,7 @@ import WebKit
 /// The identity every in-app WKWebView presents, in one place.
 ///
 /// The same iPhone user-agent string had been pasted into five WebViews — the source login, the
-/// 發現頁 browser, the JS-bridge debug browser, the Cloudflare challenge view, and the headless
+/// 发现页 browser, the JS-bridge debug browser, the Cloudflare challenge view, and the headless
 /// fetcher — so a site that answers a phone with an app-download page (bot.n.cn) was a dead end in
 /// every one of them, and changing that meant finding and editing five literals.
 enum SourceWebIdentity {

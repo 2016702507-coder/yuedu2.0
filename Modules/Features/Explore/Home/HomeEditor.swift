@@ -1,23 +1,23 @@
 import SwiftUI
 
 // Unified library 5d-2: editing the home in place (Phase 5 plan, 5d-2; decisions 14 and 18).
-// 編輯首頁, at the end of the home, turns every section into a card, as the maintainer's
+// 编辑首页, at the end of the home, turns every section into a card, as the maintainer's
 // reference (Rex's home editor) shows: the mark beside a card shows or hides it, a card is
 // dragged to reorder, and a tap pushes the section's form (`HomeSectionForm`, 5d-5). The ＋ in
-// the bottom bar, where the tab bar was, opens 新增欄目 (5d-5); 完成 is the bar's and the home's
-// last button. Nothing follows the cards: the 首頁配置 is renamed and deleted from •••, and the
-// browser has no switch (maintainer, 2026-10-17). Which libraries 最新 shows is 聚合設定's
-// 顯示在最新 (5d-3f). A section name's long press offers the same edits outside it. Every change
+// the bottom bar, where the tab bar was, opens 新增栏目 (5d-5); 完成 is the bar's and the home's
+// last button. Nothing follows the cards: the 首页配置 is renamed and deleted from •••, and the
+// browser has no switch (maintainer, 2026-10-17). Which libraries 最新 shows is 聚合设置's
+// 显示在最新 (5d-3f). A section name's long press offers the same edits outside it. Every change
 // goes through `HomePageStore.edit`, so the home builds its rows again from the saved page.
 
 enum HomeEditRoute: Hashable {
     case section(UUID)
-    /// 首頁配置's page, from its button on the home (maintainer, 2026-10-22).
+    /// 首页配置's page, from its button on the home (maintainer, 2026-10-22).
     case configurations
 }
 
 extension View {
-    /// A section's page and 首頁配置's, in the home's stack.
+    /// A section's page and 首页配置's, in the home's stack.
     func homeEditDestinations() -> some View {
         navigationDestination(for: HomeEditRoute.self) { route in
             switch route {
@@ -39,7 +39,7 @@ extension HomeSection {
         switch binding {
         case .opdsFeed(let connectionID, _): sourceName = connections.connection(id: connectionID)?.name ?? ""
         case .gutenbergFeed, .gutenbergShelf: sourceName = localized("Project Gutenberg")
-        // 分類卡片, titled by its source as its row is.
+        // 分类卡片, titled by its source as its row is.
         case .sourceCategories(let categories): sourceName = categories.first?.source?.bookSourceName ?? ""
         // An untitled module list (the defaults) by its list's title, as its row reads
         // (`ModuleProvider.rowName`); by its id once its module is gone. In a layout of lists
@@ -57,16 +57,16 @@ extension HomeSection {
     }
 }
 
-// MARK: - A section, in and out of 編輯首頁
+// MARK: - A section, in and out of 编辑首页
 
-/// A section in the home's one list, the same in and out of 編輯首頁: every section the home
-/// draws and every section 編輯首頁 lists, hidden ones too, in the page's order.
+/// A section in the home's one list, the same in and out of 编辑首页: every section the home
+/// draws and every section 编辑首页 lists, hidden ones too, in the page's order.
 struct HomeSectionEntry: Identifiable {
     let section: HomeSection
     /// The section as the home draws it, and its card too, the same books (maintainer,
     /// 2026-10-22); nil for a hidden one.
     let homeGroup: HomeSectionGroup?
-    /// Its place in `HomePage.editableSections`, for 上移 and 下移; nil for one 編輯首頁 does not list.
+    /// Its place in `HomePage.editableSections`, for 上移 and 下移; nil for one 编辑首页 does not list.
     let editableIndex: Int?
 
     var id: UUID { section.id }
@@ -78,27 +78,27 @@ struct HomeSectionEntry: Identifiable {
 }
 
 extension EnvironmentValues {
-    /// How far 編輯首頁's morph has come: 0 on the home, 1 in the editor, and every frame between.
+    /// How far 编辑首页's morph has come: 0 on the home, 1 in the editor, and every frame between.
     @Entry var homeEditProgress: Double = 0
-    /// Every section one row swiped sideways, as 編輯首頁 draws them (maintainer, 2026-10-27: no
-    /// exceptions — the editor never shows a section whole): 分類卡片, 固定封面網格 and 圖文資訊清單,
-    /// read down the page on the home, and 色帶書架's stack, which does not scroll there.
+    /// Every section one row swiped sideways, as 编辑首页 draws them (maintainer, 2026-10-27: no
+    /// exceptions — the editor never shows a section whole): 分类卡片, 固定封面网格 and 图文资讯清单,
+    /// read down the page on the home, and 色带书架's stack, which does not scroll there.
     @Entry var homeDrawsSideways = false
-    /// The section 編輯首頁's long press lifts, wherever it starts in its card; nil on the home.
+    /// The section 编辑首页's long press lifts, wherever it starts in its card; nil on the home.
     @Entry var homeSectionDrag: HomeSectionDrag? = nil
     /// The width the home lays its sections out in, which its sideways rows size their cards from
     /// (`homeSidewaysCardWidth`); nil off the home, and before the home has a width.
     @Entry var homeRowWidth: CGFloat? = nil
 }
 
-/// What a long press lifts in 編輯首頁: a section, by its id, with its name under the finger.
+/// What a long press lifts in 编辑首页: a section, by its id, with its name under the finger.
 struct HomeSectionDrag: Equatable, Sendable {
     let id: UUID
     let title: String
 }
 
 extension View {
-    /// A button, menu or long press in a home row, off in 編輯首頁: there a long press on it drags
+    /// A button, menu or long press in a home row, off in 编辑首页: there a long press on it drags
     /// its section (`homeSectionDrag`) and a tap opens the section's form (`HomeSectionEditGestures`),
     /// while the row still swipes. Each control by itself, not the row: a row off as a whole does
     /// not scroll either, and a drag laid over the whole row takes its swipe.
@@ -106,7 +106,7 @@ extension View {
         modifier(HomeRowControl())
     }
 
-    /// 編輯首頁's long press, over the view: it lifts the section, which a card it is dropped on
+    /// 编辑首页's long press, over the view: it lifts the section, which a card it is dropped on
     /// takes the place of (`HomeSectionEditGestures`). Nothing on the home, which drags nothing;
     /// only the overlay comes and goes, so the view under it stays the same view.
     fileprivate func homeSectionDragSource(_ drag: HomeSectionDrag?, in shape: some Shape) -> some View {
@@ -124,7 +124,7 @@ extension View {
 }
 
 private struct HomeRowControl: ViewModifier {
-    /// Only 編輯首頁 has one.
+    /// Only 编辑首页 has one.
     @Environment(\.homeSectionDrag) private var drag
 
     func body(content: Content) -> some View {
@@ -136,7 +136,7 @@ private struct HomeRowControl: ViewModifier {
 }
 
 extension View {
-    /// 編輯首頁's morph as one number for every section under it (`homeEditProgress`), animated
+    /// 编辑首页's morph as one number for every section under it (`homeEditProgress`), animated
     /// with `isEditing`. Held here, once: a row the lazy stack makes during the morph reads where
     /// it has come, where one animating its own would start at its end.
     func homeEditMorph(_ isEditing: Bool) -> some View {
@@ -157,7 +157,7 @@ private struct HomeEditMorph: ViewModifier, Animatable {
     }
 }
 
-/// One section of the home, the same view in and out of 編輯首頁, so the switch morphs it into
+/// One section of the home, the same view in and out of 编辑首页, so the switch morphs it into
 /// its card and back (maintainer, 2026-10-21) rather than cutting from one to the other: the
 /// mark slides in beside it, the card fills in under it, and the row keeps its identity — its
 /// carousel's place, and the load it already ran.
@@ -166,7 +166,7 @@ struct HomeSectionSlot<RowContent: View>: View {
     let isEditing: Bool
     /// The home's width, which the row keeps in its card; 0 until the home has measured it.
     let pageWidth: CGFloat
-    /// How many sections 編輯首頁 lists: 下移.
+    /// How many sections 编辑首页 lists: 下移.
     let count: Int
     let openSettings: (UUID) -> Void
     let rowContent: (HomeSectionGroup) -> RowContent
@@ -226,11 +226,11 @@ struct HomeSectionSlot<RowContent: View>: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(title)
-        .accessibilityValue(localized(section.isEnabled ? "狀態：顯示" : "已隱藏"))
+        .accessibilityValue(localized(section.isEnabled ? "状态：显示" : "已隐藏"))
         .accessibilityIdentifier("homeEditor.toggle.\(section.id.uuidString)")
     }
 
-    /// The card for VoiceOver while the home is edited, over the row: 設定, 上移 and 下移. Not for
+    /// The card for VoiceOver while the home is edited, over the row: 设置, 上移 and 下移. Not for
     /// the finger, which swipes the row under it, taps the card (`HomeSectionEditGestures`) and
     /// drags it from anything in it (`homeSectionDrag`).
     private func editingSurface(_ title: String) -> some View {
@@ -241,7 +241,7 @@ struct HomeSectionSlot<RowContent: View>: View {
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(title)
             .accessibilityAddTraits(.isButton)
-            .accessibilityHint(localized("設定"))
+            .accessibilityHint(localized("设置"))
             .accessibilityAction { openSettings(section.id) }
             .accessibilityAction(named: localized("上移")) {
                 if index > 0 { pageStore.moveEditableSection(section.id, to: index - 1) }
@@ -253,10 +253,10 @@ struct HomeSectionSlot<RowContent: View>: View {
     }
 }
 
-/// 編輯首頁's tap and drop on a section's card, round its row: a tap anywhere in it opens the
+/// 编辑首页's tap and drop on a section's card, round its row: a tap anywhere in it opens the
 /// section's form, and a section dragged onto it (`homeSectionDrag`) takes its place. On the card
 /// itself, an ancestor of the row's scroll view, so the row still swipes (maintainer, 2026-10-28:
-/// 「要能用手指左右滑，點一下照樣進欄目表單、長按照樣拖曳排序」); laid over the row, the old surface
+/// 「要能用手指左右滑，点一下照样进栏目表单、长按照样拖曳排序」); laid over the row, the old surface
 /// took every touch. Masked off on the home, whose rows take their touches as they always did. Not
 /// off by `isEnabled`, which also took the home's section names their long-press menus, and no
 /// `isEnabled` set back under the card returned them (UI tests, iOS 27 simulator); nor by an `if`,
@@ -278,7 +278,7 @@ private struct HomeSectionEditGestures: ViewModifier {
     }
 }
 
-/// A section's card as far into 編輯首頁 as the morph has come (`homeEditProgress`): the mark
+/// A section's card as far into 编辑首页 as the morph has come (`homeEditProgress`): the mark
 /// beside it, its margins, width, fill and clip, and its room on the home, all worked out again on
 /// every frame. Laid out once, at the morph's end, the home's lazy stack chose the rows to draw from
 /// where they would end while the page still showed where they had been; on the way out, a home a
@@ -321,7 +321,7 @@ private struct HomeSectionMorph<Mark: View, Surface: View, Gestures: ViewModifie
                 // cards, a grid's covers, a synopsis's lines (maintainer, 2026-10-21 and 2026-10-22).
                 .frame(width: width, alignment: .leading)
                 .environment(\.homeRowWidth, width)
-                // In 編輯首頁 the card is one element, the surface over it.
+                // In 编辑首页 the card is one element, the surface over it.
                 .accessibilityHidden(onlyWhen: isEditing || presence < 1)
                 .padding(.vertical, DSSpacing.lg * edited)
                 .frame(width: cardWidth, alignment: .leading)
@@ -358,7 +358,7 @@ private struct HomeSectionMorph<Mark: View, Surface: View, Gestures: ViewModifie
         .clipShape(HomeSectionPresenceClip(clips: presence < 1))
         .allowsHitTesting(presence == 1)
         // Hidden where it has no room by the content, mark and surface themselves. Said out here
-        // as well, its `false` won over theirs: 編輯首頁's rows and, after 完成, the marks were
+        // as well, its `false` won over theirs: 编辑首页's rows and, after 完成, the marks were
         // still VoiceOver elements under the cards (iOS 27 simulator).
     }
 }
@@ -379,7 +379,7 @@ extension View {
     }
 }
 
-/// 編輯首頁's frame round a section, as the maintainer's reference draws it (2026-10-27): a grey
+/// 编辑首页's frame round a section, as the maintainer's reference draws it (2026-10-27): a grey
 /// card with its leading corners rounded and its trailing side run off the screen's edge, its
 /// row cut there with it. The section is drawn on the grey as on the home, so its own white
 /// cards stand apart from the frame; a white frame round them read as one white card.
@@ -432,15 +432,15 @@ extension View {
     /// Deleting a section asks first.
     func homeSectionDeleteConfirmation(isPresented: Binding<Bool>, title: String,
                                        delete: @escaping () -> Void) -> some View {
-        confirmationDialog(String(format: localized("刪除「%@」？"), title), isPresented: isPresented,
+        confirmationDialog(String(format: localized("删除「%@」？"), title), isPresented: isPresented,
                            titleVisibility: .visible) {
-            Button(localized("刪除"), role: .destructive, action: delete)
+            Button(localized("删除"), role: .destructive, action: delete)
             Button(localized("取消"), role: .cancel) {}
         }
     }
 }
 
-#Preview("編輯中的首頁") {
+#Preview("编辑中的首页") {
     @Previewable @State var isEditing = true
     @Previewable @State var pageWidth: CGFloat = 0
     let entries = [
@@ -455,7 +455,7 @@ extension View {
                 HomeSectionSlot(entry: entry, isEditing: isEditing, pageWidth: pageWidth, count: entries.count,
                                 openSettings: { _ in }) { _ in EmptyView() }
             }
-            Button(isEditing ? "完成" : "編輯首頁") {
+            Button(isEditing ? "完成" : "编辑首页") {
                 withAnimation(DSAnimation.homeEditMorph) { isEditing.toggle() }
             }
             .buttonStyle(.bordered)

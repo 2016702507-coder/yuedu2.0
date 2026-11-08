@@ -21,15 +21,15 @@ struct OnlineBookDetailDestination: View {
     }
 
     private let entry: Entry
-    /// The shelf copy this page shows, when it shows one. 換源 then rebinds that copy, as the
+    /// The shelf copy this page shows, when it shows one. 换源 then rebinds that copy, as the
     /// reader's own detail does; without it a switch only changed the page, and the page then
-    /// offered 加入書架 for the new source's book (feedback #24).
+    /// offered 加入书架 for the new source's book (feedback #24).
     private let shelfCopyId: UUID?
     private let onRemoveFromShelf: (() -> Void)?
-    /// On 作品詳情, the work's versions, which 換源 lists first (unified library 5f-3; a search
+    /// On 作品详情, the work's versions, which 换源 lists first (unified library 5f-3; a search
     /// result's page too, 5f-4c).
     private let workVersions: BookDetailInfoChoice?
-    /// On 作品詳情, the work's series, fanned behind whichever page's cover (`SeriesCoverFan`).
+    /// On 作品详情, the work's series, fanned behind whichever page's cover (`SeriesCoverFan`).
     private let seriesFan: SeriesFan?
     /// The bookshelf's reader coordinator, given to the text page only: its reader
     /// opens through the coordinator, while the audiobook page's player does not.
@@ -206,7 +206,7 @@ extension View {
         onConfirm: @escaping (BookOrigin) -> Void
     ) -> some View {
         alert(
-            localized("書籍類型不一樣"),
+            localized("书籍类型不一样"),
             isPresented: Binding(
                 get: { origin.wrappedValue != nil },
                 set: { if !$0 { origin.wrappedValue = nil } }
@@ -214,9 +214,9 @@ extension View {
             presenting: origin.wrappedValue
         ) { pending in
             Button(localized("取消"), role: .cancel) {}
-            Button(localized("確定")) { onConfirm(pending) }
+            Button(localized("确定")) { onConfirm(pending) }
         } message: { _ in
-            Text(localized("是否確認換源"))
+            Text(localized("是否确认换源"))
         }
     }
 }
@@ -265,7 +265,7 @@ extension OnlineBook {
         )
     }
 
-    /// Detail-page book for a book-source book on the shelf: its source's page, as 作品詳情
+    /// Detail-page book for a book-source book on the shelf: its source's page, as 作品详情
     /// and the reader show it. Nil for any other book.
     init?(shelfCopy book: ReadingBook) {
         guard book.isOnline, let sourceId = book.bookSourceId else { return nil }
@@ -289,13 +289,13 @@ extension OnlineBook {
 #Preview {
     NavigationStack {
         OnlineBookDetailDestination(.search(SearchBook(
-            name: "斗羅大陸",
+            name: "斗罗大陆",
             author: "唐家三少",
             origins: [
                 BookOrigin(
-                    sourceId: UUID(), sourceName: "示範小說源",
+                    sourceId: UUID(), sourceName: "示范小说源",
                     bookUrl: "https://example.com/book/1", tocUrl: "https://example.com/book/1/toc",
-                    coverUrl: "", intro: "唐門外門弟子唐三，跳崖明志卻來到了另一個世界——斗羅大陸。",
+                    coverUrl: "", intro: "唐门外门弟子唐三，跳崖明志却来到了另一个世界——斗罗大陆。",
                     lastChapter: "第一章", wordCount: "", kind: "玄幻", runtimeVariables: nil
                 )
             ]

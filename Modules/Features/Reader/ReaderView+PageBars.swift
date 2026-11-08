@@ -2,7 +2,7 @@ import SwiftUI
 import UIKit
 import YueduCoreText
 
-// MARK: - Per-page 頁眉／頁腳 (paged mode)
+// MARK: - Per-page 页眉／页脚 (paged mode)
 
 extension ReaderView {
 
@@ -19,7 +19,7 @@ extension ReaderView {
         !effectiveScrollMode && !usesFixedLayoutRenderer && usesCoreTextEPUB
     }
 
-    /// True when the 頁眉／頁腳 text is drawn *into* each page rather than over the screen.
+    /// True when the 页眉／页脚 text is drawn *into* each page rather than over the screen.
     ///
     /// Not in a two-page spread on a screen that does not fold: each half drew its own pair,
     /// so the screen showed two headers and two footers (reported 2026-10-10). That spread is
@@ -28,7 +28,7 @@ extension ReaderView {
     /// the page. The bookmark ribbon still belongs to its page and stays baked.
     ///
     /// A screen that folds down the middle — an open iPhone Duo — is two pages, as a book is,
-    /// and each page carries its own 章名 and 頁碼, as 微信讀書's do; a bar spanning both would
+    /// and each page carries its own 章名 and 页码, as 微信读书's do; a bar spanning both would
     /// run across the fold (maintainer's choice, 2026-10-27).
     var usesPageBakedBars: Bool {
         pagesCarryBarsChannel

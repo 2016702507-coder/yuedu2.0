@@ -2,12 +2,12 @@ import SwiftUI
 import UIKit
 
 /// A `yuedu://module?src=` link (Phase 6e-2), from the system (`onOpenURL`) or from a page in
-/// the in-app browser: the same import sheet as 從網址, already loading the linked address,
+/// the in-app browser: the same import sheet as 从网址, already loading the linked address,
 /// behind the same source disclaimer (`SourceDisclaimerGate`).
 ///
 /// Presented from the top view controller rather than a SwiftUI sheet on the root: a link can
 /// arrive while the reader or the in-app browser covers the screen, and a root sheet cannot
-/// show over them (the browser's own 來源配置 links are presented the same way).
+/// show over them (the browser's own 来源配置 links are presented the same way).
 @MainActor
 enum RuleModuleLinkPresenter {
     private static var disclaimer = SourceDisclaimerGate<URL>()
@@ -46,7 +46,7 @@ enum RuleModuleLinkPresenter {
     private static func presentSheet(_ address: URL, from top: UIViewController) {
         let model = RuleModuleImportModel()
         model.address = address.absoluteString
-        top.present(UIHostingController(rootView: RuleModuleImportSheet(model: model, title: localized("新增模組"))),
+        top.present(UIHostingController(rootView: RuleModuleImportSheet(model: model, title: localized("新增模组"))),
                     animated: true)
         Task { await model.fetch() }
     }

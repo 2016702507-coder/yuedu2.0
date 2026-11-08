@@ -18,12 +18,12 @@ enum ReaderChromeSlot: String, CaseIterable, Codable, Hashable, Identifiable {
 
     var titleKey: String {
         switch self {
-        case .topIcon: return "頂部圖示顏色"
+        case .topIcon: return "顶部图示颜色"
         case .bottomFill: return "底部底色"
-        case .bottomIcon: return "底部圖示顏色"
-        case .bottomAccent: return "底部強調色"
-        case .panelFill: return "書卡面板底色"
-        case .panelText: return "書卡面板文字顏色"
+        case .bottomIcon: return "底部图示颜色"
+        case .bottomAccent: return "底部强调色"
+        case .panelFill: return "书卡面板底色"
+        case .panelText: return "书卡面板文字颜色"
         }
     }
 }
@@ -44,12 +44,12 @@ extension ReaderChromeIconItem {
 }
 
 /// The tools in the bottom bar's capsule, in the order it draws them. 更多 follows
-/// them and is not an item: it holds 書籤, which has nowhere else to live.
+/// them and is not an item: it holds 书签, which has nowhere else to live.
 enum ReaderChromeToolItem: String, CaseIterable, Codable, Hashable, Identifiable, ReaderChromeIconItem {
     case tableOfContents
     case nightMode
     case listen
-    /// Shown as 主題. The case keeps its old name so the stored `tool.settings` id —
+    /// Shown as 主题. The case keeps its old name so the stored `tool.settings` id —
     /// hidden lists, imported icons, theme packs — still points at this button.
     case settings
 
@@ -58,9 +58,9 @@ enum ReaderChromeToolItem: String, CaseIterable, Codable, Hashable, Identifiable
 
     var titleKey: String {
         switch self {
-        case .tableOfContents: return "目錄"
-        case .settings: return "主題"
-        case .listen: return "聽書"
+        case .tableOfContents: return "目录"
+        case .settings: return "主题"
+        case .listen: return "听书"
         // The live button says 白天 while night mode is on; this is the name the
         // settings screen lists it under.
         case .nightMode: return "深色"
@@ -69,7 +69,7 @@ enum ReaderChromeToolItem: String, CaseIterable, Codable, Hashable, Identifiable
 
     var defaultSystemImage: String { systemImage(isNight: false) }
 
-    /// 深色 is the one entry whose symbol depends on the current reading theme. 主題 is
+    /// 深色 is the one entry whose symbol depends on the current reading theme. 主题 is
     /// drawn as a serif "Aa" in the bar; this symbol is what the settings rows show.
     func systemImage(isNight: Bool) -> String {
         switch self {
@@ -80,7 +80,7 @@ enum ReaderChromeToolItem: String, CaseIterable, Codable, Hashable, Identifiable
         }
     }
 
-    /// 主題 is the only way into the reader's own settings — hiding it would strand
+    /// 主题 is the only way into the reader's own settings — hiding it would strand
     /// the reader with no way back. Same rule `RootTabItem.settings` follows for the
     /// app tab bar.
     var isAlwaysVisible: Bool { self == .settings }
@@ -100,7 +100,7 @@ enum ReaderChromeActionItem: String, CaseIterable, Codable, Hashable, Identifiab
     var id: String { rawValue }
     var storageID: String { "action.\(rawValue)" }
 
-    /// AI 助手 and AI 翻譯 are in 更多 rather than the book card.
+    /// AI 助手 and AI 翻译 are in 更多 rather than the book card.
     var isInMoreMenu: Bool {
         switch self {
         case .aiAssistant, .translation: return true
@@ -111,11 +111,11 @@ enum ReaderChromeActionItem: String, CaseIterable, Codable, Hashable, Identifiab
     var titleKey: String {
         switch self {
         case .refresh: return "刷新"
-        case .changeSource: return "換源"
-        case .download: return "下載"
+        case .changeSource: return "换源"
+        case .download: return "下载"
         case .aiAssistant: return "AI 助手"
-        case .translation: return "AI 翻譯"
-        case .openWebPage: return "開啟網頁"
+        case .translation: return "AI 翻译"
+        case .openWebPage: return "开启网页"
         }
     }
 
@@ -164,11 +164,11 @@ enum ReaderChromeIconStorageError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .unsupportedImageFile:
-            return localized("僅支援圖片檔案")
+            return localized("仅支援图片档案")
         case .cannotReadImage:
-            return localized("無法讀取圖片檔案")
+            return localized("无法读取图片档案")
         case .missingDocumentsDirectory:
-            return localized("無法存取文件資料夾")
+            return localized("无法存取文件资料夹")
         }
     }
 }
@@ -261,8 +261,8 @@ final class ReaderChromeIconStorage: Sendable {
 
 // MARK: - Palette
 
-/// Every colour the reader's chrome paints with, resolved once. 外觀 → 閱讀界面 →
-/// 自定義 can override any slot; anything left alone follows the reading theme.
+/// Every colour the reader's chrome paints with, resolved once. 外观 → 阅读界面 →
+/// 自定义 can override any slot; anything left alone follows the reading theme.
 ///
 /// One type owns the fallbacks so the settings preview and the reader itself can
 /// never disagree about what a picked colour looks like. Do not re-derive a
@@ -315,7 +315,7 @@ struct ReaderChromePalette {
 extension GlobalSettings {
     // MARK: Colours
 
-    /// Stored as `"modern.<slot>"`. The prefix is from when 經典 and 現代 each kept their
+    /// Stored as `"modern.<slot>"`. The prefix is from when 经典 and 现代 each kept their
     /// own colours; it stays so the colours people already picked — and the ones theme
     /// packs carry — keep applying. Keys under any other prefix are no longer read.
     private static func chromeColorKey(_ slot: ReaderChromeSlot) -> String {
@@ -466,7 +466,7 @@ extension GlobalSettings {
     /// write-back takes the old artwork off the selected theme, so the check below can
     /// tell "nobody wants this any more" from "another theme, a pack original or the
     /// user's own set still draws it". Deleting first — which all three used to do —
-    /// pulled an imported pack's icon out from under 重置此主題 the moment it was
+    /// pulled an imported pack's icon out from under 重置此主题 the moment it was
     /// replaced. Same rule as the tab icons (`discardRootTabIconFile`).
     private func discardReaderChromeIconFile(_ asset: ReaderChromeIconAsset?) {
         guard let asset, !isReaderChromeIconFileReferenced(asset.fileName) else { return }

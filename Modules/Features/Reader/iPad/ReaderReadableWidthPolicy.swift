@@ -1,6 +1,6 @@
 import CoreGraphics
 
-/// 左右邊距 is the reader's own number on every device: 0 puts the text at the page edge.
+/// 左右边距 is the reader's own number on every device: 0 puts the text at the page edge.
 ///
 /// iPad used to add a readable-width inset on top of it — up to ~250pt a side on a
 /// landscape iPad mini — so even 0 left a wide empty band (reported 2026-10-10). That
@@ -22,7 +22,7 @@ enum ReaderReadableWidthPolicy {
         return min(max(0, margin), ceiling)
     }
 
-    /// The 左右邊距 slider's maximum: the default margin plus the readable-width inset
+    /// The 左右边距 slider's maximum: the default margin plus the readable-width inset
     /// iPad used to force, i.e. the look iPad had before 0 meant the edge.
     static func sliderUpperBound(
         pageWidth: CGFloat,

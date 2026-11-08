@@ -1,9 +1,9 @@
 import SwiftUI
 
-// MARK: - 資源庫's sections and cards
+// MARK: - 资源库's sections and cards
 
-/// 資源庫's sources by group (decision 31): the root never lays thousands of sources flat, so it
-/// shows 所有來源配置 and one card per group, each opening its sources.
+/// 资源库's sources by group (decision 31): the root never lays thousands of sources flat, so it
+/// shows 所有来源配置 and one card per group, each opening its sources.
 enum LibrarySourceGroups {
     struct Group: Equatable, Identifiable {
         let name: String
@@ -25,8 +25,8 @@ enum LibrarySourceGroups {
     }
 }
 
-/// Cards laid out as 資源庫 is: so many to a row, or one under another, from the old 探索 root's
-/// 格狀 and 每列欄數. At accessibility text sizes a card cannot hold its name in a column, so it
+/// Cards laid out as 资源库 is: so many to a row, or one under another, from the old 探索 root's
+/// 格状 and 每列栏数. At accessibility text sizes a card cannot hold its name in a column, so it
 /// is the list whatever the setting.
 struct LibraryEntries<Content: View>: View {
     /// False lays every card out at once, for a section that only ever holds a few
@@ -105,13 +105,13 @@ private struct EqualColumns: Layout {
     }
 }
 
-/// A section of 資源庫: its name, quiet, with the page that manages it beside it, then its cards.
+/// A section of 资源库: its name, quiet, with the page that manages it beside it, then its cards.
 struct LibrarySection<Accessory: View, Content: View>: View {
     let title: String
     var isLazy = true
-    /// The section's symbol in 資源庫's paper look; the app's own sections draw no symbol.
+    /// The section's symbol in 资源库's paper look; the app's own sections draw no symbol.
     var symbol: String?
-    /// 資源庫's paper look: a small ink-green heading over sheet-like cards.
+    /// 资源库's paper look: a small ink-green heading over sheet-like cards.
     var paper = false
     @ViewBuilder let accessory: () -> Accessory
     @ViewBuilder let content: (ExploreEntryLabel.Layout) -> Content
@@ -160,21 +160,21 @@ struct LibrarySectionAccessoryLabel: View {
     }
 }
 
-/// 資源庫's layout choices, in its •••: the old 探索 root's 格狀 and 每列欄數, same keys.
+/// 资源库's layout choices, in its •••: the old 探索 root's 格状 and 每列栏数, same keys.
 struct LibraryLayoutMenuItems: View {
     @AppStorage(ExploreSettings.showsGridKey) private var showsGrid = true
     @AppStorage(ExploreSettings.gridColumnCountKey) private var gridColumnCount = ExploreGridDensity.default.rawValue
 
     var body: some View {
         Toggle(isOn: $showsGrid) {
-            Label(localized("格狀"), systemImage: "square.grid.2x2")
+            Label(localized("格状"), systemImage: "square.grid.2x2")
         }
         Picker(selection: $gridColumnCount) {
             ForEach(ExploreGridDensity.allCases) { density in
-                Text(String(format: localized("%d 欄"), density.rawValue)).tag(density.rawValue)
+                Text(String(format: localized("%d 栏"), density.rawValue)).tag(density.rawValue)
             }
         } label: {
-            Label(localized("每列欄數"), systemImage: "rectangle.split.3x1")
+            Label(localized("每列栏数"), systemImage: "rectangle.split.3x1")
         }
         .pickerStyle(.menu)
         .disabled(!showsGrid)
@@ -185,7 +185,7 @@ struct LibraryLayoutMenuItems: View {
 struct LibrarySourceEntry: View {
     let source: BookSource
     let layout: ExploreEntryLabel.Layout
-    /// 資源庫's paper look, passed to the card.
+    /// 资源库's paper look, passed to the card.
     var paper = false
     @Binding var sheet: BookSourceActionSheet?
     @Binding var pendingDeletion: BookSource?
@@ -205,7 +205,7 @@ struct LibrarySourceEntry: View {
                 onEdit: { sheet = .edit(source) },
                 onPinToTop: {
                     BookSourceStore.shared.pinToTop(id: source.id)
-                    UIAccessibility.post(notification: .announcement, argument: localized("已置頂"))
+                    UIAccessibility.post(notification: .announcement, argument: localized("已置顶"))
                 },
                 onLogin: { sheet = .login(source) },
                 onSearch: onSearch,
@@ -243,12 +243,12 @@ struct LibrarySourcesView: View {
         }
         .overlay {
             if sources.isEmpty {
-                ContentUnavailableView { UnavailableLabel(localized("沒有來源配置"), systemImage: "square.grid.2x2") }
+                ContentUnavailableView { UnavailableLabel(localized("没有来源配置"), systemImage: "square.grid.2x2") }
             }
         }
         .background(PageBackgroundView(scope: .explore).ignoresSafeArea())
         .pageBackgroundToolbar(for: .explore)
-        .navigationTitle(group ?? localized("所有來源配置"))
+        .navigationTitle(group ?? localized("所有来源配置"))
         .toolbarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -271,7 +271,7 @@ struct LibrarySourcesView: View {
 }
 
 #if DEBUG
-#Preview("一個分組") {
+#Preview("一个分组") {
     NavigationStack {
         LibrarySourcesView(group: nil)
     }

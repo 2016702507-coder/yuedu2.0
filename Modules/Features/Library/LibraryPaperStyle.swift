@@ -1,12 +1,12 @@
 import SwiftUI
 import UIKit
 
-// MARK: - 資源庫 paper look
+// MARK: - 资源库 paper look
 //
-// 資源庫's visual language (maintainer's reference, 2026-11-04): a warm paper page, a serif
+// 资源库's visual language (maintainer's reference, 2026-11-04): a warm paper page, a serif
 // title, ink accents and cards that sit on the page like sheets rather than panels.
 //
-// The look used to pin its own colours, which meant 書架 and 主頁 — both of which draw
+// The look used to pin its own colours, which meant 书架 and 主页 — both of which draw
 // `PaperBackground` — kept the same warm off-white in every appearance theme and in dark
 // mode. User's call, 2026-11-06: 「不要原先的固定的了，就要跟随的」. Colours now come from
 // `DSColor` / `DSUIColor`, which resolve from the `appThemes` trait, so background, text and
@@ -33,7 +33,7 @@ enum PaperPalette {
         Color(uiColor: DSUIColor.surface)
     }
 
-    /// The accent this page is built around: the theme's accent, not a fixed 墨綠.
+    /// The accent this page is built around: the theme's accent, not a fixed 墨绿.
     static func ink(_ scheme: ColorScheme) -> Color {
         DSColor.accent
     }
@@ -89,8 +89,8 @@ enum PaperPalette {
 // MARK: - Type
 
 enum PaperFont {
-    /// A serif title. 宋體 when the system has it (it does on every iOS the app supports),
-    /// SwiftUI's serif otherwise: a name `UIFont` cannot resolve would draw as 黑體, which is
+    /// A serif title. 宋体 when the system has it (it does on every iOS the app supports),
+    /// SwiftUI's serif otherwise: a name `UIFont` cannot resolve would draw as 黑体, which is
     /// the one thing this page must not look like.
     ///
     /// Main-actor: `UIFont(name:size:)` is, and only views ask for this.
@@ -108,18 +108,18 @@ enum PaperFont {
 
 // MARK: - Background
 
-/// The page behind 書架 and 首頁.
+/// The page behind 书架 and 首页.
 ///
 /// It used to be an opaque sheet of paper with a warm gradient and a leaf sprig, and that
-/// sheet had two costs: an appearance theme's page background — 劍來's 山水, any imported
+/// sheet had two costs: an appearance theme's page background — 剑来's 山水, any imported
 /// pack's artwork — could never show on these two pages, and the glass on top of them had
 /// nothing to blur but one flat colour.
 ///
 /// Now it paints the theme's own page with a soft wash of the accent behind it, keeps the
 /// leaf as a watermark, and steps aside entirely when a page background is set for the tab.
 struct PaperBackground: View {
-    /// Which tab's page background this sheet has to make room for. 書架 passes
-    /// `.bookshelf` — a background set for 書架 alone would otherwise never be seen,
+    /// Which tab's page background this sheet has to make room for. 书架 passes
+    /// `.bookshelf` — a background set for 书架 alone would otherwise never be seen,
     /// because the lookup below only ever asked the global one.
     var scope: AppearancePageBackgroundScope = .global
 
@@ -127,9 +127,9 @@ struct PaperBackground: View {
     @Bindable private var gs = GlobalSettings.shared
     @ObservedObject private var subscription = SubscriptionStore.shared
 
-    /// 讀者給這個 tab 設了頁面背景圖時，這裡整層讓開：tab 的 backdrop
-    /// (`ThemedSurfaceBackground`) 已經把那張圖鋪好了，這裡再畫一層不透明的紙，
-    /// 只會把它蓋掉 —— 書架此前一直看不到 劍來 的山水，就是這個原因。
+    /// 读者给这个 tab 设了页面背景图时，这里整层让开：tab 的 backdrop
+    /// (`ThemedSurfaceBackground`) 已经把那张图铺好了，这里再画一层不透明的纸，
+    /// 只会把它盖掉 —— 书架此前一直看不到 剑来 的山水，就是这个原因。
     private var yieldsToArtwork: Bool {
         guard subscription.hasAccess(.readerThemePacks) else { return false }
         return gs.resolvedPageBackgroundSlice(for: scope, colorScheme: scheme) != nil
@@ -153,11 +153,11 @@ struct PaperBackground: View {
     }
 }
 
-/// 頁面底色：主題漸層，加上兩團主題色柔光。
+/// 页面底色：主题渐层，加上两团主题色柔光。
 ///
-/// 柔光不是裝飾 —— 玻璃要透出東西才像玻璃。底色若是純色，`glassEffect` 底下什麼都沒有，
-/// 卡片看起來就跟原本的實心白卡一樣；有了這兩團很淡的色暈，玻璃才有深淺可抓。
-/// 顏色全部取自主題（`PaperPalette.ink` 就是主題強調色），所以換主題、深色模式都跟著走。
+/// 柔光不是装饰 —— 玻璃要透出东西才像玻璃。底色若是纯色，`glassEffect` 底下什么都没有，
+/// 卡片看起来就跟原本的实心白卡一样；有了这两团很淡的色晕，玻璃才有深浅可抓。
+/// 颜色全部取自主题（`PaperPalette.ink` 就是主题强调色），所以换主题、深色模式都跟著走。
 private struct PaperPageGround: View {
     @Environment(\.colorScheme) private var scheme
 
@@ -256,7 +256,7 @@ extension View {
     /// A pane of glass on the page — the same surface every other card in the app sits on.
     ///
     /// It used to be an opaque sheet of paper with its own fill, hairline and shadow, which
-    /// is exactly why 書架 never matched 設定's glass rows: two surfaces, two looks. It now
+    /// is exactly why 书架 never matched 设置's glass rows: two surfaces, two looks. It now
     /// routes through `interfaceCardSurface`, the app's single glass entry point, so 毛玻璃
     /// and 透明度 reach it the way they reach every other card, and Reduce Transparency
     /// still falls back to the theme's own card colour instead of something painted here.
@@ -287,7 +287,7 @@ private struct PaperCardSurface: ViewModifier {
 
 // MARK: - Header
 
-/// 資源庫's masthead: the page's name in 宋體, a quiet line under it, and the page's menu.
+/// 资源库's masthead: the page's name in 宋体, a quiet line under it, and the page's menu.
 struct PaperPageHeader<Trailing: View>: View {
     let title: String
     let subtitle: String

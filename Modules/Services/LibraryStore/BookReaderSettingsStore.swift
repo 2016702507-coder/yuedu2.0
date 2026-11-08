@@ -75,7 +75,7 @@ final class BookReaderSettingsStore {
 
     /// Gives `survivorID` the settings of `mergedID` when they are the later choice: the
     /// survivor has none, or changed its own before. For one copy of a work merged into
-    /// another (`ShelfWorkMerger.absorb`): a manga read from a second source and set to 條漫
+    /// another (`ShelfWorkMerger.absorb`): a manga read from a second source and set to 条漫
     /// has to open that way as the shelf book it joins (feedback #74). The merged copy's own
     /// entry goes when its book is deleted.
     func carrySettings(from mergedID: UUID, to survivorID: UUID) {
@@ -85,7 +85,7 @@ final class BookReaderSettingsStore {
         settingsByBook[survivorID] = BookReaderSettings(
             bookID: survivorID, modifiedAt: carried.modifiedAt, fixedPage: carried.fixedPage
         )
-        AppLogger.cache("本書設定：同一部作品合併，帶過被合併那本的設定", context: [
+        AppLogger.cache("本书设置：同一部作品合并，带过被合并那本的设置", context: [
             "from": mergedID.uuidString, "to": survivorID.uuidString,
         ])
         save()
@@ -99,7 +99,7 @@ final class BookReaderSettingsStore {
         for bookID in orphans {
             settingsByBook.removeValue(forKey: bookID)
         }
-        AppLogger.cache("本書設定：移除已不在書架上的書的設定", context: ["count": orphans.count])
+        AppLogger.cache("本书设置：移除已不在书架上的书的设置", context: ["count": orphans.count])
         save()
     }
 
@@ -153,7 +153,7 @@ final class BookReaderSettingsStore {
             migrated += 1
         }
         if migrated > 0, !save() {
-            AppLogger.cache("本書設定：閱讀方向沒有寫入成功，保留舊的設定鍵下次再搬", context: ["count": migrated])
+            AppLogger.cache("本书设置：阅读方向没有写入成功，保留旧的设置键下次再搬", context: ["count": migrated])
             return 0
         }
 
@@ -165,7 +165,7 @@ final class BookReaderSettingsStore {
             removedKeys += keys.count
         }
         AppLogger.cache(
-            "本書設定：搬移舊版的閱讀方向",
+            "本书设置：搬移旧版的阅读方向",
             context: ["migrated": migrated, "removedKeys": removedKeys, "keptKeys": keysByBook.values.joined().count - removedKeys]
         )
         return migrated
@@ -180,7 +180,7 @@ final class BookReaderSettingsStore {
             data = try Data(contentsOf: fileURL)
         } catch {
             writesBlocked = true
-            AppLogger.error("本書設定：無法讀取設定檔，這次啟動不寫入，以免蓋掉它", error: error)
+            AppLogger.error("本书设置：无法读取配置文件，这次启动不写入，以免盖掉它", error: error)
             return
         }
         do {
@@ -202,13 +202,13 @@ final class BookReaderSettingsStore {
         do {
             try data.write(to: backupURL, options: .withoutOverwriting)
             AppLogger.error(
-                "本書設定：設定檔無法解析，原檔已另存為 \(backupURL.lastPathComponent)",
+                "本书设置：配置文件无法解析，原档已另存为 \(backupURL.lastPathComponent)",
                 error: decodingError
             )
         } catch {
             writesBlocked = true
             AppLogger.error(
-                "本書設定：設定檔無法解析，也無法另存，這次啟動不寫入",
+                "本书设置：配置文件无法解析，也无法另存，这次启动不写入",
                 error: error,
                 context: ["decodingError": String(describing: decodingError)]
             )
@@ -218,7 +218,7 @@ final class BookReaderSettingsStore {
     @discardableResult
     private func save() -> Bool {
         guard !writesBlocked else {
-            AppLogger.cache("本書設定：設定檔先前無法讀取，這次的修改只留在記憶體")
+            AppLogger.cache("本书设置：配置文件先前无法读取，这次的修改只留在记忆体")
             return false
         }
         let books = settingsByBook.values
@@ -231,7 +231,7 @@ final class BookReaderSettingsStore {
             try data.write(to: fileURL, options: .atomic)
             return true
         } catch {
-            AppLogger.error("本書設定：無法寫入設定檔", error: error)
+            AppLogger.error("本书设置：无法写入配置文件", error: error)
             return false
         }
     }
@@ -239,7 +239,7 @@ final class BookReaderSettingsStore {
 
 extension BookStore {
     /// The configuration the fixed-page reader opens `book` with: its own, or, never set,
-    /// the mode its kind opens in — 漫畫預設模式 for a manga (feedback #37), right to left
+    /// the mode its kind opens in — 漫画预设模式 for a manga (feedback #37), right to left
     /// for a PDF or a fixed-layout EPUB. The reader and the opening transition both ask here.
     @MainActor
     func fixedPageConfiguration(for book: ReadingBook) -> FixedPageReaderConfiguration {

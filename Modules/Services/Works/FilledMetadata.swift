@@ -55,12 +55,12 @@ enum FilledMetadata {
     /// path changes across updates.
     nonisolated static var coverDirectory: URL { WebDAVIndexCoordinator.defaultCoverDirectory }
 
-    /// A provider's name as 書籍資訊 shows it beside a filled value.
+    /// A provider's name as 书籍资讯 shows it beside a filled value.
     @MainActor
     static func providerName(_ key: SourceInstanceKey, sources: BookSourceStore = .shared) -> String {
         switch key.type {
         case .bibliographic where key.id == OpenLibrary.providerID: "Open Library"
-        case .bibliographic where key == AIRecommendationProvider.recordInstance: localized("AI 推薦")
+        case .bibliographic where key == AIRecommendationProvider.recordInstance: localized("AI 推荐")
         case .bookSource: sources.sources.first { $0.bookSourceUrl == key.id }?.bookSourceName ?? key.id
         case .module: RuleModuleLibrary.shared.installed(id: key.id)?.module.title ?? key.id
         default: key.id
@@ -109,8 +109,8 @@ extension BookStore {
                 if FileManager.default.fileExists(atPath: path) {
                     paths[id] = path
                 } else {
-                    // `Caches` was emptied (設定 → 快取管理, or the system): the next fill
-                    // pass does not ask again, so the copy goes back to its 預設封面.
+                    // `Caches` was emptied (设置 → 快取管理, or the system): the next fill
+                    // pass does not ask again, so the copy goes back to its 预设封面.
                     AppLogger.cache("⟐ a filled cover's file is gone", context: ["copy": id.uuidString])
                 }
             }
@@ -119,7 +119,7 @@ extension BookStore {
         filledCovers.replaceAll(paths, readAt: readAt)
     }
 
-    /// 移除 in 書籍資訊: the reader does not want the value the filler gave this field. Recorded
+    /// 移除 in 书籍资讯: the reader does not want the value the filler gave this field. Recorded
     /// as an empty override (design §8.1), which the resolver shows as nothing and the filler
     /// never fills again.
     @MainActor

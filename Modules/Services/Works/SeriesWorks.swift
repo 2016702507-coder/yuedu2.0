@@ -43,7 +43,7 @@ extension WorkIndex {
     }
 }
 
-/// 作品詳情's 同系列 (Editorial Minimalism, 2026-10-12; maintainer, by option: a series link
+/// 作品详情's 同系列 (Editorial Minimalism, 2026-10-12; maintainer, by option: a series link
 /// in the hero and a row at the foot, the other volumes by number): the works of the page's
 /// series on the shelf and in the WebDAV index, the only places that record a series (an
 /// imported book's package, a WebDAV file's). The same rules as 系列下一本: the same series
@@ -119,20 +119,20 @@ enum SeriesWorks {
         return lhs.entry.nodeKey.sortKey < rhs.entry.nodeKey.sortKey
     }
 
-    /// 「第 2 冊」, 「第 2.5 冊」: the number as the reader's locale writes it, without a
+    /// 「第 2 册」, 「第 2.5 册」: the number as the reader's locale writes it, without a
     /// trailing 「.0」.
     static func numberText(_ number: Double) -> String {
-        String(format: localized("第 %@ 冊"), number.formatted(.number.precision(.fractionLength(0...2))))
+        String(format: localized("第 %@ 册"), number.formatted(.number.precision(.fractionLength(0...2))))
     }
 
-    /// The hero's and 作品資訊's line: 「三體 · 第 2 冊」, or the name alone without a number.
+    /// The hero's and 作品资讯's line: 「三体 · 第 2 册」, or the name alone without a number.
     static func line(name: String, number: Double?) -> String {
         guard let number else { return name }
         return name + " · " + numberText(number)
     }
 }
 
-/// One 作品詳情's series, read in one pass so the hero's link and the row of
+/// One 作品详情's series, read in one pass so the hero's link and the row of
 /// volumes never disagree.
 struct WorkSeriesShelf: Hashable, Sendable {
     struct Volume: Hashable, Sendable {

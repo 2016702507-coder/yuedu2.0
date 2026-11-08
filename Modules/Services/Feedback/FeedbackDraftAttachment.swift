@@ -24,7 +24,7 @@ struct FeedbackDraftAttachment: Identifiable, Hashable, Sendable {
 
     // MARK: - Preparing
 
-    /// A screenshot taken in the app (the 截圖後顯示意見回饋入口 path).
+    /// A screenshot taken in the app (the 截图后显示意见回馈入口 path).
     static func image(_ image: UIImage) throws -> FeedbackDraftAttachment {
         let scaled = downscaled(image)
         guard let data = scaled.jpegData(compressionQuality: 0.8) else {

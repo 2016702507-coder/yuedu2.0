@@ -1,11 +1,11 @@
 import Foundation
 
-/// The app's own modules (module ecosystem plan, M2; maintainer, 2026-10-17: 「這些 api 和公有
-/// 書庫都算是官方模塊」): module files bundled with the app, in the format readers import and read
+/// The app's own modules (module ecosystem plan, M2; maintainer, 2026-10-17: 「这些 api 和公有
+/// 书库都算是官方模块」): module files bundled with the app, in the format readers import and read
 /// through the same validator, so whatever an official module can do, a reader's module can.
 ///
 /// They update with the app, cannot be removed, and no import may take their ids. Each is
-/// turned off where every module is: its search in 搜尋來源, its fill in 資料來源, its rows by
+/// turned off where every module is: its search in 搜寻来源, its fill in 资料来源, its rows by
 /// not adding them.
 enum OfficialRuleModules {
     /// Bundled, or planned and reserved so that an import cannot take the id first. Listed in
@@ -19,7 +19,7 @@ enum OfficialRuleModules {
     static let filePrefix = "official-module-"
 
     /// Storefront policy, the app's and never a manifest's: なろう is hidden where Gutenberg and
-    /// 青空文庫 are (`PublicLibraryAvailability`).
+    /// 青空文库 are (`PublicLibraryAvailability`).
     static func isAvailable(_ id: String, librariesAvailable: Bool) -> Bool {
         id != "narou" || librariesAvailable
     }

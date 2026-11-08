@@ -2,8 +2,8 @@ import SwiftUI
 import UIKit
 
 /// A `UISlider` whose scrub lasts exactly as long as a finger tracks it, and whose VoiceOver
-/// adjustment is a step the caller chooses: the reader's 閱讀進度, 朗讀進度 and the audiobook
-/// player's 播放進度.
+/// adjustment is a step the caller chooses: the reader's 阅读进度, 朗读进度 and the audiobook
+/// player's 播放进度.
 ///
 /// A SwiftUI `Slider` cannot do this: it reports every `valueChanged` that arrives with no finger
 /// on it as a new editing session — `onEditingChanged(true)` and the setter — and never closes it
@@ -135,7 +135,7 @@ struct ScrubSlider: UIViewRepresentable {
             onIncrement: { progress = min(1, progress + 0.25) },
             onDecrement: { progress = max(0, progress - 0.25) }
         )
-        .accessibilityLabel(localized("閱讀進度"))
+        .accessibilityLabel(localized("阅读进度"))
     }
     .padding(DSSpacing.lg)
 }

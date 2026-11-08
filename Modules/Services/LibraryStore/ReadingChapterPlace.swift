@@ -6,7 +6,7 @@ import Foundation
 /// `mangaChapterIndex` / `mangaPage`, and the audiobook and video players from `audioChapterIndex` /
 /// `audioTimeSeconds` (`OnlineBookSourceSwitch` maps them the same way). Until 2026-10-21 the
 /// detail pages wrote every chosen chapter into the position store, so a comic opened from
-/// 目錄 at any chapter started at its first (feedback #34, every comic source).
+/// 目录 at any chapter started at its first (feedback #34, every comic source).
 @MainActor
 struct ReadingChapterPlace {
     let store: BookStore

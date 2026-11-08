@@ -20,7 +20,7 @@ private struct ExploreRouteDestinations: ViewModifier {
     func body(content: Content) -> some View {
         content
             .navigationDestination(for: ExploreNavigationRoute.self, destination: destination)
-            // 訂閱的最新文章's articles (5g): the RSS tab's own article page, which marks it read.
+            // 订阅的最新文章's articles (5g): the RSS tab's own article page, which marks it read.
             .navigationDestination(for: SubscriptionArticleRoute.self) { route in
                 RSSArticleReaderView(articleID: route.articleID)
             }
@@ -87,14 +87,14 @@ private struct ExploreRouteDestinations: ViewModifier {
 
     private var deletedSourceState: some View {
         ContentUnavailableView {
-            UnavailableLabel(localized("來源配置已被刪除"), systemImage: "books.vertical")
+            UnavailableLabel(localized("来源配置已被删除"), systemImage: "books.vertical")
         }
     }
 }
 
-/// Where tapping a home item went before 作品詳情 (5f): the page that item's source opens it on
+/// Where tapping a home item went before 作品详情 (5f): the page that item's source opens it on
 /// from its own screens, and the store's carousel for a public-library book. Unused while
-/// every card opens 作品詳情 (Phase 5 plan, decision 27); kept with the carousel, which the
+/// every card opens 作品详情 (Phase 5 plan, decision 27); kept with the carousel, which the
 /// maintainer asked to keep for now.
 enum ExploreItemTarget {
     /// Pushed on Explore's stack.
@@ -112,7 +112,7 @@ enum ExploreItemTarget {
             // transition belongs to the shelf's stack).
             self = .push(.reader(PublicLibraryReaderRoute(bookID: id)))
         case .opdsEntry, .webDAVFile, .bibliographic, .moduleBook:
-            // A library item's own page is 作品詳情 since its list page went (decision 28); a
+            // A library item's own page is 作品详情 since its list page went (decision 28); a
             // bibliographic record and a module's book have no other.
             self = .push(.work(route))
         case .gutenberg(let book):
@@ -127,7 +127,7 @@ enum ExploreItemTarget {
 }
 
 /// A page pushed from the home, each registered on Explore's stack.
-/// An article of 訂閱的最新文章 (unified library 5g), by the id the RSS tab stores it under.
+/// An article of 订阅的最新文章 (unified library 5g), by the id the RSS tab stores it under.
 struct SubscriptionArticleRoute: Hashable {
     let articleID: String
 }
@@ -143,8 +143,8 @@ enum ExplorePush: Hashable {
     /// A card's books, for a list with no page of its own (`HomeListRoute`).
     case list(HomeListRoute)
 
-    /// What a home card opens: 作品詳情, where reading starts (decision 27), except a shelf copy
-    /// on 繼續閱讀 or 書架, which goes straight back into its reader as the shelf's own cards do
+    /// What a home card opens: 作品详情, where reading starts (decision 27), except a shelf copy
+    /// on 继续阅读 or 书架, which goes straight back into its reader as the shelf's own cards do
     /// (feedback #24; maintainer, 2026-10-20).
     static func card(_ route: WorkDetailRoute, in binding: HomeSectionBinding) -> ExplorePush {
         if binding == .continueReading || binding == .bookshelf, let id = route.shelfCopyID {
@@ -181,16 +181,16 @@ enum ExplorePush: Hashable {
 }
 
 extension EnvironmentValues {
-    /// Pushes onto the stack that shows the page: 探索's or 資源庫's, each of which sets it to
+    /// Pushes onto the stack that shows the page: 探索's or 资源库's, each of which sets it to
     /// append to its own path.
     @Entry var explorePush: ((ExplorePush) -> Void)? = nil
 }
 
-/// The pages 範圍, the home's row headers and its chips open: each the page its source already
+/// The pages 范围, the home's row headers and its chips open: each the page its source already
 /// shows from its own screens (unified library 5c-3). Nil where the source has no such page.
 enum ExplorePlace {
     /// A source's own page: its discover page, its root feed or folder, or an official module's
-    /// page, 古騰堡's and 青空文庫's among them (no front page of shelves since 2026-10-22).
+    /// page, 古腾堡's and 青空文库's among them (no front page of shelves since 2026-10-22).
     @MainActor
     static func page(of source: SourceInstanceKey, name: String,
                      connections: RemoteLibraryConnectionStore = .shared) -> ExplorePush? {
@@ -256,7 +256,7 @@ enum ExplorePlace {
         case .aozoraIndex(let kind):
             guard let aozoraIndex, let mode = AozoraBrowseMode(rawValue: kind) else { return nil }
             return .publicLibrary(.aozoraCatalog(mode, aozoraIndex))
-        // 訂閱的最新文章: the rest is RSS 訂閱 (decision 29), pushed since RSS left the tabs (5h).
+        // 订阅的最新文章: the rest is RSS 订阅 (decision 29), pushed since RSS left the tabs (5h).
         case .subscriptionArticles:
             return .explore(.subscriptions)
         // A module list's whole page, page by page, with the section's values (6f-2).
@@ -264,8 +264,8 @@ enum ExplorePlace {
             return .explore(.moduleList(ModuleListRoute(moduleID: moduleID, entryID: entryID,
                                                         title: row.section.displayTitle(sourceName: row.sourceName),
                                                         parameters: row.section.parameters)))
-        // AI 推薦's row is its whole list.
-        // 書架's whole list is the 書架 tab, which 探索 cannot switch to. A section of lists has
+        // AI 推荐's row is its whole list.
+        // 书架's whole list is the 书架 tab, which 探索 cannot switch to. A section of lists has
         // a card per list, each opening its own (`listsPage` is its header's).
         case .myLibrary, .continueReading, .bookshelf, .related, .nextInSeries,
              .aiRecommendations, .lists, .unknown:
@@ -286,9 +286,9 @@ enum ExplorePlace {
         return rows.count == 1 ? showAll(rows[0], aozoraIndex: aozoraIndex) : nil
     }
 
-    /// A section of lists' 查看全部: the page of the one source its cards are all from, as 分類卡片's
-    /// header opened its 來源配置's (2026-10-26). Cards from several sources have none, nor
-    /// 精選書單's, whose lists no page lists alone.
+    /// A section of lists' 查看全部: the page of the one source its cards are all from, as 分类卡片's
+    /// header opened its 来源配置's (2026-10-26). Cards from several sources have none, nor
+    /// 精选书单's, whose lists no page lists alone.
     @MainActor
     static func listsPage(_ rows: [HomeModel.Row], connections: RemoteLibraryConnectionStore = .shared) -> ExplorePush? {
         guard let row = rows.first, row.section.binding != .gutenbergLists,
@@ -297,7 +297,7 @@ enum ExplorePlace {
     }
 
     /// A card of a layout of lists: the whole list. A card of a section's lists opens what its
-    /// list's 查看全部 opens; AI 推薦 its page; a list with no page of its own, the books it drew.
+    /// list's 查看全部 opens; AI 推荐 its page; a list with no page of its own, the books it drew.
     @MainActor
     static func page(of collection: CollectionSummary, aozoraIndex: AozoraCatalogIndex?) -> ExplorePush {
         switch collection.opening {

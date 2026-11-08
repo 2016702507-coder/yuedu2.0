@@ -44,7 +44,7 @@ struct DownloadManagementView: View {
                 downloadedBooksSection
             }
             .softScrollEdges()
-            .navigationTitle(localized("下載管理"))
+            .navigationTitle(localized("下载管理"))
             .toolbarTitleDisplayMode(.inline)
             .themedAppSurface(for: .settings)
             .toolbar {
@@ -76,7 +76,7 @@ struct DownloadManagementView: View {
             // confirms first — and the message says what survives, because "移除"
             // next to a book title reads like it deletes the book itself.
             .alert(
-                localized("移除下載內容？"),
+                localized("移除下载内容？"),
                 isPresented: Binding(
                     get: { bookPendingRemoval != nil },
                     set: { if !$0 { bookPendingRemoval = nil } }
@@ -93,13 +93,13 @@ struct DownloadManagementView: View {
             } message: { book in
                 Text(
                     String(
-                        format: localized("將刪除《%@》已下載的章節。書籍仍留在書架，可重新下載。"),
+                        format: localized("将删除《%@》已下载的章节。书籍仍留在书架，可重新下载。"),
                         book.title
                     )
                 )
             }
             .alert(
-                localized("匯出失敗"),
+                localized("汇出失败"),
                 isPresented: Binding(
                     get: { exportFailureMessage != nil },
                     set: { if !$0 { exportFailureMessage = nil } }
@@ -113,17 +113,17 @@ struct DownloadManagementView: View {
     }
 
     private var summarySection: some View {
-        Section(header: Text(localized("總覽")).foregroundStyle(DSColor.textSecondary)) {
+        Section(header: Text(localized("总览")).foregroundStyle(DSColor.textSecondary)) {
             statRow(
-                title: localized("下載中"),
+                title: localized("下载中"),
                 value: String(format: localized("%d 本"), activeDownloads.count)
             )
             statRow(
-                title: localized("已下載"),
+                title: localized("已下载"),
                 value: String(format: localized("%d 本"), downloadedBooks.count)
             )
             statRow(
-                title: localized("佔用空間"),
+                title: localized("占用空间"),
                 value: String(format: "%.1f MB", totalDownloadedMegabytes)
             )
         }
@@ -131,9 +131,9 @@ struct DownloadManagementView: View {
     }
 
     private var activeDownloadsSection: some View {
-        Section(header: Text(localized("下載中")).foregroundStyle(DSColor.textSecondary)) {
+        Section(header: Text(localized("下载中")).foregroundStyle(DSColor.textSecondary)) {
             if activeDownloads.isEmpty {
-                Text(localized("目前沒有下載任務"))
+                Text(localized("目前没有下载任务"))
                     .foregroundColor(DSColor.textSecondary)
             } else {
                 ForEach(activeDownloads) { book in
@@ -161,7 +161,7 @@ struct DownloadManagementView: View {
                                 Button {
                                     pauseDownload(for: book)
                                 } label: {
-                                    Label(localized("暫停下載"), systemImage: "pause.circle")
+                                    Label(localized("暂停下载"), systemImage: "pause.circle")
                                 }
                                 .font(DSFont.caption.weight(.medium))
                                 .buttonStyle(.bordered)
@@ -172,8 +172,8 @@ struct DownloadManagementView: View {
                                 } label: {
                                     Label(
                                         isRetryState(for: book)
-                                            ? localized("重試失敗章節")
-                                            : localized("繼續下載"),
+                                            ? localized("重试失败章节")
+                                            : localized("继续下载"),
                                         systemImage: isRetryState(for: book)
                                             ? "arrow.clockwise.circle"
                                             : "play.circle"
@@ -188,7 +188,7 @@ struct DownloadManagementView: View {
                                             skipFailedChapters(for: book)
                                         } label: {
                                             Label(
-                                                localized("略過失敗章節"),
+                                                localized("略过失败章节"),
                                                 systemImage: "forward.end"
                                             )
                                         }
@@ -236,9 +236,9 @@ struct DownloadManagementView: View {
     }
 
     private var downloadedBooksSection: some View {
-        Section(header: Text(localized("已下載書籍")).foregroundStyle(DSColor.textSecondary)) {
+        Section(header: Text(localized("已下载书籍")).foregroundStyle(DSColor.textSecondary)) {
             if downloadedBooks.isEmpty {
-                Text(localized("尚未下載任何書籍"))
+                Text(localized("尚未下载任何书籍"))
                     .foregroundColor(DSColor.textSecondary)
             } else {
                 ForEach(downloadedBooks) { book in
@@ -252,18 +252,18 @@ struct DownloadManagementView: View {
                             .foregroundColor(DSColor.textSecondary)
                         }
                         Spacer()
-                        // 匯出擺在移除左邊：兩顆都是 .bordered，圖示化後不會擠掉書名，
-                        // 也不會像無樣式的按鈕那樣把整行點擊吃掉。
+                        // 汇出摆在移除左边：两颗都是 .bordered，图示化后不会挤掉书名，
+                        // 也不会像无样式的按钮那样把整行点击吃掉。
                         Button {
                             exportDownloadedBook(book)
                         } label: {
-                            Label(localized("匯出 TXT"), systemImage: "square.and.arrow.up")
+                            Label(localized("汇出 TXT"), systemImage: "square.and.arrow.up")
                                 .labelStyle(.iconOnly)
                         }
                         .font(DSFont.caption.weight(.medium))
                         .buttonStyle(.bordered)
                         .controlSize(.small)
-                        .accessibilityLabel(localized("匯出 TXT"))
+                        .accessibilityLabel(localized("汇出 TXT"))
                         // `.bordered` confines the tap to the button. Without an
                         // explicit style this row's single button swallowed the whole
                         // row, so tapping the book title removed the download outright.
@@ -291,8 +291,8 @@ struct DownloadManagementView: View {
         .interfaceSectionSurface()
     }
 
-    /// 匯出成 TXT：只寫真的存在本機的章節。目錄不在記憶體裡時（`BookStore` 的紀錄
-    /// 刻意不帶章節表），用章數鋪平索引，標題由快取包自己補。
+    /// 汇出成 TXT：只写真的存在本机的章节。目录不在记忆体里时（`BookStore` 的纪录
+    /// 刻意不带章节表），用章数铺平索引，标题由快取包自己补。
     private func exportDownloadedBook(_ book: ReadingBook) {
         let input = BookTXTExportFile.Input(
             bookId: book.id,
@@ -414,7 +414,7 @@ struct DownloadManagementView: View {
 // MARK: - Preview
 
 #if DEBUG
-#Preview("下載管理") {
+#Preview("下载管理") {
     DownloadManagementView()
         .environmentObject(DownloadManagementPreview.store)
         .environment(\.appDependencies, DownloadManagementPreview.dependencies)
@@ -432,11 +432,11 @@ private enum DownloadManagementPreview {
                 .appendingPathComponent("download_management_preview_meta.json")
         )
         store.books = [
-            makeBook(title: "巫師：從合成寶石開始", state: .downloading, completed: 37),
-            makeBook(title: "劍來", state: .paused, completed: 12, paused: true),
-            makeBook(title: "詭祕之主", state: .partial, completed: 80, failed: 3),
-            makeBook(title: "我有一座冒險屋", state: .failed, completed: 60, failed: 5),
-            makeBook(title: "全職高手", state: .available, completed: chapterCount),
+            makeBook(title: "巫师：从合成宝石开始", state: .downloading, completed: 37),
+            makeBook(title: "剑来", state: .paused, completed: 12, paused: true),
+            makeBook(title: "诡秘之主", state: .partial, completed: 80, failed: 3),
+            makeBook(title: "我有一座冒险屋", state: .failed, completed: 60, failed: 5),
+            makeBook(title: "全职高手", state: .available, completed: chapterCount),
         ]
         return store
     }()

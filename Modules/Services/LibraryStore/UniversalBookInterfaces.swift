@@ -50,9 +50,9 @@ enum BookDocumentError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .chapterNotFound(let id):
-            return "找不到章節：\(id)"
+            return "找不到章节：\(id)"
         case .unsupportedContentType(let type):
-            return "目前閱讀器不支援此內容類型：\(type)"
+            return "目前阅读器不支援此内容类型：\(type)"
         }
     }
 }
@@ -220,7 +220,7 @@ struct TXTBookDocument: BookDocument {
 struct EPUBBookDocument: BookDocument {
     let metadata: BookMetadata
     let tableOfContents: [UniversalChapter]
-    /// 行距／段距 reach an EPUB through 套用書本間距: on, they fill in where the
+    /// 行距／段距 reach an EPUB through 套用书本间距: on, they fill in where the
     /// stylesheet sets nothing; off, they replace its spacing.
     static let supportedCapabilities: ReaderCapabilities = .reflowableText
     let capabilities: ReaderCapabilities = Self.supportedCapabilities

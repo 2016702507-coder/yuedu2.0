@@ -3,7 +3,7 @@ import UIKit
 
 /// Opens what source JS asks the reader for — a page (`java.startBrowser` /
 /// `java.startBrowserAwait`) or an image captcha (`java.getVerificationCode`) — from wherever
-/// the script runs: search, a chapter, 書源驗證, a login menu. Legado's
+/// the script runs: search, a chapter, 书源验证, a login menu. Legado's
 /// `SourceVerificationHelp` does the same from any thread, in both Legado-E and MD3.
 ///
 /// One sheet at a time: a request that arrives while one is up waits until it is gone, as

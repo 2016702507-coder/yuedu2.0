@@ -123,23 +123,23 @@ struct TestFlightMembershipGate: View {
             Form {
                 Section {
                     if state == .checking {
-                        ProgressView(localized("正在驗證測試資格"))
+                        ProgressView(localized("正在验证测试资格"))
                     } else {
                         Text(message)
                             .foregroundStyle(DSColor.textSecondary)
                     }
                     if let signOutError { Text(signOutError).foregroundStyle(DSColor.textSecondary) }
                 } footer: {
-                    Text(localized("測試版每次啟動或回到前景都需要連線驗證。本機書籍與閱讀進度會保留。"))
+                    Text(localized("测试版每次启动或回到前景都需要连线验证。本机书籍与阅读进度会保留。"))
                         .dsSectionFooter()
                 }
                 Section {
-                    Button(localized("會員：重新驗證")) {
+                    Button(localized("会员：重新验证")) {
                         Task { await TestFlightAccessController.shared.refresh() }
                     }
                     .disabled(state == .checking)
                     if auth.isAuthenticated {
-                        Button(localized("切換帳號")) {
+                        Button(localized("切换帐号")) {
                             Task {
                                 do {
                                     try await auth.signOut()
@@ -152,11 +152,11 @@ struct TestFlightMembershipGate: View {
                     } else {
                         Button(localized("登入")) { showsLogin = true }
                     }
-                    Link(localized("開啟 App Store 正式版"), destination: URL(string: "https://apps.apple.com/app/id6772972358")!)
+                    Link(localized("开启 App Store 正式版"), destination: URL(string: "https://apps.apple.com/app/id6772972358")!)
                 }
             }
             .softScrollEdges()
-            .navigationTitle(localized("TestFlight 使用資格"))
+            .navigationTitle(localized("TestFlight 使用资格"))
             .toolbarTitleDisplayMode(.inline)
             .sheet(isPresented: $showsLogin) { LoginView() }
         }
@@ -165,11 +165,11 @@ struct TestFlightMembershipGate: View {
     private var message: String {
         switch state {
         case .signInRequired:
-            localized("請登入持有正式版永久會員的閱讀帳號，以使用測試版。")
+            localized("请登入持有正式版永久会员的阅读帐号，以使用测试版。")
         case .ineligible:
-            localized("此帳號沒有有效的正式版永久會員，已暫停測試版使用資格。若已退款，測試資格會一併取消。")
+            localized("此帐号没有有效的正式版永久会员，已暂停测试版使用资格。若已退款，测试资格会一并取消。")
         default:
-            localized("目前無法連線驗證測試資格，請確認網路後重試。")
+            localized("目前无法连线验证测试资格，请确认网路后重试。")
         }
     }
 }

@@ -1,11 +1,11 @@
 import Foundation
 
 /// Where reading resumes, as a detail page's primary action shows it after its title
-/// (「繼續閱讀　第 12 章」, Editorial Minimalism 方案 A, 2026-10-12). One wording for every
+/// (「继续阅读　第 12 章」, Editorial Minimalism 方案 A, 2026-10-12). One wording for every
 /// detail page.
 enum BookDetailResume {
     /// 「第 N 章」 for a book read by its chapters — an online book, an audiobook — whose
-    /// reading point is known; else 「已讀 N%」 for a copy read part way, 「已讀完」 for one
+    /// reading point is known; else 「已读 N%」 for a copy read part way, 「已读完」 for one
     /// read to the end; nil for a book not yet opened.
     ///
     /// - Parameters:
@@ -17,7 +17,7 @@ enum BookDetailResume {
             return String(format: localized("第 %d 章"), chapterIndex + 1)
         }
         guard let progress, progress > 0 else { return nil }
-        if progress >= 0.99 { return localized("已讀完") }
-        return String(format: localized("已讀 %d%%"), Int((progress * 100).rounded()))
+        if progress >= 0.99 { return localized("已读完") }
+        return String(format: localized("已读 %d%%"), Int((progress * 100).rounded()))
     }
 }

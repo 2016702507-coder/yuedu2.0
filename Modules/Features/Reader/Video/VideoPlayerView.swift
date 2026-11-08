@@ -3,7 +3,7 @@ import AVKit
 import SwiftUI
 
 /// The video player, laid out as Swiftfin and plezy lay theirs out (maintainer, 2026-11-01:
-/// 「照開源的emby player」, 「plezy 這個也算吧」): the picture full screen, and over it a top
+/// 「照开源的emby player」, 「plezy 这个也算吧」): the picture full screen, and over it a top
 /// bar (close, title, actions), previous / play-pause / next in the centre (plezy), and the
 /// timeline at the bottom. A tap shows and hides them; the episodes open in a sheet.
 ///
@@ -213,7 +213,7 @@ struct VideoPlayerView: View {
                     .font(DSFont.toolbarIconLarge)
                     .frame(width: DSLayout.minimumTapTarget, height: DSLayout.minimumTapTarget)
             }
-            .accessibilityLabel(localized("關閉"))
+            .accessibilityLabel(localized("关闭"))
             VStack(alignment: .leading, spacing: DSSpacing.xxs) {
                 Text(controller.book.title)
                     .font(DSFont.headline)
@@ -238,7 +238,7 @@ struct VideoPlayerView: View {
                     .font(DSFont.toolbarIcon)
                     .frame(width: DSLayout.minimumTapTarget, height: DSLayout.minimumTapTarget)
             }
-            .accessibilityLabel(fillsScreen ? localized("完整畫面") : localized("填滿螢幕"))
+            .accessibilityLabel(fillsScreen ? localized("完整画面") : localized("填满萤幕"))
             if hasEpisodes(controller) {
                 Button {
                     showsEpisodes = true
@@ -247,7 +247,7 @@ struct VideoPlayerView: View {
                         .font(DSFont.toolbarIcon)
                         .frame(width: DSLayout.minimumTapTarget, height: DSLayout.minimumTapTarget)
                 }
-                .accessibilityLabel(localized("選集"))
+                .accessibilityLabel(localized("选集"))
             }
         }
     }
@@ -316,7 +316,7 @@ struct VideoPlayerView: View {
                 Text(message)
                     .font(DSFont.subheadline)
                     .multilineTextAlignment(.center)
-                Button(localized("重試")) { controller.retry() }
+                Button(localized("重试")) { controller.retry() }
                     .buttonStyle(.bordered)
             }
             .frame(maxWidth: DSLayout.readableListWidth)
@@ -326,7 +326,7 @@ struct VideoPlayerView: View {
                     .font(DSFont.largeTitle)
                     .frame(width: DSLayout.videoCenterControlSide, height: DSLayout.videoCenterControlSide)
             }
-            .accessibilityLabel(controller.phase == .playing ? localized("暫停") : localized("播放"))
+            .accessibilityLabel(controller.phase == .playing ? localized("暂停") : localized("播放"))
         }
     }
 
@@ -354,7 +354,7 @@ struct VideoPlayerView: View {
                 }
             )
             .disabled(controller.duration <= 0)
-            .accessibilityLabel(localized("播放進度"))
+            .accessibilityLabel(localized("播放进度"))
             .accessibilityValue(VideoPlayerFormat.position(shown, of: controller.duration))
             HStack {
                 Text(VideoPlayerFormat.time(shown))
@@ -369,7 +369,7 @@ struct VideoPlayerView: View {
 }
 
 #Preview {
-    var book = ReadingBook(title: "示範短劇", author: "", contentFilename: "")
+    var book = ReadingBook(title: "示范短剧", author: "", contentFilename: "")
     book.isOnline = true
     book.contentPipelineKind = .video
     book.onlineChapters = [
@@ -401,7 +401,7 @@ enum VideoPlayerFormat {
 
 // MARK: - Picture
 
-/// The picture: an `AVPlayerLayer`, so the controls over it are ours (彈幕 and the episode
+/// The picture: an `AVPlayerLayer`, so the controls over it are ours (弹幕 and the episode
 /// list have no place in `AVPlayerViewController`).
 struct VideoPlayerLayerView: UIViewRepresentable {
     let player: AVPlayer

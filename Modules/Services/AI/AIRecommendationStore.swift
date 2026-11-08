@@ -1,7 +1,7 @@
 import Combine
 import Foundation
 
-/// The last AI 推薦 run's works, as the home section shows them (maintainer, 2026-10-15:
+/// The last AI 推荐 run's works, as the home section shows them (maintainer, 2026-10-15:
 /// generated only when the reader asks; opening the home reads this with no request).
 struct AIRecommendationList: Codable, Equatable, Sendable {
     struct Entry: Codable, Equatable, Identifiable, Sendable {
@@ -10,7 +10,7 @@ struct AIRecommendationList: Codable, Equatable, Sendable {
         var openLibrary: SourceRecord?
         var cover: CoverReference?
         var blurb: String?
-        /// What 資料來源's places gave a work Open Library left without a cover (feedback #10);
+        /// What 资料来源's places gave a work Open Library left without a cover (feedback #10);
         /// nil until they answered. Absent from lists saved before it, which are asked then.
         var coverFill: CoverFill?
 
@@ -26,7 +26,7 @@ struct AIRecommendationList: Codable, Equatable, Sendable {
             self.coverFill = coverFill
         }
 
-        /// The cover the card and 作品詳情 draw: Open Library's, else the filled one. The filled
+        /// The cover the card and 作品详情 draw: Open Library's, else the filled one. The filled
         /// file's path is made here, as the shelf makes it (`BookStore.refreshFilledCovers`): the
         /// container's path changes across updates, so only the name is kept. A file `Caches`
         /// lost draws the generated cover (`HomeFileCover`).
@@ -47,7 +47,7 @@ struct AIRecommendationList: Codable, Equatable, Sendable {
 
     var entries: [Entry]
     let generatedAt: Date
-    /// The AI service's name as the reader named it in AI 設定, and the model that answered.
+    /// The AI service's name as the reader named it in AI 设置, and the model that answered.
     let service: String
     let model: String
 }

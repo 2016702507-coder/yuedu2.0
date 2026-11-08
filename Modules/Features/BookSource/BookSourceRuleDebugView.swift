@@ -18,15 +18,15 @@ struct BookSourceRuleDebugView: View {
 
     enum DebugTab: String, CaseIterable, Identifiable {
         case search  = "搜索"
-        case detail  = "詳情"
-        case toc     = "目錄"
+        case detail  = "详情"
+        case toc     = "目录"
         case content = "正文"
         case fullPipeline = "全流程"
         var id: String { rawValue }
     }
 
     /// `initialTab` and `initialURL` open it on one stage with its input filled in — the
-    /// reader's 調試正文 opens 正文 with the chapter on screen.
+    /// reader's 调试正文 opens 正文 with the chapter on screen.
     init(source: BookSource, initialTab: DebugTab = .search, initialURL: String = "") {
         self.source = source
         _engine = StateObject(wrappedValue: BookSourceDebugEngine(source: source))
@@ -54,7 +54,7 @@ struct BookSourceRuleDebugView: View {
                     if selectedTab == .search || selectedTab == .fullPipeline {
                         HStack {
                             TextField(
-                                selectedTab == .fullPipeline ? localized("全流程：輸入關鍵字，依序跑搜索→詳情→目錄→正文") : localized("搜索關鍵字"),
+                                selectedTab == .fullPipeline ? localized("全流程：输入关键字，依序跑搜索→详情→目录→正文") : localized("搜索关键字"),
                                 text: $keyword
                             )
                             .textFieldStyle(.roundedBorder)
@@ -89,12 +89,12 @@ struct BookSourceRuleDebugView: View {
                                 ProgressView().tint(DSColor.textOnAccent)
                                     .padding(.horizontal, 12)
                             } else {
-                                Label(localized("執行"), systemImage: "play.fill")
+                                Label(localized("执行"), systemImage: "play.fill")
                                     .padding(.horizontal, 12)
                             }
                         }
                         // Working, not disabled, while running: see `OnAccentProminentButtonStyle.work`.
-                        .buttonStyle(.onAccentProminent(working: engine.isRunning, title: Text(localized("執行"))))
+                        .buttonStyle(.onAccentProminent(working: engine.isRunning, title: Text(localized("执行"))))
                     }
                 }
                 .padding(.horizontal)
@@ -109,7 +109,7 @@ struct BookSourceRuleDebugView: View {
                         Image(systemName: "magnifyingglass")
                             .font(DSFont.largeTitle)
                             .foregroundStyle(DSColor.textSecondary)
-                        Text(localized("輸入資料後按「執行」開始調試"))
+                        Text(localized("输入资料后按「执行」开始调试"))
                             .foregroundStyle(DSColor.textSecondary)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -123,7 +123,7 @@ struct BookSourceRuleDebugView: View {
                     .listStyle(.plain)
                 }
             }
-            .navigationTitle(source.bookSourceName.isEmpty ? localized("來源配置調試") : source.bookSourceName)
+            .navigationTitle(source.bookSourceName.isEmpty ? localized("来源配置调试") : source.bookSourceName)
             .toolbarTitleDisplayMode(.inline)
             .themedAppSurface(for: .settings)
             .toolbar {
@@ -133,7 +133,7 @@ struct BookSourceRuleDebugView: View {
                     } label: {
                         Image(systemName: "xmark")
                     }
-                    .accessibilityLabel(localized("關閉"))
+                    .accessibilityLabel(localized("关闭"))
                 }
             }
         }
@@ -235,9 +235,9 @@ private struct DebugLogRow: View {
     }
 }
 
-#Preview("調試正文") {
+#Preview("调试正文") {
     BookSourceRuleDebugView(
-        source: BookSource(bookSourceUrl: "https://example.com", bookSourceName: "示例來源"),
+        source: BookSource(bookSourceUrl: "https://example.com", bookSourceName: "示例来源"),
         initialTab: .content,
         initialURL: "https://example.com/book/1/chapter/2.html"
     )

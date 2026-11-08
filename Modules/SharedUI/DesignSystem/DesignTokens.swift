@@ -13,7 +13,7 @@ enum DSColor {
     static let warning = Color.orange
     /// Destructive / delete
     static let destructive = Color.red
-    /// 回饋中心's 需要你補充資訊 badge: a request, set apart from 排隊中's warning orange.
+    /// 回馈中心's 需要你补充资讯 badge: a request, set apart from 排队中's warning orange.
     static let feedbackNeedsInfo = Color(uiColor: .systemTeal)
     /// A swipe action's fill, for an action that is not destructive and has no colour of its
     /// own: the system blue, whatever the theme. The system draws a swipe action's symbol and
@@ -73,7 +73,7 @@ enum DSColor {
     static let audiobookPlayerSkipBubble = Color.black.opacity(0.35)
     /// The cover's shadow on the ground.
     static let audiobookPlayerCoverShadow = Color.black.opacity(0.35)
-    /// The now-playing bar's 加入書架 pill: Apple Books' price pill, ink on paper — black in
+    /// The now-playing bar's 加入书架 pill: Apple Books' price pill, ink on paper — black in
     /// the light, white in the dark.
     static var nowPlayingPillFill: Color { Color(uiColor: .label) }
     static var nowPlayingPillText: Color { Color(uiColor: .systemBackground) }
@@ -88,7 +88,7 @@ enum DSColor {
     static let audiobookSpeedSelectedText = Color.black.opacity(0.55)
     /// The least contrast white text on an accent fill may have before it turns black:
     /// WCAG's floor for UI components and large text (user's call, 2026-10-25). Blue and
-    /// violet accents keep white; 琥珀金, 苔原綠's derived dark accent and the near-white
+    /// violet accents keep white; 琥珀金, 苔原绿's derived dark accent and the near-white
     /// accents imported packs bring take black (feedback #77).
     static let onAccentMinimumWhiteContrast = 3.0
 
@@ -102,7 +102,7 @@ enum DSColor {
         )
         return CoverTint.contrastWithWhite(clamped) < onAccentMinimumWhiteContrast
     }
-    /// 精簡閱讀卡片's ground until its cover's colour is known: dark enough for white text.
+    /// 精简阅读卡片's ground until its cover's colour is known: dark enough for white text.
     static let coverTintPlaceholder = CoverTint.placeholder.color
     /// Secondary text (captions, subtitles)
     static var textSecondary: Color { Color(uiColor: DSUIColor.textSecondary) }
@@ -160,7 +160,7 @@ enum DSColor {
     static let searchListCoverShadow = Color.black.opacity(0.35)
     /// Selected highlight
     static let highlight = Color.accentColor.opacity(0.15)
-    /// The 全書搜尋 hit washed on the reading page — the browser layout's read-aloud yellow,
+    /// The 全书搜寻 hit washed on the reading page — the browser layout's read-aloud yellow,
     /// a little stronger, so it reads on white, sepia and black pages alike.
     static let readerSearchHit = Color(uiColor: DSUIColor.readerSearchHit)
 
@@ -171,10 +171,10 @@ enum DSColor {
     /// as Safari draws one. The tile is decorative — the site's name sits under it.
     static let browserMonogramFill = Color(uiColor: .systemGray2)
     static let browserMonogramForeground = Color.white
-    /// A 首頁配置 without a photo: the first letter of its name, white on grey, the same tile.
+    /// A 首页配置 without a photo: the first letter of its name, white on grey, the same tile.
     static let homeConfigurationMonogramFill = Color(uiColor: .systemGray2)
     static let homeConfigurationMonogramForeground = Color.white
-    /// 編輯首頁's frame round a section, the section drawn on it as on the home: a grey a step
+    /// 编辑首页's frame round a section, the section drawn on it as on the home: a grey a step
     /// darker than the page, as the maintainer's reference (2026-10-27), so a white card in the
     /// section stands apart from it. A system fill, so a theme's page background shows through;
     /// a darker one in dark mode, where the lighter one is a card's own #1C1C1E.
@@ -205,11 +205,11 @@ enum DSColor {
         [Color(red: 0.1, green: 0.1, blue: 0.15), Color(red: 0.3, green: 0.3, blue: 0.5)],
     ]
 
-    /// Under a 大圖卡片's white name on the reader's photo: the photo darkened towards the card's
+    /// Under a 大图卡片's white name on the reader's photo: the photo darkened towards the card's
     /// foot, so the name reads on any picture. Fixed, in dark mode too.
     static let photoNameScrim = Color.black.opacity(0.55)
 
-    /// 分類卡's designed faces (maintainer, 2026-10-27: 「根據分類作默認的圖片設計」), after Apple
+    /// 分类卡's designed faces (maintainer, 2026-10-27: 「根据分类作默认的图片设计」), after Apple
     /// Books' category cards: a ground, and the drawing on it in a light tint of the ground's hue.
     /// Every ground holds the card's white name at 5.8:1 or more. Fixed, in dark mode too, as a
     /// cover is. Rose, coral, plum, indigo, slate, teal, forest, amber.
@@ -250,7 +250,7 @@ enum DSColor {
 /// theme, a screen's own `.accentColor`, dark, Increase Contrast — as its SwiftUI neighbours
 /// do. iOS 17 resolves it from the SwiftUI environment in the view's traits; iOS 27 hands
 /// back `UITintColor`, the view's `tintColor`, which SwiftUI sets. Measured 2026-10-26 in a
-/// dark window on iOS 17.5 and 27: the 簡介 link, the iOS 17 search selection and the 青空
+/// dark window on iOS 17.5 and 27: the 简介 link, the iOS 17 search selection and the 青空
 /// index drew 暮色橙's dark accent and the dark system blue (`UIKitAccentTests`). Only away
 /// from a hosted view — an image renderer, traits built by hand — does it come out the
 /// light system blue on iOS 17 and miss the theme; `UIColor.tintColor` gives the system
@@ -309,7 +309,7 @@ enum DSUIColor {
     /// and a view SwiftUI did not rebuild kept the old theme after a switch.
     ///
     /// - Parameter fallback: the system color for an appearance with no theme (classic),
-    ///   or with 默認 whose 背景 is as shipped (`keepsSystemBackgrounds`).
+    ///   or with 默认 whose 背景 is as shipped (`keepsSystemBackgrounds`).
     private static func themed(
         _ keyPath: KeyPath<AppearanceThemePreset, UIColor>,
         fallback: UIColor
@@ -393,7 +393,7 @@ enum DSFont {
     static var serifSectionTitle: Font {
         GlobalAppTypography.font(.title2, weight: .bold, systemDesign: .serif)
     }
-    /// 分類卡片's list name, as Apple Books' More to Explore sets its categories: Title 3 in
+    /// 分类卡片's list name, as Apple Books' More to Explore sets its categories: Title 3 in
     /// semibold, in the system serif. Chinese and Japanese draw in the system's own face, as
     /// Apple Books' do.
     static var serifCardTitle: Font {
@@ -404,11 +404,11 @@ enum DSFont {
     static var serifChartRank: Font {
         GlobalAppTypography.font(.title, weight: .regular, systemDesign: .serif)
     }
-    /// 新手導覽's app name on its welcome page: Large Title in bold, in the system serif.
+    /// 新手导览's app name on its welcome page: Large Title in bold, in the system serif.
     static var onboardingAppName: Font {
         GlobalAppTypography.font(.largeTitle, weight: .bold, systemDesign: .serif)
     }
-    /// 新手導覽's page titles: Title in bold, in the system serif.
+    /// 新手导览's page titles: Title in bold, in the system serif.
     static var onboardingTitle: Font {
         GlobalAppTypography.font(.title, weight: .bold, systemDesign: .serif)
     }
@@ -467,17 +467,17 @@ enum DSLayout {
     /// it when a control's own content is shorter than a finger — a bare menu
     /// label, an icon button — rather than relying on the row's padding.
     static let minimumTapTarget: CGFloat = 44
-    /// 回饋中心: a picked attachment's square in the form and the composer.
+    /// 回馈中心: a picked attachment's square in the form and the composer.
     static let feedbackThumbnailSide: CGFloat = 72
-    /// 回饋中心: an attachment's square inside a message bubble.
+    /// 回馈中心: an attachment's square inside a message bubble.
     static let feedbackBubbleAttachmentSide: CGFloat = 88
-    /// 回饋中心: the unread dot before a report's title in 我的回饋.
+    /// 回馈中心: the unread dot before a report's title in 我的回馈.
     static let feedbackUnreadDot: CGFloat = 8
-    /// 回饋中心: the status badge's fill, the status colour at this opacity.
+    /// 回馈中心: the status badge's fill, the status colour at this opacity.
     static let feedbackBadgeFillOpacity: Double = 0.15
-    /// 回饋中心: the dark disc behind an attachment's remove button, legible on any picture.
+    /// 回馈中心: the dark disc behind an attachment's remove button, legible on any picture.
     static let feedbackRemoveButtonBackdropOpacity: Double = 0.6
-    /// 回饋中心: the info disc at the front of the 問題回報 capsule (截圖後顯示意見回饋入口).
+    /// 回馈中心: the info disc at the front of the 问题回报 capsule (截图后显示意见回馈入口).
     static let feedbackScreenshotPromptIconSide: CGFloat = 40
     /// Visible width of the tab a tucked-away mini-player leaves on the screen edge. The
     /// tab stays thin so it does not cover text; its hit region is `minimumTapTarget`.
@@ -490,7 +490,7 @@ enum DSLayout {
 
     // ── The app root's now-playing bar (`NowPlayingPopupHost`): LNPopupUI's bar, which sizes
     // itself; these are what Yuedu puts in it.
-    /// Height of the bar's 加入書架 pill, Apple Books' price pill.
+    /// Height of the bar's 加入书架 pill, Apple Books' price pill.
     static let nowPlayingPillHeight: CGFloat = 28
     /// The width a book without a cover has its title card drawn at for the bar's artwork,
     /// which the bar then scales down: about the bar's own cover, at full size.
@@ -563,7 +563,7 @@ enum DSLayout {
     static let audiobookPlayerLoudSpeakerWidth: CGFloat = 18
     /// From the volume's centre to the bottom row's.
     static let audiobookPlayerBottomRowTopGap: CGFloat = 41
-    /// The centres of AirPlay and 目錄 across the width.
+    /// The centres of AirPlay and 目录 across the width.
     static let audiobookPlayerBottomRowCenters: [CGFloat] = [0.286, 0.713]
     static let audiobookPlayerBottomIconSize: CGFloat = 20
     /// From the bottom row's centre to the safe area's bottom.
@@ -578,7 +578,7 @@ enum DSLayout {
     static let audiobookPlayerPlayButtonSide: CGFloat = 60
     /// Room the chapter's title leaves for the times at either end.
     static let audiobookPlayerChapterTitleInset: CGFloat = 64
-    /// 目錄 with no chapters to list.
+    /// 目录 with no chapters to list.
     static let audiobookPlayerDisabledOpacity: Double = 0.35
     /// The speed popover: the preset discs, the selected one, and the ruler's ticks.
     static let audiobookSpeedPresetSide: CGFloat = 28
@@ -600,7 +600,7 @@ enum DSLayout {
     static let audiobookSpeedCenterTickWidth: CGFloat = 2.5
     static let audiobookSpeedTickOpacity: Double = 0.45
     static let audiobookSpeedNeighbourTickOpacity: Double = 0.8
-    /// 自訂睡眠計時器's popover: its title and 完成, the count-down wheel, and its width.
+    /// 自订睡眠计时器's popover: its title and 完成, the count-down wheel, and its width.
     static let audiobookSleepTitleFontSize: CGFloat = 17
     static let audiobookSleepWheelHeight: CGFloat = 150
     static let audiobookSleepPopoverWidth: CGFloat = 260
@@ -613,7 +613,7 @@ enum DSLayout {
     /// The answer uses the full width as plain prose; the question stays a narrower
     /// bubble on the trailing side, so the two never read as the same kind of text.
     static let aiChatBubbleLeadingInset: CGFloat = 48
-    /// 人物關係圖: the ring's height, how far related characters sit inside its edge, the
+    /// 人物关系图: the ring's height, how far related characters sit inside its edge, the
     /// spoke width, and the widest the relation line under a name may get.
     static let relationshipMapHeight: CGFloat = 340
     static let relationshipNodeInset: CGFloat = 52
@@ -628,7 +628,7 @@ enum DSLayout {
     static let searchResultCoverWidth: CGFloat = 72
     /// Search-result cover height shared by native list renderers.
     static let searchResultCoverHeight: CGFloat = 96
-    /// The 搜索 page's lists — results, 最近搜索, 最近閱讀 — as Apple Books lays out its
+    /// The 搜索 page's lists — results, 最近搜索, 最近阅读 — as Apple Books lays out its
     /// search, measured off its iOS 26 screenshots on a 402pt-wide iPhone (2026-10-02):
     /// the inset from both edges, the 2:3 cover, and the gap from cover to text, which is
     /// also where a row's separator starts.
@@ -639,7 +639,7 @@ enum DSLayout {
     /// The shadow under a search-list cover: short and soft, falling below it.
     static let searchListCoverShadowRadius: CGFloat = 5
     static let searchListCoverShadowY: CGFloat = 4
-    /// The grey tag after a title (有聲書), drawn as Apple Books draws its language tag:
+    /// The grey tag after a title (有声书), drawn as Apple Books draws its language tag:
     /// the padding beside its text, and above and below the text's cap height.
     static let titleTagHorizontalPadding: CGFloat = 3
     static let titleTagVerticalPadding: CGFloat = 2.5
@@ -649,10 +649,10 @@ enum DSLayout {
     static let searchProgressRingSize: CGFloat = 28
     static let searchProgressRingLineWidth: CGFloat = 2.5
     static let searchProgressRingGlyphSize: CGFloat = 10
-    /// Width of the cover hero at the top of 書籍資訊. 2:3 like the shelf grid,
+    /// Width of the cover hero at the top of 书籍资讯. 2:3 like the shelf grid,
     /// so the same artwork is not re-cropped between the two screens.
     static let bookCoverHeroWidth: CGFloat = 176
-    /// Height of the cover hero at the top of 書籍資訊.
+    /// Height of the cover hero at the top of 书籍资讯.
     static let bookCoverHeroHeight: CGFloat = 264
     /// Cover in a 探索 shelf (a featured category's horizontal row), 2:3 like Apple
     /// Books' store shelves.
@@ -679,30 +679,30 @@ enum DSLayout {
     static let homeCardCoverWidth: CGFloat = 140
     /// The widest a home cover grows at accessibility text sizes, so one still fits a phone.
     static let homeCardCoverMaxWidth: CGFloat = 240
-    /// The reading-progress bar along the bottom of a 繼續閱讀 cover, as Emby marks a
+    /// The reading-progress bar along the bottom of a 继续阅读 cover, as Emby marks a
     /// resumable item.
     static let homeCardProgressHeight: CGFloat = 3
     /// The home's other layouts (unified library 5d-3), all 2:3 and scaled with Dynamic Type.
-    /// 大型閱讀卡片's cover, beside its text.
+    /// 大型阅读卡片's cover, beside its text.
     static let homeReadingCardCoverWidth: CGFloat = 110
-    /// How much of the next 大型閱讀卡片 shows past the edge, so the row reads as one to swipe.
+    /// How much of the next 大型阅读卡片 shows past the edge, so the row reads as one to swipe.
     static let homeReadingCardPeek: CGFloat = 40
-    /// A cover in 多行橫向輪播, and the narrowest a 固定封面網格 column gets: three to a
+    /// A cover in 多行横向轮播, and the narrowest a 固定封面网格 column gets: three to a
     /// 402pt phone.
     static let homeCompactCoverWidth: CGFloat = 100
-    /// A cover in 圖文資訊清單, beside its text.
+    /// A cover in 图文资讯清单, beside its text.
     static let homeListCoverWidth: CGFloat = 60
-    /// A 首頁配置's round photo in 首頁配置's list, as Rex's 管理配置 draws it.
+    /// A 首页配置's round photo in 首页配置's list, as Rex's 管理配置 draws it.
     static let homeConfigurationRowPhotoSize: CGFloat = 44
     /// The same photo atop the page that changes it.
     static let homeConfigurationFormPhotoSize: CGFloat = 96
-    /// A layout's preview in 呈現方式 (decision 34): the layout at its real size, as a template
+    /// A layout's preview in 呈现方式 (decision 34): the layout at its real size, as a template
     /// gallery shows it; a layout read downwards shows this many rows.
     static let homeLayoutPreviewRows = 2
-    /// 精選's cover (decision 37), beside its text on the cover's colour: the largest on the
+    /// 精选's cover (decision 37), beside its text on the cover's colour: the largest on the
     /// home, one book to a page.
     static let homeFeaturedCoverWidth: CGFloat = 132
-    /// 精簡閱讀卡片 (5d-3c), measured off Apple Books' Continue card on a 440pt phone: a 278×80
+    /// 精简阅读卡片 (5d-3c), measured off Apple Books' Continue card on a 440pt phone: a 278×80
     /// card, its 40×60 cover inset 10 on every side and 10 from the text. Scaled with Dynamic Type.
     static let homeCompactReadingCardCoverWidth: CGFloat = 40
     static let homeContinueCardWidth: CGFloat = 278
@@ -712,7 +712,7 @@ enum DSLayout {
     static let homeContinueTintBrightness: CGFloat = 0.78
     /// …and at least this light (WCAG luminance), so a ground exists under it at 7:1.
     static let homeContinueTintMinimumLuminance = 0.4
-    /// 訂閱的最新文章's card (5g) in the sideways layouts: wider than a cover, since an article's
+    /// 订阅的最新文章's card (5g) in the sideways layouts: wider than a cover, since an article's
     /// picture is landscape. Scaled with Dynamic Type.
     static let homeArticleCardWidth: CGFloat = 240
     /// The widest an article card grows at accessibility text sizes, so one still fits a phone.
@@ -723,13 +723,13 @@ enum DSLayout {
     static let homeArticleUnreadDot: CGFloat = 8
     /// The layouts after Apple Books' store and home (maintainer, 2026-10-25;
     /// `Technotes/AppleBooksHomeLayouts-2026-10-25.md`), all 2:3.
-    /// The 頂部輪播圖's covers, alone on the band: about two and a half to a 402pt phone. Not scaled:
+    /// The 顶部轮播图's covers, alone on the band: about two and a half to a 402pt phone. Not scaled:
     /// no text goes with them.
     static let homeBandCoverWidth: CGFloat = 150
-    /// 大型封面書架's covers, with their titles under them: two to a 402pt phone, the third
+    /// 大型封面书架's covers, with their titles under them: two to a 402pt phone, the third
     /// peeking past the edge. Scaled with Dynamic Type, at most `homeCardCoverMaxWidth`.
     static let homeLargeCoverWidth: CGFloat = 170
-    /// 色帶 (maintainer, 2026-10-27, as Apple Books' Audiobooks We Love): this many covers in a
+    /// 色带 (maintainer, 2026-10-27, as Apple Books' Audiobooks We Love): this many covers in a
     /// stack, the first this share of the band's width inside its margins, each next one this
     /// much smaller and this share of a cover further along; this share of their height shows
     /// above the band's foot.
@@ -741,14 +741,14 @@ enum DSLayout {
     /// 排行榜's covers, as Apple Books' Top Charts draws them beside each place (52pt on a 440pt
     /// phone). Scaled with Dynamic Type.
     static let homeChartCoverWidth: CGFloat = 52
-    /// A layout a card or a group to a page (一大四小, 大圖卡片): the next one shows this much
+    /// A layout a card or a group to a page (一大四小, 大图卡片): the next one shows this much
     /// past it, as Apple Books' Customer Favorites and More to Explore have it.
     static let homePagePeek: CGFloat = 16
     /// 一大四小 (maintainer, 2026-10-27: 1:1 with Apple Books' Customer Favorites): the large cover
     /// this many times as wide as a small one (180pt and 82pt on a 440pt phone), every gap
     /// `DSSpacing.lg`. Not scaled.
     static let homeHeroLargeToSmall: CGFloat = 180.0 / 82.0
-    /// 分類卡片: a card's height at the default text size (it grows with its name), and its
+    /// 分类卡片: a card's height at the default text size (it grows with its name), and its
     /// covers fanned at the trailing edge: each this wide, this far past the one before,
     /// turned this much, and run off the card's bottom by this share of a cover's height.
     static let homeCategoryCardHeight: CGFloat = 104
@@ -756,7 +756,7 @@ enum DSLayout {
     static let homeCategoryCoverStep: CGFloat = 34
     static let homeCategoryCoverRotation: Double = 6
     static let homeCategoryCoverOverhang: CGFloat = 0.22
-    /// 拼貼卡片 (maintainer, 2026-10-27: 1:1 with Apple Books' Top Picks, measured on a 440pt
+    /// 拼贴卡片 (maintainer, 2026-10-27: 1:1 with Apple Books' Top Picks, measured on a 440pt
     /// phone): a card this wide (scaled with Dynamic Type up to the most that fits a phone) and
     /// at least this wide for its height; its large cover this share of the card's width, its
     /// small ones this share of the large one's, in two rows beside it, the second column cut by
@@ -766,20 +766,20 @@ enum DSLayout {
     static let homeCollageCardAspect: CGFloat = 0.75
     static let homeCollageLargeShare: CGFloat = 146.0 / 278.0
     static let homeCollageSmallToLarge: CGFloat = 67.0 / 146.0
-    /// The 頂部輪播圖 (maintainer, 2026-10-27): its colour runs this far above its top, behind
+    /// The 顶部轮播图 (maintainer, 2026-10-27): its colour runs this far above its top, behind
     /// the bars and the status bar, and past them when the page is pulled down to refresh.
     static let homeCarouselBleed: CGFloat = 1000
-    /// 大圖卡片, a 分類卡 (maintainer, 2026-10-27), as Apple Books' More to Explore: a card a page
+    /// 大图卡片, a 分类卡 (maintainer, 2026-10-27), as Apple Books' More to Explore: a card a page
     /// (1126 × 618 there); its designed face's drawing this share of the card's height tall,
     /// centred here and turned this much, where Romance's heart is.
     static let homeBannerAspect: CGFloat = 1126.0 / 618.0
     static let homeCategoryArtGlyphShare: CGFloat = 0.62
     static let homeCategoryArtCenter = UnitPoint(x: 0.71, y: 0.48)
     static let homeCategoryArtRotation: Double = -10
-    /// A section of lists' form (maintainer, 2026-10-27: 「添加多個的預覽介面也要是橫向
-    /// scrollview，最後來個加號」): each card this wide, side by side, then ＋.
+    /// A section of lists' form (maintainer, 2026-10-27: 「添加多个的预览介面也要是横向
+    /// scrollview，最后来个加号」): each card this wide, side by side, then ＋.
     static let homeListCardTileWidth: CGFloat = 168
-    /// 編輯首頁's header (maintainer, 2026-10-27, after an Emby client's editor): the 首頁配置's
+    /// 编辑首页's header (maintainer, 2026-10-27, after an Emby client's editor): the 首页配置's
     /// round photo, with its camera badge this big at its bottom trailing edge.
     static let homeEditorPhotoSize: CGFloat = 72
     static let homeEditorPhotoBadgeSize: CGFloat = 26
@@ -789,28 +789,28 @@ enum DSLayout {
     /// narrowest a tile gets before the grid drops a column (four on a phone).
     static let browserStartTileIconSide: CGFloat = 64
     static let browserStartTileMinWidth: CGFloat = 80
-    /// The soft shadow under the start page's site icons, its 編輯 button and the
+    /// The soft shadow under the start page's site icons, its 编辑 button and the
     /// address field, lifting them off the page as Safari does.
     static let browserLiftShadowRadius: CGFloat = 4
     static let browserLiftShadowY: CGFloat = 1
-    /// Narrowest a chip may get in 發現頁設定's grid: four to a row on an iPhone, fewer as
+    /// Narrowest a chip may get in 发现页设置's grid: four to a row on an iPhone, fewer as
     /// the text grows (scaled with Dynamic Type).
     static let discoverChipMinWidth: CGFloat = 72
     /// A chip, filter or quick action drawn as a capsule (`DSCapsuleLabel`).
     static let capsuleControlHeight: CGFloat = 36
-    /// The narrowest a chip in a filter bar gets — 書架's groups, 探索's categories: the
+    /// The narrowest a chip in a filter bar gets — 书架's groups, 探索's categories: the
     /// HIG's 44pt minimum control width, so a one-character name is still a capsule wider
     /// than it is tall.
     static let capsuleControlMinWidth: CGFloat = 44
     /// A tab root's title starts to fade once its page has scrolled this far, and is gone
-    /// this much further on (書架, as Apple Music's and Books' home titles go).
+    /// this much further on (书架, as Apple Music's and Books' home titles go).
     static let rootTabTitleFadeStart: CGFloat = 10
     static let rootTabTitleFadeDistance: CGFloat = 30
-    /// The square on a 資源庫 card, and its symbol or glyph, at the default text size. They
+    /// The square on a 资源库 card, and its symbol or glyph, at the default text size. They
     /// follow Dynamic Type.
     static let exploreCardArtworkSide: CGFloat = 36
     static let exploreCardArtworkSize: CGFloat = 18
-    /// The soft shadow lifting a 資源庫 card off the page.
+    /// The soft shadow lifting a 资源库 card off the page.
     static let exploreCardShadowRadius: CGFloat = 8
     static let exploreCardShadowY: CGFloat = 2
     /// Side of the square artwork at the top of an audiobook detail page — Podcasts'
@@ -839,7 +839,7 @@ enum DSLayout {
     static let cardCarouselDimOpacity: Double = 0.74
     static let cardCarouselDismissPull: CGFloat = 80
     static let cardCarouselDismissVelocity: CGFloat = 600
-    /// A card's actions, measured off Apple Books' 試讀 / 取得 (45.5pt tall).
+    /// A card's actions, measured off Apple Books' 试读 / 取得 (45.5pt tall).
     static let cardActionHeight: CGFloat = 46
     static let cardActionPressedOpacity: Double = 0.7
     static let cardSecondaryActionFillOpacity: Double = 0.14
@@ -860,7 +860,7 @@ enum DSLayout {
     static let bookDetailCoverHeight: CGFloat = 192
     static let bookDetailCoverShadowRadius: CGFloat = 12
     static let bookDetailCoverShadowOffsetY: CGFloat = 6
-    /// 作品詳情's series fan (Apple Books' series header): the volumes behind the hero's cover,
+    /// 作品详情's series fan (Apple Books' series header): the volumes behind the hero's cover,
     /// by how far back they stand, each smaller (a fraction of the cover), further out (its
     /// centre from the cover's, in cover widths) and tilted further (degrees, from its foot).
     /// Two a side, the outermost about 155pt from the centre: inside a 320pt-wide screen.
@@ -887,7 +887,7 @@ enum DSLayout {
     static let bookshelfFolderSpacingRatio: CGFloat = 0.05
     /// A cover inside a folder rounds its corners by this share of the shelf's cover radius.
     static let bookshelfFolderCoverRadiusRatio: CGFloat = 0.5
-    /// A shelf cover the selection leaves out while 選取 is on, dimmed as Apple Books'
+    /// A shelf cover the selection leaves out while 选取 is on, dimmed as Apple Books'
     /// library dims one: measured off its screenshots at 60% over the page.
     static let bookshelfUnselectedCoverOpacity: Double = 0.6
     /// A button floating over the page while the page scrolls under it (the webtoon
@@ -907,10 +907,10 @@ enum DSLayout {
     static let bookshelfSelectionCheckmarkSize: CGFloat = 9
     /// Blur of the halo behind the mark (`DSColor.coverSelectionMarkShadow`).
     static let bookshelfSelectionMarkShadowRadius: CGFloat = 1.5
-    /// Width of 加入分組's icon and title in the shelf's 選取 bottom bar
-    /// (`ToolbarTitleAndIconLabel`): 「加入分組」 fits, a longer title ends in "…".
+    /// Width of 加入分组's icon and title in the shelf's 选取 bottom bar
+    /// (`ToolbarTitleAndIconLabel`): 「加入分组」 fits, a longer title ends in "…".
     static let bookshelfAddToGroupLabelWidth: CGFloat = 104
-    /// Width of 繼續問 AI's icon and title in AI 查詞's bottom bar
+    /// Width of 继续问 AI's icon and title in AI 查词's bottom bar
     /// (`ToolbarTitleAndIconLabel`): the Chinese, Korean and English titles fit, the
     /// longer Japanese one ends in "…". 132 still cut "Ask AI More" on iOS 27.
     static let aiWordLookupAskLabelWidth: CGFloat = 140
@@ -947,14 +947,14 @@ enum DSLayout {
     /// Starting detent for the reader quick settings sheet, replaced by the
     /// measured content height on the first layout pass.
     static let readerQuickPanelSheetHeight: CGFloat = 420
-    /// Starting detent for the 語音朗讀 sheet, replaced by the measured content height
+    /// Starting detent for the 语音朗读 sheet, replaced by the measured content height
     /// on the first layout pass.
     static let ttsPanelSheetHeight: CGFloat = 560
-    /// The cover beside the chapter 語音朗讀 is reading, at the 3:4 the generated
+    /// The cover beside the chapter 语音朗读 is reading, at the 3:4 the generated
     /// covers are drawn to.
     static let ttsPanelCoverWidth: CGFloat = 42
     static let ttsPanelCoverHeight: CGFloat = 56
-    /// 語音朗讀's play / pause: the one large target in its transport row.
+    /// 语音朗读's play / pause: the one large target in its transport row.
     static let ttsPanelPlayButtonSize: CGFloat = 64
     /// The paywall's picture of a pillar (`PaywallShowcase`).
     static let paywallShowcaseHeight: CGFloat = 150
@@ -983,13 +983,13 @@ enum DSLayout {
     /// (or none while the book loads) still reads as a control rather than a pill-shaped
     /// dot, and the source line under it has room.
     static let readerModernTitleMinWidth: CGFloat = 160
-    /// Diameter of 現代's cover button in the reader toolbar. The cover fills it
+    /// Diameter of 现代's cover button in the reader toolbar. The cover fills it
     /// as a circle, so this is the control size, not an inset thumbnail size.
     static let readerModernCoverButtonSize: CGFloat = 34
     /// How close to a screen edge UIKit lets a popover sit: `popoverLayoutMargins`,
     /// documented as 10pt along each edge.
     static let popoverScreenMargin: CGFloat = 10
-    /// Width of 現代's book-card popover, from the width of the reader under it.
+    /// Width of 现代's book-card popover, from the width of the reader under it.
     /// Popovers size to their content, so the card needs an explicit width or a long
     /// book name stretches it; a *fixed* one was the other failure — 320pt on a 440pt
     /// phone left a narrow slip hanging off the cover thumbnail.
@@ -1010,10 +1010,10 @@ enum DSLayout {
     static let readerModernBookCardActionHeight: CGFloat = 66
     /// The symbol inside one of those cells.
     static let readerModernBookCardActionGlyphSize: CGFloat = 26
-    /// The glyph slot above each label in 現代's tool capsule. Fixed so a symbol and the
-    /// 主題 "Aa" text sit on one line and the labels under them line up.
+    /// The glyph slot above each label in 现代's tool capsule. Fixed so a symbol and the
+    /// 主题 "Aa" text sit on one line and the labels under them line up.
     static let readerModernToolGlyphHeight: CGFloat = 24
-    /// The height both of 現代's bottom capsules share — the scrubber and the tool row —
+    /// The height both of 现代's bottom capsules share — the scrubber and the tool row —
     /// at the default text size. Fits the 44pt arrows plus the caption under the slider.
     static let readerModernBarRowHeight: CGFloat = 60
     /// Action cells per row before the card's grid wraps to a second row.
@@ -1026,7 +1026,7 @@ enum DSLayout {
     static let readerBubblePreviewTileWidth: CGFloat = 64
     /// Minimum height of a paragraph-comment bubble preview tile.
     static let readerBubblePreviewHeight: CGFloat = 64
-    /// Width a 本章說 / 作者說 / 神評論 template preview is drawn at in 氣泡設定: a phone
+    /// Width a 本章说 / 作者说 / 神评论 template preview is drawn at in 气泡设置: a phone
     /// reading column, so its text keeps the proportion it has in the book.
     static let readerCommentCardPreviewWidth: CGFloat = 340
     /// Width of a battery SVG preview in the template-management list.
@@ -1075,31 +1075,31 @@ enum DSLayout {
     static let readerCardFallbackWidth: CGFloat = 96
     /// Physical book-cover height/width ratio used by the transition fallback.
     static let readerCardFallbackAspectRatio: CGFloat = 1.45
-    /// Outer glow radius of a floating surface at 光暈強度 100%.
+    /// Outer glow radius of a floating surface at 光晕强度 100%.
     static let interfaceGlowOuterRadius: CGFloat = 32
-    /// Inner (tighter, denser) glow radius at 光暈強度 100%.
+    /// Inner (tighter, denser) glow radius at 光晕强度 100%.
     static let interfaceGlowInnerRadius: CGFloat = 12
-    /// Outer glow opacity at 光暈強度 100%.
+    /// Outer glow opacity at 光晕强度 100%.
     static let interfaceGlowOuterOpacity: Double = 0.5
-    /// Inner glow opacity at 光暈強度 100%.
+    /// Inner glow opacity at 光晕强度 100%.
     static let interfaceGlowInnerOpacity: Double = 0.3
     /// Height of the 界面效果 live preview card.
     static let interfaceEffectPreviewHeight: CGFloat = 220
-    /// The app icon on 新手導覽's welcome page.
+    /// The app icon on 新手导览's welcome page.
     static let onboardingAppIconSize: CGFloat = 96
     /// How far each piece of the welcome page rises as it comes in.
     static let onboardingEntranceOffset: CGFloat = 8
-    /// A cover in 新手導覽's shelf of books on 探索.
+    /// A cover in 新手导览's shelf of books on 探索.
     static let onboardingCoverWidth: CGFloat = 64
     static let onboardingCoverHeight: CGFloat = 96
     /// How much smaller each cover is per step away from the shelf's middle one.
     static let onboardingCoverDepthScale: CGFloat = 0.08
-    /// The work in front of its versions on 新手導覽's 一部作品，一個頁面.
+    /// The work in front of its versions on 新手导览's 一部作品，一个页面.
     static let onboardingWorkCoverWidth: CGFloat = 80
     static let onboardingWorkCoverHeight: CGFloat = 120
     /// How far each version behind it sits up and to the side.
     static let onboardingWorkVersionStep: CGFloat = 10
-    /// A page in 新手導覽's sketch of horizontal and vertical text.
+    /// A page in 新手导览's sketch of horizontal and vertical text.
     static let onboardingSketchPageWidth: CGFloat = 84
     static let onboardingSketchPageHeight: CGFloat = 112
     /// The longest line across, and the longest column down, inside a sketched page.
@@ -1111,12 +1111,12 @@ enum DSLayout {
     /// Sketched text is paler than the page's text color, so it reads as text at a glance.
     static let onboardingSketchLineOpacity: Double = 0.55
     static let onboardingSketchBorderWidth: CGFloat = 0.5
-    /// One of 新手導覽's page dots.
+    /// One of 新手导览's page dots.
     static let onboardingPageDotSize: CGFloat = 8
 
     /// The video player's previous / play-pause / next (plezy's centre controls).
     static let videoCenterControlSide: CGFloat = 64
-    /// How far a finger travels before a swipe on the picture counts (up opens 選集).
+    /// How far a finger travels before a swipe on the picture counts (up opens 选集).
     static let videoSwipeThreshold: CGFloat = 40
     /// The poster card on a video's detail page while it has no artwork to fill the width with.
     static let videoPosterWidth: CGFloat = 120
@@ -1157,14 +1157,14 @@ enum DSLayout {
     static let videoActionSlotWidth: CGFloat = 50
     /// The most facts (episode count, genres) after the maker under a video's title.
     static let videoHeroFactLimit = 4
-    /// An episode tile in a video detail page's 選集 row: a 16:9 frame, as the stills VidHub
+    /// An episode tile in a video detail page's 选集 row: a 16:9 frame, as the stills VidHub
     /// shows there, a little more than half a phone's width with the next one peeking in.
     static let videoEpisodeCardWidth: CGFloat = 224
     static let videoEpisodeCardHeight: CGFloat = 126
     /// The ring that marks the episode to resume, and how far outside the tile it is drawn.
     static let videoEpisodeResumeStroke: CGFloat = 1.5
     static let videoEpisodeResumeRingOutset: CGFloat = 2.5
-    /// 選集's 「1 · 30」 capsules under the episode row, measured off VidHub's (34pt tall); the
+    /// 选集's 「1 · 30」 capsules under the episode row, measured off VidHub's (34pt tall); the
     /// run the row is in brighter than the rest.
     static let videoEpisodeRangeHeight: CGFloat = 34
     static let videoEpisodeRangeFillOpacity: Double = 0.1
@@ -1199,7 +1199,7 @@ enum DSRadius {
     static let xxl: CGFloat = 20
     /// A cover in the 搜索 page's lists: nearly square, as Apple Books' search draws them.
     static let searchListCover: CGFloat = 2
-    /// The grey tag after a title (有聲書).
+    /// The grey tag after a title (有声书).
     static let titleTag: CGFloat = 3
 }
 
@@ -1231,7 +1231,7 @@ enum DSAnimation {
     static let cardCarouselFadeOut = easeOut(duration: 0.15)
     /// Slow expansion
     static let slow = Animation.easeInOut(duration: 0.4)
-    /// 編輯首頁 coming and going: every section on screen morphing into its card and back. A
+    /// 编辑首页 coming and going: every section on screen morphing into its card and back. A
     /// strong ease-in-out, for things that move on screen rather than enter it; the built-in
     /// one is too weak to read as one deliberate move across the whole page.
     static let homeEditMorph = Animation.timingCurve(0.77, 0, 0.175, 1, duration: 0.4)
@@ -1262,7 +1262,7 @@ enum DSAnimation {
     static let celebrationRingStagger: TimeInterval = 0.25
     /// Frame spacing of the confetti's own timeline, which stops with the last piece.
     static let celebrationFrameInterval: TimeInterval = 1.0 / 60
-    /// Delay between the pieces of 新手導覽's welcome page coming in, one after another.
+    /// Delay between the pieces of 新手导览's welcome page coming in, one after another.
     static let onboardingStagger: TimeInterval = 0.05
     /// The video player's controls get out of the picture's way this long after the last touch.
     static let videoControlsAutoHide: Duration = .seconds(4)

@@ -59,7 +59,7 @@ final class FirestoreSyncManager: ObservableObject {
         case .synced:
             return localized("已同步")
         case .failed:
-            return localized("同步失敗")
+            return localized("同步失败")
         }
     }
 

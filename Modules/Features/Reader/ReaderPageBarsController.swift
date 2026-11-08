@@ -34,7 +34,7 @@ struct ReaderPageBarsEnvironment: Equatable {
     var displayScale: CGFloat
     /// What each bar keeps clear of on each side before its own padding
     /// (`ReaderView.readerBarSideInsets`). Apart, because each clears only what reaches its
-    /// own height: on a folded iPhone Duo the 頁眉 sits beside the camera and the 頁腳 does not.
+    /// own height: on a folded iPhone Duo the 页眉 sits beside the camera and the 页脚 does not.
     var headerSideInsets: ReaderSideInsets = .zero
     var footerSideInsets: ReaderSideInsets = .zero
     /// False in a two-page spread on a screen that does not fold, where the screen-fixed
@@ -43,7 +43,7 @@ struct ReaderPageBarsEnvironment: Equatable {
     var bakesBarsIntoPages = true
 }
 
-/// Builds the 頁眉／頁腳 for any page the paged engine asks about.
+/// Builds the 页眉／页脚 for any page the paged engine asks about.
 ///
 /// A reference type on purpose. The engine holds an escaping closure for the life
 /// of the reader and calls it for any page at any time, including from a snapshot

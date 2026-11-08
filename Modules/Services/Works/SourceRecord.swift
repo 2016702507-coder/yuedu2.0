@@ -13,7 +13,7 @@ enum ProviderType: String, Codable, Hashable, Sendable {
     case opds, webDAV, calibre
     /// Built-in public libraries.
     case gutenberg, aozora
-    /// Legado book sources (來源配置).
+    /// Legado book sources (来源配置).
     case bookSource
     /// Bibliographic databases (Open Library…), later phases.
     case bibliographic

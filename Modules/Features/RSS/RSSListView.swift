@@ -75,7 +75,7 @@ struct RSSListView: View {
         visibleSources(store.rootSources())
     }
 
-    /// RSS 訂閱, pushed on the stack of 資源庫 or 探索 (Phase 5 plan, decision 30: no longer a
+    /// RSS 订阅, pushed on the stack of 资源库 or 探索 (Phase 5 plan, decision 30: no longer a
     /// tab, so no stack of its own).
     var body: some View {
         Group {
@@ -96,7 +96,7 @@ struct RSSListView: View {
                 .scrollIndicators(.visible)
                 .modifier(RSSHomeSwipeActionsContainer())
             }
-            .navigationTitle(localized("RSS 訂閱"))
+            .navigationTitle(localized("RSS 订阅"))
             .toolbarTitleDisplayMode(.inline)
             .pageBackgroundToolbar(for: .rss)
             .toolbar {
@@ -131,31 +131,31 @@ struct RSSListView: View {
             ) {
                 AdaptiveSheetContainer(maxWidth: DSLayout.readableCompactWidth) {
                     DismissalSequencedActionChooser(
-                        title: localized("新增或匯入"),
+                        title: localized("新增或汇入"),
                         actions: [
                             DismissalSequencedAction(
                                 route: .addSource,
-                                title: localized("新增 RSS 訂閱"),
+                                title: localized("新增 RSS 订阅"),
                                 systemImage: "plus"
                             ),
                             DismissalSequencedAction(
                                 route: .addFolder,
-                                title: localized("新增資料夾"),
+                                title: localized("新增资料夹"),
                                 systemImage: "folder.badge.plus"
                             ),
                             DismissalSequencedAction(
                                 route: .importOPML,
-                                title: localized("匯入 OPML"),
+                                title: localized("汇入 OPML"),
                                 systemImage: "square.and.arrow.down"
                             ),
                             DismissalSequencedAction(
                                 route: .importJSON,
-                                title: localized("匯入 Legado JSON"),
+                                title: localized("汇入 Legado JSON"),
                                 systemImage: "doc.badge.plus"
                             ),
                             DismissalSequencedAction(
                                 route: .refresh,
-                                title: localized("刷新全部訂閱"),
+                                title: localized("刷新全部订阅"),
                                 systemImage: "arrow.clockwise",
                                 isEnabled: !isRefreshingAll && !store.sources.isEmpty
                             ),
@@ -174,40 +174,40 @@ struct RSSListView: View {
                         actions: [
                             DismissalSequencedAction(
                                 route: .markAllRead,
-                                title: localized("標記全部已讀"),
+                                title: localized("标记全部已读"),
                                 systemImage: "checkmark.circle",
                                 isEnabled: store.totalUnreadCount() > 0
                             ),
                             DismissalSequencedAction(
                                 route: .toggleHideRead,
                                 title: hideReadFeeds
-                                    ? localized("顯示已讀訂閱")
-                                    : localized("隱藏已讀訂閱"),
+                                    ? localized("显示已读订阅")
+                                    : localized("隐藏已读订阅"),
                                 systemImage: hideReadFeeds
                                     ? "line.3.horizontal.decrease.circle.fill"
                                     : "line.3.horizontal.decrease.circle"
                             ),
                             DismissalSequencedAction(
                                 route: .organize,
-                                title: localized("整理訂閱"),
+                                title: localized("整理订阅"),
                                 systemImage: "arrow.up.arrow.down",
                                 isEnabled: !store.sources.isEmpty
                             ),
                             DismissalSequencedAction(
                                 route: .exportOPML,
-                                title: localized("匯出 OPML"),
+                                title: localized("汇出 OPML"),
                                 systemImage: "square.and.arrow.up",
                                 isEnabled: !store.sources.isEmpty
                             ),
                             DismissalSequencedAction(
                                 route: .exportJSON,
-                                title: localized("匯出 Legado JSON"),
+                                title: localized("汇出 Legado JSON"),
                                 systemImage: "doc.badge.arrow.up",
                                 isEnabled: !store.sources.isEmpty
                             ),
                             DismissalSequencedAction(
                                 route: .settings,
-                                title: localized("設定"),
+                                title: localized("设置"),
                                 systemImage: "gearshape"
                             ),
                         ],
@@ -282,20 +282,20 @@ struct RSSListView: View {
             .sheet(isPresented: $showSettings) {
                 RSSSettingsContentView(isPresented: $showSettings)
             }
-            .alert(localized("RSS 訂閱"), isPresented: $showImportResult) {
-                Button(localized("確定"), role: .cancel) {}
+            .alert(localized("RSS 订阅"), isPresented: $showImportResult) {
+                Button(localized("确定"), role: .cancel) {}
             } message: {
                 Text(importMessage)
             }
             .alert(
-                deleteTarget?.title ?? localized("刪除"),
+                deleteTarget?.title ?? localized("删除"),
                 isPresented: Binding(
                     get: { deleteTarget != nil },
                     set: { if !$0 { deleteTarget = nil } }
                 ),
                 presenting: deleteTarget
             ) { target in
-                Button(localized("刪除"), role: .destructive) {
+                Button(localized("删除"), role: .destructive) {
                     performDelete(target)
                 }
                 Button(localized("取消"), role: .cancel) {}
@@ -314,7 +314,7 @@ struct RSSListView: View {
 
     private var smartFeedsSection: some View {
         RSSHomeSection(
-            title: localized("訂閱"),
+            title: localized("订阅"),
             unreadCount: 0,
             isExpanded: $smartFeedsExpanded
         ) {
@@ -332,7 +332,7 @@ struct RSSListView: View {
                         Button {
                             store.markAllRead(smartFeed: smartFeed)
                         } label: {
-                            Label(localized("標記全部已讀"), systemImage: "checkmark.circle")
+                            Label(localized("标记全部已读"), systemImage: "checkmark.circle")
                         }
                     }
                 }
@@ -345,12 +345,12 @@ struct RSSListView: View {
 
     private var localFeedsSection: some View {
         RSSHomeSection(
-            title: localized("本機"),
+            title: localized("本机"),
             unreadCount: store.totalUnreadCount(),
             isExpanded: $localFeedsExpanded
         ) {
             if hideReadFeeds && visibleFolders.isEmpty && rootSources.isEmpty && !store.sources.isEmpty {
-                Text(localized("沒有未讀訂閱"))
+                Text(localized("没有未读订阅"))
                     .font(DSFont.body)
                     .foregroundStyle(DSColor.textSecondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -402,7 +402,7 @@ struct RSSListView: View {
                 Button {
                     store.markAllRead(in: folder)
                 } label: {
-                    Label(localized("標記全部已讀"), systemImage: "checkmark.circle")
+                    Label(localized("标记全部已读"), systemImage: "checkmark.circle")
                 }
             }
 
@@ -415,7 +415,7 @@ struct RSSListView: View {
             Button(role: .destructive) {
                 deleteTarget = .folder(folder)
             } label: {
-                Label(localized("刪除"), systemImage: "trash")
+                Label(localized("删除"), systemImage: "trash")
             }
         }
         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
@@ -430,7 +430,7 @@ struct RSSListView: View {
 
     @ViewBuilder
     private func folderSwipeActions(_ folder: RSSFolder) -> some View {
-        RSSHomeRowAction(title: localized("刪除"), systemImage: "trash", role: .destructive) {
+        RSSHomeRowAction(title: localized("删除"), systemImage: "trash", role: .destructive) {
             deleteTarget = .folder(folder)
         }
 
@@ -455,28 +455,28 @@ struct RSSListView: View {
             Button {
                 sourceForInfo = source
             } label: {
-                Label(localized("取得資訊"), systemImage: "info.circle")
+                Label(localized("取得资讯"), systemImage: "info.circle")
             }
 
             if let homeRoute = source.homepageLinkRoute, homeRoute != .unopenable {
                 Button {
                     open(homeRoute)
                 } label: {
-                    Label(localized("開啟首頁"), systemImage: "safari")
+                    Label(localized("开启首页"), systemImage: "safari")
                 }
             }
 
             Button {
                 copyURLString(source.url)
             } label: {
-                Label(localized("複製訂閱 URL"), systemImage: "doc.on.doc")
+                Label(localized("复制订阅 URL"), systemImage: "doc.on.doc")
             }
 
             if let homepageURL = source.homepageURL, URL(string: homepageURL) != nil {
                 Button {
                     copyURLString(homepageURL)
                 } label: {
-                    Label(localized("複製首頁 URL"), systemImage: "doc.on.doc")
+                    Label(localized("复制首页 URL"), systemImage: "doc.on.doc")
                 }
             }
 
@@ -484,20 +484,20 @@ struct RSSListView: View {
                 Button {
                     store.markAllRead(sourceID: source.id)
                 } label: {
-                    Label(localized("標記全部已讀"), systemImage: "checkmark.circle")
+                    Label(localized("标记全部已读"), systemImage: "checkmark.circle")
                 }
             }
 
             Button {
                 sourceToEdit = source
             } label: {
-                Label(localized("編輯訂閱"), systemImage: "pencil")
+                Label(localized("编辑订阅"), systemImage: "pencil")
             }
 
             Button(role: .destructive) {
                 deleteTarget = .source(source)
             } label: {
-                Label(localized("刪除"), systemImage: "trash")
+                Label(localized("删除"), systemImage: "trash")
             }
         }
         .swipeActions(edge: .leading, allowsFullSwipe: false) {
@@ -517,7 +517,7 @@ struct RSSListView: View {
     @ViewBuilder
     private func sourceLeadingSwipeActions(_ source: RSSSource) -> some View {
         if store.unreadCount(for: source.id) > 0 {
-            RSSHomeRowAction(title: localized("標記全部已讀"), systemImage: "checkmark.circle") {
+            RSSHomeRowAction(title: localized("标记全部已读"), systemImage: "checkmark.circle") {
                 store.markAllRead(sourceID: source.id)
             }
             .tint(DSColor.swipeAction)
@@ -526,11 +526,11 @@ struct RSSListView: View {
 
     @ViewBuilder
     private func sourceTrailingSwipeActions(_ source: RSSSource) -> some View {
-        RSSHomeRowAction(title: localized("刪除"), systemImage: "trash", role: .destructive) {
+        RSSHomeRowAction(title: localized("删除"), systemImage: "trash", role: .destructive) {
             deleteTarget = .source(source)
         }
 
-        RSSHomeRowAction(title: localized("編輯訂閱"), systemImage: "pencil") {
+        RSSHomeRowAction(title: localized("编辑订阅"), systemImage: "pencil") {
             sourceToEdit = source
         }
         .tint(.orange)
@@ -626,11 +626,11 @@ struct RSSListView: View {
             let data = try Data(contentsOf: url)
             let sources = try LegadoSourceJSONParser.parse(data: data)
             let addedSources = store.addSourcesReturningAdded(sources)
-            importMessage = String(format: localized("已匯入 %d 個訂閱源"), addedSources.count)
+            importMessage = String(format: localized("已汇入 %d 个订阅源"), addedSources.count)
             showImportResult = true
             Task { await refreshImportedSources(addedSources) }
         } catch {
-            importMessage = String(format: localized("Legado JSON 匯入失敗：%@"), error.localizedDescription)
+            importMessage = String(format: localized("Legado JSON 汇入失败：%@"), error.localizedDescription)
             showImportResult = true
         }
     }
@@ -654,7 +654,7 @@ struct RSSListView: View {
             let data = try Data(contentsOf: url)
             importOPMLData(data)
         } catch {
-            importMessage = String(format: localized("OPML 匯入失敗：%@"), error.localizedDescription)
+            importMessage = String(format: localized("OPML 汇入失败：%@"), error.localizedDescription)
             showImportResult = true
         }
     }
@@ -663,11 +663,11 @@ struct RSSListView: View {
         do {
             let sources = try RSSOPMLParser.parse(data: data)
             let addedSources = store.addSourcesReturningAdded(sources)
-            importMessage = String(format: localized("已匯入 %d 個訂閱源"), addedSources.count)
+            importMessage = String(format: localized("已汇入 %d 个订阅源"), addedSources.count)
             showImportResult = true
             Task { await refreshImportedSources(addedSources) }
         } catch {
-            importMessage = String(format: localized("OPML 匯入失敗：%@"), error.localizedDescription)
+            importMessage = String(format: localized("OPML 汇入失败：%@"), error.localizedDescription)
             showImportResult = true
         }
     }
@@ -726,7 +726,7 @@ struct RSSListView: View {
             } label: {
                 Image(systemName: "plus")
             }
-            .accessibilityLabel(localized("新增或匯入"))
+            .accessibilityLabel(localized("新增或汇入"))
         } else {
             RSSHomeAddMenu(
                 isRefreshingAll: isRefreshingAll,
@@ -836,18 +836,18 @@ private enum RSSDeleteTarget: Identifiable {
     var title: String {
         switch self {
         case .source:
-            return localized("刪除訂閱源")
+            return localized("删除订阅源")
         case .folder:
-            return localized("刪除資料夾")
+            return localized("删除资料夹")
         }
     }
 
     var message: String {
         switch self {
         case .source(let source):
-            return String(format: localized("確定要刪除「%@」訂閱源嗎？"), source.name)
+            return String(format: localized("确定要删除「%@」订阅源吗？"), source.name)
         case .folder(let folder):
-            return String(format: localized("確定要刪除「%@」資料夾以及其中的訂閱源嗎？"), folder.name)
+            return String(format: localized("确定要删除「%@」资料夹以及其中的订阅源吗？"), folder.name)
         }
     }
 
@@ -863,7 +863,7 @@ private struct RSSHomeCard<Content: View>: View {
     var body: some View {
         content
             // Keeps its own systemBackground fill rather than DSColor.surface — that is
-            // the card color this screen shipped with, and 分組卡片 off has to reproduce it.
+            // the card color this screen shipped with, and 分组卡片 off has to reproduce it.
             .interfaceCardSurface(fill: Color(.systemBackground))
             .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
     }
@@ -962,7 +962,7 @@ private enum RSSHomeRowSwipe {
 }
 
 /// A row's swipe action. Revealed in iOS 27's swipe container, a `Label` is read with its
-/// symbol named after it too — 「編輯訂閱、編輯訂閱」 (iOS 27.0 simulator) — so the button
+/// symbol named after it too — 「编辑订阅、编辑订阅」 (iOS 27.0 simulator) — so the button
 /// names itself once. A List's swipe buttons read once without it. It can go once the
 /// container reads a `Label` once: `RSSHomeSwipeActionsUITests` finds each revealed button
 /// by its exact label, so it passes without the override then.
@@ -1001,13 +1001,13 @@ private struct RSSHomeAddMenu: View {
             Button {
                 onAddSource()
             } label: {
-                Label(localized("新增 RSS 訂閱"), systemImage: "plus")
+                Label(localized("新增 RSS 订阅"), systemImage: "plus")
             }
 
             Button {
                 onAddFolder()
             } label: {
-                Label(localized("新增資料夾"), systemImage: "folder.badge.plus")
+                Label(localized("新增资料夹"), systemImage: "folder.badge.plus")
             }
 
             Divider()
@@ -1015,13 +1015,13 @@ private struct RSSHomeAddMenu: View {
             Button {
                 onImportOPML()
             } label: {
-                Label(localized("匯入 OPML"), systemImage: "square.and.arrow.down")
+                Label(localized("汇入 OPML"), systemImage: "square.and.arrow.down")
             }
 
             Button {
                 onImportJSON()
             } label: {
-                Label(localized("匯入 Legado JSON"), systemImage: "doc.badge.plus")
+                Label(localized("汇入 Legado JSON"), systemImage: "doc.badge.plus")
             }
 
             Divider()
@@ -1029,13 +1029,13 @@ private struct RSSHomeAddMenu: View {
             Button {
                 onRefresh()
             } label: {
-                Label(localized("刷新全部訂閱"), systemImage: "arrow.clockwise")
+                Label(localized("刷新全部订阅"), systemImage: "arrow.clockwise")
             }
             .disabled(isRefreshingAll || !hasSources)
         } label: {
             Image(systemName: "plus")
         }
-        .accessibilityLabel(localized("新增或匯入"))
+        .accessibilityLabel(localized("新增或汇入"))
     }
 }
 
@@ -1055,7 +1055,7 @@ private struct RSSHomeTopMenu: View {
             Button {
                 onMarkAllRead()
             } label: {
-                Label(localized("標記全部已讀"), systemImage: "checkmark.circle")
+                Label(localized("标记全部已读"), systemImage: "checkmark.circle")
             }
             .disabled(!hasUnreadArticles)
 
@@ -1063,7 +1063,7 @@ private struct RSSHomeTopMenu: View {
                 onToggleHideRead()
             } label: {
                 Label(
-                    hideReadFeeds ? localized("顯示已讀訂閱") : localized("隱藏已讀訂閱"),
+                    hideReadFeeds ? localized("显示已读订阅") : localized("隐藏已读订阅"),
                     systemImage: hideReadFeeds ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle"
                 )
             }
@@ -1071,7 +1071,7 @@ private struct RSSHomeTopMenu: View {
             Button {
                 onOrganize()
             } label: {
-                Label(localized("整理訂閱"), systemImage: "arrow.up.arrow.down")
+                Label(localized("整理订阅"), systemImage: "arrow.up.arrow.down")
             }
             .disabled(!hasSources)
 
@@ -1080,14 +1080,14 @@ private struct RSSHomeTopMenu: View {
             Button {
                 onExportOPML()
             } label: {
-                Label(localized("匯出 OPML"), systemImage: "square.and.arrow.up")
+                Label(localized("汇出 OPML"), systemImage: "square.and.arrow.up")
             }
             .disabled(!hasSources)
 
             Button {
                 onExportJSON()
             } label: {
-                Label(localized("匯出 Legado JSON"), systemImage: "doc.badge.arrow.up")
+                Label(localized("汇出 Legado JSON"), systemImage: "doc.badge.arrow.up")
             }
             .disabled(!hasSources)
 
@@ -1096,7 +1096,7 @@ private struct RSSHomeTopMenu: View {
             Button {
                 onSettings()
             } label: {
-                Label(localized("設定"), systemImage: "gearshape")
+                Label(localized("设置"), systemImage: "gearshape")
             }
         } label: {
             Image(systemName: "ellipsis")
@@ -1152,7 +1152,7 @@ struct RSSOPMLImportSheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section(header: Text(localized("OPML 網址")).foregroundStyle(DSColor.textSecondary)) {
+                Section(header: Text(localized("OPML 网址")).foregroundStyle(DSColor.textSecondary)) {
                     TextField("https://example.com/subscriptions.opml", text: $urlString)
                         .keyboardType(.URL)
                         .textInputAutocapitalization(.never)
@@ -1161,24 +1161,24 @@ struct RSSOPMLImportSheet: View {
                     Button {
                         Task { await importFromURL() }
                     } label: {
-                        Label(localized("從網址匯入 OPML"), systemImage: "link.badge.plus")
+                        Label(localized("从网址汇入 OPML"), systemImage: "link.badge.plus")
                     }
                     .disabled(urlString.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isLoading)
                 }
                 .interfaceSectionSurface()
 
-                Section(header: Text(localized("本機文件")).foregroundStyle(DSColor.textSecondary)) {
+                Section(header: Text(localized("本机文件")).foregroundStyle(DSColor.textSecondary)) {
                     Button {
                         showFileImporter = true
                     } label: {
-                        Label(localized("選取 OPML 文件"), systemImage: "doc.badge.plus")
+                        Label(localized("选取 OPML 文件"), systemImage: "doc.badge.plus")
                     }
                 }
                 .interfaceSectionSurface()
 
             }
             .softScrollEdges()
-                .navigationTitle(localized("匯入 OPML"))
+                .navigationTitle(localized("汇入 OPML"))
                 .toolbarTitleDisplayMode(.inline)
                 .themedAppSurface(for: .rss)
                 .toolbar {
@@ -1186,20 +1186,20 @@ struct RSSOPMLImportSheet: View {
                         Button {
                             isPresented = false
                         } label: {
-                            Label(localized("關閉"), systemImage: "xmark")
+                            Label(localized("关闭"), systemImage: "xmark")
                                 .labelStyle(.iconOnly)
                         }
                     }
                 }
-                .alert(localized("匯入 OPML"), isPresented: $showMessage) {
-                    Button(localized("確定"), role: .cancel) {}
+                .alert(localized("汇入 OPML"), isPresented: $showMessage) {
+                    Button(localized("确定"), role: .cancel) {}
                 } message: {
                     Text(message)
                 }
             .disabled(isLoading)
             .overlay {
                 if isLoading {
-                    ProgressView(localized("匯入中，請稍候…"))
+                    ProgressView(localized("汇入中，请稍候…"))
                         .padding()
                         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
                 }
@@ -1220,7 +1220,7 @@ struct RSSOPMLImportSheet: View {
         guard let url = URL(string: trimmed),
               let scheme = url.scheme?.lowercased(),
               ["http", "https"].contains(scheme) else {
-            message = "❌ \(localized("RSS URL 無效"))"
+            message = "❌ \(localized("RSS URL 无效"))"
             showMessage = true
             return
         }
@@ -1237,7 +1237,7 @@ struct RSSOPMLImportSheet: View {
 
             onDataImport(data)
         } catch {
-            message = "❌ \(String(format: localized("OPML 匯入失敗：%@"), error.localizedDescription))"
+            message = "❌ \(String(format: localized("OPML 汇入失败：%@"), error.localizedDescription))"
             showMessage = true
         }
     }
@@ -1442,7 +1442,7 @@ struct ImportLegadoJSONURLSheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section(header: Text(localized("Legado JSON 網址")).foregroundStyle(DSColor.textSecondary)) {
+                Section(header: Text(localized("Legado JSON 网址")).foregroundStyle(DSColor.textSecondary)) {
                     TextField("https://.../sources/xxx.json", text: $urlString)
                         .keyboardType(.URL)
                         .autocapitalization(.none)
@@ -1452,7 +1452,7 @@ struct ImportLegadoJSONURLSheet: View {
 
             }
             .softScrollEdges()
-            .navigationTitle(localized("從網址匯入 Legado JSON"))
+            .navigationTitle(localized("从网址汇入 Legado JSON"))
             .toolbarTitleDisplayMode(.inline)
             .themedAppSurface(for: .rss)
             .toolbar {
@@ -1468,14 +1468,14 @@ struct ImportLegadoJSONURLSheet: View {
                     Button {
                         Task { await importFromURL() }
                     } label: {
-                        Label(localized("匯入"), systemImage: "checkmark")
+                        Label(localized("汇入"), systemImage: "checkmark")
                             .labelStyle(.iconOnly)
                     }
                     .disabled(urlString.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isLoading)
                 }
             }
-            .alert(localized("匯入"), isPresented: $showMessage) {
-                Button(localized("確定"), role: .cancel) {
+            .alert(localized("汇入"), isPresented: $showMessage) {
+                Button(localized("确定"), role: .cancel) {
                     if !message.hasPrefix("❌") { isPresented = false }
                 }
             } message: {
@@ -1484,7 +1484,7 @@ struct ImportLegadoJSONURLSheet: View {
             .disabled(isLoading)
             .overlay {
                 if isLoading {
-                    ProgressView(localized("匯入中，請稍候…"))
+                    ProgressView(localized("汇入中，请稍候…"))
                         .padding()
                         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
                 }
@@ -1496,7 +1496,7 @@ struct ImportLegadoJSONURLSheet: View {
     private func importFromURL() async {
         let trimmed = urlString.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty, let url = URL(string: trimmed) else {
-            message = "❌ \(localized("RSS URL 無效"))"
+            message = "❌ \(localized("RSS URL 无效"))"
             showMessage = true
             return
         }
@@ -1508,10 +1508,10 @@ struct ImportLegadoJSONURLSheet: View {
             let (data, _) = try await URLSession.shared.data(from: url)
             let sources = try LegadoSourceJSONParser.parse(data: data)
             let addedCount = store.addSources(sources)
-            message = String(format: localized("已匯入 %d 個訂閱源"), addedCount)
+            message = String(format: localized("已汇入 %d 个订阅源"), addedCount)
             showMessage = true
         } catch {
-            message = "❌ \(String(format: localized("Legado JSON 匯入失敗：%@"), error.localizedDescription))"
+            message = "❌ \(String(format: localized("Legado JSON 汇入失败：%@"), error.localizedDescription))"
             showMessage = true
         }
     }
@@ -1535,20 +1535,20 @@ struct AddRSSSourceSheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section(header: Text(localized("來源名稱（選填）")).foregroundStyle(DSColor.textSecondary)) {
-                    TextField(localized("留空將自動從 RSS 抓取"), text: $name)
+                Section(header: Text(localized("来源名称（选填）")).foregroundStyle(DSColor.textSecondary)) {
+                    TextField(localized("留空将自动从 RSS 抓取"), text: $name)
                 }
                 .interfaceSectionSurface()
-                Section(header: Text(localized("RSS 網址")).foregroundStyle(DSColor.textSecondary)) {
+                Section(header: Text(localized("RSS 网址")).foregroundStyle(DSColor.textSecondary)) {
                     TextField("https://", text: $url)
                         .keyboardType(.URL)
                         .autocapitalization(.none)
                         .disableAutocorrection(true)
                 }
                 .interfaceSectionSurface()
-                Section(header: Text(localized("資料夾")).foregroundStyle(DSColor.textSecondary)) {
-                    Picker(localized("資料夾"), selection: $selectedFolderID) {
-                        Text(localized("無資料夾")).tag(Self.rootFolderID)
+                Section(header: Text(localized("资料夹")).foregroundStyle(DSColor.textSecondary)) {
+                    Picker(localized("资料夹"), selection: $selectedFolderID) {
+                        Text(localized("无资料夹")).tag(Self.rootFolderID)
                         ForEach(folders) { folder in
                             Text(folder.name).tag(folder.id)
                         }
@@ -1557,7 +1557,7 @@ struct AddRSSSourceSheet: View {
                 .interfaceSectionSurface()
             }
             .softScrollEdges()
-            .navigationTitle(localized("新增 RSS 訂閱"))
+            .navigationTitle(localized("新增 RSS 订阅"))
             .toolbarTitleDisplayMode(.inline)
             .themedAppSurface(for: .rss)
             .toolbar {
@@ -1573,7 +1573,7 @@ struct AddRSSSourceSheet: View {
                     Button {
                         Task { await addSource() }
                     } label: {
-                        Label(localized("動作：新增"), systemImage: "checkmark")
+                        Label(localized("动作：新增"), systemImage: "checkmark")
                             .labelStyle(.iconOnly)
                     }
                     .disabled(url.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isLoading)
@@ -1581,7 +1581,7 @@ struct AddRSSSourceSheet: View {
             }
             .overlay {
                 if isLoading {
-                    ProgressView(localized("正在抓取 RSS 資訊…"))
+                    ProgressView(localized("正在抓取 RSS 资讯…"))
                         .padding()
                         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
                 }
@@ -1652,13 +1652,13 @@ struct AddRSSFolderSheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section(header: Text(localized("資料夾名稱")).foregroundStyle(DSColor.textSecondary)) {
-                    TextField(localized("資料夾名稱"), text: $name)
+                Section(header: Text(localized("资料夹名称")).foregroundStyle(DSColor.textSecondary)) {
+                    TextField(localized("资料夹名称"), text: $name)
                 }
                 .interfaceSectionSurface()
             }
             .softScrollEdges()
-            .navigationTitle(localized("新增資料夾"))
+            .navigationTitle(localized("新增资料夹"))
             .toolbarTitleDisplayMode(.inline)
             .themedAppSurface(for: .rss)
             .toolbar {
@@ -1674,7 +1674,7 @@ struct AddRSSFolderSheet: View {
                     Button {
                         addFolder()
                     } label: {
-                        Label(localized("動作：新增"), systemImage: "checkmark")
+                        Label(localized("动作：新增"), systemImage: "checkmark")
                             .labelStyle(.iconOnly)
                     }
                     .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
@@ -1705,8 +1705,8 @@ struct RenameRSSFolderSheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section(header: Text(localized("資料夾名稱")).foregroundStyle(DSColor.textSecondary)) {
-                    TextField(localized("資料夾名稱"), text: $name)
+                Section(header: Text(localized("资料夹名称")).foregroundStyle(DSColor.textSecondary)) {
+                    TextField(localized("资料夹名称"), text: $name)
                 }
                 .interfaceSectionSurface()
             }
@@ -1730,7 +1730,7 @@ struct RenameRSSFolderSheet: View {
                         store.updateFolder(updated)
                         dismiss()
                     } label: {
-                        Label(localized("儲存"), systemImage: "checkmark")
+                        Label(localized("储存"), systemImage: "checkmark")
                             .labelStyle(.iconOnly)
                     }
                     .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
@@ -1752,17 +1752,17 @@ private struct RSSSourceInfoSheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section(header: Text(localized("基本資訊")).foregroundStyle(DSColor.textSecondary)) {
-                    ThemedLabeledContent(localized("來源名稱"), value: currentSource.name)
-                    ThemedLabeledContent(localized("RSS 網址"), value: currentSource.url)
+                Section(header: Text(localized("基本资讯")).foregroundStyle(DSColor.textSecondary)) {
+                    ThemedLabeledContent(localized("来源名称"), value: currentSource.name)
+                    ThemedLabeledContent(localized("RSS 网址"), value: currentSource.url)
                     if let homepageURL = currentSource.homepageURL, !homepageURL.isEmpty {
-                        ThemedLabeledContent(localized("首頁"), value: homepageURL)
+                        ThemedLabeledContent(localized("首页"), value: homepageURL)
                     }
                     if let faviconURL = currentSource.displayFaviconURL, !faviconURL.isEmpty {
-                        ThemedLabeledContent(localized("圖示"), value: faviconURL)
+                        ThemedLabeledContent(localized("图示"), value: faviconURL)
                     }
                     if let group = currentSource.sourceGroup, !group.isEmpty {
-                        ThemedLabeledContent(localized("資料夾"), value: group)
+                        ThemedLabeledContent(localized("资料夹"), value: group)
                     }
                 }
                 .interfaceSectionSurface()
@@ -1771,7 +1771,7 @@ private struct RSSSourceInfoSheet: View {
                     Button {
                         UIPasteboard.general.string = currentSource.url
                     } label: {
-                        Label(localized("複製訂閱 URL"), systemImage: "doc.on.doc")
+                        Label(localized("复制订阅 URL"), systemImage: "doc.on.doc")
                     }
 
                     if let url = currentSource.homepageLinkRoute?.url {
@@ -1780,14 +1780,14 @@ private struct RSSSourceInfoSheet: View {
                                 if !accepted { RSSLinkRoute.logUnhandled(url) }
                             }
                         } label: {
-                            Label(localized("開啟首頁"), systemImage: "safari")
+                            Label(localized("开启首页"), systemImage: "safari")
                         }
                     }
                 }
                 .interfaceSectionSurface()
             }
             .softScrollEdges()
-            .navigationTitle(localized("取得資訊"))
+            .navigationTitle(localized("取得资讯"))
             .toolbarTitleDisplayMode(.inline)
             .themedAppSurface(for: .rss)
             .toolbar {

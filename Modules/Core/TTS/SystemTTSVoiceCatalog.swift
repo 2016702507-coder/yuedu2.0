@@ -69,9 +69,9 @@ enum SystemTTSVoiceCatalog {
     /// 預設 / 增強 / 優質 — the label the user sees in iOS's own voice list.
     static func qualityLabel(for voice: AVSpeechSynthesisVoice) -> String {
         switch voice.quality {
-        case .enhanced: return localized("增強")
-        case .premium: return localized("優質")
-        default: return localized("預設")
+        case .enhanced: return localized("增强")
+        case .premium: return localized("优质")
+        default: return localized("预设")
         }
     }
 
@@ -102,7 +102,7 @@ enum SystemTTSVoiceCatalog {
                 || language.contains("hk")
                 || language.contains("mo")
             return isTraditional
-                ? "這是一段試聽文字，用來確認語音音色。"
+                ? "这是一段试听文字，用来确认语音音色。"
                 : "这是一段试听文字，用来确认语音音色。"
         }
         return sampleTextsByBaseLanguage[baseLanguage(language)]

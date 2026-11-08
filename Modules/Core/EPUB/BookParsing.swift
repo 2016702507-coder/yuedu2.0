@@ -45,7 +45,7 @@ enum BookParserRegistryError: LocalizedError, DiagnosableError {
     var errorDescription: String? {
         switch self {
         case .unsupportedFormat:
-            return localized("不支援這種檔案格式")
+            return localized("不支援这种档案格式")
         }
     }
 

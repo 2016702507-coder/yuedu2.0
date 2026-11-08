@@ -13,11 +13,11 @@ struct BookOpenFailure: Equatable {
             // Already written for readers, in every language.
             message = remote.localizedDescription
         } else if case .fileNotFound? = error as? PublicationSessionError {
-            message = localized("找不到這本書的檔案。")
+            message = localized("找不到这本书的档案。")
         } else {
             // Readium's reasons, such as an archive with no central directory, all come to
             // this for the reader.
-            message = localized("檔案可能已損毀，或不是支援的 EPUB 格式。")
+            message = localized("档案可能已损毁，或不是支援的 EPUB 格式。")
         }
     }
 }

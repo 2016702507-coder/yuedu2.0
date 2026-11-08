@@ -1,9 +1,9 @@
 import SwiftUI
 
-/// 開始閱讀 on a 青空文庫 work that is not on the shelf yet: the reader opens at once and the
-/// work is downloaded and converted under the reader's own 載入中… (`ReaderPreparingView`), as
-/// a library book's copy is prepared in `BookReaderView`. Until 2026-10-12 作品詳情 waited on the import itself,
-/// with 正在開啟書籍 and 取消 under its hero (maintainer: that wait belongs to the reader).
+/// 开始阅读 on a 青空文库 work that is not on the shelf yet: the reader opens at once and the
+/// work is downloaded and converted under the reader's own 载入中… (`ReaderPreparingView`), as
+/// a library book's copy is prepared in `BookReaderView`. Until 2026-10-12 作品详情 waited on the import itself,
+/// with 正在开启书籍 and 取消 under its hero (maintainer: that wait belongs to the reader).
 /// Closing while it runs cancels the import.
 struct AozoraReaderEntry: View {
     let work: AozoraWork
@@ -43,7 +43,7 @@ struct AozoraReaderEntry: View {
     }
 }
 
-#Preview("青空文庫 · opening") {
+#Preview("青空文库 · opening") {
     NavigationStack {
         AozoraReaderEntry(work: AozoraCatalogIndex.preview.newWorks[0])
     }

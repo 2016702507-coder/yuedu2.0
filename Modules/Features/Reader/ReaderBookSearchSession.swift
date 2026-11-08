@@ -1,7 +1,7 @@
 import Foundation
 import Observation
 
-/// 全書搜尋 for the open book: the last search and its results, kept while the book is open
+/// 全书搜寻 for the open book: the last search and its results, kept while the book is open
 /// so reopening the sheet shows them again, and the hit the reader is stepping through.
 ///
 /// Reads each chapter from the device only (`localChapterText`): an online chapter that is
@@ -18,14 +18,14 @@ final class ReaderBookSearchSession {
 
     struct Options: Equatable {
         var isRegex = false
-        /// On: search the text as the reader shows it, after 替換規則. Off: the source's own
+        /// On: search the text as the reader shows it, after 替换规则. Off: the source's own
         /// text, to find words a rule removed or changed.
         var appliesReplaceRules = true
     }
 
     /// What the results were found in. A different one means they no longer match the page.
     struct ContentSignature: Equatable {
-        /// The book, its source and its chapters — 換源 changes it.
+        /// The book, its source and its chapters — 换源 changes it.
         let source: ReaderAISourceIdentity
         let conversion: TextConversion
         let rulesRevision: Int
@@ -123,7 +123,7 @@ final class ReaderBookSearchSession {
             return nil
         }
         phase = .searching
-        // The text is searched as converted to the reader's 繁簡 setting, so the words are
+        // The text is searched as converted to the reader's 繁简 setting, so the words are
         // too: what was typed in one script still finds the other.
         let searchQuery = ReaderBookSearchQuery(text: trimmed.converted(to: signature.conversion),
                                                 isRegex: options.isRegex)
@@ -271,7 +271,7 @@ final class ReaderBookSearchSession {
         }
         publish()
         if failed > 0 || unsupported > 0 {
-            AppLogger.parse("全書搜尋 skipped chapters: extractionFailed=\(failed) unsupported=\(unsupported) of \(chapterTitles.count)")
+            AppLogger.parse("全书搜寻 skipped chapters: extractionFailed=\(failed) unsupported=\(unsupported) of \(chapterTitles.count)")
         }
         SourcePerfTrace.record(
             "ReaderSearch.book",

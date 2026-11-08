@@ -1,15 +1,15 @@
 import Foundation
 
-/// The 2026-10-25 layouts for a saved 預設 (maintainer, 2026-10-26;
-/// `Technotes/AppleBooksHomeLayouts-2026-10-25.md` §8). New installs and 預設配置 have them from
-/// `HomePageDefaults`; this gives them to a 預設 made before.
+/// The 2026-10-25 layouts for a saved 预设 (maintainer, 2026-10-26;
+/// `Technotes/AppleBooksHomeLayouts-2026-10-25.md` §8). New installs and 预设配置 have them from
+/// `HomePageDefaults`; this gives them to a 预设 made before.
 ///
-/// A saved 預設 holds no mark of whether the reader changed it, nor of whom it was made for, so
+/// A saved 预设 holds no mark of whether the reader changed it, nor of whom it was made for, so
 /// it is recognised by what it holds:
 /// - Its sections, in order, are those `previousDefaults` makes for some mode, region and
-///   reading languages: the defaults from 2026-10-13 (a338bbea, 精選書單 one section) to
-///   2026-10-25 (c4cd251e), without 為你推薦, which `HomePageStore` takes off first (deleted
-///   2026-10-27). An older 預設, or one with a section added, removed or moved, is left as it is.
+///   reading languages: the defaults from 2026-10-13 (a338bbea, 精选书单 one section) to
+///   2026-10-25 (c4cd251e), without 为你推荐, which `HomePageStore` takes off first (deleted
+///   2026-10-27). An older 预设, or one with a section added, removed or moved, is left as it is.
 /// - A section still as those defaults made it takes the layout today's defaults give its
 ///   binding. One the reader hid, titled, gave a subtitle or parameters, or drew another way
 ///   keeps what it has.
@@ -17,10 +17,10 @@ import Foundation
 /// - One band on the page: the first untouched list with covers takes it, unless the reader
 ///   has one already.
 ///
-/// `HomePageStore` runs it once, on 預設 only: the reader's own 首頁配置, those made from 預設配置
+/// `HomePageStore` runs it once, on 预设 only: the reader's own 首页配置, those made from 预设配置
 /// included, are theirs.
 enum HomeDefaultsRhythmMigration {
-    /// What became of a 預設 that was recognised.
+    /// What became of a 预设 that was recognised.
     struct Outcome: Equatable {
         var sections: [HomeSection]
         /// Sections drawn a new way.
@@ -86,8 +86,8 @@ enum HomeDefaultsRhythmMigration {
     }()
 
     /// `HomePageDefaults.page` from 2026-10-13 to 2026-10-25, frozen so it still recognises
-    /// those homes when the defaults change again: 古騰堡熱門 a plain row, 精選書單 專題集合, the
-    /// rankings 圖文資訊清單 with ranks, AniList's lists rows. Their 為你推薦, after 系列下一本, is
+    /// those homes when the defaults change again: 古腾堡热门 a plain row, 精选书单 专题集合, the
+    /// rankings 图文资讯清单 with ranks, AniList's lists rows. Their 为你推荐, after 系列下一本, is
     /// left out: it was deleted, and taken off the saved homes, on 2026-10-27.
     static func previousDefaults(for context: HomePageDefaults.Context, makeID: () -> UUID = UUID.init) -> [HomeSection] {
         typealias List = HomePageDefaults.ModuleList

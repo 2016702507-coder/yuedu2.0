@@ -60,11 +60,11 @@ struct CopyLookup {
 }
 
 extension CopyLookup.Status {
-    /// The existing strings: 已加入書架, 已下載.
+    /// The existing strings: 已加入书架, 已下载.
     var title: String {
         switch self {
-        case .onShelf: localized("已加入書架")
-        case .downloaded: localized("已下載")
+        case .onShelf: localized("已加入书架")
+        case .downloaded: localized("已下载")
         }
     }
 }

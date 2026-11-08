@@ -1,6 +1,6 @@
 import Foundation
 
-// Unified library 5g: 訂閱的最新文章, a section of App 資料 (Phase 5 plan, decision 26; design
+// Unified library 5g: 订阅的最新文章, a section of App 资料 (Phase 5 plan, decision 26; design
 // §13.8: RSS joins Explore's sections, but serves articles, never `Book`s). The RSS tab stays
 // where it is, with its badge; this only shows what it has already fetched.
 
@@ -39,14 +39,14 @@ struct SubscriptionArticle: Hashable, Sendable {
     }
 }
 
-/// Serves 訂閱的最新文章 from the articles the RSS tab has stored; it sends no request. Feeds
+/// Serves 订阅的最新文章 from the articles the RSS tab has stored; it sends no request. Feeds
 /// are fetched through `RSSFeedRefreshService`: by the RSS tab, its background refresh, and
 /// 探索's pull to refresh when the home shows this section (decision 29).
 ///
-/// Its key is App 資料's own place on this device (`.library`), not a `ProviderType` of its own:
-/// `SourceInstanceKey` is written into files older builds read (書庫順序, 顯示在最新, the work
+/// Its key is App 资料's own place on this device (`.library`), not a `ProviderType` of its own:
+/// `SourceInstanceKey` is written into files older builds read (书库顺序, 显示在最新, the work
 /// index), whose decoding fails on a type they do not know. It serves no 最新, so it is in
-/// none of them, and 範圍 (a library or a book source) leaves it out as it leaves out 繼續閱讀's
+/// none of them, and 范围 (a library or a book source) leaves it out as it leaves out 继续阅读's
 /// other places.
 @MainActor
 final class SubscriptionArticlesProvider: HomeSectionProviding {
@@ -59,7 +59,7 @@ final class SubscriptionArticlesProvider: HomeSectionProviding {
     }
 
     var instance: SourceInstanceKey { Self.instanceKey }
-    var displayName: String { localized("RSS 訂閱") }
+    var displayName: String { localized("RSS 订阅") }
     var availability: ProviderAvailability { .available }
     /// It reads the articles RSS has already fetched.
     var hosts: [String] { [] }
@@ -70,7 +70,7 @@ final class SubscriptionArticlesProvider: HomeSectionProviding {
     }
 
     /// The newest articles, in the RSS tab's order (`RSSStore.allArticles`, which its 今天,
-    /// 所有未讀 and 已加星號 filter). Read or not: the card says which.
+    /// 所有未读 and 已加星号 filter). Read or not: the card says which.
     func load(_ section: HomeSection) async throws -> [CollectionEntry] {
         guard case .subscriptionArticles = section.binding else { return [] }
         let names = Dictionary(store.sources.map { ($0.id, $0.name) }, uniquingKeysWith: { first, _ in first })

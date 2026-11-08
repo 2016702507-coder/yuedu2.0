@@ -13,37 +13,37 @@ enum CacheCategory: String, CaseIterable, Identifiable, Sendable {
 
     var titleKey: String {
         switch self {
-        case .chapters: return "章節快取"
-        case .ttsAudio: return "聽書音頻快取"
-        case .mangaImages: return "漫畫圖片快取"
+        case .chapters: return "章节快取"
+        case .ttsAudio: return "听书音频快取"
+        case .mangaImages: return "漫画图片快取"
         case .video: return "影片快取"
-        case .covers: return "封面圖片快取"
-        case .diagnostics: return "診斷紀錄"
-        case .remoteBooks: return "遠端書籍快取"
+        case .covers: return "封面图片快取"
+        case .diagnostics: return "诊断纪录"
+        case .remoteBooks: return "远端书籍快取"
         }
     }
 
     var clearTitleKey: String {
         switch self {
-        case .chapters: return "清除章節快取"
-        case .ttsAudio: return "清除音頻快取"
-        case .mangaImages: return "清除漫畫快取"
+        case .chapters: return "清除章节快取"
+        case .ttsAudio: return "清除音频快取"
+        case .mangaImages: return "清除漫画快取"
         case .video: return "清除影片快取"
         case .covers: return "清除封面快取"
-        case .diagnostics: return "清除診斷紀錄"
-        case .remoteBooks: return "清除遠端書籍快取"
+        case .diagnostics: return "清除诊断纪录"
+        case .remoteBooks: return "清除远端书籍快取"
         }
     }
 
     var detailKey: String {
         switch self {
-        case .chapters: return "小說正文內容的離線快取"
-        case .ttsAudio: return "TTS 合成的音頻文件快取"
-        case .mangaImages: return "漫畫頁面圖片的離線快取"
-        case .video: return "影片選集縮圖等影片相關快取"
-        case .covers: return "書籍封面圖片的快取"
-        case .diagnostics: return "設定 → 回饋中心 → 診斷紀錄 顯示的日誌與崩潰記錄"
-        case .remoteBooks: return "線上閱讀暫存；清除時保留正在閱讀的內容、進度與離線副本"
+        case .chapters: return "小说正文内容的离线快取"
+        case .ttsAudio: return "TTS 合成的音频文件快取"
+        case .mangaImages: return "漫画页面图片的离线快取"
+        case .video: return "影片选集缩图等影片相关快取"
+        case .covers: return "书籍封面图片的快取"
+        case .diagnostics: return "设置 → 回馈中心 → 诊断纪录 显示的日志与崩溃记录"
+        case .remoteBooks: return "线上阅读暂存；清除时保留正在阅读的内容、进度与离线副本"
         }
     }
 
@@ -68,7 +68,7 @@ struct CacheStorageRoots: Equatable, Sendable {
     var videoStills: URL
     var covers: URL
     /// Network covers saved behind the pipeline's memory. Counted and cleared with
-    /// `covers`: to the user both are 封面圖片快取.
+    /// `covers`: to the user both are 封面图片快取.
     var networkCovers: URL
     var diagnostics: URL
     var remoteBooks: URL
@@ -189,7 +189,7 @@ final class CacheManagementService: @unchecked Sendable {
     /// Told when the downloaded-cover directory is emptied, so no screen keeps
     /// drawing a deleted cover and no load already reading one can put it back.
     private let coverPipeline: CoverImagePipeline
-    /// Told once the stills directory is emptied, so 選集 cards stop drawing the bitmaps
+    /// Told once the stills directory is emptied, so 选集 cards stop drawing the bitmaps
     /// they hold and take their stills again. A closure because the owner
     /// (`VideoEpisodeStills`) is main-actor isolated and tests have no player.
     private let videoStillsCleared: @Sendable () -> Void

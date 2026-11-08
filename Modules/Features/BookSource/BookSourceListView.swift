@@ -13,7 +13,7 @@ struct BookSourceListView: View {
     @StateObject private var model: BookSourceManagementModel
     @Bindable private var gs = GlobalSettings.shared
     @State private var editingSource: BookSource? = nil
-    /// 新增來源配置: the 「+」, the empty state's import and 粘貼源 (`BookSourceAddFlow`).
+    /// 新增来源配置: the 「+」, the empty state's import and 粘贴源 (`BookSourceAddFlow`).
     @StateObject private var addFlow: BookSourceAddFlow
     /// This screen's own outcomes (grouping, copying, deleting); the add flow shows its own.
     @State private var importError: String? = nil
@@ -24,32 +24,32 @@ struct BookSourceListView: View {
     @State private var showDeleteConfirm = false
     @State private var showMoreMenu = false
     @State private var showSourceCheck = false
-    /// The sources a 書源驗證 options sheet was opened for, frozen when it was opened and
+    /// The sources a 书源验证 options sheet was opened for, frozen when it was opened and
     /// handed to the sheet as its item. The sheet used to read a separate `@State` array
     /// that `body` never read, so SwiftUI built the sheet from the previous render's
-    /// snapshot — the first time, an empty array: 「將對 0 個書源」 and a disabled 開始驗證.
+    /// snapshot — the first time, an empty array: 「将对 0 个书源」 and a disabled 开始验证.
     @State private var pendingCheck: PendingSourceCheck? = nil
-    /// Set by 開始驗證; the run starts once the options sheet has fully dismissed.
+    /// Set by 开始验证; the run starts once the options sheet has fully dismissed.
     @State private var confirmedCheck: ConfirmedSourceCheck? = nil
     @State private var showGroupByDomainConfirm = false
     // Shared instance so a check keeps running in the background after this screen is dismissed.
     @ObservedObject private var healthChecker: BookSourceHealthChecker
     @State private var checkToast: String? = nil
     @State private var showDisclaimer = false
-    /// Pending 重命名分組 / 移動到新分組 text entry, plus its draft name.
+    /// Pending 重命名分组 / 移动到新分组 text entry, plus its draft name.
     @State private var groupNaming: PendingGroupNaming? = nil
     @State private var groupNameText = ""
-    /// Group the 刪除該分組 confirmation is about to delete.
+    /// Group the 删除该分组 confirmation is about to delete.
     @State private var deletingGroup: PendingGroupAction? = nil
-    /// Pending 移動到分組 / 合併到其他分組 pick, shown as a searchable group list.
+    /// Pending 移动到分组 / 合并到其他分组 pick, shown as a searchable group list.
     @State private var groupPicking: PendingGroupPick? = nil
-    /// Source shown in the read-only 查看詳情 sheet.
+    /// Source shown in the read-only 查看详情 sheet.
     @State private var infoSource: BookSource? = nil
-    /// 匯出 payload waiting for this screen's first-level share sheet. Book-source
+    /// 汇出 payload waiting for this screen's first-level share sheet. Book-source
     /// management is pushed before iOS 18, so this sheet is a first-level
     /// presentation. See `MenuShareLinkPresentationPolicy`.
     @State private var pendingExport: PendingShareExport<BookSourceExportFile>? = nil
-    /// 會員卡密：來源配置管理（新增／匯入／編輯書源）需要激活。
+    /// 会员卡密：来源配置管理（新增／汇入／编辑书源）需要激活。
     @ObservedObject private var cardKeyMembership = CardKeyMembership.shared
 
     /// `store` and `healthChecker` are injectable so scale tests can drive a
@@ -66,7 +66,7 @@ struct BookSourceListView: View {
             wrappedValue: BookSourceManagementModel(store: store, healthChecker: healthChecker))
     }
 
-    /// What 書源驗證 runs on: the selection, or every enabled source when nothing is selected.
+    /// What 书源验证 runs on: the selection, or every enabled source when nothing is selected.
     private var checkSources: [BookSource] {
         let selected = model.selectedIDs
         if !selected.isEmpty {
@@ -95,7 +95,7 @@ struct BookSourceListView: View {
         let sourceIds: Set<UUID>
     }
 
-    /// A pending 移動到分組 / 合併到其他分組, frozen when its menu row was tapped so the sheet
+    /// A pending 移动到分组 / 合并到其他分组, frozen when its menu row was tapped so the sheet
     /// acts on exactly what the user saw — the live list can be re-grouped by the very edit
     /// being made (same contract as `PendingGroupAction`).
     private struct PendingGroupPick: Identifiable {
@@ -110,7 +110,7 @@ struct BookSourceListView: View {
         let allowsNewGroup: Bool
     }
 
-    /// A pending group-name entry — 重命名分組 for a whole group, or 移動到新分組 for one
+    /// A pending group-name entry — 重命名分组 for a whole group, or 移动到新分组 for one
     /// source. Both write the same field through `applyGroupName`, so they share one alert.
     private struct PendingGroupNaming: Identifiable {
         let id: String
@@ -133,8 +133,8 @@ struct BookSourceListView: View {
                 unlockedBody
             } else {
                 CardKeyLockedPrompt(
-                    title: localized("來源配置管理"),
-                    message: localized("新增、匯入與編輯書源需要尊享會員")
+                    title: localized("来源配置管理"),
+                    message: localized("新增、汇入与编辑书源需要尊享会员")
                 )
             }
         }
@@ -155,16 +155,16 @@ struct BookSourceListView: View {
                 }
             }
             .background(PageBackgroundView(scope: .settings).ignoresSafeArea())
-            .navigationTitle(localized("來源配置管理"))
+            .navigationTitle(localized("来源配置管理"))
             .toolbarTitleDisplayMode(.inline)
             .pageBackgroundToolbar(for: .settings)
-            // Configuration, pushed from 設定 and 資源庫: the tab bar steps aside
+            // Configuration, pushed from 设置 and 资源库: the tab bar steps aside
             // (maintainer, 2026-10-16). Everything it opens is a sheet.
             .hidesRootTabBar()
             .searchable(
                 text: $model.searchText,
                 placement: .navigationBarDrawer(displayMode: .always),
-                prompt: localized("搜索來源配置")
+                prompt: localized("搜索来源配置")
             )
             .toolbar {
                 ToolbarItemGroup(placement: .navigationBarTrailing) {
@@ -173,7 +173,7 @@ struct BookSourceListView: View {
                         Button {
                             enableAll()
                         } label: {
-                            Label(localized("全部啟用"), systemImage: "checkmark.circle")
+                            Label(localized("全部启用"), systemImage: "checkmark.circle")
                         }
                         Button {
                             disableAll()
@@ -184,8 +184,8 @@ struct BookSourceListView: View {
                         Menu {
                             if !model.selectedIDs.isEmpty {
                                 BookSourceExportShareLink(
-                                    label: localized("匯出選中"),
-                                    filenameLabel: localized("選中來源配置"),
+                                    label: localized("汇出选中"),
+                                    filenameLabel: localized("选中来源配置"),
                                     sources: { [model, store] in
                                         let selected = model.selectedIDs
                                         return store.sources.filter { selected.contains($0.id) }
@@ -194,8 +194,8 @@ struct BookSourceListView: View {
                                 )
                             }
                             BookSourceExportShareLink(
-                                label: localized("匯出全部"),
-                                filenameLabel: localized("全部來源配置"),
+                                label: localized("汇出全部"),
+                                filenameLabel: localized("全部来源配置"),
                                 sources: { [store] in store.sources },
                                 onHandoff: { pendingExport = $0 }
                             )
@@ -203,33 +203,33 @@ struct BookSourceListView: View {
                             Button {
                                 copySelectedToPasteboard()
                             } label: {
-                                Label(localized("複製選中到剪貼簿"), systemImage: "doc.on.doc")
+                                Label(localized("复制选中到剪贴簿"), systemImage: "doc.on.doc")
                             }
                             .disabled(model.selectedIDs.isEmpty)
                             Button {
                                 copyAllToPasteboard()
                             } label: {
-                                Label(localized("複製全部到剪貼簿"), systemImage: "doc.on.doc.fill")
+                                Label(localized("复制全部到剪贴簿"), systemImage: "doc.on.doc.fill")
                             }
                         } label: {
-                            Label(localized("匯出"), systemImage: "square.and.arrow.up")
+                            Label(localized("汇出"), systemImage: "square.and.arrow.up")
                         }
                         Divider()
                         Button {
                             presentCheckOptions()
                         } label: {
-                            Label(localized("來源配置驗證"), systemImage: "stethoscope")
+                            Label(localized("来源配置验证"), systemImage: "stethoscope")
                         }
                         Divider()
                         Button {
                             showGroupByDomainConfirm = true
                         } label: {
-                            Label(localized("按域名分組"), systemImage: "globe")
+                            Label(localized("按域名分组"), systemImage: "globe")
                         }
                         Button {
                             addFlow.pasteFromClipboard()
                         } label: {
-                            Label(localized("粘貼源"), systemImage: "doc.on.clipboard")
+                            Label(localized("粘贴源"), systemImage: "doc.on.clipboard")
                         }
                     } label: {
                         Image(systemName: "ellipsis")
@@ -275,7 +275,7 @@ struct BookSourceListView: View {
             .sheet(item: $variableEditingSource) { src in
                 AdaptiveSheetContainer(maxWidth: DSLayout.readablePanelWidth) {
                     RuntimeVariableEditorView(
-                        title: localized("設置源變量"),
+                        title: localized("设置源变量"),
                         comment: SourceVariableEditing.comment(source: src),
                         initialValue: SourceVariableEditing.currentValue(for: src)
                     ) { newValue in
@@ -301,53 +301,53 @@ struct BookSourceListView: View {
                 BookSourceCheckView(checker: healthChecker)
             }
             .alert(
-                localized("按域名分組"),
+                localized("按域名分组"),
                 isPresented: $showGroupByDomainConfirm
             ) {
                 Button(localized("取消"), role: .cancel) {}
-                Button(localized("確定")) {
+                Button(localized("确定")) {
                     let changed = store.groupByDomain()
                     importSuccess =
-                        String(format: localized("已按域名分組 %d 個來源配置"), changed)
+                        String(format: localized("已按域名分组 %d 个来源配置"), changed)
                 }
             } message: {
-                Text(localized("按域名分組將覆蓋現有分組，確定繼續？"))
+                Text(localized("按域名分组将覆盖现有分组，确定继续？"))
             }
-            .alert(localized("確認刪除"), isPresented: $showDeleteConfirm) {
+            .alert(localized("确认删除"), isPresented: $showDeleteConfirm) {
                 Button(localized("取消"), role: .cancel) {}
-                Button(localized("刪除"), role: .destructive) {
+                Button(localized("删除"), role: .destructive) {
                     deleteSelected()
                 }
             } message: {
                 Text(
                     String(
-                        format: localized("確定要刪除選中的 %d 個來源配置嗎？"),
+                        format: localized("确定要删除选中的 %d 个来源配置吗？"),
                         model.selectedIDs.count))
             }
             .alert(
-                groupNaming?.title ?? localized("分組名稱"),
+                groupNaming?.title ?? localized("分组名称"),
                 isPresented: Binding(
                     get: { groupNaming != nil },
                     set: { if !$0 { groupNaming = nil } }
                 )
             ) {
-                TextField(localized("分組名稱"), text: $groupNameText)
+                TextField(localized("分组名称"), text: $groupNameText)
                 Button(localized("取消"), role: .cancel) { groupNaming = nil }
-                Button(localized("確定")) { commitGroupNaming() }
+                Button(localized("确定")) { commitGroupNaming() }
             } message: {
                 if let pending = groupNaming {
                     Text(pending.subtitle)
                 }
             }
             .alert(
-                localized("刪除該分組"),
+                localized("删除该分组"),
                 isPresented: Binding(
                     get: { deletingGroup != nil },
                     set: { if !$0 { deletingGroup = nil } }
                 )
             ) {
                 Button(localized("取消"), role: .cancel) { deletingGroup = nil }
-                Button(localized("刪除"), role: .destructive) {
+                Button(localized("删除"), role: .destructive) {
                     if let pending = deletingGroup { deleteGroup(pending) }
                     deletingGroup = nil
                 }
@@ -355,7 +355,7 @@ struct BookSourceListView: View {
                 if let pending = deletingGroup {
                     Text(
                         String(
-                            format: localized("確定要刪除分組「%1$@」及其中的 %2$d 個來源配置嗎？"),
+                            format: localized("确定要删除分组「%1$@」及其中的 %2$d 个来源配置吗？"),
                             pending.name, pending.sourceIds.count))
                 }
             }
@@ -372,7 +372,7 @@ struct BookSourceListView: View {
                     }
                 )
             ) {
-                Button(localized("確定"), role: .cancel) {}
+                Button(localized("确定"), role: .cancel) {}
             } message: {
                 Text(importError ?? importSuccess ?? checkToast ?? "")
             }
@@ -384,7 +384,7 @@ struct BookSourceListView: View {
                     if healthChecker.isRunning {
                         HStack(spacing: DSSpacing.sm) {
                             ProgressView().scaleEffect(0.8)
-                            Text(localized("驗證中…"))
+                            Text(localized("验证中…"))
                                 .font(DSFont.caption)
                                 .foregroundStyle(DSColor.textOnAccent)
                         }
@@ -433,7 +433,7 @@ struct BookSourceListView: View {
                 return false
             },
             usesSystemMargins: { $0 == .header },
-            // Every row wears the 毛玻璃／分組卡片／透明度 surface across the whole cell, like
+            // Every row wears the 毛玻璃／分组卡片／透明度 surface across the whole cell, like
             // a `List` row's `interfaceSectionSurface()`. The header stays clear: its stats
             // card and page buttons paint their own.
             drawsCellSurface: { $0 != .header }
@@ -520,28 +520,28 @@ struct BookSourceListView: View {
     // MARK: - Group Operations
 
     private func beginRenamingGroup(_ group: BookSourceRowGroup) {
-        // 默認分組 is a display-only label for sources with no group, so the field starts
+        // 默认分组 is a display-only label for sources with no group, so the field starts
         // empty rather than pre-filled with a name that was never stored.
         groupNameText = group.name == defaultGroupName ? "" : group.name
         groupNaming = PendingGroupNaming(
             id: group.id,
-            title: localized("重命名分組"),
+            title: localized("重命名分组"),
             subtitle: String(
-                format: localized("%1$@ · %2$d 個來源配置"), group.name, group.sourceIDs.count),
+                format: localized("%1$@ · %2$d 个来源配置"), group.name, group.sourceIDs.count),
             sourceIds: group.sourceIds,
             currentName: group.name
         )
     }
 
-    /// 移動到分組 ▸ 新增分組… — typing an existing group's name merges the source into it,
+    /// 移动到分组 ▸ 新增分组… — typing an existing group's name merges the source into it,
     /// so this doubles as "move somewhere not in the list".
     private func beginMovingToNewGroup(_ source: BookSource) {
         groupNameText = ""
         groupNaming = PendingGroupNaming(
             id: source.id.uuidString,
-            title: localized("移動到新分組"),
+            title: localized("移动到新分组"),
             subtitle: source.bookSourceName.isEmpty
-                ? localized("未命名來源配置") : source.bookSourceName,
+                ? localized("未命名来源配置") : source.bookSourceName,
             sourceIds: [source.id],
             currentName: source.bookSourceGroup
         )
@@ -555,31 +555,31 @@ struct BookSourceListView: View {
         applyGroupName(trimmed, to: pending.sourceIds)
     }
 
-    /// 移動到分組 for one source — opens the searchable group list.
+    /// 移动到分组 for one source — opens the searchable group list.
     private func beginPickingGroup(for source: BookSource) {
         let current = source.bookSourceGroup.trimmingCharacters(in: .whitespacesAndNewlines)
         groupPicking = PendingGroupPick(
             id: source.id.uuidString,
-            title: localized("移動到分組"),
+            title: localized("移动到分组"),
             subtitle: source.bookSourceName.isEmpty
-                ? localized("未命名來源配置") : source.bookSourceName,
+                ? localized("未命名来源配置") : source.bookSourceName,
             sourceIds: [source.id],
             candidates: groupCandidates(excluding: current),
             excluded: current,
             // Only a source that has a group can leave it.
-            defaultGroupTitle: current.isEmpty ? nil : localized("移出分組"),
+            defaultGroupTitle: current.isEmpty ? nil : localized("移出分组"),
             allowsNewGroup: true
         )
     }
 
-    /// 合併到其他分組 for a whole group — the same sheet, minus 新增分組 (重命名分組 covers
+    /// 合并到其他分组 for a whole group — the same sheet, minus 新增分组 (重命名分组 covers
     /// moving a group to a name that doesn't exist yet).
     private func beginPickingMergeTarget(for group: BookSourceRowGroup) {
         groupPicking = PendingGroupPick(
             id: group.id,
-            title: localized("合併到其他分組"),
+            title: localized("合并到其他分组"),
             subtitle: String(
-                format: localized("%1$@ · %2$d 個來源配置"), group.name, group.sourceIDs.count),
+                format: localized("%1$@ · %2$d 个来源配置"), group.name, group.sourceIDs.count),
             sourceIds: group.sourceIds,
             candidates: groupCandidates(excluding: group.name),
             excluded: group.name,
@@ -594,7 +594,7 @@ struct BookSourceListView: View {
         }
     }
 
-    /// Single write path for 重命名分組 and 合併到其他分組. The built-in default group has no
+    /// Single write path for 重命名分组 and 合并到其他分组. The built-in default group has no
     /// stored name, so landing there means clearing `bookSourceGroup`.
     private func applyGroupName(_ name: String, to ids: Set<UUID>) {
         model.animateNextLibraryChange()
@@ -605,7 +605,7 @@ struct BookSourceListView: View {
         let json = store.exportToJSON(ids: group.sourceIDs)
         UIPasteboard.general.string = json
         importSuccess = String(
-            format: localized("已複製 %d 個來源配置到剪貼簿"), group.sourceIDs.count)
+            format: localized("已复制 %d 个来源配置到剪贴簿"), group.sourceIDs.count)
     }
 
     private func deleteGroup(_ pending: PendingGroupAction) {
@@ -617,8 +617,8 @@ struct BookSourceListView: View {
 
     // MARK: - Bottom Toolbar
 
-    /// 全選 (本頁已選/本頁總數): every count and action here is scoped to the current page —
-    /// 全部／抓取異常／正文異常 plus the search text. 全選 on 抓取異常 used to select the whole
+    /// 全选 (本页已选/本页总数): every count and action here is scoped to the current page —
+    /// 全部／抓取异常／正文异常 plus the search text. 全选 on 抓取异常 used to select the whole
     /// library, one tap away from deleting all of it.
     private var bottomToolbar: some View {
         HStack(spacing: 0) {
@@ -635,14 +635,14 @@ struct BookSourceListView: View {
                         model.isPageFullySelected
                             ? DSColor.accent : Color(UIColor.systemGray3))
                     .accessibilityHidden(true)
-                    Text(String(format: localized("全選(%1$d/%2$d)"), model.pageSelectedCount, model.pageCount))
+                    Text(String(format: localized("全选(%1$d/%2$d)"), model.pageSelectedCount, model.pageCount))
                         .font(DSFont.fixed(size: 13))
                         .foregroundColor(DSColor.textPrimary)
                 }
             }
             .buttonStyle(.plain)
             .padding(.leading, 16)
-            .accessibilityLabel(localized("全選"))
+            .accessibilityLabel(localized("全选"))
             .accessibilityValue("\(model.pageSelectedCount)/\(model.pageCount)")
 
             Spacer()
@@ -650,7 +650,7 @@ struct BookSourceListView: View {
             Button {
                 model.invertSelection()
             } label: {
-                Text(localized("反選"))
+                Text(localized("反选"))
                     .font(DSFont.fixed(size: 13))
                     .padding(.horizontal, 16)
                     .padding(.vertical, 7)
@@ -667,7 +667,7 @@ struct BookSourceListView: View {
                     showDeleteConfirm = true
                 }
             } label: {
-                Text(localized("刪除"))
+                Text(localized("删除"))
                     .font(DSFont.fixed(size: 13))
                     .foregroundColor(model.selectedIDs.isEmpty ? .secondary : .red)
                     .padding(.horizontal, 16)
@@ -684,20 +684,20 @@ struct BookSourceListView: View {
                 Button {
                     enableSelected()
                 } label: {
-                    Label(localized("啟用選中"), systemImage: "checkmark.circle")
+                    Label(localized("启用选中"), systemImage: "checkmark.circle")
                 }
                 .disabled(model.selectedIDs.isEmpty)
                 Button {
                     disableSelected()
                 } label: {
-                    Label(localized("停用選中"), systemImage: "xmark.circle")
+                    Label(localized("停用选中"), systemImage: "xmark.circle")
                 }
                 .disabled(model.selectedIDs.isEmpty)
                 Divider()
                 Button {
                     presentCheckOptions()
                 } label: {
-                    Label(localized("來源配置驗證"), systemImage: "stethoscope")
+                    Label(localized("来源配置验证"), systemImage: "stethoscope")
                 }
             } label: {
                 Image(systemName: "ellipsis")
@@ -710,7 +710,7 @@ struct BookSourceListView: View {
             .padding(.trailing, 12)
         }
         .padding(.vertical, 8)
-        // `.bar` — the same system toolbar material RSS 訂閱, 線上書詳情 and 聽書 use for
+        // `.bar` — the same system toolbar material RSS 订阅, 线上书详情 and 听书 use for
         // their bottom bars, and it honours Reduce Transparency on its own. A hardcoded
         // `systemBackground` made this bar the one piece of chrome that stayed flat white
         // no matter what the list above was wearing.
@@ -724,7 +724,7 @@ struct BookSourceListView: View {
               let str = String(data: data, encoding: .utf8)
         else { return }
         UIPasteboard.general.string = str
-        importSuccess = localized("已複製來源配置 JSON")
+        importSuccess = localized("已复制来源配置 JSON")
     }
 
     // MARK: - Pinning
@@ -737,7 +737,7 @@ struct BookSourceListView: View {
         model.animateNextLibraryChange()
         model.revealAfterNextRebuild(source.id)
         store.pinToTop(id: source.id)
-        UIAccessibility.post(notification: .announcement, argument: localized("已置頂"))
+        UIAccessibility.post(notification: .announcement, argument: localized("已置顶"))
     }
 
     private func pinSourceToBottom(_ source: BookSource) {
@@ -772,7 +772,7 @@ struct BookSourceListView: View {
         presentCheckOptions(for: checkSources)
     }
 
-    /// 測試書源 for an explicit set — one row's menu, or the toolbar's selection/enabled set.
+    /// 测试书源 for an explicit set — one row's menu, or the toolbar's selection/enabled set.
     private func presentCheckOptions(for sources: [BookSource]) {
         guard !sources.isEmpty else { return }
         confirmedCheck = nil
@@ -804,7 +804,7 @@ struct BookSourceListView: View {
             await healthChecker.runAll()
             if !showSourceCheck {
                 let passed = healthChecker.passedCount
-                var msg = String(format: localized("驗證完成：%1$d/%2$d 通過"), passed, healthChecker.items.count)
+                var msg = String(format: localized("验证完成：%1$d/%2$d 通过"), passed, healthChecker.items.count)
                 if let summary = healthChecker.lastSummary {
                     msg += localized("，") + summary
                 }
@@ -825,14 +825,14 @@ struct BookSourceListView: View {
         let json = store.exportToJSON(ids: Array(model.selectedIDs))
         UIPasteboard.general.string = json
         importSuccess = String(
-            format: localized("已複製 %d 個來源配置到剪貼簿"), model.selectedIDs.count)
+            format: localized("已复制 %d 个来源配置到剪贴簿"), model.selectedIDs.count)
     }
 
     private func copyAllToPasteboard() {
         let json = store.exportToJSON()
         UIPasteboard.general.string = json
         importSuccess = String(
-            format: localized("已複製全部 %d 個來源配置到剪貼簿"), store.sources.count)
+            format: localized("已复制全部 %d 个来源配置到剪贴簿"), store.sources.count)
     }
 
     // MARK: - Empty State
@@ -842,16 +842,16 @@ struct BookSourceListView: View {
             Image(systemName: "books.vertical.circle")
                 .font(DSFont.fixed(size: 64))
                 .foregroundStyle(DSColor.textSecondary.opacity(0.35))
-            Text(localized("尚無來源配置"))
+            Text(localized("尚无来源配置"))
                 .font(DSFont.title2.weight(.semibold))
                 .foregroundStyle(DSColor.textPrimary)
-            Text(localized("點擊右上角 + 手動新增\n或匯入 Legado 來源配置 JSON"))
+            Text(localized("点击右上角 + 手动新增\n或汇入 Legado 来源配置 JSON"))
                 .font(DSFont.subheadline).foregroundColor(DSColor.textSecondary)
                 .multilineTextAlignment(.center)
             Button {
                 addFlow.begin(.local)
             } label: {
-                Label(localized("匯入來源配置 JSON"), systemImage: "square.and.arrow.down")
+                Label(localized("汇入来源配置 JSON"), systemImage: "square.and.arrow.down")
                     .font(DSFont.headline).foregroundStyle(DSColor.textOnAccent)
                     .padding(.horizontal, 28).padding(.vertical, 13)
                     .background(DSColor.accent).clipShape(Capsule())
@@ -863,8 +863,8 @@ struct BookSourceListView: View {
 
     // MARK: - Utilities
     private var messageAlertTitle: String {
-        if importError != nil { return localized("操作失敗") }
-        if checkToast != nil { return localized("來源配置驗證") }
+        if importError != nil { return localized("操作失败") }
+        if checkToast != nil { return localized("来源配置验证") }
         return localized("完成")
     }
 }

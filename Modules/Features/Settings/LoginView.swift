@@ -24,11 +24,11 @@ struct LoginView: View {
                         .font(DSFont.fixed(size: 60))
                         .foregroundColor(DSColor.accent)
                         .padding(.top, 20)
-                    Text(localized("歡迎回來"))
+                    Text(localized("欢迎回来"))
                         .font(DSFont.largeTitle.bold())
                         .foregroundStyle(DSColor.textPrimary)
 
-                    Text(localized("使用帳號同步書庫、進度與偏好"))
+                    Text(localized("使用帐号同步书库、进度与偏好"))
                         .font(DSFont.subheadline)
                         .foregroundStyle(DSColor.textSecondary)
                 }
@@ -48,11 +48,11 @@ struct LoginView: View {
 
                 VStack(spacing: 20) {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text(localized("電子郵件"))
+                        Text(localized("电子邮件"))
                             .font(DSFont.caption.bold())
                             .foregroundStyle(DSColor.textSecondary)
 
-                        TextField(localized("請輸入您的 Email"), text: $email)
+                        TextField(localized("请输入您的 Email"), text: $email)
                             .keyboardType(.emailAddress)
                             .textInputAutocapitalization(.never)
                             .autocorrectionDisabled()
@@ -62,11 +62,11 @@ struct LoginView: View {
                     }
 
                     VStack(alignment: .leading, spacing: 8) {
-                        Text(localized("密碼"))
+                        Text(localized("密码"))
                             .font(DSFont.caption.bold())
                             .foregroundStyle(DSColor.textSecondary)
 
-                        SecureField(localized("請輸入密碼"), text: $password)
+                        SecureField(localized("请输入密码"), text: $password)
                             .textInputAutocapitalization(.never)
                             .autocorrectionDisabled()
                             .padding()
@@ -117,7 +117,7 @@ struct LoginView: View {
                                     .resizable()
                                     .scaledToFit()
                                     .frame(width: 45, height: 45)
-                                Text(localized("使用 Google 帳號登錄"))
+                                Text(localized("使用 Google 帐号登录"))
                                     .font(DSFont.body.bold())
                             }
                             .foregroundColor(.black)
@@ -173,11 +173,11 @@ struct LoginView: View {
         let normalizedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !normalizedEmail.isEmpty else { return }
         guard normalizedEmail.contains("@") else {
-            errorMessage = localized("請輸入有效的 Email")
+            errorMessage = localized("请输入有效的 Email")
             return
         }
         guard password.count >= 6 else {
-            errorMessage = localized("密碼至少需要 6 個字元")
+            errorMessage = localized("密码至少需要 6 个字元")
             return
         }
 
@@ -202,7 +202,7 @@ struct LoginView: View {
     private func handleGoogleSignIn() {
         guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
               let rootViewController = windowScene.windows.first(where: { $0.isKeyWindow })?.rootViewController else {
-            errorMessage = localized("無法取得登入視窗")
+            errorMessage = localized("无法取得登入视窗")
             return
         }
 
@@ -223,7 +223,7 @@ struct LoginView: View {
         switch result {
         case .success(let authorization):
             guard let credential = authorization.credential as? ASAuthorizationAppleIDCredential else {
-                errorMessage = localized("Apple 登入失敗")
+                errorMessage = localized("Apple 登入失败")
                 return
             }
 
@@ -257,17 +257,17 @@ struct LoginView: View {
 
         switch authorizationError.code {
         case .canceled:
-            return localized("已取消 Apple 登錄")
+            return localized("已取消 Apple 登录")
         case .failed:
-            return localized("Apple 登錄失敗，請稍後再試")
+            return localized("Apple 登录失败，请稍后再试")
         case .invalidResponse:
-            return localized("Apple 登錄回應無效")
+            return localized("Apple 登录回应无效")
         case .notHandled:
-            return localized("Apple 登錄未完成，請重試")
+            return localized("Apple 登录未完成，请重试")
         case .unknown:
-            return localized("無法完成 Apple 登錄，請確認已開啟 Sign in with Apple 並使用支援的 Apple ID")
+            return localized("无法完成 Apple 登录，请确认已开启 Sign in with Apple 并使用支援的 Apple ID")
         default:
-            return localized("Apple 登錄失敗")
+            return localized("Apple 登录失败")
         }
     }
 }
@@ -279,15 +279,15 @@ private enum EmailAuthMode: String {
     var primaryButtonTitle: String {
         switch self {
         case .signIn: return "登入"
-        case .signUp: return "註冊"
+        case .signUp: return "注册"
         }
     }
 
     /// Small blue link at the bottom that flips the form to the other mode.
     var togglePrompt: String {
         switch self {
-        case .signIn: return "還沒有帳號？立即註冊"
-        case .signUp: return "已經有帳號了？前往登入"
+        case .signIn: return "还没有帐号？立即注册"
+        case .signUp: return "已经有帐号了？前往登入"
         }
     }
 

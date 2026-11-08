@@ -2,7 +2,7 @@ import SwiftUI
 
 // MARK: - Pages
 
-/// 歡迎: the icon, the name under it, and what 閱讀 is in a sentence. They come in one after
+/// 欢迎: the icon, the name under it, and what 阅读 is in a sentence. They come in one after
 /// another the first time the page shows.
 struct OnboardingWelcomePage: View {
     @Binding var hasAppeared: Bool
@@ -16,14 +16,14 @@ struct OnboardingWelcomePage: View {
             VStack(spacing: DSSpacing.lg) {
                 AppIconImage(size: DSLayout.onboardingAppIconSize)
                     .modifier(entrance(0))
-                // The app's name as 關於 gives it.
-                Text(localized("閱讀"))
+                // The app's name as 关于 gives it.
+                Text(localized("阅读"))
                     .font(DSFont.onboardingAppName)
                     .foregroundStyle(DSColor.textPrimary)
                     .accessibilityAddTraits(.isHeader)
                     .accessibilityFocused(focus, equals: .welcome)
                     .modifier(entrance(1))
-                Text(localized("把各處的書集中起來，在同一個首頁找、同一個地方讀。"))
+                Text(localized("把各处的书集中起来，在同一个首页找、同一个地方读。"))
                     .font(DSFont.title3)
                     .foregroundStyle(DSColor.textSecondary)
                     .multilineTextAlignment(.center)
@@ -39,7 +39,7 @@ struct OnboardingWelcomePage: View {
     }
 }
 
-/// 從探索找書: the home, where books from every place come together.
+/// 从探索找书: the home, where books from every place come together.
 struct OnboardingExplorePage: View {
     let copy: OnboardingContent.Copy
     let focus: AccessibilityFocusState<OnboardingPage?>.Binding
@@ -48,14 +48,14 @@ struct OnboardingExplorePage: View {
         OnboardingPageScaffold {
             VStack(spacing: DSSpacing.xl) {
                 OnboardingCoverShelf()
-                OnboardingHeading(titleKey: "從探索找書", bodyKey: copy.textKey, page: .explore, focus: focus)
+                OnboardingHeading(titleKey: "从探索找书", bodyKey: copy.textKey, page: .explore, focus: focus)
                 OnboardingRowList(rows: copy.rows)
             }
         }
     }
 }
 
-/// 一部作品，一個頁面: one work, wherever its versions are.
+/// 一部作品，一个页面: one work, wherever its versions are.
 struct OnboardingWorksPage: View {
     let rows: [OnboardingContent.Row]
     let focus: AccessibilityFocusState<OnboardingPage?>.Binding
@@ -65,8 +65,8 @@ struct OnboardingWorksPage: View {
             VStack(spacing: DSSpacing.xl) {
                 OnboardingWorkStack()
                 OnboardingHeading(
-                    titleKey: "一部作品，一個頁面",
-                    bodyKey: "書架、書庫和來源配置裡的同一部作品，會合成一筆。",
+                    titleKey: "一部作品，一个页面",
+                    bodyKey: "书架、书库和来源配置里的同一部作品，会合成一笔。",
                     page: .works,
                     focus: focus
                 )
@@ -76,7 +76,7 @@ struct OnboardingWorksPage: View {
     }
 }
 
-/// 連接你的所有資源: what the reader adds to what 閱讀 comes with.
+/// 连接你的所有资源: what the reader adds to what 阅读 comes with.
 struct OnboardingSourcesPage: View {
     let copy: OnboardingContent.Copy
     let focus: AccessibilityFocusState<OnboardingPage?>.Binding
@@ -84,14 +84,14 @@ struct OnboardingSourcesPage: View {
     var body: some View {
         OnboardingPageScaffold {
             VStack(spacing: DSSpacing.xl) {
-                OnboardingHeading(titleKey: "連接你的所有資源", bodyKey: copy.textKey, page: .sources, focus: focus)
+                OnboardingHeading(titleKey: "连接你的所有资源", bodyKey: copy.textKey, page: .sources, focus: focus)
                 OnboardingRowList(rows: copy.rows)
             }
         }
     }
 }
 
-/// 長時間閱讀也舒服: how the reader reads, and the looks they can make their own.
+/// 长时间阅读也舒服: how the reader reads, and the looks they can make their own.
 struct OnboardingReadingPage: View {
     let rows: [OnboardingContent.Row]
     let focus: AccessibilityFocusState<OnboardingPage?>.Binding
@@ -101,8 +101,8 @@ struct OnboardingReadingPage: View {
             VStack(spacing: DSSpacing.xl) {
                 OnboardingPageSketches()
                 OnboardingHeading(
-                    titleKey: "長時間閱讀也舒服",
-                    bodyKey: "橫排或直排、翻頁或捲動，字體、字級、行距和背景都能調整。",
+                    titleKey: "长时间阅读也舒服",
+                    bodyKey: "横排或直排、翻页或卷动，字体、字级、行距和背景都能调整。",
                     page: .reading,
                     focus: focus
                 )
@@ -112,7 +112,7 @@ struct OnboardingReadingPage: View {
     }
 }
 
-/// 選一個起點: each start leaves the tour for the place it names.
+/// 选一个起点: each start leaves the tour for the place it names.
 struct OnboardingStartPage: View {
     let starts: [OnboardingStart]
     let focus: AccessibilityFocusState<OnboardingPage?>.Binding
@@ -121,7 +121,7 @@ struct OnboardingStartPage: View {
     var body: some View {
         OnboardingPageScaffold {
             VStack(spacing: DSSpacing.xl) {
-                OnboardingHeading(titleKey: "選一個起點", page: .start, focus: focus)
+                OnboardingHeading(titleKey: "选一个起点", page: .start, focus: focus)
                 VStack(spacing: DSSpacing.md) {
                     ForEach(starts) { start in
                         Button { choose(start) } label: {
@@ -158,7 +158,7 @@ private struct OnboardingPageScaffold<Content: View>: View {
                     .frame(maxWidth: .infinity, minHeight: proxy.size.height)
             }
             .scrollBounceBehavior(.basedOnSize)
-            // What runs past the page fades out over the dots and under 略過 instead of
+            // What runs past the page fades out over the dots and under 略过 instead of
             // being cut through a line. As deep as the padding, so nothing is faded at rest
             // or at either end of the scroll; only the mask's opacity counts.
             .mask {
@@ -295,12 +295,12 @@ private let previewContent = OnboardingContent(
     lockedFeatures: Set(PremiumFeature.allCases)
 )
 
-#Preview("歡迎") {
+#Preview("欢迎") {
     @Previewable @State var hasAppeared = false
     OnboardingPagePreview { OnboardingWelcomePage(hasAppeared: $hasAppeared, focus: $0) }
 }
 
-#Preview("從探索找書") {
+#Preview("从探索找书") {
     OnboardingPagePreview { focus in
         if let explore = previewContent.explore {
             OnboardingExplorePage(copy: explore, focus: focus)
@@ -308,18 +308,18 @@ private let previewContent = OnboardingContent(
     }
 }
 
-#Preview("一部作品，一個頁面") {
+#Preview("一部作品，一个页面") {
     OnboardingPagePreview { OnboardingWorksPage(rows: previewContent.works, focus: $0) }
 }
 
-#Preview("連接你的所有資源") {
+#Preview("连接你的所有资源") {
     OnboardingPagePreview { OnboardingSourcesPage(copy: previewContent.sources, focus: $0) }
 }
 
-#Preview("長時間閱讀也舒服") {
+#Preview("长时间阅读也舒服") {
     OnboardingPagePreview { OnboardingReadingPage(rows: previewContent.reading, focus: $0) }
 }
 
-#Preview("選一個起點") {
+#Preview("选一个起点") {
     OnboardingPagePreview { OnboardingStartPage(starts: previewContent.starts, focus: $0, choose: { _ in }) }
 }

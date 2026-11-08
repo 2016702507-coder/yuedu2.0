@@ -1,12 +1,12 @@
 import Foundation
 
-/// The one commit of 換源 for a book that already exists: rebinds it to `origin`, then carries
+/// The one commit of 换源 for a book that already exists: rebinds it to `origin`, then carries
 /// its reading place over to the new source's table of contents.
 ///
 /// Until 2026-10-18 the place was carried over only inside the reader
-/// (`ReaderView.switchToOrigin`), so the detail page's 換源 of a shelf book rebound the source
+/// (`ReaderView.switchToOrigin`), so the detail page's 换源 of a shelf book rebound the source
 /// and left the stored chapter index pointing into the old source's list. Every switch — the
-/// reader's, the detail page's, and 加入書架 of a work that is already on the shelf
+/// reader's, the detail page's, and 加入书架 of a work that is already on the shelf
 /// (`ShelfWorkService`) — goes through here.
 @MainActor
 struct OnlineBookSourceSwitch {

@@ -1,8 +1,8 @@
 import Foundation
 
-// The libraries (saved connections, Gutenberg, 青空文庫) wherever they are listed together:
-// 範圍, 顯示在最新, 搜尋來源 and the turns 最新's books take. Book sources keep the order their
-// own management gives them, after the libraries; the shelf is not a library here. 書庫順序
+// The libraries (saved connections, Gutenberg, 青空文库) wherever they are listed together:
+// 范围, 显示在最新, 搜寻来源 and the turns 最新's books take. Book sources keep the order their
+// own management gives them, after the libraries; the shelf is not a library here. 书库顺序
 // (5d-3e) ordered them until the maintainer took it away (2026-10-25: not needed); they are
 // listed as they come.
 
@@ -15,7 +15,7 @@ enum LibraryKeys {
         }
     }
 
-    /// The libraries there are now: saved connections as saved, then Gutenberg and 青空文庫
+    /// The libraries there are now: saved connections as saved, then Gutenberg and 青空文库
     /// where they are offered.
     static func available(connections: [RemoteLibraryConnection], librariesAvailable: Bool) -> [SourceInstanceKey] {
         var keys = connections.map { SourceInstanceKey(type: ProviderType($0.kind), id: $0.id) }

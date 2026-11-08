@@ -63,7 +63,7 @@ extension CollectionPage {
 }
 
 extension WorkSummary {
-    /// What a card and 作品詳情 show of an OPDS item entry.
+    /// What a card and 作品详情 show of an OPDS item entry.
     nonisolated static func opds(_ entry: OPDSEntry, record: SourceRecord, connectionID: String) -> WorkSummary {
         WorkSummary(
             title: entry.title,

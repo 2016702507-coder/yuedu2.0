@@ -1,16 +1,16 @@
 import SwiftUI
 
-// Unified library 5d-5: one section's form (design §13.3, Rex's 「設定資料來源」; Phase 5 plan,
-// decision 23), for 新增欄目 and for a section already on the home, so there is one editor:
-// - 新增欄目 asks for a layout first, then shows this form (Rex's order), in a sheet; 新增
-//   puts the section at the end of the 首頁配置 shown, 取消 leaves it as it was.
-// - A section's card in 編輯首頁, and 設定 in its name's long press, push the same form.
+// Unified library 5d-5: one section's form (design §13.3, Rex's 「设置资料来源」; Phase 5 plan,
+// decision 23), for 新增栏目 and for a section already on the home, so there is one editor:
+// - 新增栏目 asks for a layout first, then shows this form (Rex's order), in a sheet; 新增
+//   puts the section at the end of the 首页配置 shown, 取消 leaves it as it was.
+// - A section's card in 编辑首页, and 设置 in its name's long press, push the same form.
 // - On top, a preview: one real page of the section in its layout, loaded as the home loads
-//   it. Then 標題 and 副標題 (empty follows what it shows), 呈現方式, 資料來源 (opens 選擇內容來源),
-//   and for a section on the home, 在首頁顯示 and 刪除.
-// - In a layout of lists (maintainer, 2026-10-27), 清單 in place of 資料來源: the section's
+//   it. Then 标题 and 副标题 (empty follows what it shows), 呈现方式, 资料来源 (opens 选择内容来源),
+//   and for a section on the home, 在首页显示 and 删除.
+// - In a layout of lists (maintainer, 2026-10-27), 清单 in place of 资料来源: the section's
 //   cards, from any sources (`HomeListCards.swift`), each with a page of its own parameters;
-//   加入清單 opens 選擇內容來源, where a source's 全部清單 adds every list it offers.
+//   加入清单 opens 选择内容来源, where a source's 全部清单 adds every list it offers.
 
 // MARK: - A section on the home
 
@@ -31,8 +31,8 @@ struct HomeSectionPage: View {
 
 /// Makes the form's editor once, with the shelf the preview reads.
 ///
-/// It does not read `dismiss` (刪除 leaves the page, `HomeSectionDeleteButton`): on iOS 17.5, a host
-/// reading it while the form pushed 新增來源配置 froze the app, `_dismiss changed.` 13,830 times
+/// It does not read `dismiss` (删除 leaves the page, `HomeSectionDeleteButton`): on iOS 17.5, a host
+/// reading it while the form pushed 新增来源配置 froze the app, `_dismiss changed.` 13,830 times
 /// (5d-5), as the search page did (`Technotes/iOS17SearchWatchdogPostmortem.md`, guardrail 12).
 private struct HomeSectionFormHost: View {
     @StateObject private var editor: HomeSectionEditor
@@ -53,9 +53,9 @@ extension HomeModel {
     }
 }
 
-// MARK: - 新增欄目
+// MARK: - 新增栏目
 
-/// 新增欄目, full screen over the home: a layout, then the form. The home closes it (`close`,
+/// 新增栏目, full screen over the home: a layout, then the form. The home closes it (`close`,
 /// and after `added`): nothing in it reads `dismiss`, which loops on iOS 17 under a form that
 /// pushes (`HomeSectionFormHost`).
 struct HomeNewSectionSheet: View {
@@ -84,13 +84,13 @@ private struct HomeNewSectionFlow: View {
             HomeLayoutGallery(choices: HomeLayoutStyle.allCases, sample: .standard,
                               identifierPrefix: "homeNewSection.layout") { style in
                 let editor = HomeSectionEditor(layout: HomeSectionLayout(style: style), preview: .preview(shelf: store))
-                // Gutenberg's lists, chosen already where they are offered; 清單 can still
+                // Gutenberg's lists, chosen already where they are offered; 清单 can still
                 // change them, to any source's.
                 if style.drawsLists, availability.isAvailable { editor.choose(.gutenbergLists) }
                 self.editor = editor
                 showsForm = true
             }
-            .navigationTitle(localized("新增欄目"))
+            .navigationTitle(localized("新增栏目"))
             .toolbarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -110,11 +110,11 @@ private struct HomeNewSectionFlow: View {
 
 // MARK: - The form
 
-/// What 選擇內容來源 is opened for.
+/// What 选择内容来源 is opened for.
 private enum HomeSectionPickerMode: Hashable, Identifiable {
-    /// 資料來源: the section's one list.
+    /// 资料来源: the section's one list.
     case choose
-    /// 加入清單: cards for a layout of lists.
+    /// 加入清单: cards for a layout of lists.
     case addLists
 
     var id: Self { self }
@@ -122,9 +122,9 @@ private enum HomeSectionPickerMode: Hashable, Identifiable {
 
 /// What the form pushes.
 private enum HomeSectionFormPush: Hashable {
-    /// 選擇內容來源, when the form is a sheet already on iOS 17.
+    /// 选择内容来源, when the form is a sheet already on iOS 17.
     case picker(HomeSectionPickerMode)
-    /// 最新's 新增來源配置.
+    /// 最新's 新增来源配置.
     case latestSources
     /// The category a book source stands on in 最新, by source URL.
     case latestCategory(String)
@@ -132,11 +132,11 @@ private enum HomeSectionFormPush: Hashable {
     case filters(String)
     /// A card of a layout of lists, by its place.
     case listCard(Int)
-    /// 呈現方式's previews (decision 34).
+    /// 呈现方式's previews (decision 34).
     case layouts
 }
 
-/// 刪除, which leaves the page once the reader confirms. The one view of the form that leaves
+/// 删除, which leaves the page once the reader confirms. The one view of the form that leaves
 /// its page itself, through `presentationMode` as `ReaderView` does, never `dismiss`: a view
 /// reading `dismiss` under a form that pushes loops on iOS 17 (`HomeSectionFormHost`). A leaf,
 /// so whatever it reads invalidates only itself.
@@ -147,7 +147,7 @@ private struct HomeSectionDeleteButton: View {
     @State private var confirms = false
 
     var body: some View {
-        Button(localized("刪除"), role: .destructive) { confirms = true }
+        Button(localized("删除"), role: .destructive) { confirms = true }
             .accessibilityIdentifier("homeSection.delete")
             .homeSectionDeleteConfirmation(isPresented: $confirms, title: title) {
                 presentationMode.wrappedValue.dismiss()
@@ -158,7 +158,7 @@ private struct HomeSectionDeleteButton: View {
 
 struct HomeSectionForm: View {
     @ObservedObject var editor: HomeSectionEditor
-    /// In 新增欄目's sheet: 選擇內容來源 is pushed on iOS 17 rather than stacked (design §13.3).
+    /// In 新增栏目's sheet: 选择内容来源 is pushed on iOS 17 rather than stacked (design §13.3).
     let isInSheet: Bool
     /// 新增 put the section on the home.
     var added: () -> Void = {}
@@ -170,7 +170,7 @@ struct HomeSectionForm: View {
     @ObservedObject private var availability = PublicLibraryAvailability.shared
     @ObservedObject private var modules: RuleModuleLibrary
     @EnvironmentObject private var store: BookStore
-    /// 選擇內容來源 as a sheet.
+    /// 选择内容来源 as a sheet.
     @State private var presentedPicker: HomeSectionPickerMode?
     /// The one page the form pushes: one item destination, as on the search page
     /// (`Technotes/iOS17SearchWatchdogPostmortem.md`, guardrail 12).
@@ -188,7 +188,7 @@ struct HomeSectionForm: View {
 
     /// What the section is called when the reader names it nothing.
     private var defaultTitle: String {
-        guard let binding = draft.binding else { return localized("標題") }
+        guard let binding = draft.binding else { return localized("标题") }
         return HomeSection(layout: draft.layout, binding: binding).editorTitle()
     }
 
@@ -198,13 +198,13 @@ struct HomeSectionForm: View {
 
     /// The line under the name when the reader writes none: the binding's own, if it has one.
     private var defaultSubtitle: String {
-        draft.binding.flatMap { HomeSection(layout: draft.layout, binding: $0).displaySubtitle } ?? localized("選填")
+        draft.binding.flatMap { HomeSection(layout: draft.layout, binding: $0).displaySubtitle } ?? localized("选填")
     }
 
-    /// A layout of lists: 清單 in place of 資料來源 and its parameters.
+    /// A layout of lists: 清单 in place of 资料来源 and its parameters.
     private var drawsLists: Bool { draft.layout.style.drawsLists }
 
-    /// 選擇內容來源 pushed rather than presented: a sheet already, on iOS 17.
+    /// 选择内容来源 pushed rather than presented: a sheet already, on iOS 17.
     private var pushesPicker: Bool {
         if #available(iOS 18, *) { return false }
         return isInSheet
@@ -217,10 +217,10 @@ struct HomeSectionForm: View {
                     previewContent
                         .listRowInsets(EdgeInsets(top: DSSpacing.md, leading: 0, bottom: DSSpacing.md, trailing: 0))
                 } header: {
-                    Text(localized("預覽"))
+                    Text(localized("预览"))
                 }
                 .interfaceSectionSurface()
-                // Again when 顯示在最新 changes: the preview loads 最新 without those libraries.
+                // Again when 显示在最新 changes: the preview loads 最新 without those libraries.
                 .task(id: [AnyHashable(page), AnyHashable(editor.hiddenFromLatest)]) {
                     await preview.sync(with: page, hiddenFromLatest: editor.hiddenFromLatest)
                     // The reader's own tap: the page loads whatever its source's policy.
@@ -228,14 +228,14 @@ struct HomeSectionForm: View {
                 }
             }
             Section {
-                LabeledContent(localized("標題")) {
-                    TextField(localized("標題"), text: Binding(get: { draft.title }, set: { editor.setTitle($0) }),
+                LabeledContent(localized("标题")) {
+                    TextField(localized("标题"), text: Binding(get: { draft.title }, set: { editor.setTitle($0) }),
                               prompt: Text(defaultTitle))
                         .multilineTextAlignment(.trailing)
                         .accessibilityIdentifier("homeSection.title")
                 }
-                LabeledContent(localized("副標題")) {
-                    TextField(localized("副標題"), text: Binding(get: { draft.subtitle }, set: { editor.setSubtitle($0) }),
+                LabeledContent(localized("副标题")) {
+                    TextField(localized("副标题"), text: Binding(get: { draft.subtitle }, set: { editor.setSubtitle($0) }),
                               prompt: Text(defaultSubtitle))
                         .multilineTextAlignment(.trailing)
                         .accessibilityIdentifier("homeSection.subtitle")
@@ -258,7 +258,7 @@ struct HomeSectionForm: View {
             }
             if !editor.isNew {
                 Section {
-                    Toggle(localized("在首頁顯示"), isOn: Binding(get: { draft.isEnabled }, set: { editor.setEnabled($0) }))
+                    Toggle(localized("在首页显示"), isOn: Binding(get: { draft.isEnabled }, set: { editor.setEnabled($0) }))
                 }
                 .interfaceSectionSurface()
                 Section {
@@ -267,7 +267,7 @@ struct HomeSectionForm: View {
                 .interfaceSectionSurface()
             }
         }
-        .navigationTitle(editor.isNew ? localized("新增欄目") : title)
+        .navigationTitle(editor.isNew ? localized("新增栏目") : title)
         .toolbarTitleDisplayMode(.inline)
         .themedAppSurface(for: .explore)
         .toolbar {
@@ -276,7 +276,7 @@ struct HomeSectionForm: View {
                     Button {
                         if editor.add() { added() }
                     } label: {
-                        Label(localized("動作：新增"), systemImage: "checkmark")
+                        Label(localized("动作：新增"), systemImage: "checkmark")
                     }
                     .disabled(draft.binding == nil)
                     .accessibilityIdentifier("homeSection.add")
@@ -330,7 +330,7 @@ struct HomeSectionForm: View {
         }
     }
 
-    /// 選擇內容來源: a sheet, or pushed when the form is a sheet already on iOS 17.
+    /// 选择内容来源: a sheet, or pushed when the form is a sheet already on iOS 17.
     private func openPicker(_ mode: HomeSectionPickerMode) {
         if pushesPicker { push = .picker(mode) } else { presentedPicker = mode }
     }
@@ -342,7 +342,7 @@ struct HomeSectionForm: View {
 
     // MARK: 最新
 
-    /// 顯示在最新 (decision 36: Emby 4.10 sets a section's libraries in its own options). None in
+    /// 显示在最新 (decision 36: Emby 4.10 sets a section's libraries in its own options). None in
     /// China without a connection saved.
     @ViewBuilder
     private var latestLibraries: some View {
@@ -358,9 +358,9 @@ struct HomeSectionForm: View {
                     .accessibilityIdentifier("homeSection.latest.library.\(library.key.type.rawValue).\(library.key.id)")
                 }
             } header: {
-                Text(localized("顯示在最新"))
+                Text(localized("显示在最新"))
             } footer: {
-                Text(localized("每個首頁配置的最新都用這份設定。"))
+                Text(localized("每个首页配置的最新都用这份设置。"))
                     .dsSectionFooter()
             }
             .interfaceSectionSurface()
@@ -388,13 +388,13 @@ struct HomeSectionForm: View {
                 .accessibilityIdentifier("homeSection.latest.\(name)")
             }
             Button { push = .latestSources } label: {
-                Label(localized("新增來源配置"), systemImage: "plus")
+                Label(localized("新增来源配置"), systemImage: "plus")
             }
             .accessibilityIdentifier("homeSection.latest.add")
         } header: {
-            Text(localized("參數"))
+            Text(localized("参数"))
         } footer: {
-            Text(localized("來源配置要選一個分類代表它的最新，沒選的不會出現在最新。"))
+            Text(localized("来源配置要选一个分类代表它的最新，没选的不会出现在最新。"))
                 .dsSectionFooter()
         }
         .interfaceSectionSurface()
@@ -405,12 +405,12 @@ struct HomeSectionForm: View {
         editor.setLatestCategory(reference, filterValues: choice.filterValues, forSourceURL: reference.sourceURL)
     }
 
-    // MARK: 清單
+    // MARK: 清单
 
     /// The section's lists in a layout of lists (maintainer, 2026-10-27): a card each, in this
-    /// order, from any sources, side by side and then ＋ (「添加多個的預覽介面也要是橫向
-    /// scrollview，最後來個加號」). A card shows its face as 大圖卡片 draws it and opens its own
-    /// page, where 大圖卡片's takes a photo; ＋ opens 選擇內容來源, up to
+    /// order, from any sources, side by side and then ＋ (「添加多个的预览介面也要是横向
+    /// scrollview，最后来个加号」). A card shows its face as 大图卡片 draws it and opens its own
+    /// page, where 大图卡片's takes a photo; ＋ opens 选择内容来源, up to
     /// `HomeSection.listCardLimit`. The last card stays: without it the section shows nothing.
     private var listCardsSection: some View {
         let cards = editor.listCards
@@ -430,9 +430,9 @@ struct HomeSectionForm: View {
             .buttonStyle(.plain)
             .listRowInsets(EdgeInsets())
         } header: {
-            Text(localized("清單"))
+            Text(localized("清单"))
         } footer: {
-            Text(String(format: localized("每個清單一張卡片，最多 %d 張，可以混合不同來源。"), HomeSection.listCardLimit))
+            Text(String(format: localized("每个清单一张卡片，最多 %d 张，可以混合不同来源。"), HomeSection.listCardLimit))
                 .dsSectionFooter()
         }
         .interfaceSectionSurface()
@@ -441,7 +441,7 @@ struct HomeSectionForm: View {
     private func listCardTile(_ card: HomeListCard, at index: Int, count: Int) -> some View {
         let name = card.name(modules: modules)
         let source = card.sourceName(sources: sources, connections: connections, modules: modules)
-        // Only 大圖卡片 draws a card's photo.
+        // Only 大图卡片 draws a card's photo.
         let photoID = draft.layout.style == .bannerCards ? editor.photoID(of: card) : nil
         return Button { push = .listCard(index) } label: {
             VStack(alignment: .leading, spacing: DSSpacing.xs) {
@@ -458,12 +458,12 @@ struct HomeSectionForm: View {
         }
         .contextMenu {
             if index > 0 {
-                Button(localized("向前移動"), systemImage: "arrow.backward") {
+                Button(localized("向前移动"), systemImage: "arrow.backward") {
                     editor.moveCards(fromOffsets: [index], toOffset: index - 1)
                 }
             }
             if index < count - 1 {
-                Button(localized("向後移動"), systemImage: "arrow.forward") {
+                Button(localized("向后移动"), systemImage: "arrow.forward") {
                     editor.moveCards(fromOffsets: [index], toOffset: index + 2)
                 }
             }
@@ -475,10 +475,10 @@ struct HomeSectionForm: View {
         .accessibilityLabel(source.isEmpty ? name : [name, source].joined(separator: ", "))
         .accessibilityActions {
             if index > 0 {
-                Button(localized("向前移動")) { editor.moveCards(fromOffsets: [index], toOffset: index - 1) }
+                Button(localized("向前移动")) { editor.moveCards(fromOffsets: [index], toOffset: index - 1) }
             }
             if index < count - 1 {
-                Button(localized("向後移動")) { editor.moveCards(fromOffsets: [index], toOffset: index + 2) }
+                Button(localized("向后移动")) { editor.moveCards(fromOffsets: [index], toOffset: index + 2) }
             }
             if count > 1 {
                 Button(localized("移除")) { editor.removeCard(at: index) }
@@ -487,7 +487,7 @@ struct HomeSectionForm: View {
         .accessibilityIdentifier("homeSection.listCard.\(index)")
     }
 
-    /// ＋ at the end of the cards: 加入清單.
+    /// ＋ at the end of the cards: 加入清单.
     private var addListTile: some View {
         Button { openPicker(.addLists) } label: {
             VStack(alignment: .leading, spacing: DSSpacing.xs) {
@@ -499,7 +499,7 @@ struct HomeSectionForm: View {
                             .font(DSFont.title2.weight(.semibold))
                             .foregroundStyle(editor.canAddCard ? DSColor.accent : DSColor.textTertiary)
                     }
-                Text(localized("加入清單"))
+                Text(localized("加入清单"))
                     .font(DSFont.footnote)
                     .foregroundStyle(DSColor.textSecondary)
             }
@@ -507,7 +507,7 @@ struct HomeSectionForm: View {
             .contentShape(Rectangle())
         }
         .disabled(!editor.canAddCard)
-        .accessibilityLabel(localized("加入清單"))
+        .accessibilityLabel(localized("加入清单"))
         .accessibilityIdentifier("homeSection.lists.add")
     }
 
@@ -529,7 +529,7 @@ struct HomeSectionForm: View {
         let values = editor.filterValues(forSourceURL: category.sourceURL)
         let summary = values.keys.sorted().compactMap { values[$0] }.joined(separator: " · ")
         return Button { push = .filters(category.sourceURL) } label: {
-            LabeledContent(localized("篩選")) {
+            LabeledContent(localized("筛选")) {
                 HStack(spacing: DSSpacing.xs) {
                     Text(summary)
                         .foregroundStyle(DSColor.textSecondary)
@@ -542,7 +542,7 @@ struct HomeSectionForm: View {
             }
             .foregroundStyle(DSColor.textPrimary)
         }
-        .accessibilityLabel(localized("篩選"))
+        .accessibilityLabel(localized("筛选"))
         .accessibilityValue(summary)
         .accessibilityIdentifier("homeSection.filters")
     }
@@ -553,7 +553,7 @@ struct HomeSectionForm: View {
     private var layoutRows: some View {
         if layoutChoices.count > 1 {
             Button { push = .layouts } label: {
-                LabeledContent(localized("呈現方式")) {
+                LabeledContent(localized("呈现方式")) {
                     HStack(spacing: DSSpacing.xs) {
                         Text(localized(draft.layout.style.titleKey))
                             .foregroundStyle(DSColor.textSecondary)
@@ -565,7 +565,7 @@ struct HomeSectionForm: View {
                 }
                 .foregroundStyle(DSColor.textPrimary)
             }
-            .accessibilityLabel(localized("呈現方式"))
+            .accessibilityLabel(localized("呈现方式"))
             .accessibilityValue(localized(draft.layout.style.titleKey))
             .accessibilityIdentifier("homeSection.layout")
         }
@@ -577,7 +577,7 @@ struct HomeSectionForm: View {
 
     private var sourceRow: some View {
         Button { openPicker(.choose) } label: {
-            LabeledContent(localized("資料來源")) {
+            LabeledContent(localized("资料来源")) {
                 HStack(spacing: DSSpacing.xs) {
                     Text(sourceDescription)
                         .foregroundStyle(DSColor.textSecondary)
@@ -590,14 +590,14 @@ struct HomeSectionForm: View {
             }
             .foregroundStyle(DSColor.textPrimary)
         }
-        .accessibilityLabel(localized("資料來源"))
+        .accessibilityLabel(localized("资料来源"))
         .accessibilityValue(sourceDescription)
         .accessibilityIdentifier("homeSection.source")
     }
 
-    /// 「來源 › 子項目」, as Rex's row reads; 未設定 before 選擇內容來源.
+    /// 「来源 › 子项目」, as Rex's row reads; 未设置 before 选择内容来源.
     private var sourceDescription: String {
-        guard let binding = draft.binding, let owner = binding.contentOwner else { return localized("未設定") }
+        guard let binding = draft.binding, let owner = binding.contentOwner else { return localized("未设置") }
         // A module's list names itself; an untitled one (the defaults) has no title to fall to.
         let item = HomeSection(layout: draft.layout, binding: binding).displayTitle(sourceName: moduleEntry?.title ?? "")
         return [owner.name(sources: sources, connections: connections, modules: modules), item.isEmpty ? draft.title : item]
@@ -616,7 +616,7 @@ struct HomeSectionForm: View {
                 closePicker()
             }
         case .addLists:
-            HomeContentSourcePicker(current: nil, isPushed: isPushed, title: localized("加入清單")) { choice in
+            HomeContentSourcePicker(current: nil, isPushed: isPushed, title: localized("加入清单")) { choice in
                 editor.addCards([.picked(choice.binding, parameters: choice.parameters, name: choice.itemTitle)])
                 closePicker()
             } chooseAll: { choices in
@@ -642,7 +642,7 @@ struct HomeSectionForm: View {
         if draft.binding == .aiRecommendations {
             // The stored list, as the home draws it; the preview never asks the AI service.
             AIRecommendationRow(section: HomeSection(layout: draft.layout, binding: .aiRecommendations),
-                                title: localized("AI 推薦"), canGenerate: false, open: { _, _ in })
+                                title: localized("AI 推荐"), canGenerate: false, open: { _, _ in })
         } else if !preview.isReady {
             ProgressView().frame(maxWidth: .infinity)
         } else if let group = preview.groups(in: nil, languages: aggregation.readingLanguages).first,
@@ -652,7 +652,7 @@ struct HomeSectionForm: View {
                         request: { for row in group.rows { if case .failed = row.state { preview.request(row.id) } } },
                         open: { _, _ in }, openLocation: { _ in })
         } else {
-            Text(localized("此目錄沒有內容"))
+            Text(localized("此目录没有内容"))
                 .font(DSFont.footnote)
                 .foregroundStyle(DSColor.textSecondary)
                 .frame(maxWidth: .infinity)
@@ -667,8 +667,8 @@ struct HomeSectionForm: View {
 
 // MARK: - A card of a layout of lists
 
-/// One card of a section of lists: 大圖卡片's photo (「分類卡的圖片可以自定義」), where its list is
-/// from, its own parameters (趨勢's 地區, maintainer 2026-10-27), a 來源配置's category picked
+/// One card of a section of lists: 大图卡片's photo (「分类卡的图片可以自定义」), where its list is
+/// from, its own parameters (趋势's 地区, maintainer 2026-10-27), a 来源配置's category picked
 /// again under other filters, and 移除.
 private struct HomeListCardPage: View {
     @ObservedObject var editor: HomeSectionEditor
@@ -699,7 +699,7 @@ private struct HomeListCardPage: View {
                             HomeBannerCard(title: card.name(modules: modules), photoID: photoID, photos: photos, isThumbnail: false)
                                 .accessibilityHidden(true)
                             HomePhotoPicker(photos: photos, id: photoID) {
-                                Text(localized(photos.images[photoID] == nil ? "加入照片" : "更換照片"))
+                                Text(localized(photos.images[photoID] == nil ? "加入照片" : "更换照片"))
                                     .font(DSFont.body)
                             }
                             .accessibilityIdentifier("homeSection.listCard.photo")
@@ -709,10 +709,10 @@ private struct HomeListCardPage: View {
                     .interfaceSectionSurface()
                 }
                 Section {
-                    LabeledContent(localized("來源"), value: card.sourceName(sources: sources, connections: connections, modules: modules))
+                    LabeledContent(localized("来源"), value: card.sourceName(sources: sources, connections: connections, modules: modules))
                     if let category {
                         Button { picksCategory = true } label: {
-                            LabeledContent(localized("分類")) {
+                            LabeledContent(localized("分类")) {
                                 HStack(spacing: DSSpacing.xs) {
                                     Text(category.title)
                                         .foregroundStyle(DSColor.textSecondary)
@@ -724,11 +724,11 @@ private struct HomeListCardPage: View {
                             }
                             .foregroundStyle(DSColor.textPrimary)
                         }
-                        .accessibilityLabel(localized("分類"))
+                        .accessibilityLabel(localized("分类"))
                         .accessibilityValue(category.title)
                         .accessibilityIdentifier("homeSection.listCard.category")
                     } else {
-                        LabeledContent(localized("清單"), value: card.name(modules: modules))
+                        LabeledContent(localized("清单"), value: card.name(modules: modules))
                     }
                 }
                 .interfaceSectionSurface()
@@ -779,7 +779,7 @@ extension HomeListCard {
         return HomeSection(layout: .row, binding: binding, parameters: parameters).displayTitle(sourceName: listName)
     }
 
-    /// Where the card's list is from, as 選擇內容來源 names it.
+    /// Where the card's list is from, as 选择内容来源 names it.
     @MainActor
     func sourceName(sources: BookSourceStore, connections: RemoteLibraryConnectionStore,
                     modules: RuleModuleLibrary) -> String {
@@ -799,7 +799,7 @@ extension RuleModuleLibrary {
 
 /// A module list's parameters, written by name (Phase 6f), the section's or a card's: a choice
 /// is a `Picker`, a count a `Stepper`, typed text is kept once the reader is done with it. A
-/// choice that follows 中繼資料語言偏好推薦 offers that first, and picking it again clears the
+/// choice that follows 中继资料语言偏好推荐 offers that first, and picking it again clears the
 /// reader's own.
 private struct HomeModuleParameters: View {
     let entry: RuleModule.Entry
@@ -808,7 +808,7 @@ private struct HomeModuleParameters: View {
     let set: (String, String?) -> Void
     @ObservedObject private var aggregation = AggregationSettingsStore.shared
 
-    /// The picker's tag for following 中繼資料語言偏好推薦: no option's value.
+    /// The picker's tag for following 中继资料语言偏好推荐: no option's value.
     private static let followsLanguageTag = "\u{1F}followsLanguage"
 
     var body: some View {
@@ -824,7 +824,7 @@ private struct HomeModuleParameters: View {
                         set(param.name, picked == Self.followsLanguageTag ? nil : picked)
                     })) {
                         if follows {
-                            Text(localized("跟隨中繼資料語言偏好推薦")).tag(Self.followsLanguageTag)
+                            Text(localized("跟随中继资料语言偏好推荐")).tag(Self.followsLanguageTag)
                         }
                         ForEach(param.enumOptions ?? [], id: \.value) { option in
                             Text(option.title).tag(option.value)
@@ -845,7 +845,7 @@ private struct HomeModuleParameters: View {
                 }
             }
         } header: {
-            Text(localized("篩選"))
+            Text(localized("筛选"))
         }
         .interfaceSectionSurface()
     }
@@ -882,28 +882,28 @@ private struct HomeModuleTextParameter: View {
 }
 
 extension HomeContentOwner {
-    /// The name 選擇內容來源 and the form's 資料來源 give it.
+    /// The name 选择内容来源 and the form's 资料来源 give it.
     @MainActor
     func name(sources: BookSourceStore, connections: RemoteLibraryConnectionStore,
               modules: RuleModuleLibrary? = nil) -> String {
         switch self {
         case .module(let id): (modules ?? .shared).installed(id: id)?.module.title ?? id
-        case .appData: localized("App 資料")
-        case .official: localized("官方模組")
+        case .appData: localized("App 资料")
+        case .official: localized("官方模组")
         case .connection(let id): connections.connection(id: id)?.name ?? ""
         case .gutenberg: localized("Project Gutenberg")
-        case .aozora: localized("青空文庫")
+        case .aozora: localized("青空文库")
         case .bookSource(let url): sources.sources.first { $0.bookSourceUrl == url }?.bookSourceName ?? url
         }
     }
 }
 
-#Preview("新增欄目") {
+#Preview("新增栏目") {
     HomeNewSectionSheet()
         .environmentObject(BookStore())
 }
 
-#Preview("欄目") {
+#Preview("栏目") {
     NavigationStack {
         HomeSectionForm(
             editor: HomeSectionEditor(
@@ -915,7 +915,7 @@ extension HomeContentOwner {
     .environmentObject(BookStore())
 }
 
-#Preview("大圖卡片的清單") {
+#Preview("大图卡片的清单") {
     NavigationStack {
         HomeSectionForm(
             editor: HomeSectionEditor(
@@ -930,7 +930,7 @@ extension HomeContentOwner {
     .environmentObject(BookStore())
 }
 
-#Preview("最新，顯示在最新") {
+#Preview("最新，显示在最新") {
     NavigationStack {
         HomeSectionForm(
             editor: HomeSectionEditor(
@@ -942,12 +942,12 @@ extension HomeContentOwner {
     .environmentObject(BookStore())
 }
 
-#Preview("模組的清單") {
+#Preview("模组的清单") {
     let module = RuleModulePreviewData.module()
     return NavigationStack {
         HomeSectionForm(
             editor: HomeSectionEditor(
-                section: HomeSection(layout: .row, title: "新書", binding: .module(moduleID: module.id, entryID: "new"),
+                section: HomeSection(layout: .row, title: "新书", binding: .module(moduleID: module.id, entryID: "new"),
                                      parameters: ["sort": "new"]),
                 store: HomePageStore(fileURL: FileManager.default.temporaryDirectory.appendingPathComponent("preview-home.json")),
                 preview: .preview(shelf: BookStore())),
@@ -956,8 +956,8 @@ extension HomeContentOwner {
     .environmentObject(BookStore())
 }
 
-#Preview("分類卡片的分類") {
-    let categories = ["玄幻", "都市", "仙俠"].map {
+#Preview("分类卡片的分类") {
+    let categories = ["玄幻", "都市", "仙侠"].map {
         ExploreCategoryReference(sourceURL: "https://preview.example", title: $0, url: "https://preview.example/\($0)")
     }
     return NavigationStack {
@@ -971,7 +971,7 @@ extension HomeContentOwner {
     .environmentObject(BookStore())
 }
 
-#Preview("混合來源的清單") {
+#Preview("混合来源的清单") {
     let module = RuleModulePreviewData.module()
     let cards = [
         HomeListCard(binding: .module(moduleID: module.id, entryID: "new"), parameters: ["sort": "new"]),

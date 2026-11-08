@@ -1,8 +1,8 @@
 import SwiftUI
 
-// MARK: - 資源庫 cards
+// MARK: - 资源库 cards
 
-// 資源庫's entries (Phase 5 plan, 5h). The old 探索 root's 格狀 and 列表 choice, restored from
+// 资源库's entries (Phase 5 plan, 5h). The old 探索 root's 格状 and 列表 choice, restored from
 // before 5d-1b; each entry is a card as the maintainer's reference draws its media servers and
 // modules (2026-10-13): a small square picture top leading, a count or a time top trailing,
 // then the name, a line about it and a line of detail. A source has no picture of its own, so
@@ -63,7 +63,7 @@ struct ExploreEntryLabel: View {
 
     /// The card's top trailing corner.
     enum Corner: Equatable {
-        /// A count in a small pill: RSS 訂閱's unread articles, a group's sources.
+        /// A count in a small pill: RSS 订阅's unread articles, a group's sources.
         case count(Int)
     }
 
@@ -75,11 +75,11 @@ struct ExploreEntryLabel: View {
     var subtitle: String?
     var detail: String?
     var corner: Corner?
-    /// Drawn in 資源庫's paper look rather than the app's cards: 宋體-adjacent colours, a warm
+    /// Drawn in 资源库's paper look rather than the app's cards: 宋体-adjacent colours, a warm
     /// symbol tile and a sheet-like surface. 探索 and the rest keep the default.
     var paper: Bool = false
-    /// Unconditional glass, the same pane 設定's rows are made of. `paper` wins where both are
-    /// set; the 分組卡片 switch still decides for cards that ask for neither.
+    /// Unconditional glass, the same pane 设置's rows are made of. `paper` wins where both are
+    /// set; the 分组卡片 switch still decides for cards that ask for neither.
     var glass: Bool = false
 
     init(title: String, artwork: ExploreArtwork?, layout: Layout,
@@ -215,7 +215,7 @@ private var exploreEntryShape: RoundedRectangle {
     RoundedRectangle(cornerRadius: DSRadius.xl, style: .continuous)
 }
 
-/// The card's ground: 資源庫's paper sheet, the app's themed card elsewhere, or an
+/// The card's ground: 资源库's paper sheet, the app's themed card elsewhere, or an
 /// unconditional pane of glass.
 private struct ExploreEntrySurface: ViewModifier {
     let paper: Bool
@@ -351,7 +351,7 @@ private struct ExploreArtworkView: View {
     }
 }
 
-#Preview("資源庫 grid") {
+#Preview("资源库 grid") {
     ScrollView {
         ForEach(ExploreGridDensity.allCases) { density in
             LazyVGrid(
@@ -360,8 +360,8 @@ private struct ExploreArtworkView: View {
             ) {
                 ExploreEntryLabel(title: "Project Gutenberg", artwork: .symbol("building.columns"), layout: .grid(density),
                                   subtitle: "gutenberg.org")
-                ExploreEntryLabel(title: "RSS 訂閱", artwork: .symbol("newspaper"), layout: .grid(density),
-                                  subtitle: "12 個訂閱源", corner: .count(8))
+                ExploreEntryLabel(title: "RSS 订阅", artwork: .symbol("newspaper"), layout: .grid(density),
+                                  subtitle: "12 个订阅源", corner: .count(8))
                 ExploreEntryLabel(title: "📚书山聚合", artwork: .source, layout: .grid(density),
                                   subtitle: "男频、精品", detail: "shushan.example")
                 ExploreEntryLabel(title: "男频", artwork: .neutral("folder.fill"), layout: .grid(density), corner: .count(42))
@@ -372,11 +372,11 @@ private struct ExploreArtworkView: View {
     .background(DSColor.groupedBackground)
 }
 
-#Preview("資源庫 list") {
+#Preview("资源库 list") {
     ScrollView {
         LazyVStack(spacing: DSSpacing.md) {
-            ExploreEntryLabel(title: "RSS 訂閱", artwork: .symbol("newspaper"), layout: .list,
-                              subtitle: "12 個訂閱源", corner: .count(8))
+            ExploreEntryLabel(title: "RSS 订阅", artwork: .symbol("newspaper"), layout: .list,
+                              subtitle: "12 个订阅源", corner: .count(8))
             ExploreEntryLabel(title: "📚书山聚合", artwork: .source, layout: .list,
                               subtitle: "男频、精品", detail: "shushan.example")
             ExploreEntryLabel(title: "番茄小说", artwork: .source, layout: .list)

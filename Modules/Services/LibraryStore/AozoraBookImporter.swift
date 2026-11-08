@@ -14,7 +14,7 @@ enum AozoraBookImporter {
             case .undecodable(let file): return "\(file) could not be decoded"
             }
         }
-        var errorDescription: String? { localized("無法辨識這個青空文庫檔案的文字編碼") }
+        var errorDescription: String? { localized("无法辨识这个青空文库档案的文字编码") }
         var diagnosticDescription: String { description }
     }
 
@@ -208,6 +208,6 @@ enum AozoraBookImporter {
 }
 
 extension AozoraEPUBWriter.WriteError: LocalizedError, DiagnosableError {
-    var errorDescription: String? { localized("這個青空文庫檔案裡沒有內文") }
+    var errorDescription: String? { localized("这个青空文库档案里没有内文") }
     var diagnosticDescription: String { description }
 }

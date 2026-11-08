@@ -90,14 +90,14 @@ enum RuleModuleRepositoryError: Error, Equatable, Sendable {
 
     var message: String {
         switch self {
-        case .notAnIndex: localized("這不是模組倉庫的索引")
-        case .missingName: localized("模組倉庫沒有名稱")
-        case .tooLarge: localized("模組倉庫的索引太大")
-        case .tooManyModules: String(format: localized("模組倉庫最多列 %d 個模組"), RuleModuleRepositoryIndex.maximumModules)
-        case .invalidEntry(let position, let field): String(format: localized("模組倉庫第 %d 個模組的「%@」無效"), position, field)
-        case .duplicateID(let id): String(format: localized("模組倉庫列了兩次「%@」"), id)
+        case .notAnIndex: localized("这不是模组仓库的索引")
+        case .missingName: localized("模组仓库没有名称")
+        case .tooLarge: localized("模组仓库的索引太大")
+        case .tooManyModules: String(format: localized("模组仓库最多列 %d 个模组"), RuleModuleRepositoryIndex.maximumModules)
+        case .invalidEntry(let position, let field): String(format: localized("模组仓库第 %d 个模组的「%@」无效"), position, field)
+        case .duplicateID(let id): String(format: localized("模组仓库列了两次「%@」"), id)
         case .differentModule(let listed, let file):
-            String(format: localized("模組倉庫列的是「%@」，下載的檔案卻是「%@」"), listed, file)
+            String(format: localized("模组仓库列的是「%@」，下载的档案却是「%@」"), listed, file)
         }
     }
 }
@@ -261,7 +261,7 @@ final class RuleModuleRepositoryModel: ObservableObject {
         }
     }
 
-    /// What 選擇's 安裝 did with each chosen module.
+    /// What 选择's 安装 did with each chosen module.
     struct BatchOutcome: Equatable {
         struct Item: Equatable {
             let id: String
@@ -277,7 +277,7 @@ final class RuleModuleRepositoryModel: ObservableObject {
         var failed: [Item] = []
     }
 
-    /// 選擇 then 安裝 (maintainer, 2026-10-17: 「多選後一次安裝／更新」): each chosen module read,
+    /// 选择 then 安装 (maintainer, 2026-10-17: 「多选后一次安装／更新」): each chosen module read,
     /// validated and written in turn. An update that adds a site is not written — its preview
     /// says so first, as 更新 on one module does. Installed and official ones are passed over.
     func install(_ entries: [RuleModuleRepositoryIndex.Entry]) async -> BatchOutcome {
@@ -317,7 +317,7 @@ final class RuleModuleRepositoryModel: ObservableObject {
         if let error = error as? RuleModuleRepositoryError { return error.message }
         if let error = error as? RuleModuleRejection { return error.message }
         if let error = error as? RuleModuleStoreError { return error.message }
-        return String(format: localized("無法下載模組：%@"), error.localizedDescription)
+        return String(format: localized("无法下载模组：%@"), error.localizedDescription)
     }
 
     func unsubscribe(_ url: URL) {
@@ -340,7 +340,7 @@ final class RuleModuleRepositoryModel: ObservableObject {
         } catch {
             AppLogger.network("module repository download failed", error: SourceFailure.loggable(error),
                               context: ["address": url.absoluteString])
-            return .failed(String(format: localized("無法下載模組倉庫：%@"), error.localizedDescription))
+            return .failed(String(format: localized("无法下载模组仓库：%@"), error.localizedDescription))
         }
     }
 

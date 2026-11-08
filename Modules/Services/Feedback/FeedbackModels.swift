@@ -1,6 +1,6 @@
 import Foundation
 
-// MARK: - 回饋中心 data model
+// MARK: - 回馈中心 data model
 //
 // One thread per report, stored at `feedbackInboxes/{inbox}/threads/{id}` with its
 // messages beneath it (see `FeedbackService` and firestore.rules). The developer side —
@@ -15,15 +15,15 @@ enum FeedbackKind: String, CaseIterable, Identifiable, Sendable {
 
     var localizedName: String {
         switch self {
-        case .bug: localized("問題回報")
-        case .suggestion: localized("改進建議")
+        case .bug: localized("问题回报")
+        case .suggestion: localized("改进建议")
         }
     }
 
     var placeholder: String {
         switch self {
-        case .bug: localized("請描述遇到的問題：在哪個頁面、做了什麼操作、看到了什麼…")
-        case .suggestion: localized("請描述希望新增或改進的功能，以及想在什麼情境下使用…")
+        case .bug: localized("请描述遇到的问题：在哪个页面、做了什么操作、看到了什么…")
+        case .suggestion: localized("请描述希望新增或改进的功能，以及想在什么情境下使用…")
         }
     }
 }
@@ -55,15 +55,15 @@ enum FeedbackStatus: String, Sendable {
 
     var badgeTitle: String {
         switch self {
-        case .received, .queued: localized("已收到，排隊處理中")
-        case .processing: localized("開發者處理中")
-        case .needsInfo: localized("需要你補充資訊")
+        case .received, .queued: localized("已收到，排队处理中")
+        case .processing: localized("开发者处理中")
+        case .needsInfo: localized("需要你补充资讯")
         case .done: localized("已完成")
         }
     }
 }
 
-/// The four groups 我的回饋 filters by, in the order its bar shows them.
+/// The four groups 我的回馈 filters by, in the order its bar shows them.
 enum FeedbackStatusGroup: String, CaseIterable, Identifiable, Sendable {
     case processing
     case queued
@@ -74,9 +74,9 @@ enum FeedbackStatusGroup: String, CaseIterable, Identifiable, Sendable {
 
     var title: String {
         switch self {
-        case .processing: localized("處理中")
-        case .queued: localized("排隊中")
-        case .needsInfo: localized("待補充")
+        case .processing: localized("处理中")
+        case .queued: localized("排队中")
+        case .needsInfo: localized("待补充")
         case .done: localized("已完成")
         }
     }
@@ -142,11 +142,11 @@ struct FeedbackThread: Identifiable, Hashable, Sendable {
         return lastReplyAt > userLastReadAt
     }
 
-    /// 「回饋 #25,743」, or plain 「回饋」 until the server has numbered it.
+    /// 「回馈 #25,743」, or plain 「回馈」 until the server has numbered it.
     var displayTitle: String {
-        guard let number else { return localized("回饋") }
+        guard let number else { return localized("回馈") }
         let formatted = number.formatted(.number.grouping(.automatic))
-        return String(format: localized("回饋 #%@"), formatted)
+        return String(format: localized("回馈 #%@"), formatted)
     }
 }
 

@@ -100,4 +100,4 @@ final class ClockBatteryModel: ObservableObject {
 // `ReaderOverlayFooter` and `ReaderInlineFooter` lived here — two structs with
 // byte-identical bodies, neither of them called any more. `ReaderBarRenderer`
 // draws both bars now. `ClockBatteryModel` above stays: it is what makes the
-// bars tick, and the 頁首頁尾 editor's preview uses it too.
+// bars tick, and the 页首页尾 editor's preview uses it too.

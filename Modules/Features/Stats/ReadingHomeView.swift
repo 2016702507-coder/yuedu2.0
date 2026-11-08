@@ -1,22 +1,22 @@
 import SwiftUI
 
-// MARK: - 首頁
+// MARK: - 首页
 //
-// maintainer, 2026-11-06: redrawn to the reference clip — 首頁 on the left of the masthead,
+// maintainer, 2026-11-06: redrawn to the reference clip — 首页 on the left of the masthead,
 // the greeting under it, then one large cover sitting in the middle of a carousel with the
 // neighbouring books turned away from it, the title / author / chapter centred below, one
-// deep 繼續閱讀 pill, and the page dots. Under that, 閱讀小箋 as a sheet of glass rather than
+// deep 继续阅读 pill, and the page dots. Under that, 阅读小笺 as a sheet of glass rather than
 // a card, so the artwork shows through it.
 //
 // The page no longer paints paper of its own when the active theme carries a page background:
 // the tab's backdrop (`ThemedSurfaceBackground`, `.global`) already holds the artwork, and
-// 劍來's 山水 shows through instead of being covered by the warm gradient.
+// 剑来's 山水 shows through instead of being covered by the warm gradient.
 //
-// It takes 資源庫's place in the root tabs. 資源庫 itself is not gone: 來源配置管理, 模組 and
-// 遠端書庫 are all reachable from 設定 (`ProfileView`), which is why nothing here links to them.
+// It takes 资源库's place in the root tabs. 资源库 itself is not gone: 来源配置管理, 模组 and
+// 远端书库 are all reachable from 设置 (`ProfileView`), which is why nothing here links to them.
 
 struct ReadingHomeView: View {
-    /// 書架 is another root tab, not a page this one can push: the shell hands the switch
+    /// 书架 is another root tab, not a page this one can push: the shell hands the switch
     /// down rather than the page reaching for a tab it does not own.
     var onOpenBookshelf: () -> Void
 
@@ -35,14 +35,23 @@ struct ReadingHomeView: View {
     @State private var showsStats = false
     @State private var now = Date()
 
-    /// Which cover the carousel is resting on. Bound to `scrollPosition`, so it follows the
-    /// reader's finger; the title under the carousel reads from it.
+    /// Where `scrollPosition` puts the strip: written by `settleCarousel` to open on the book
+    /// last read, never read back for the caption.
     @State private var centeredBookID: UUID?
 
-    /// 一頁一頁地翻，擺十幾本剛好；再多就不是「今天這一本」而是書架了。
+    /// The cover square on screen, measured rather than reported. `scrollPosition`'s binding
+    /// does not reliably write back on iOS 17 (`LazyHStack` + `viewAligned`), which left the
+    /// caption, the dots and 继续阅读 pointing at the book the reader had already swiped past;
+    /// each cover now reports its own mid line, and the one near the screen's middle wins.
+    @State private var restingBookID: UUID?
+
+    /// The space the covers measure their positions in.
+    private static let carouselSpace = "homeCarousel"
+
+    /// 一页一页地翻，摆十几本刚好；再多就不是「今天这一本」而是书架了。
     private static let carouselLimit = 12
 
-    /// 最近被打開的在前，沒打開過的補在後面 —— 進門先看到的就是上次那一本。
+    /// 最近被打开的在前，没打开过的补在后面 —— 进门先看到的就是上次那一本。
     private var carouselBooks: [ReadingBook] {
         let sorted = store.books.sorted {
             ($0.lastOpenedDate ?? $0.addedDate) > ($1.lastOpenedDate ?? $1.addedDate)
@@ -51,7 +60,7 @@ struct ReadingHomeView: View {
     }
 
     private var centeredBook: ReadingBook? {
-        guard let id = centeredBookID else { return carouselBooks.first }
+        guard let id = restingBookID ?? centeredBookID else { return carouselBooks.first }
         return carouselBooks.first { $0.id == id } ?? carouselBooks.first
     }
 
@@ -62,7 +71,7 @@ struct ReadingHomeView: View {
         return index
     }
 
-    /// 沒有頁面背景圖時，這一頁仍然要像一張紙。
+    /// 没有页面背景图时，这一页仍然要像一张纸。
     private var showsThemedBackdrop: Bool {
         guard subscription.hasAccess(.readerThemePacks) else { return false }
         return gs.resolvedPageBackgroundSlice(for: .global, colorScheme: scheme) != nil
@@ -90,7 +99,12 @@ struct ReadingHomeView: View {
         .onChange(of: store.books.count) { _, _ in settleCarousel() }
         .fullScreenCover(isPresented: Binding(
             get: { readingBookID != nil },
-            set: { if !$0 { readingBookID = nil } }
+            set: { isPresented in
+                guard !isPresented else { return }
+                readingBookID = nil
+                // 合上阅读器：刚读的这本因为「最近打开」跳到第一位，把轮播重新摆回它身上。
+                recenterCarousel()
+            }
         )) {
             if let id = readingBookID {
                 BookReaderView(bookId: id)
@@ -102,16 +116,43 @@ struct ReadingHomeView: View {
         }
     }
 
-    /// 第一次進來停在最近讀的那本，而不是第一本。
+    /// 第一次进来停在最近读的那本，而不是第一本。
     private func settleCarousel() {
-        guard !carouselBooks.isEmpty else { return }
-        if let current = centeredBookID, carouselBooks.contains(where: { $0.id == current }) {
+        guard !carouselBooks.isEmpty else {
+            centeredBookID = nil
+            restingBookID = nil
+            return
+        }
+        if let current = restingBookID, carouselBooks.contains(where: { $0.id == current }) {
             return
         }
         let target = store.books
             .filter { $0.lastOpenedDate != nil }
             .max { ($0.lastOpenedDate ?? .distantPast) < ($1.lastOpenedDate ?? .distantPast) }
-        centeredBookID = target?.id ?? carouselBooks.first?.id
+        let settled = target?.id ?? carouselBooks.first?.id
+        centeredBookID = settled
+        restingBookID = settled
+    }
+
+    /// A cover whose middle line sits within half a slot of the screen's middle is the one
+    /// square on; the ones either side are turned away. Only a change of book writes state,
+    /// so dragging the strip does not recompute the page on every frame.
+    private func settleResting(_ book: ReadingBook, midX: CGFloat, middle: CGFloat, slot: CGFloat) {
+        guard abs(midX - middle) < slot * 0.5 else { return }
+        if restingBookID != book.id { restingBookID = book.id }
+    }
+
+    /// 进阅读：有声书先让播放器长出来，和「继续阅读」走同一条路。
+    private func openBook(_ book: ReadingBook) {
+        if !NowPlayingHub.shared.openIfAudiobook(book, store: store) {
+            readingBookID = book.id
+        }
+    }
+
+    /// 把刚合上的那本摆回中间。排序会把它挪到第一位，写回 `scrollPosition` 让轮播跟过去。
+    private func recenterCarousel() {
+        guard let id = restingBookID ?? carouselBooks.first?.id else { return }
+        centeredBookID = id
     }
 
     // MARK: Masthead
@@ -119,7 +160,7 @@ struct ReadingHomeView: View {
     private var masthead: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .center) {
-                Text(localized("首頁"))
+                Text(localized("首页"))
                     .font(.system(size: 30, weight: .bold))
                     .foregroundStyle(PaperPalette.textPrimary(scheme))
                     .accessibilityAddTraits(.isHeader)
@@ -131,7 +172,7 @@ struct ReadingHomeView: View {
             greetingLine
                 .padding(.top, 26)
 
-            Text(localized("喜歡的故事，總能讓日常鬆一口氣。"))
+            Text(localized("喜欢的故事，总能让日常松一口气。"))
                 .font(.system(size: 12.5))
                 .foregroundStyle(PaperPalette.textSecondary(scheme))
                 .padding(.top, 7)
@@ -139,13 +180,13 @@ struct ReadingHomeView: View {
         .padding(.horizontal, 22)
     }
 
-    /// 晚上好，慢慢讀。 — the greeting in ink, the wish in the page's darkest ink, one serif line.
+    /// 晚上好，慢慢读。 — the greeting in ink, the wish in the page's darkest ink, one serif line.
     private var greetingLine: some View {
         HStack(alignment: .firstTextBaseline, spacing: 0) {
             Text(salutation)
                 .font(PaperFont.serif(25))
                 .foregroundStyle(PaperPalette.ink(scheme))
-            Text(localized("慢慢讀。"))
+            Text(localized("慢慢读。"))
                 .font(PaperFont.serif(25))
                 .foregroundStyle(PaperPalette.textPrimary(scheme))
         }
@@ -162,7 +203,7 @@ struct ReadingHomeView: View {
         }
     }
 
-    /// 右上角那一行小字：不搶戲，只是讓人知道今天讀了多久。
+    /// 右上角那一行小字：不抢戏，只是让人知道今天读了多久。
     private var readingTimeBadge: some View {
         Button {
             showsStats = true
@@ -170,7 +211,7 @@ struct ReadingHomeView: View {
             HStack(spacing: 5) {
                 Image(systemName: "clock")
                     .font(.system(size: 10.5, weight: .medium))
-                Text(localized("閱讀時光"))
+                Text(localized("阅读时光"))
                     .font(.system(size: 11.5))
             }
             .foregroundStyle(PaperPalette.textTertiary(scheme))
@@ -182,7 +223,7 @@ struct ReadingHomeView: View {
         .buttonStyle(.plain)
     }
 
-    // MARK: 封面輪播
+    // MARK: 封面轮播
 
     /// One screenful of covers: the middle one square to the reader, the ones either side
     /// turned away and shrunk, the way the reference draws a small turntable of books.
@@ -198,6 +239,19 @@ struct ReadingHomeView: View {
                     ForEach(carouselBooks) { book in
                         cover(book, width: coverWidth, height: coverHeight)
                             .frame(width: slot, height: proxy.size.height)
+                            .background {
+                                // 让位置自己说话：每张卡量出自己的中线，落在屏幕中线附近的那本
+                                // 就是「当前这一本」。不依赖 `scrollPosition` 回写。
+                                GeometryReader { geometry in
+                                    Color.clear
+                                        .onChange(
+                                            of: geometry.frame(in: .named(Self.carouselSpace)).midX,
+                                            initial: true
+                                        ) { _, midX in
+                                            settleResting(book, midX: midX, middle: width / 2, slot: slot)
+                                        }
+                                }
+                            }
                             .scrollTransition(.interactive, axis: .horizontal) { content, phase in
                                 content
                                     .scaleEffect(CGFloat(1 - abs(phase.value) * 0.34))
@@ -209,6 +263,13 @@ struct ReadingHomeView: View {
                                     )
                                     .opacity(1 - abs(phase.value) * 0.12)
                             }
+                            // 点封面直接进阅读；拖动时这个手势自动让位给滚动。
+                            .contentShape(Rectangle())
+                            .onTapGesture { openBook(book) }
+                            .accessibilityElement(children: .ignore)
+                            .accessibilityAddTraits(.isButton)
+                            .accessibilityLabel(book.title)
+                            .accessibilityValue(book.author)
                     }
                 }
                 .scrollTargetLayout()
@@ -218,12 +279,13 @@ struct ReadingHomeView: View {
             .scrollPosition(id: $centeredBookID, anchor: .center)
             .scrollIndicators(.hidden)
             .scrollClipDisabled()
+            .coordinateSpace(.named(Self.carouselSpace))
         }
         .frame(height: 254)
         .padding(.top, 18)
     }
 
-    /// 書名・按鈕・頁碼：底下垫一层纸色，主題背景裡山水正好壓在字後面時也讀得清。
+    /// 书名・按钮・页码：底下垫一层纸色，主题背景里山水正好压在字后面时也读得清。
     private var details: some View {
         VStack(spacing: 0) {
             caption
@@ -247,7 +309,7 @@ struct ReadingHomeView: View {
         }
     }
 
-    // MARK: 書名・作者・章節
+    // MARK: 书名・作者・章节
 
     @ViewBuilder
     private var caption: some View {
@@ -280,8 +342,8 @@ struct ReadingHomeView: View {
             .padding(.top, 18)
         } else {
             VStack(spacing: 8) {
-                Text(localized("書架還是空的")).font(PaperFont.serif(19))
-                Text(localized("去書架挑一本，這裡就會亮起來。"))
+                Text(localized("书架还是空的")).font(PaperFont.serif(19))
+                Text(localized("去书架挑一本，这里就会亮起来。"))
                     .font(.system(size: 12.5))
                     .foregroundStyle(PaperPalette.textSecondary(scheme))
             }
@@ -291,21 +353,18 @@ struct ReadingHomeView: View {
         }
     }
 
-    // MARK: 繼續閱讀
+    // MARK: 继续阅读
 
     private var continueButton: some View {
         Button {
             if let book = centeredBook {
-                // An audiobook's player grows out of the now-playing bar.
-                if !NowPlayingHub.shared.openIfAudiobook(book, store: store) {
-                    readingBookID = book.id
-                }
+                openBook(book)
             } else {
                 onOpenBookshelf()
             }
         } label: {
             HStack(spacing: 10) {
-                Text(centeredBook == nil ? localized("查看書架") : localized("繼續閱讀"))
+                Text(centeredBook == nil ? localized("查看书架") : localized("继续阅读"))
                     .font(.system(size: 15, weight: .semibold))
                 Image(systemName: "arrow.right")
                     .font(.system(size: 13, weight: .semibold))
@@ -322,7 +381,7 @@ struct ReadingHomeView: View {
         .accessibilityIdentifier("home_continue_reading")
     }
 
-    // MARK: 頁碼點
+    // MARK: 页码点
 
     @ViewBuilder
     private var pageDots: some View {
@@ -352,7 +411,7 @@ struct ReadingHomeView: View {
         }
     }
 
-    // MARK: 閱讀小箋
+    // MARK: 阅读小笺
 
     private var readingNote: some View {
         Button {
@@ -364,12 +423,12 @@ struct ReadingHomeView: View {
                         Image(systemName: "quote.opening")
                             .font(.system(size: 10.5, weight: .semibold))
                             .foregroundStyle(PaperPalette.ink(scheme).opacity(0.7))
-                        Text(localized("閱讀小箋"))
+                        Text(localized("阅读小笺"))
                             .font(.system(size: 12.5, weight: .semibold))
                             .foregroundStyle(PaperPalette.textPrimary(scheme))
                     }
 
-                    Text(localized("今日閱讀"))
+                    Text(localized("今日阅读"))
                         .font(.system(size: 10.5))
                         .foregroundStyle(PaperPalette.textTertiary(scheme))
 
@@ -402,7 +461,7 @@ struct ReadingHomeView: View {
         .padding(.top, 26)
     }
 
-    /// 不足 1 分鐘 / 12 分鐘 — the count is the one number on the page that should be large.
+    /// 不足 1 分钟 / 12 分钟 — the count is the one number on the page that should be large.
     private var todayReadingValue: some View {
         let seconds = todaySeconds
         let minutes = seconds / 60
@@ -411,7 +470,7 @@ struct ReadingHomeView: View {
                 Text("0")
                     .font(PaperFont.serif(38))
                     .foregroundStyle(PaperPalette.textPrimary(scheme))
-                Text(localized("分鐘"))
+                Text(localized("分钟"))
                     .font(.system(size: 10.5))
                     .foregroundStyle(PaperPalette.textSecondary(scheme))
             } else if minutes == 0 {
@@ -421,7 +480,7 @@ struct ReadingHomeView: View {
                 Text("1")
                     .font(PaperFont.serif(38))
                     .foregroundStyle(PaperPalette.textPrimary(scheme))
-                Text(localized("分鐘"))
+                Text(localized("分钟"))
                     .font(.system(size: 10.5))
                     .foregroundStyle(PaperPalette.textSecondary(scheme))
             } else {
@@ -429,7 +488,7 @@ struct ReadingHomeView: View {
                     .font(PaperFont.serif(38))
                     .foregroundStyle(PaperPalette.textPrimary(scheme))
                     .monospacedDigit()
-                Text(localized("分鐘"))
+                Text(localized("分钟"))
                     .font(.system(size: 10.5))
                     .foregroundStyle(PaperPalette.textSecondary(scheme))
             }
@@ -446,9 +505,9 @@ struct ReadingHomeView: View {
     /// One sentence, the same all day: it is a small thing to notice, not a thing to rotate.
     private var noteOfTheDay: String {
         let lines = [
-            localized("忙碌之外，也留了一點時間給自己。"),
-            localized("故事還在原來那一頁等著。"),
-            localized("讀幾頁，也算好好休息。"),
+            localized("忙碌之外，也留了一点时间给自己。"),
+            localized("故事还在原来那一页等著。"),
+            localized("读几页，也算好好休息。"),
         ]
         let day = Calendar.current.ordinality(of: .day, in: .year, for: now) ?? 1
         return lines[day % lines.count]

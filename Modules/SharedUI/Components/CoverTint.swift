@@ -3,7 +3,7 @@ import SwiftUI
 import UIKit
 
 // A cover's main colour, for a surface drawn in it: the audiobook player's background, and
-// 精簡閱讀卡片 on Explore's home (unified library 5d-3c, decision 20). One average for both.
+// 精简阅读卡片 on Explore's home (unified library 5d-3c, decision 20). One average for both.
 //
 // A card does not load its cover a second time to find the colour. The views that draw a
 // cover (`BookCoverImage`, `BookshelfCoverArtwork`, `GeneratedBookCover`, the home's file
@@ -107,7 +107,7 @@ enum CoverTint {
         contrast(RGB(red: 1, green: 1, blue: 1), rgb)
     }
 
-    /// 精簡閱讀卡片's kind line, as Apple Books draws 書籍・12% on its Continue card: the
+    /// 精简阅读卡片's kind line, as Apple Books draws 书籍・12% on its Continue card: the
     /// cover's hue, light, at no more than a set saturation; grey for a grey cover.
     /// A hue that stays dark at that brightness (blue, violet) is mixed towards white until it
     /// is as light as `DSLayout.homeContinueTintMinimumLuminance`, so a ground dark enough

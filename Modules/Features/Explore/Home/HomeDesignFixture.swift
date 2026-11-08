@@ -39,8 +39,8 @@ private struct HomeDesignFixturePage: View {
 
     private let groups = HomeScopeFilter.groups(HomeDesignFixtureData.rows, in: nil)
 
-    /// The first band, drawn at the top as the home draws its 頂部輪播圖; the other draws as
-    /// 大型封面書架.
+    /// The first band, drawn at the top as the home draws its 顶部轮播图; the other draws as
+    /// 大型封面书架.
     private var carousel: HomeSectionGroup? { groups.first { $0.section.layout == .band } }
 
     var body: some View {
@@ -79,12 +79,12 @@ private extension HomeModel.RowState {
 
 @MainActor
 enum HomeDesignFixtureData {
-    /// Made-up copies read to different points, for 繼續閱讀.
+    /// Made-up copies read to different points, for 继续阅读.
     static let shelfBooks: [ReadingBook] = [
-        ("宿命之環", "愛潛水的烏賊", 0.32),
-        ("劍燭大荒", "青山鶴", 0.75),
-        ("三體", "劉慈欣", 1.0),
-        ("我的第一本書", "", 0.0),
+        ("宿命之环", "爱潜水的乌贼", 0.32),
+        ("剑烛大荒", "青山鹤", 0.75),
+        ("三体", "刘慈欣", 1.0),
+        ("我的第一本书", "", 0.0),
     ].enumerated().map { index, item in
         var book = ReadingBook(title: item.0, author: item.1, contentFilename: "fixture-\(index).txt")
         book.currentPosition = item.2
@@ -104,20 +104,20 @@ enum HomeDesignFixtureData {
         let gutenberg = SourceInstanceKey(type: .gutenberg, id: PublicLibraryID.gutenberg.rawValue)
         let aozora = SourceInstanceKey(type: .aozora, id: PublicLibraryID.aozora.rawValue)
         let collection = chinese.books.map(CollectionEntry.bundledGutenberg)
-        let authors = ["芥川 竜之介", "太宰 治", "夏目 漱石", "宮沢 賢治", "森 鷗外"].map {
+        let authors = ["芥川 竜之介", "太宰 治", "夏目 漱石", "宫沢 贤治", "森 鸥外"].map {
             CollectionEntry.location(CollectionLocation(id: $0, title: $0))
         }
         return [
-            row(.continueReading, layout: .compactReadingCard, source: .localLibrary, name: localized("書架"), policy: .local,
+            row(.continueReading, layout: .compactReadingCard, source: .localLibrary, name: localized("书架"), policy: .local,
                 state: .loaded([])),
-            row(.continueReading, layout: .readingCard, source: .localLibrary, name: localized("書架"), policy: .local,
+            row(.continueReading, layout: .readingCard, source: .localLibrary, name: localized("书架"), policy: .local,
                 state: .loaded([])),
-            // 精選 (decision 37): shelf copies, and a bundled list with no blurb or category.
-            row(.continueReading, layout: .featured, source: .localLibrary, name: localized("書架"), policy: .local,
+            // 精选 (decision 37): shelf copies, and a bundled list with no blurb or category.
+            row(.continueReading, layout: .featured, source: .localLibrary, name: localized("书架"), policy: .local,
                 state: .loaded([])),
             row(.gutenbergCollection(id: chinese.id), layout: .featured, source: gutenberg,
                 name: localized("Project Gutenberg"), policy: .local, state: .loaded(collection)),
-            // 專題集合 (decision 37): the bundled lists, a card each.
+            // 专题集合 (decision 37): the bundled lists, a card each.
             row(.gutenbergLists, layout: .collection, source: gutenberg, name: localized("Project Gutenberg"),
                 policy: .local, state: .loaded(PublicLibraryCollection.all.map { .collection(.bundledGutenberg($0)) })),
             // One list in each of the other layouts (5d-3).
@@ -130,8 +130,8 @@ enum HomeDesignFixtureData {
             row(.gutenbergCollection(id: chinese.id), layout: .coverGrid, source: gutenberg,
                 name: localized("Project Gutenberg"), policy: .local, state: .loading),
             // After Apple Books' store and home (2026-10-25): the band loaded, drawn at the top
-            // as the 頂部輪播圖 (2026-10-27), and loading, drawn as 大型封面書架 as any band after
-            // the first is; the other new layouts of books, among them 色帶書架 (2026-10-27), and
+            // as the 顶部轮播图 (2026-10-27), and loading, drawn as 大型封面书架 as any band after
+            // the first is; the other new layouts of books, among them 色带书架 (2026-10-27), and
             // the layouts of lists, 排行榜 among them, written as a ranked row is.
             row(.gutenbergCollection(id: chinese.id), layout: .band, source: gutenberg,
                 name: localized("Project Gutenberg"), policy: .local, state: .loaded(collection)),
@@ -151,9 +151,9 @@ enum HomeDesignFixtureData {
                 policy: .local, state: .loaded(PublicLibraryCollection.all.map { .collection(.bundledGutenberg($0)) })),
             row(.gutenbergLists, layout: .bannerCards, source: gutenberg, name: localized("Project Gutenberg"),
                 policy: .local, state: .loaded(PublicLibraryCollection.all.map { .collection(.bundledGutenberg($0)) })),
-            row(.aozoraIndex(kind: AozoraBrowseMode.authors.rawValue), source: aozora, name: localized("青空文庫"),
+            row(.aozoraIndex(kind: AozoraBrowseMode.authors.rawValue), source: aozora, name: localized("青空文库"),
                 policy: .local, state: .loaded(authors)),
-            row(.latest, source: aozora, name: localized("青空文庫"), policy: .local, state: .loading),
+            row(.latest, source: aozora, name: localized("青空文库"), policy: .local, state: .loading),
             row(.latest, source: gutenberg, name: localized("Project Gutenberg"), policy: .withHome,
                 state: .loading),
             row(.latest, source: SourceInstanceKey(type: .calibre, id: "fixture-calibre"), name: "Calibre",
@@ -161,7 +161,7 @@ enum HomeDesignFixtureData {
         ]
     }()
 
-    /// 繼續閱讀 shows the made-up copies; the bundled list marks two books as already here.
+    /// 继续阅读 shows the made-up copies; the bundled list marks two books as already here.
     @MainActor
     static func content(for group: HomeSectionGroup, store: BookStore) -> HomeRowContent? {
         if case .continueReading = group.section.binding {
@@ -190,11 +190,11 @@ enum HomeDesignFixtureData {
     }
 }
 
-#Preview("探索首頁卡片與列") {
+#Preview("探索首页卡片与列") {
     HomeDesignFixture().environmentObject(BookStore())
 }
 
-#Preview("探索首頁 — 輔助使用字級") {
+#Preview("探索首页 — 辅助使用字级") {
     HomeDesignFixture().environmentObject(BookStore())
         .environment(\.dynamicTypeSize, .accessibility2)
 }

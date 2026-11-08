@@ -11,9 +11,9 @@ private let audioRouteLog = Logger(
 
 /// Everything an audiobook detail page pushes, through its one `navigationDestination`.
 private enum AudiobookDetailPush: Hashable {
-    /// A genre link's category, or 同題材's 查看全部.
+    /// A genre link's category, or 同题材's 查看全部.
     case category(ExploreCategoryReference)
-    /// A 同題材 book.
+    /// A 同题材 book.
     case book(OnlineBook)
 }
 
@@ -28,10 +28,10 @@ struct AudiobookDetailView: View {
     /// Hands a confirmed switch to a non-audio source to `OnlineBookDetailDestination`,
     /// which replaces this page with the text detail page.
     private let onSourceKindChange: ((BookOrigin) -> Void)?
-    /// On 作品詳情, the work's versions: 換源 lists the others first, and picking one switches
+    /// On 作品详情, the work's versions: 换源 lists the others first, and picking one switches
     /// the page to it (unified library 5f-3). `nil` elsewhere.
     private let workVersions: BookDetailInfoChoice?
-    /// On 作品詳情, the work's series fanned behind the cover, as the work's own page draws it
+    /// On 作品详情, the work's series fanned behind the cover, as the work's own page draws it
     /// (`SeriesCoverFan`). `nil` elsewhere.
     private let seriesFan: SeriesFan?
 
@@ -40,7 +40,7 @@ struct AudiobookDetailView: View {
     @StateObject private var genres = SourceGenreLinks()
     @EnvironmentObject var bookStore: BookStore
     // DismissAction is repeatedly replaced by iOS 17 while a page is pushed above this
-    // detail (a genre's category, a 同題材 book). Its stable binding avoids a navigation
+    // detail (a genre's category, a 同题材 book). Its stable binding avoids a navigation
     // layout loop, as on `OnlineBookView`.
     @Environment(\.presentationMode) private var presentationMode
     @Environment(\.appDependencies) private var dependencies
@@ -147,7 +147,7 @@ struct AudiobookDetailView: View {
         let name = currentBook.sourceName.trimmingCharacters(in: .whitespacesAndNewlines)
         if !name.isEmpty { return name }
         if let s = source?.bookSourceName, !s.isEmpty { return s }
-        return localized("未知來源配置")
+        return localized("未知来源配置")
     }
 
     private var canSwitchSource: Bool {
@@ -159,7 +159,7 @@ struct AudiobookDetailView: View {
     private var displayName: String {
         if let d = detailInfo?.name.trimmingCharacters(in: .whitespacesAndNewlines), !d.isEmpty { return d }
         let b = currentBook.name.trimmingCharacters(in: .whitespacesAndNewlines)
-        return b.isEmpty ? localized("未知書名") : b
+        return b.isEmpty ? localized("未知书名") : b
     }
 
     private var displayAuthor: String {
@@ -255,7 +255,7 @@ struct AudiobookDetailView: View {
                 )
             }
             BookDetailChapterSection(
-                title: localized("章節"),
+                title: localized("章节"),
                 chapters: chapters,
                 isLoading: loading,
                 errorMessage: loadError,
@@ -285,7 +285,7 @@ struct AudiobookDetailView: View {
                     Task { await genres.retryRelated(key: key, source: source, tags: tags, book: currentBook) }
                 }
             )
-            // 作品資訊 last: the first half serves reading and finding more (2026-10-12).
+            // 作品资讯 last: the first half serves reading and finding more (2026-10-12).
             BookDetailInfoSection(items: infoItems)
         }
         .environment(\.locale, Locale(identifier: gs.localeIdentifier))
@@ -367,14 +367,14 @@ struct AudiobookDetailView: View {
                     .environmentObject(bookStore)
             }
         }
-        // The player's own 加入書架 shelves the book while it is up; this page learns of it
+        // The player's own 加入书架 shelves the book while it is up; this page learns of it
         // only once the player has gone.
         .fullScreenCover(isPresented: $showPlayer, onDismiss: checkAlreadyInShelf) {
             if let bid = activePlayerBookId {
                 if bookStore.books.contains(where: { $0.id == bid }) {
                     BookReaderView(bookId: bid).environmentObject(bookStore)
                 } else {
-                    // This page is the book's page: the player's cover and 作品詳情 come back to it.
+                    // This page is the book's page: the player's cover and 作品详情 come back to it.
                     AudiobookReaderView(bookId: bid, detailIsPresenter: true).environmentObject(bookStore)
                 }
             }
@@ -397,7 +397,7 @@ struct AudiobookDetailView: View {
 
     // MARK: Genres and author
 
-    /// What the genre links and 同題材 are read for: the source, the genres and the book. Nil
+    /// What the genre links and 同题材 are read for: the source, the genres and the book. Nil
     /// until the chapters have loaded or failed: the source's categories are read after them,
     /// never in the way of the page's own loading, and with the genres the detail gives.
     private var genreLoadKey: String? {
@@ -437,7 +437,7 @@ struct AudiobookDetailView: View {
 
     private var playAction: BookDetailAction {
         BookDetailAction(
-            title: resumeChapterIndex > 0 ? localized("繼續播放") : localized("開始播放"),
+            title: resumeChapterIndex > 0 ? localized("继续播放") : localized("开始播放"),
             systemImage: "play.fill",
             isBusy: openingPlayer,
             isEnabled: !chapters.isEmpty && !addingToShelf,
@@ -449,8 +449,8 @@ struct AudiobookDetailView: View {
     private var shelfAction: BookDetailAction {
         BookDetailAction(
             title: alreadyInShelf
-                ? localized("移除書架")
-                : (addingToShelf ? localized("加入中…") : localized("加入書架")),
+                ? localized("移除书架")
+                : (addingToShelf ? localized("加入中…") : localized("加入书架")),
             systemImage: alreadyInShelf ? "checkmark" : "plus",
             isBusy: addingToShelf,
             isEnabled: !chapters.isEmpty,
@@ -464,7 +464,7 @@ struct AudiobookDetailView: View {
         var items: [BookDetailInfoItem] = []
         if !chapters.isEmpty {
             items.append(BookDetailInfoItem(
-                id: "chapters", label: localized("章節"), value: chapters.count.formatted()
+                id: "chapters", label: localized("章节"), value: chapters.count.formatted()
             ))
         }
         items.append(.source(name: sourceName) { showSourcePicker = true })
@@ -480,8 +480,8 @@ struct AudiobookDetailView: View {
         return resolvedRuntimeVariables
     }
 
-    /// A 簡介 button or image: its script runs against this page's book.
-    /// `book` as this page's source scripts see it (簡介 buttons, `callBackJs`).
+    /// A 简介 button or image: its script runs against this page's book.
+    /// `book` as this page's source scripts see it (简介 buttons, `callBackJs`).
     private var sourceScriptBook: ReaderHTMLUtilities.LegadoSourceActionContext.BookSnapshot {
         .detailPage(
             name: displayName,
@@ -528,7 +528,7 @@ struct AudiobookDetailView: View {
         )
     }
 
-    /// Legado's 設置書籍變量: write `custom` into every runtime-variable map this page
+    /// Legado's 设置书籍变量: write `custom` into every runtime-variable map this page
     /// carries forward, and into the shelf record when the book is on the shelf.
     private func saveBookVariable(_ value: String) {
         currentBook.runtimeVariables = BookCustomVariable.merged(value, into: currentBook.runtimeVariables)
@@ -627,7 +627,7 @@ struct AudiobookDetailView: View {
     }
 
     private func load() {
-        guard let source else { loadError = localized("來源配置已被刪除"); return }
+        guard let source else { loadError = localized("来源配置已被删除"); return }
         loading = true
         loadError = nil
         loadedRuntimeVariables = nil
@@ -771,7 +771,7 @@ struct AudiobookDetailView: View {
         return book
     }
 
-    /// Open playback. Only the explicit "加入書架" action creates a permanent shelf item.
+    /// Open playback. Only the explicit "加入书架" action creates a permanent shelf item.
     private func play(chapterIndex: Int) {
         guard !chapters.isEmpty, let source, !openingPlayer else { return }
         openingPlayer = true
@@ -808,10 +808,10 @@ struct AudiobookDetailView: View {
             preparePlayerCoverFallback(bookId: transient.id, source: source)
             activePlayerBookId = transient.id
             // Listened to without being shelved, by a player that never enters the library:
-            // only its name stays, for 搜索's 最近閱讀.
+            // only its name stays, for 搜索's 最近阅读.
             OffShelfReadRecords.record(title: transient.title, author: transient.author, coverUrl: displayCoverUrl)
             openingPlayer = false
-            // This page is the book's page: the player's cover and 作品詳情 come back to it.
+            // This page is the book's page: the player's cover and 作品详情 come back to it.
             if NowPlayingHub.shared.openAudiobookPlayer(
                 transient, store: bookStore, transient: true, fromDetailPage: true
             ) {
@@ -867,9 +867,9 @@ extension BookSourceStore {
 #Preview {
     NavigationStack {
         AudiobookDetailView(book: OnlineBook(
-            name: "斗羅大陸",
+            name: "斗罗大陆",
             author: "唐家三少",
-            intro: "唐門外門弟子唐三，因偷學內門絕學為唐門所不容，跳崖明志卻來到了另一個世界——斗羅大陸。",
+            intro: "唐门外门弟子唐三，因偷学内门绝学为唐门所不容，跳崖明志却来到了另一个世界——斗罗大陆。",
             coverUrl: "",
             bookUrl: "https://example.com/audiobook/1",
             tocUrl: "https://example.com/audiobook/1/toc",
@@ -877,7 +877,7 @@ extension BookSourceStore {
             lastChapter: "",
             kind: "玄幻",
             sourceId: UUID(),
-            sourceName: "示範有聲來源配置"))
+            sourceName: "示范有声来源配置"))
         .environmentObject(BookStore())
     }
 }

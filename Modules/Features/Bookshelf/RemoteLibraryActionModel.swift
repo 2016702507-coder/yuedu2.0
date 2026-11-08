@@ -2,7 +2,7 @@ import SwiftUI
 import Combine
 
 /// Reading or shelving one remote library item, with its progress, its outcome and its
-/// cancellation. 書籍詳情 and 作品詳情 (unified library 5f) both act through it, so a
+/// cancellation. 书籍详情 and 作品详情 (unified library 5f) both act through it, so a
 /// library item is read one way wherever it is opened.
 @MainActor
 final class RemoteLibraryActionModel: ObservableObject {
@@ -11,8 +11,8 @@ final class RemoteLibraryActionModel: ObservableObject {
 
         var progressTitle: String {
             switch self {
-            case .read: localized("正在開啟書籍")
-            case .addToShelf: localized("加入書架")
+            case .read: localized("正在开启书籍")
+            case .addToShelf: localized("加入书架")
             }
         }
     }
@@ -23,7 +23,7 @@ final class RemoteLibraryActionModel: ObservableObject {
     private var task: Task<Void, Never>?
 
     /// Starts `action` unless one is running. A read records the copy and hands it to
-    /// `onRead` at once: the reader downloads and prepares it under its own 載入中…
+    /// `onRead` at once: the reader downloads and prepares it under its own 载入中…
     /// (`BookReaderView`), so the page never shows that wait itself.
     func begin(_ action: Action, item: RemoteLibraryItem, format: RemoteLibraryFormat,
                service: any RemoteLibraryServing, store: BookStore, onRead: @escaping (UUID) -> Void) {
@@ -42,12 +42,12 @@ final class RemoteLibraryActionModel: ObservableObject {
         case .addToShelf:
             begin(action) {
                 _ = try service.addToShelf(item: item, format: format, store: store)
-                return localized("已加入書架")
+                return localized("已加入书架")
             }
         }
     }
 
-    /// Runs `work` as `action`; what it returns is the message to show and announce. 作品詳情
+    /// Runs `work` as `action`; what it returns is the message to show and announce. 作品详情
     /// reads a Gutenberg book's catalog entry inside it, so that wait shows as the action too.
     func begin(_ action: Action, work: @escaping @MainActor () async throws -> String?) {
         guard self.action == nil else { return }

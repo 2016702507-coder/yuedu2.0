@@ -1,8 +1,8 @@
 import Foundation
 
-/// The categories the reader picked for 同題材作品 (maintainer, 2026-10-15): a genre picked from
+/// The categories the reader picked for 同题材作品 (maintainer, 2026-10-15): a genre picked from
 /// the book's own genres is the source's preference, read first by every book of the source
-/// whose genres include it, the latest pick first; a category picked from 其他分類 is none of
+/// whose genres include it, the latest pick first; a category picked from 其他分类 is none of
 /// the book's genres and holds for that book only. On this device only, as the reading genre
 /// profile is (UserDefaults `yd_related_category_choice`).
 @MainActor
@@ -39,7 +39,7 @@ final class RelatedCategoryChoiceStore {
         stored.sources[source] ?? []
     }
 
-    /// The category picked from 其他分類 for `book`.
+    /// The category picked from 其他分类 for `book`.
     func bookPick(source: String, book: String) -> String? {
         stored.books.last { $0.source == source && $0.book == book }?.title
     }

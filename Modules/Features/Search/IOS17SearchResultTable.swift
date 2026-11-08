@@ -566,7 +566,7 @@ private final class IOS17SearchResultTableCell: UITableViewCell {
     }
 
     /// A shelf copy's cover in the shelf's order (`BookshelfCoverArtwork.load`): its own
-    /// artwork, then its catalog cover, then 預設封面, then the generated cover.
+    /// artwork, then its catalog cover, then 预设封面, then the generated cover.
     private func loadShelfCover(_ cover: IOS17ShelfCover, for row: IOS17SearchResultTableRow) {
         showsRemoteCover = false
         applyGeneratedCover()

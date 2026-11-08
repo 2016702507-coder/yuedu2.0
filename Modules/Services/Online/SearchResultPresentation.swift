@@ -24,11 +24,11 @@ struct PreparedSearchResult: Sendable {
     let book: OnlineBook
     let preparedOrigin: PreparedSearchOrigin
     /// The book's `WorkMatchKey` keys, which every aggregator search merges by (搜索 since
-    /// 4c-1, 換源 since 4d); nil when the caller did not ask for them (`foldsWorkKeys`).
+    /// 4c-1, 换源 since 4d); nil when the caller did not ask for them (`foldsWorkKeys`).
     var workKeys: SearchWorkKeys? = nil
 }
 
-/// A book's title and author as 搜索 (unified search 4c-1) and 換源 (4d) compare them:
+/// A book's title and author as 搜索 (unified search 4c-1) and 换源 (4d) compare them:
 /// `WorkMatchKey`'s keys, folded off the main actor with the rest of the row. The fold runs ICU's
 /// Traditional-Simplified transform, too costly for the main actor at aggregate-source volume.
 struct SearchWorkKeys: Hashable, Sendable {
@@ -97,7 +97,7 @@ enum SearchResultIPSDiagnostics {
         for line in lines {
             let text = line.trimmingCharacters(in: .whitespacesAndNewlines)
             if text.isEmpty { continue }
-            if text.hasPrefix("标签:") || text.hasPrefix("標籤:") { continue }
+            if text.hasPrefix("标签:") || text.hasPrefix("标签:") { continue }
             if text.hasPrefix("#") && text.count < 30 { continue }
             kept.append(text)
         }

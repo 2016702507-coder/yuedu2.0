@@ -38,25 +38,25 @@ struct ModuleListPage: View {
     private var content: some View {
         switch model.state {
         case .loading:
-            ProgressView(localized("讀取中"))
+            ProgressView(localized("读取中"))
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, DSSpacing.xxl)
         case .missing:
-            ContentUnavailableView { UnavailableLabel(localized("找不到這個模組。"), systemImage: "puzzlepiece.extension") }
+            ContentUnavailableView { UnavailableLabel(localized("找不到这个模组。"), systemImage: "puzzlepiece.extension") }
         case .failed(let message):
             ContentUnavailableView {
-                UnavailableLabel(localized("載入失敗"), systemImage: "wifi.exclamationmark")
+                UnavailableLabel(localized("载入失败"), systemImage: "wifi.exclamationmark")
             } description: {
                 Text(message).font(DSFont.unavailableDescription)
             } actions: {
                 UnavailableActions {
-                    Button(localized("重試")) { Task { await model.load() } }
+                    Button(localized("重试")) { Task { await model.load() } }
                 }
             }
         case .loaded:
             let cards = cards
             if cards.isEmpty {
-                ContentUnavailableView { UnavailableLabel(localized("此目錄沒有內容"), systemImage: "books.vertical") }
+                ContentUnavailableView { UnavailableLabel(localized("此目录没有内容"), systemImage: "books.vertical") }
             } else {
                 HomeSectionCards(layout: HomeSectionLayout(style: .coverGrid), cards: cards,
                                  rowID: "module.list.\(route.moduleID).\(route.entryID)", hasShowAll: false) { card, _ in
@@ -71,7 +71,7 @@ struct ModuleListPage: View {
             }
             if model.canLoadMore {
                 Button { Task { await model.loadMore() } } label: {
-                    if model.isLoadingMore { ProgressView() } else { Text(localized(model.loadMoreError == nil ? "載入更多" : "重試")) }
+                    if model.isLoadingMore { ProgressView() } else { Text(localized(model.loadMoreError == nil ? "载入更多" : "重试")) }
                 }
                 .buttonStyle(.bordered)
                 .buttonBorderShape(.capsule)
@@ -82,16 +82,16 @@ struct ModuleListPage: View {
     }
 }
 
-#Preview("模組清單：找不到") {
+#Preview("模组清单：找不到") {
     NavigationStack {
-        ModuleListPage(route: ModuleListRoute(moduleID: "missing", entryID: "new", title: "新書", parameters: [:]),
-                       model: ModuleListModel(route: ModuleListRoute(moduleID: "missing", entryID: "new", title: "新書", parameters: [:]),
+        ModuleListPage(route: ModuleListRoute(moduleID: "missing", entryID: "new", title: "新书", parameters: [:]),
+                       model: ModuleListModel(route: ModuleListRoute(moduleID: "missing", entryID: "new", title: "新书", parameters: [:]),
                                               library: RuleModulePreviewData.library([])))
     }
     .environmentObject(BookStore())
 }
 
-#Preview("模組清單：讀取") {
+#Preview("模组清单：读取") {
     let route = ModuleListRoute(moduleID: "preview.module", entryID: "top", title: "排行", parameters: [:])
     return NavigationStack {
         ModuleListPage(route: route, model: ModuleListModel(route: route, library: RuleModulePreviewData.listsLibrary()))

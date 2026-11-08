@@ -6,7 +6,7 @@ import SwiftUI
 ///
 /// Its own synthesizer on purpose: `TTSCoordinator` routes by the *active* TTS
 /// source, so previewing through it would either speak with an HTTP source or
-/// force the app's TTS source over to 系統離線語音 behind the user's back.
+/// force the app's TTS source over to 系统离线语音 behind the user's back.
 @MainActor
 final class SystemVoicePreviewPlayer: NSObject, ObservableObject {
     /// Voices whose preview ran to completion without speaking a single word.
@@ -88,7 +88,7 @@ extension SystemVoicePreviewPlayer: AVSpeechSynthesizerDelegate {
 /// Picks which installed system voice reads each language.
 ///
 /// Before this screen the app only ever used `AVSpeechSynthesisVoice(language:)`,
-/// i.e. one system-chosen voice per language, so every 增強/優質 voice the user
+/// i.e. one system-chosen voice per language, so every 增强/优质 voice the user
 /// had downloaded went unused.
 struct SystemVoicePickerView: View {
     @Bindable private var gs = GlobalSettings.shared
@@ -106,7 +106,7 @@ struct SystemVoicePickerView: View {
 
             if groups.isEmpty {
                 Section {
-                    Text(localized("這台裝置上沒有可用的語音。"))
+                    Text(localized("这台装置上没有可用的语音。"))
                         .font(DSFont.subheadline)
                         .foregroundStyle(DSColor.textSecondary)
                 } footer: {
@@ -133,12 +133,12 @@ struct SystemVoicePickerView: View {
             }
         }
         .softScrollEdges()
-        .navigationTitle(localized("系統語音音色"))
+        .navigationTitle(localized("系统语音音色"))
         .toolbarTitleDisplayMode(.inline)
         .themedAppSurface(for: .settings)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button(localized("重設")) {
+                Button(localized("重设")) {
                     SystemTTSVoiceCatalog.clearAllSelections()
                 }
                 .disabled(gs.ttsSystemVoiceIdentifiers.isEmpty)
@@ -146,7 +146,7 @@ struct SystemVoicePickerView: View {
         }
         .onAppear(perform: reload)
         // iOS posts this when voices are installed or removed — including the
-        // moment 個人語音 access is granted — so the list is never stale. It posts
+        // moment 个人语音 access is granted — so the list is never stale. It posts
         // from a background thread, where this main-actor action would trap.
         .onReceive(
             NotificationCenter.default.publisher(
@@ -169,25 +169,25 @@ struct SystemVoicePickerView: View {
             Section {
                 switch personalVoiceStatus {
                 case .authorized:
-                    Label(localized("已允許使用個人語音"), systemImage: "checkmark.circle")
+                    Label(localized("已允许使用个人语音"), systemImage: "checkmark.circle")
                         .foregroundStyle(DSColor.textSecondary)
                 case .denied:
-                    Text(localized("個人語音未獲授權。可到「設定 → 輔助使用 → 個人語音」重新允許。"))
+                    Text(localized("个人语音未获授权。可到「设置 → 辅助使用 → 个人语音」重新允许。"))
                         .font(DSFont.subheadline)
                         .foregroundStyle(DSColor.textSecondary)
                 default:
                     Button {
                         requestPersonalVoice()
                     } label: {
-                        Label(localized("允許使用個人語音"), systemImage: "waveform.badge.mic")
+                        Label(localized("允许使用个人语音"), systemImage: "waveform.badge.mic")
                     }
                     .disabled(isRequestingPersonalVoice)
                 }
             } header: {
-                Text(localized("個人語音"))
+                Text(localized("个人语音"))
                     .foregroundStyle(DSColor.textSecondary)
             } footer: {
-                Text(localized("授權後，你錄製的個人語音會出現在下方。"))
+                Text(localized("授权后，你录制的个人语音会出现在下方。"))
                     .dsSectionFooter()
             }
             .interfaceSectionSurface()
@@ -197,8 +197,8 @@ struct SystemVoicePickerView: View {
     @ViewBuilder
     private var voiceListFooter: some View {
         VStack(alignment: .leading, spacing: DSSpacing.xs) {
-            Text(localized("想要更多音色，可到「設定 → 輔助使用 → 朗讀內容 → 語音」下載增強或優質語音，下載後會出現在這裡。Siri 音色由系統保留給內建 App，第三方 App 無法使用。"))
-            Text(localized("iOS 會列出尚未下載的語音，選了不會有聲音。標示「此裝置未安裝」的到系統設定下載。"))
+            Text(localized("想要更多音色，可到「设置 → 辅助使用 → 朗读内容 → 语音」下载增强或优质语音，下载后会出现在这里。Siri 音色由系统保留给内建 App，第三方 App 无法使用。"))
+            Text(localized("iOS 会列出尚未下载的语音，选了不会有声音。标示「此装置未安装」的到系统设置下载。"))
         }
         .dsSectionFooter()
     }
@@ -223,7 +223,7 @@ struct SystemVoicePickerView: View {
             SystemTTSVoiceCatalog.clearSelection(forLanguage: group.id)
         } label: {
             HStack {
-                Text(localized("跟隨系統預設"))
+                Text(localized("跟随系统预设"))
                     .foregroundStyle(DSColor.textPrimary)
                 Spacer()
                 if isSelected {
@@ -241,7 +241,7 @@ struct SystemVoicePickerView: View {
         }
         .buttonStyle(.plain)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(localized("跟隨系統預設"))
+        .accessibilityLabel(localized("跟随系统预设"))
         .accessibilityAddTraits(traits)
         // `children: .ignore` replaces the button's own element, so the activation
         // action has to be restated or VoiceOver's double-tap does nothing.
@@ -276,7 +276,7 @@ struct SystemVoicePickerView: View {
                         Text(quality)
                             .foregroundStyle(DSColor.textSecondary)
                         if isPersonal {
-                            Text(localized("個人語音"))
+                            Text(localized("个人语音"))
                                 .foregroundStyle(DSColor.textSecondary)
                         }
                         if isNovelty {
@@ -284,7 +284,7 @@ struct SystemVoicePickerView: View {
                                 .foregroundStyle(DSColor.textSecondary)
                         }
                         if isSilent {
-                            Text(localized("此裝置未安裝"))
+                            Text(localized("此装置未安装"))
                                 .foregroundStyle(DSColor.warning)
                         }
                     }
@@ -298,11 +298,11 @@ struct SystemVoicePickerView: View {
                 }
             }
             // See `systemDefaultRow`: `.plain` + a `Spacer()` leaves everything but
-            // the voice name untappable, which read as "音色切換不了".
+            // the voice name untappable, which read as "音色切换不了".
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        // One focus stop per voice: name spoken, quality as its value, 試聽 as a
+        // One focus stop per voice: name spoken, quality as its value, 试听 as a
         // rotor action rather than a second element to swipe past.
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(voice.name)
@@ -315,7 +315,7 @@ struct SystemVoicePickerView: View {
             )
         )
         .accessibilityAddTraits(traits)
-        .accessibilityHint(localized("點兩下選用並試聽"))
+        .accessibilityHint(localized("点两下选用并试听"))
         // Restates what `children: .ignore` discarded, so double-tap selects the
         // voice instead of falling through to nothing.
         .accessibilityAction {
@@ -323,12 +323,12 @@ struct SystemVoicePickerView: View {
             preview.play(voice: voice, rate: previewRate)
         }
         .accessibilityActions {
-            Button(localized("試聽")) { preview.play(voice: voice, rate: previewRate) }
+            Button(localized("试听")) { preview.play(voice: voice, rate: previewRate) }
         }
     }
 
     /// Everything the row shows under the name, in one spoken string — VoiceOver
-    /// reads the row as a single element, so the 此裝置未安裝 warning has to travel
+    /// reads the row as a single element, so the 此装置未安装 warning has to travel
     /// here or a blind user only finds out by hearing nothing.
     private func voiceAccessibilityValue(
         quality: String,
@@ -337,9 +337,9 @@ struct SystemVoicePickerView: View {
         isSilent: Bool
     ) -> String {
         var parts = [quality]
-        if isPersonal { parts.append(localized("個人語音")) }
+        if isPersonal { parts.append(localized("个人语音")) }
         if isNovelty { parts.append(localized("趣味音色")) }
-        if isSilent { parts.append(localized("此裝置未安裝")) }
+        if isSilent { parts.append(localized("此装置未安装")) }
         return parts.joined(separator: "，")
     }
 

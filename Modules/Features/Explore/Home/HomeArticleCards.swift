@@ -1,10 +1,10 @@
 import SwiftUI
 
-// Unified library 5g: 訂閱的最新文章's articles on Explore's home (Phase 5 plan, decision 26).
+// Unified library 5g: 订阅的最新文章's articles on Explore's home (Phase 5 plan, decision 26).
 // An article is not a book (design §13.8), so it has no cover, no author and no progress: the
-// book layouts would show a 2:3 jacket and 書籍・ for it. Two looks instead, by the family the
-// section's 呈現方式 belongs to:
-// - 圖文資訊清單: rows as the RSS tab's, the picture at the trailing end;
+// book layouts would show a 2:3 jacket and 书籍・ for it. Two looks instead, by the family the
+// section's 呈现方式 belongs to:
+// - 图文资讯清单: rows as the RSS tab's, the picture at the trailing end;
 // - every sideways or grid layout: one row of landscape cards that swipes sideways.
 // In 排行榜, a layout of lists, they are a column's places (`HomeChartArticleRow`).
 
@@ -59,7 +59,7 @@ struct HomeArticleCards: View {
         .scrollClipDisabled()
     }
 
-    // MARK: 圖文資訊清單
+    // MARK: 图文资讯清单
 
     private var list: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -74,7 +74,7 @@ struct HomeArticleCards: View {
         .padding(.horizontal, DSSpacing.lg)
     }
 
-    /// 編輯首頁's (`homeDrawsSideways`): the rows side by side, a page each, as the books' are.
+    /// 编辑首页's (`homeDrawsSideways`): the rows side by side, a page each, as the books' are.
     private var sidewaysList: some View {
         let perScreen = horizontalSizeClass == .regular ? 2 : 1
         return ScrollView(.horizontal) {
@@ -94,16 +94,16 @@ struct HomeArticleCards: View {
 }
 
 extension SubscriptionArticle {
-    /// The feed, when, and 未讀 as the card's dot shows it; the title is the label.
+    /// The feed, when, and 未读 as the card's dot shows it; the title is the label.
     var accessibilityValue: String {
-        [feedName, dateText, isRead ? "" : localized("未讀")].filter { !$0.isEmpty }.joined(separator: ", ")
+        [feedName, dateText, isRead ? "" : localized("未读")].filter { !$0.isEmpty }.joined(separator: ", ")
     }
 
     var dateText: String {
         date.formatted(.relative(presentation: .named))
     }
 
-    /// The feed's name, then when: 「少數派 · 3 小時前」.
+    /// The feed's name, then when: 「少数派 · 3 小时前」.
     var feedAndDate: String {
         [feedName, dateText].filter { !$0.isEmpty }.joined(separator: " · ")
     }
@@ -182,7 +182,7 @@ struct HomeArticleCard: View {
     }
 }
 
-/// One row of 圖文資訊清單: the title, the feed and when, the picture at the trailing end.
+/// One row of 图文资讯清单: the title, the feed and when, the picture at the trailing end.
 struct HomeArticleRow: View {
     let article: SubscriptionArticle
     let thumbnailWidth: CGFloat
@@ -264,13 +264,13 @@ struct HomeChartArticleRow: View {
     }
 }
 
-#Preview("訂閱的最新文章") {
+#Preview("订阅的最新文章") {
     let articles = [
-        SubscriptionArticle(id: "1", title: "一篇很長的文章標題，長到要換行才放得下，看看三行怎麼排", feedName: "少數派",
+        SubscriptionArticle(id: "1", title: "一篇很长的文章标题，长到要换行才放得下，看看三行怎么排", feedName: "少数派",
                             date: .now.addingTimeInterval(-3_600), imageURL: nil, isRead: false),
         SubscriptionArticle(id: "2", title: "Swift 6.2 的新功能", feedName: "Swift.org",
                             date: .now.addingTimeInterval(-86_400), imageURL: nil, isRead: true),
-        SubscriptionArticle(id: "3", title: "短標題", feedName: "", date: .now.addingTimeInterval(-600),
+        SubscriptionArticle(id: "3", title: "短标题", feedName: "", date: .now.addingTimeInterval(-600),
                             imageURL: nil, isRead: false),
     ]
     ScrollView {

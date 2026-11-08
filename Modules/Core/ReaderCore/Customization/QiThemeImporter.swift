@@ -20,19 +20,19 @@ enum QiThemeImportError: Error, LocalizedError, Equatable {
     var errorDescription: String? {
         switch self {
         case .notAQiTheme:
-            return localized("這不是可讀取的 QiReader 外觀包。")
+            return localized("这不是可读取的 QiReader 外观包。")
         case .notAYuejingTheme:
-            return localized("這不是可讀取的閱境外觀包。請確認 zip 裡有 manifest.json，且 format 為 yuejing.theme。")
+            return localized("这不是可读取的阅境外观包。请确认 zip 里有 manifest.json，且 format 为 yuejing.theme。")
         case .notAReedenTheme:
-            return localized("這不是可讀取的 Reeden 主題包。")
+            return localized("这不是可读取的 Reeden 主题包。")
         case .encryptedReedenTheme:
-            return localized("這是加密的 Reeden 主題包，無法讀取。請向主題作者索取未加密版本。")
+            return localized("这是加密的 Reeden 主题包，无法读取。请向主题作者索取未加密版本。")
         case .malformedArchive, .malformedNestedPayload:
-            return localized("外觀包內容損毀，無法讀取。")
+            return localized("外观包内容损毁，无法读取。")
         case .tooManyFiles, .expandedDataTooLarge:
-            return localized("外觀包過大，無法安全解壓。")
+            return localized("外观包过大，无法安全解压。")
         case .unsafePath:
-            return localized("外觀包含有不安全的檔案路徑，已停止匯入。")
+            return localized("外观包含有不安全的档案路径，已停止汇入。")
         }
     }
 }
@@ -192,7 +192,7 @@ enum QiThemeImporter {
         var notes: [String] = []
         var result = QiThemeImport(
             name: manifest.name?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty
-                ?? localized("QiReader 外觀包")
+                ?? localized("QiReader 外观包")
         )
 
         applyAppearance(manifest, rootURL: rootURL, into: &result, notes: &notes)
@@ -218,7 +218,7 @@ enum QiThemeImporter {
         }
         for (tab, background) in manifest.tabBackgrounds ?? [:] {
             guard let scope = AppearancePageBackgroundScope(rawValue: tab) else {
-                notes.append(String(format: localized("背景「%@」在本 App 沒有對應的頁面，已略過。"), tab))
+                notes.append(String(format: localized("背景「%@」在本 App 没有对应的页面，已略过。"), tab))
                 continue
             }
             backgrounds[scope.rawValue] = backgroundPayload(background, rootURL: rootURL)
@@ -253,13 +253,13 @@ enum QiThemeImporter {
             // A hand-authored dark palette is all-or-nothing here: supplying only the accent
             // would force us to invent background/bar/text/dialogue and freeze them, which
             // reads worse than the app's own contrast-tuned derivation from the light accent.
-            notes.append(localized("深色強調色未套用：本 App 的深色配色由淺色自動推導。"))
+            notes.append(localized("深色强调色未套用：本 App 的深色配色由浅色自动推导。"))
         }
 
         // Tab bar icons. Our second axis is light/dark, not normal/selected.
         for (tab, icon) in manifest.tabIcons ?? [:] {
             guard let tabID = tabIdentifier(for: tab) else {
-                notes.append(String(format: localized("分頁圖示「%@」在本 App 沒有對應的分頁，已略過。"), tab))
+                notes.append(String(format: localized("分页图示「%@」在本 App 没有对应的分页，已略过。"), tab))
                 continue
             }
             guard icon.type?.lowercased() == "custom",
@@ -270,7 +270,7 @@ enum QiThemeImporter {
             result.tabIcons.append(QiThemeImport.TabIconImport(tabID: tabID, image: image))
         }
         if manifest.selectedTabIcons?.isEmpty == false {
-            notes.append(localized("選中狀態的分頁圖示未套用：本 App 的分頁圖示分淺色／深色，沒有選中態。"))
+            notes.append(localized("选中状态的分页图示未套用：本 App 的分页图示分浅色／深色，没有选中态。"))
         }
         result.tabIconSize = manifest.tabIconSize
         result.hidesTabLabels = manifest.hideTabText
@@ -281,7 +281,7 @@ enum QiThemeImporter {
         for (item, icon) in (manifest.readerToolbarIcons ?? [:]).sorted(by: { $0.key < $1.key }) {
             guard let itemID = readerChromeItemID(for: item) else {
                 notes.append(String(
-                    format: localized("閱讀工具列的「%@」圖示在本 App 沒有對應的按鈕，已略過。"),
+                    format: localized("阅读工具列的「%@」图示在本 App 没有对应的按钮，已略过。"),
                     readerToolbarItemName(item)
                 ))
                 continue
@@ -304,7 +304,7 @@ enum QiThemeImporter {
             result.launchImage = imageFile(at: splash[0], rootURL: rootURL)
             if splash.count > 1 {
                 notes.append(String(
-                    format: localized("啟動圖有 %d 張，本 App 每種外觀只支援一張，已使用第一張。"),
+                    format: localized("启动图有 %d 张，本 App 每种外观只支援一张，已使用第一张。"),
                     splash.count
                 ))
             }
@@ -334,7 +334,7 @@ enum QiThemeImporter {
             result.effects.glassTransparency = min(max(1 - opacity, 0), 1)
         }
         if manifest.frostedGlassOpacity != nil, manifest.transparentModeOpacity != nil {
-            notes.append(localized("毛玻璃透明度與透明模式透明度合併為一個設定，已採用毛玻璃的值。"))
+            notes.append(localized("毛玻璃透明度与透明模式透明度合并为一个设置，已采用毛玻璃的值。"))
         }
         result.effects.glowIntensity = manifest.glowIntensity
 
@@ -359,7 +359,7 @@ enum QiThemeImporter {
         guard (light.count > 0 && light.count < 3) || (dark.count > 0 && dark.count < 3) else {
             return
         }
-        notes.append(localized("全域文字顏色需要主要／次要／第三階三個都提供才會套用，這個外觀包只給了一部分。"))
+        notes.append(localized("全域文字颜色需要主要／次要／第三阶三个都提供才会套用，这个外观包只给了一部分。"))
     }
 
     /// Card artwork. Their slice insets are pixels on the source image; ours are
@@ -402,10 +402,10 @@ enum QiThemeImporter {
         )
 
         if card.cornerRadius != nil {
-            notes.append(localized("卡片背景的圓角未套用：卡片外框由本 App 自己的版面決定。"))
+            notes.append(localized("卡片背景的圆角未套用：卡片外框由本 App 自己的版面决定。"))
         }
         if card.lightLayout?.contentInsets != nil || card.darkLayout?.contentInsets != nil {
-            notes.append(localized("卡片背景的內容內距沒有對應設定，已略過。"))
+            notes.append(localized("卡片背景的内容内距没有对应设置，已略过。"))
         }
     }
 
@@ -461,20 +461,20 @@ enum QiThemeImporter {
         to notes: inout [String]
     ) {
         var unmapped: [String] = []
-        if manifest.bookshelfHeaderStyle != nil { unmapped.append(localized("書架標題樣式")) }
-        if manifest.bookshelfListCardHeight != nil { unmapped.append(localized("書架列表卡片高度")) }
-        if manifest.bookshelfShowsTags != nil { unmapped.append(localized("書架標籤顯示")) }
+        if manifest.bookshelfHeaderStyle != nil { unmapped.append(localized("书架标题样式")) }
+        if manifest.bookshelfListCardHeight != nil { unmapped.append(localized("书架列表卡片高度")) }
+        if manifest.bookshelfShowsTags != nil { unmapped.append(localized("书架标签显示")) }
         if manifest.bookshelfTagTextColorMode != nil || manifest.bookshelfTagCustomTextColorHex != nil {
-            unmapped.append(localized("書架標籤配色"))
+            unmapped.append(localized("书架标签配色"))
         }
-        if manifest.readerToolbarIconSize != nil { unmapped.append(localized("閱讀工具列圖示大小")) }
-        if manifest.progressBarsFollowAppearance != nil { unmapped.append(localized("進度條跟隨外觀")) }
+        if manifest.readerToolbarIconSize != nil { unmapped.append(localized("阅读工具列图示大小")) }
+        if manifest.progressBarsFollowAppearance != nil { unmapped.append(localized("进度条跟随外观")) }
         if manifest.readerToolbarCardsFollowAppearance != nil {
-            unmapped.append(localized("閱讀工具列卡片跟隨外觀"))
+            unmapped.append(localized("阅读工具列卡片跟随外观"))
         }
         guard !unmapped.isEmpty else { return }
         notes.append(String(
-            format: localized("以下項目本 App 沒有對應設定，已略過：%@"),
+            format: localized("以下项目本 App 没有对应设置，已略过：%@"),
             unmapped.joined(separator: localized("、"))
         ))
     }
@@ -525,7 +525,7 @@ enum QiThemeImporter {
     /// QiReader's key, only the button.
     private static func readerToolbarItemName(_ qiItem: String) -> String {
         switch qiItem {
-        case "search": return localized("書內搜尋")
+        case "search": return localized("书内搜寻")
         default: return qiItem
         }
     }
@@ -548,7 +548,7 @@ enum QiThemeImporter {
         }
         if (index.bindings?.count ?? 0) > 1 {
             notes.append(String(
-                format: localized("外觀包含有 %d 組閱讀主題，本 App 一次只套用一組，已使用第一組。"),
+                format: localized("外观包含有 %d 组阅读主题，本 App 一次只套用一组，已使用第一组。"),
                 index.bindings?.count ?? 0
             ))
         }
@@ -563,7 +563,7 @@ enum QiThemeImporter {
         let presetRoot = rootURL.appendingPathComponent("__preset", isDirectory: true)
         guard let presetPaths = try? await extractArchive(at: presetURL, into: presetRoot),
               let presetDir = singleTopLevelDirectory(in: presetPaths) else {
-            notes.append(localized("閱讀主題內容損毀，只匯入了外觀部分。"))
+            notes.append(localized("阅读主题内容损毁，只汇入了外观部分。"))
             return
         }
         let presetContentURL = presetRoot.appendingPathComponent(presetDir, isDirectory: true)
@@ -571,7 +571,7 @@ enum QiThemeImporter {
             contentsOf: presetContentURL.appendingPathComponent("manifest.json", isDirectory: false)
         ),
         let presetManifest = try? JSONDecoder().decode(QiPresetManifest.self, from: manifestData) else {
-            notes.append(localized("閱讀主題內容損毀，只匯入了外觀部分。"))
+            notes.append(localized("阅读主题内容损毁，只汇入了外观部分。"))
             return
         }
 
@@ -599,11 +599,11 @@ enum QiThemeImporter {
     /// matching `ReaderLayoutPresetExporter.pageAnim(for:)`.
     static func pageAnim(forPageMode raw: String?) -> Int? {
         switch raw {
-        case "滑动", "滑動": return 0
-        case "覆盖", "覆蓋", "覆盖翻页", "覆蓋翻頁": return 1
-        case "仿真", "仿真翻页", "仿真翻書": return 2
-        case "滚动", "捲動", "上下滚动": return 3
-        case "无", "無", "无动画", "無動畫": return -1
+        case "滑动", "滑动": return 0
+        case "覆盖", "覆盖", "覆盖翻页", "覆盖翻页": return 1
+        case "仿真", "仿真翻页", "仿真翻书": return 2
+        case "滚动", "卷动", "上下滚动": return 3
+        case "无", "无", "无动画", "无动画": return -1
         default: return nil
         }
     }
@@ -626,23 +626,23 @@ enum QiThemeImporter {
         config.readerOverlayLayout = overlayLayout
 
         if let left = preset.leftPageMargin, let right = preset.rightPageMargin, left != right {
-            notes.append(localized("左右頁邊距不同，本 App 只有單一邊距，已取兩者平均。"))
+            notes.append(localized("左右页边距不同，本 App 只有单一边距，已取两者平均。"))
         }
         if preset.fontWeightRaw != nil, preset.isBold != true {
-            notes.append(localized("字重是連續數值，本 App 只有粗體開關，已略過。"))
+            notes.append(localized("字重是连续数值，本 App 只有粗体开关，已略过。"))
         }
         if preset.textIndent != nil {
-            notes.append(localized("首行縮排固定為兩字元，無法調整，已略過。"))
+            notes.append(localized("首行缩排固定为两字元，无法调整，已略过。"))
         }
         if preset.textAlignmentRaw != nil {
-            notes.append(localized("正文對齊方式固定為兩端對齊，已略過。"))
+            notes.append(localized("正文对齐方式固定为两端对齐，已略过。"))
         }
         if preset.paragraphSeparatorLines != nil {
-            notes.append(localized("段間空行數沒有對應設定，已略過。"))
+            notes.append(localized("段间空行数没有对应设置，已略过。"))
         }
         if preset.pageModeRaw != nil, config.pageAnim == nil {
             notes.append(String(
-                format: localized("翻頁方式「%@」無法辨識，已保留原本設定。"),
+                format: localized("翻页方式「%@」无法辨识，已保留原本设置。"),
                 preset.pageModeRaw ?? ""
             ))
         }
@@ -692,9 +692,9 @@ enum QiThemeImporter {
             ).normalized
 
             switch widget.pageScope {
-            case "仅首页", "僅首頁":
+            case "仅首页", "仅首页":
                 opening.append(component)
-            case "仅正文页", "僅正文頁":
+            case "仅正文页", "仅正文页":
                 body.append(component)
             default:
                 opening.append(component)
@@ -704,7 +704,7 @@ enum QiThemeImporter {
 
         if !unknown.isEmpty {
             notes.append(String(
-                format: localized("以下頁首頁尾元件無法辨識，已略過：%@"),
+                format: localized("以下页首页尾元件无法辨识，已略过：%@"),
                 unknown.joined(separator: localized("、"))
             ))
         }
@@ -732,17 +732,17 @@ enum QiThemeImporter {
     /// note rather than guessed at — a wrong guess puts the wrong reading out on the page.
     static func overlayKind(for item: String) -> ReaderOverlayComponentKind? {
         switch item {
-        case "书名", "書名": return .bookTitle
-        case "章节名", "章節名": return .chapterTitle
-        case "本章进度(文字)", "本章進度(文字)", "本章进度", "本章進度": return .chapterPage
-        case "总进度(文字)", "總進度(文字)", "总进度", "總進度": return .totalProgressText
-        case "进度条", "進度條": return .progressBar
-        case "时间", "時間": return .currentTime
+        case "书名", "书名": return .bookTitle
+        case "章节名", "章节名": return .chapterTitle
+        case "本章进度(文字)", "本章进度(文字)", "本章进度", "本章进度": return .chapterPage
+        case "总进度(文字)", "总进度(文字)", "总进度", "总进度": return .totalProgressText
+        case "进度条", "进度条": return .progressBar
+        case "时间", "时间": return .currentTime
         case "日期": return .currentDate
         case "星期": return .weekday
-        case "电量", "電量": return .battery
-        case "阅读时长", "閱讀時長": return .readingDuration
-        case "剩余时间", "剩餘時間": return .remainingTime
+        case "电量", "电量": return .battery
+        case "阅读时长", "阅读时长": return .readingDuration
+        case "剩余时间", "剩余时间": return .remainingTime
         default: return nil
         }
     }
@@ -779,7 +779,7 @@ enum QiThemeImporter {
         let slot = usesColorTemplate ? fill : (usesTextToken ? textColor : nil)
 
         let imported = ReaderCommentBubbleCustomStyle(
-            name: style.name?.nilIfEmpty ?? localized("自訂 SVG"),
+            name: style.name?.nilIfEmpty ?? localized("自订 SVG"),
             svg: svg,
             sizeScale: style.svgSizeMultiplier,
             dayEmphasisColor: slot,
@@ -789,11 +789,11 @@ enum QiThemeImporter {
         )
 
         if style.showLabel == false {
-            notes.append(localized("段評氣泡設定為不顯示數字，已照原樣匯入（氣泡只顯示圖案）。"))
+            notes.append(localized("段评气泡设置为不显示数字，已照原样汇入（气泡只显示图案）。"))
         }
         if style.cornerRadiusFraction != nil || style.opacity != nil
             || style.svgFixedWidth != nil || style.svgFixedHeight != nil {
-            notes.append(localized("段評氣泡的圓角、透明度與固定尺寸沒有對應設定，已略過。"))
+            notes.append(localized("段评气泡的圆角、透明度与固定尺寸没有对应设置，已略过。"))
         }
 
         return QiThemeImport.BubbleImport(
@@ -900,7 +900,7 @@ enum QiThemeImporter {
         let darkCount = darkElements.count
         if darkCount > 0, darkCount != lightCount {
             notes.append(String(
-                format: localized("章節標題的淺色版有 %d 個圖層、深色版有 %d 個，已以淺色版為準，配不到的圖層沿用淺色樣式。"),
+                format: localized("章节标题的浅色版有 %d 个图层、深色版有 %d 个，已以浅色版为准，配不到的图层沿用浅色样式。"),
                 lightCount,
                 darkCount
             ))
@@ -909,7 +909,7 @@ enum QiThemeImporter {
            let darkHeight = darkProject?.canvas?.height,
            lightHeight != darkHeight {
             notes.append(String(
-                format: localized("章節標題的淺色與深色畫布高度不同（%d／%d），已採用淺色版的高度。"),
+                format: localized("章节标题的浅色与深色画布高度不同（%d／%d），已采用浅色版的高度。"),
                 Int(lightHeight),
                 Int(darkHeight)
             ))
@@ -930,12 +930,12 @@ enum QiThemeImporter {
         to notes: inout [String]
     ) {
         var unmapped: [String] = []
-        if variant.maxLines != nil { unmapped.append(localized("標題最大行數")) }
-        if variant.showFullTitle != nil { unmapped.append(localized("顯示完整標題")) }
-        if variant.chapterNumberRegex != nil { unmapped.append(localized("章節序號比對規則")) }
+        if variant.maxLines != nil { unmapped.append(localized("标题最大行数")) }
+        if variant.showFullTitle != nil { unmapped.append(localized("显示完整标题")) }
+        if variant.chapterNumberRegex != nil { unmapped.append(localized("章节序号比对规则")) }
         guard !unmapped.isEmpty else { return }
         notes.append(String(
-            format: localized("章節標題的下列設定沒有對應項目，已略過：%@"),
+            format: localized("章节标题的下列设置没有对应项目，已略过：%@"),
             unmapped.joined(separator: localized("、"))
         ))
     }
@@ -1070,8 +1070,8 @@ enum QiThemeImporter {
             return nil
         }
         switch family {
-        case "章节名字体", "章節名字體": return variant.chapterNameFont?.nilIfEmpty
-        case "章节数字体", "章節數字體": return variant.chapterNumberFont?.nilIfEmpty
+        case "章节名字体", "章节名字体": return variant.chapterNameFont?.nilIfEmpty
+        case "章节数字体", "章节数字体": return variant.chapterNumberFont?.nilIfEmpty
         default: return family
         }
     }

@@ -15,7 +15,7 @@ struct CoreTextPageEngineView: UIViewControllerRepresentable {
     let pageTurnCommand: ReaderPageTurnCommand?
     let clearExternalTargetPosition: () -> Void
     @Binding var currentPage: Int
-    /// Changes when 頁眉／頁腳 say something new — a clock tick, the battery, a
+    /// Changes when 页眉／页脚 say something new — a clock tick, the battery, a
     /// style edit — without the pagination changing. Pages already on screen were
     /// handed their bars when they were built, so they need telling.
     var pageBarsRevision: UInt = 0
@@ -23,7 +23,7 @@ struct CoreTextPageEngineView: UIViewControllerRepresentable {
     /// (`ReaderView.pageIsCoveredBySurface`). VoiceOver is on that surface then, and a
     /// page coming on screen must not take it back (`ReaderPageVoiceOverFocus`).
     var pageIsCovered = false
-    /// 自動閱讀's curtain: which page is being revealed over the current one.
+    /// 自动阅读's curtain: which page is being revealed over the current one.
     /// `nil` when the mode is off. Changes once per page, not once per frame —
     /// the reveal's *position* comes through `autoReadRevealHandle` instead.
     var autoReadRevealPage: Int?
@@ -31,7 +31,7 @@ struct CoreTextPageEngineView: UIViewControllerRepresentable {
     let onPageChanged: (Int, CoreTextReadingPosition?) -> Void
     let onTapZone: (TouchAction) -> Void
     /// A swipe or drag started turning the page. Never called for turns the app
-    /// issues (taps go through `onTapZone`, and TTS or 自動閱讀 are programmatic).
+    /// issues (taps go through `onTapZone`, and TTS or 自动阅读 are programmatic).
     var onUserPageTurnBegan: () -> Void = {}
     var onSwipeUpExit: () -> Void = {}
     /// Read when the pull-down gesture begins, so the pill can say "加入" or
@@ -133,6 +133,24 @@ struct CoreTextPageEngineView: UIViewControllerRepresentable {
             )
             pan.maximumNumberOfTouches = 1
             pan.cancelsTouchesInView = false
+            pvc.view.addGestureRecognizer(pan)
+        }
+
+        // 波纹 mode: screen-space Metal overlay + its own pan, like cover's.
+        if adapterDescriptor.usesRippleOverlay {
+            context.coordinator.setupRippleOverlay(on: pvc.view, vertical: adapterDescriptor.usesVerticalOverlay)
+            context.coordinator.ripplePageViewController = pvc
+            let pan = UIPanGestureRecognizer(
+                target: context.coordinator,
+                action: #selector(Coordinator.handleRipplePan(_:))
+            )
+            pan.maximumNumberOfTouches = 1
+            // A 波纹 turn is horizontal only. Without this the pan begins on any
+            // drag — including the small drift inside a tap — and a pan that begins
+            // cancels the tap, so 点屏幕中间 would stop opening the menu.
+            pan.cancelsTouchesInView = false
+            pan.delegate = context.coordinator
+            context.coordinator.ripplePanGesture = pan
             pvc.view.addGestureRecognizer(pan)
         }
 
@@ -265,7 +283,7 @@ struct CoreTextPageEngineView: UIViewControllerRepresentable {
             let targetVC = targetViewController()
             // Flip to the destination immediately — INCLUDING its loading placeholder — so a jump
             // to an unfetched online chapter shows a「加载中」page at once instead of freezing on the
-            // current page until the seconds-long 段評 fetch finishes (Legado's jump-then-load feel;
+            // current page until the seconds-long 段评 fetch finishes (Legado's jump-then-load feel;
             // the user called out our load-then-jump as a big part of the perceived lag). The curl
             // path used to `return` here and stay put until content arrived. It's safe to show the
             // placeholder now: `setPage` is a non-animated `setViewControllers` (no curl animation
@@ -334,6 +352,24 @@ struct CoreTextPageEngineView: UIViewControllerRepresentable {
                         on: uiViewController
                     )
                 } else if !context.coordinator.isAnimatingTransition {
+                    let targetVC = context.coordinator.displayViewController(at: target)
+                    _ = context.coordinator.setPage(targetVC, on: uiViewController, direction: direction, layoutNow: true)
+                }
+                return
+            }
+
+            if pageTurnStyle == .ripple || pageTurnStyle == .vertical {
+                traceCommand(pageTurnStyle == .vertical ? "vertical" : "ripple")
+                if shouldAnimate,
+                   context.coordinator.beginRippleTurn(
+                       from: visiblePage,
+                       to: target,
+                       direction: direction,
+                       on: uiViewController
+                   ) {
+                    return
+                }
+                if !context.coordinator.isAnimatingTransition {
                     let targetVC = context.coordinator.displayViewController(at: target)
                     _ = context.coordinator.setPage(targetVC, on: uiViewController, direction: direction, layoutNow: true)
                 }
@@ -469,6 +505,28 @@ struct CoreTextPageEngineView: UIViewControllerRepresentable {
         private let coverIncomingImageView = UIImageView()
         private var coverTargetPage: Int?
         private var coverDirection: ReaderCoverTurnDirection?
+
+        // MARK: 波纹 / 上下翻页 turn state
+        /// 屏幕空间浮层：波纹用 Metal 逐像素混合，上下翻页用两个 UIImageView 平移。
+        /// 两者共用同一套进度时钟、同一个 pan 和同一个收尾流程，所以这里存协议类型。
+        private var rippleTurnView: (UIView & ReaderPageTurnOverlay)?
+        /// 当前浮层是不是上下翻页：手势取 y 而不是 x，方向判据也反过来。
+        private var pageTurnOverlayIsVertical = false
+        fileprivate var ripplePageViewController: UIPageViewController?
+        private var rippleTargetPage: Int?
+        private var rippleDirection: ReaderCoverTurnDirection?
+        /// Normalised point the wave starts from: the middle of the edge the page is
+        /// turning towards (x = 1 for the next page, 0 for the previous one), captured
+        /// on the tap that started the turn. Consumed (and cleared) by the next 波纹 turn.
+        fileprivate var pendingRippleOrigin: CGPoint?
+        /// The horizontal drag that drives a 波纹 turn. Kept so the delegate can refuse
+        /// vertical drags — those belong to 上滑退出 and 下拉书签, and a pan that begins
+        /// on a vertical drag would also swallow the middle tap that opens the menu.
+        fileprivate var ripplePanGesture: UIPanGestureRecognizer?
+        private var rippleProgress: CGFloat = 0
+        private var rippleLink: CADisplayLink?
+        private var rippleAnimation: (from: CGFloat, to: CGFloat, start: CFTimeInterval, duration: CFTimeInterval)?
+        private var rippleAnimationCompletion: (() -> Void)?
         /// Version of the last ReaderPageTurnCommand this coordinator executed.
         /// updateUIViewController runs on every SwiftUI render; the version check
         /// makes each command fire exactly once.
@@ -495,7 +553,7 @@ struct CoreTextPageEngineView: UIViewControllerRepresentable {
         ///
         /// `private(set)` is the point. Four separate places used to assign this directly
         /// and exactly **one** of them told the sentry, so every position guard — A1, G1,
-        /// G2, G3 — was blind to the other three. The whole 覆蓋 page-turn style lived in
+        /// G2, G3 — was blind to the other three. The whole 覆盖 page-turn style lived in
         /// that blind spot: turning pages with it reported nothing at all.
         ///
         /// Instrumenting the *paths* is what let that happen; a path can be added without
@@ -698,7 +756,7 @@ struct CoreTextPageEngineView: UIViewControllerRepresentable {
         /// The external target is on screen as a real page, so nothing is owed for it any more.
         ///
         /// Setting the target parks a `pendingNavigation` (`externalTargetPosition.didSet`, and
-        /// `init` for the opening position) for the case it lands on a 載入中 page, which
+        /// `init` for the opening position) for the case it lands on a 载入中 page, which
         /// `handleChapterReady` then swaps for the real one. Landing on a real page has to take
         /// that back. Left behind, it is replayed by the next chapter to lay out — a neighbour
         /// preloading after the opening transition, the next chapter's fetch — over every turn
@@ -927,13 +985,13 @@ struct CoreTextPageEngineView: UIViewControllerRepresentable {
         /// The back of the sheet whose front shows `position`. A back is named by its front's
         /// reading position, never by an index: an earlier chapter landing with a different
         /// page count renumbers every page after it while the sheet is in UIKit's hands, and
-        /// a back stepping from its build-time index turned onto the wrong page (回饋中心
+        /// a back stepping from its build-time index turned onto the wrong page (回馈中心
         /// #118). The index below is only today's name for the page, for its snapshot.
         private func curlBackPage(behind position: CoreTextReadingPosition) -> PageBackViewController? {
             currentEngine.estimatedGlobalPage(for: position).map { curlBackPage(onPage: $0, behind: position) }
         }
 
-        /// The back of the sheet a turn lifts. A 載入中 page inside a chapter nobody has
+        /// The back of the sheet a turn lifts. A 载入中 page inside a chapter nobody has
         /// measured has no position — `committedReadingPosition(of:)` refuses to guess
         /// one — so its back is named by the page it stands for, carries no position
         /// either, and like every page with nothing laid out shows the theme colour.
@@ -975,7 +1033,7 @@ struct CoreTextPageEngineView: UIViewControllerRepresentable {
         /// `pageBackward`). Forward, the sheet is the page on screen; backward, it is the
         /// target. Both are at hand whether or not the target is laid out, and a sheet
         /// with no position still has a back (`curlBackPage(of:)`). The back used to be
-        /// named from the page before the target, which a 載入中 page does not have: a tap
+        /// named from the page before the target, which a 载入中 page does not have: a tap
         /// that ran ahead of loading turned onto it without the curl, because UIKit cannot
         /// animate a double-sided curl without a back.
         fileprivate func transitionViewControllerStack(
@@ -1048,6 +1106,9 @@ struct CoreTextPageEngineView: UIViewControllerRepresentable {
 
         isolated deinit {
             clearEngineCallbacks()
+            // A display link holds its target. A reader torn down mid-turn (style switch,
+            // book closed) would otherwise leave it ticking against a dead coordinator.
+            rippleLink?.invalidate()
         }
 
         func bindEngineCallbacks(to engine: any PageRenderingProvider, pageViewController: UIPageViewController) {
@@ -1252,7 +1313,7 @@ struct CoreTextPageEngineView: UIViewControllerRepresentable {
         /// that used to live here; observing is not repairing.
         fileprivate var unresolvedChapters: [Int: ChapterLayoutOutcome] = [:]
 
-        /// A 載入中 page the reader is still looking at when they try to turn again.
+        /// A 载入中 page the reader is still looking at when they try to turn again.
         ///
         /// No timer: the trigger is the user's own next gesture, which is also the
         /// moment the symptom is real to them. Reported once per chapter — someone
@@ -1270,7 +1331,7 @@ struct CoreTextPageEngineView: UIViewControllerRepresentable {
             unresolvedChapters.removeValue(forKey: position.spineIndex)
 
             AppLogger.anomaly(
-                localized("章節停在載入中且沒有再次嘗試"),
+                localized("章节停在载入中且没有再次尝试"),
                 category: .reader,
                 detail: [
                     "chapter=\(position.spineIndex)",
@@ -1361,7 +1422,7 @@ struct CoreTextPageEngineView: UIViewControllerRepresentable {
         /// is simply reading.
         ///
         /// A placeholder must never take that shortcut: `committedReadingPosition` refuses to
-        /// guess a position for one, which is exactly the stuck-載入中 case this path exists
+        /// guess a position for one, which is exactly the stuck-载入中 case this path exists
         /// to resolve.
         private func handleChapterReady(
             _ spineIndex: Int?,
@@ -1374,7 +1435,7 @@ struct CoreTextPageEngineView: UIViewControllerRepresentable {
                let visiblePosition = committedReadingPosition(of: visible),
                visiblePosition.spineIndex != spineIndex,
                // Around a mid spine the spread's other page is on screen too, and can
-               // be the 載入中 page of the chapter that just landed.
+               // be the 载入中 page of the chapter that just landed.
                !(usesMidSpine && (pageViewController.viewControllers ?? []).contains {
                    committedReadingPosition(of: $0)?.spineIndex == spineIndex
                }) {
@@ -1692,7 +1753,15 @@ struct CoreTextPageEngineView: UIViewControllerRepresentable {
                   let view = recognizer.view else { return }
             let point = recognizer.location(in: view)
             let action: TouchAction
-            if GlobalSettings.shared.readerTapBothSidesNextPage {
+            if pageTurnStyle == .vertical {
+                // 上下翻页的点击分区跟着翻页方向走：点上方 = 上一页（内容往下走）、
+                // 点下方 = 下一页（内容往上走）、中间仍是呼菜单。左右分区在这里
+                // 没有意义 —— 读者点屏幕下方期待的是「往后翻一屏」。
+                let yFraction = point.y / max(view.bounds.height, 1)
+                if yFraction > 0.72 { action = .nextPage }
+                else if yFraction < 0.28 { action = .prevPage }
+                else { action = .toggleMenu }
+            } else if GlobalSettings.shared.readerTapBothSidesNextPage {
                 let xFraction = point.x / max(view.bounds.width, 1)
                 action = (0.3...0.7).contains(xFraction) ? .toggleMenu : .nextPage
             } else {
@@ -1703,15 +1772,24 @@ struct CoreTextPageEngineView: UIViewControllerRepresentable {
                 action = config.action(at: point, in: view.bounds.size)
             }
             pageTurnTrace.tapRecognized(action, at: point, in: view.bounds.size)
+            // 波纹 is a 左右 turn: the front enters from the edge the reader is
+            // turning towards, so the wave crosses the page horizontally. 上下翻页
+            // 用同一个字段记方向，只是换成上下两条边。
+            if pageTurnStyle == .ripple || pageTurnStyle == .vertical,
+               action == .nextPage || action == .prevPage {
+                pendingRippleOrigin = pageTurnStyle == .vertical
+                    ? CGPoint(x: 0.5, y: action == .nextPage ? 1 : 0)
+                    : CGPoint(x: action == .nextPage ? 1 : 0, y: 0.5)
+            }
             DispatchQueue.main.async {
                 self.onTapZone(action)
                 self.pageTurnTrace.tapDispatched()
             }
         }
 
-        /// The landing of a 覆蓋 turn, and the initial stack.
+        /// The landing of a 覆盖 turn, and the initial stack.
         ///
-        /// - Parameter readerDriven: 覆蓋 turns are all the reader asking — an interactive
+        /// - Parameter readerDriven: 覆盖 turns are all the reader asking — an interactive
         ///   drag, or a turn command from a tap or a volume key. The initial stack is not.
         func captureStablePosition(from viewController: UIViewController, readerDriven: Bool = false) {
             setCurrentPosition(
@@ -1728,7 +1806,7 @@ struct CoreTextPageEngineView: UIViewControllerRepresentable {
 
         /// Puts the next page over the current one and moves the clip line.
         ///
-        /// The snapshot already carries 頁眉／頁腳 because it comes from
+        /// The snapshot already carries 页眉／页脚 because it comes from
         /// `renderSnapshot` → `renderPage`, the same function that draws the live
         /// page — so the revealed page brings its own bars, as it does in legado.
         func applyAutoReadReveal(
@@ -1847,7 +1925,7 @@ struct CoreTextPageEngineView: UIViewControllerRepresentable {
         /// Where a page sits in the page numbering as it is now. A laid-out page's
         /// `globalPageIndex` is the number it was built under: an earlier chapter landing
         /// with a different page count renumbers every page after it, and the controller
-        /// on screen is not told (回饋中心 #118). Its reading position does not move. A page
+        /// on screen is not told (回馈中心 #118). Its reading position does not move. A page
         /// with no committed position — a placeholder nobody has measured — has nothing
         /// better than its index, which was an estimate to begin with.
         fileprivate func currentPageIndex(of page: any PageIndexProviding & UIViewController) -> Int {
@@ -2634,6 +2712,287 @@ struct CoreTextPageEngineView: UIViewControllerRepresentable {
             coverDirection = nil
         }
 
+        // MARK: - 波纹 turn
+
+        /// One turn, from a still page to the next one: long enough to read as a wave
+        /// crossing the screen, short enough not to make a tap feel slow. Scaled by the
+        /// same rapid-tap speed-up the other styles use.
+        private static let rippleTurnDuration: CFTimeInterval = 0.42
+        /// Cancelling a drag plays back to wherever it came from a little faster than
+        /// it played forward — a rejected turn should not feel like a slow rewind.
+        private static let rippleCancelDuration: CFTimeInterval = 0.26
+
+        func setupRippleOverlay(on view: UIView, vertical: Bool) {
+            pageTurnOverlayIsVertical = vertical
+            if vertical {
+                let overlay = ReaderVerticalPageTurnView(frame: view.bounds)
+                overlay.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+                overlay.isHidden = true
+                view.addSubview(overlay)
+                rippleTurnView = overlay
+                return
+            }
+            let ripple = ReaderRipplePageTurnView(frame: view.bounds)
+            ripple.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+            ripple.isHidden = true
+            view.addSubview(ripple)
+            rippleTurnView = ripple
+            if !ripple.isSupported {
+                AppLogger.render("[RippleTrace] metal unavailable — 波纹 turns fall back to a plain swap")
+            }
+        }
+
+        /// Plays a 波纹 turn between two pages that already have snapshots.
+        ///
+        /// - Returns: false when the overlay cannot run — no Metal, a page whose
+        ///   snapshot is not ready, or a turn already in flight. The caller then keeps
+        ///   its own non-animated path, so a tap never leaves the page stuck.
+        @discardableResult
+        func beginRippleTurn(
+            from visiblePage: Int,
+            to targetPage: Int,
+            direction: UIPageViewController.NavigationDirection,
+            on pageViewController: UIPageViewController
+        ) -> Bool {
+            guard let ripple = rippleTurnView, ripple.isSupported, !isAnimatingTransition else { return false }
+            guard
+                let oldPage = renderSnapshotForDisplayPage(visiblePage),
+                let newPage = renderSnapshotForDisplayPage(targetPage)
+            else {
+                AppLogger.render("[RippleTrace] snapshot miss from=\(visiblePage) to=\(targetPage)")
+                return false
+            }
+
+            // 页间阅读 turns left/right: the wave starts on the edge the page comes
+            // from — right edge for the next page, left edge for the previous one —
+            // and sweeps sideways. No finger position: a 左右 turn has no single
+            // touch point when it comes from a volume key, TTS or 自动阅读.
+            let origin = pendingRippleOrigin
+                ?? CGPoint(x: direction == .forward ? 1 : 0, y: 0.5)
+            pendingRippleOrigin = nil
+
+            beginAnimatedTransition()
+            ripple.frame = pageViewController.view.bounds
+            ripple.prepare(
+                oldPage: oldPage,
+                newPage: newPage,
+                origin: pageTurnOverlayIsVertical
+                    ? CGPoint(x: 0.5, y: direction == .forward ? 1 : 0)
+                    : origin,
+                direction: pageTurnOverlayIsVertical
+                    // 上下翻页：dy < 0 表示往上翻（下一页）。
+                    ? CGVector(dx: 0, dy: direction == .forward ? -1 : 1)
+                    : CGVector(dx: direction == .forward ? -1 : 1, dy: 0)
+            )
+            ripple.isHidden = false
+            rippleProgress = 0
+            ripple.setProgress(0)
+
+            startRippleAnimation(
+                to: 1,
+                duration: Self.rippleTurnDuration / Double(max(activeTurnSpeed, 1))
+            ) { [weak self] in
+                self?.commitRippleLanding(to: targetPage, direction: direction, on: pageViewController)
+            }
+            return true
+        }
+
+        /// The turn landed: swap the real page in, publish where the reader is, drop
+        /// the overlay. Same closing sequence as 覆盖, which is the other style that
+        /// animates a snapshot and then hands the stack back non-animated.
+        private func commitRippleLanding(
+            to targetPage: Int,
+            direction: UIPageViewController.NavigationDirection,
+            on pageViewController: UIPageViewController
+        ) {
+            let realVC = displayViewController(at: targetPage)
+            applyPlaybackHighlight(to: realVC)
+            pageViewController.setViewControllers([realVC], direction: direction, animated: false)
+            pageViewController.view.layoutIfNeeded()
+            captureStablePosition(from: realVC, readerDriven: true)
+            publishCurrentPage(targetPage, position: readingPosition(from: realVC), notify: true)
+            warmUpNext(currentGlobalPage: targetPage)
+            finishRippleOverlay()
+            endAnimatedTransition(on: pageViewController)
+        }
+
+        private func finishRippleOverlay() {
+            rippleTurnView?.reset()
+            rippleProgress = 0
+            rippleTargetPage = nil
+            rippleDirection = nil
+        }
+
+        @objc func handleRipplePan(_ gesture: UIPanGestureRecognizer) {
+            guard let view = gesture.view, let ripple = rippleTurnView else { return }
+            if gesture.state == .began && isAnimatingTransition {
+                gesture.state = .cancelled
+                return
+            }
+            let width = max(view.bounds.width, 1)
+            let height = max(view.bounds.height, 1)
+            let vertical = pageTurnOverlayIsVertical
+            // 上下翻页量纵向位移，左右波纹量横向位移 —— 两者都是「这一屏拖了几成」。
+            let translation = vertical
+                ? gesture.translation(in: view).y
+                : gesture.translation(in: view).x
+            let velocity = vertical
+                ? gesture.velocity(in: view).y
+                : gesture.velocity(in: view).x
+
+            switch gesture.state {
+            case .began:
+                cancelRippleAnimation()
+                rippleTargetPage = nil
+                rippleDirection = nil
+
+            case .changed:
+                if rippleTargetPage == nil {
+                    let turnDirection: ReaderCoverTurnDirection?
+                    if vertical {
+                        // 往上滑就是下一页。上下翻页与 RTL 无关：竖排书的上下还是上下。
+                        guard abs(translation) >= GestureConstants.initialTranslationThreshold else { return }
+                        turnDirection = translation < 0 ? .forward : .backward
+                    } else {
+                        turnDirection = ReaderCoverPageMotion.direction(
+                            for: translation,
+                            threshold: GestureConstants.initialTranslationThreshold,
+                            isRTL: isRTL
+                        )
+                    }
+                    guard let turnDirection else { return }
+                    let target: Int?
+                    switch turnDirection {
+                    case .forward: target = nextDisplayPage(after: currentPage)
+                    case .backward: target = previousDisplayPage(before: currentPage)
+                    }
+                    guard
+                        let target,
+                        let oldPage = renderSnapshotForDisplayPage(currentPage),
+                        let newPage = renderSnapshotForDisplayPage(target)
+                    else { return }
+
+                    rippleTargetPage = target
+                    rippleDirection = turnDirection
+                    ripple.frame = view.bounds
+                    ripple.prepare(
+                        oldPage: oldPage,
+                        newPage: newPage,
+                        origin: vertical
+                            ? CGPoint(x: 0.5, y: turnDirection == .forward ? 1 : 0)
+                            : CGPoint(x: turnDirection == .forward ? 1 : 0, y: 0.5),
+                        direction: vertical
+                            ? CGVector(dx: 0, dy: turnDirection == .forward ? -1 : 1)
+                            : CGVector(dx: turnDirection == .forward ? -1 : 1, dy: 0)
+                    )
+                    ripple.isHidden = false
+                    rippleProgress = 0
+                    ripple.setProgress(0)
+                    onUserPageTurnBegan()
+                }
+                guard let direction = rippleDirection else { return }
+                // 拖多少就走多少：拖过半屏，页面（或波前）正好走一半。
+                let progress: CGFloat
+                if vertical {
+                    progress = min(abs(translation) / height, 0.999)
+                } else {
+                    let motion = ReaderCoverPageMotion(direction: direction, isRTL: isRTL)
+                    progress = min(motion.dragProgress(translationX: translation, width: width), 0.999)
+                }
+                rippleProgress = progress
+                ripple.setProgress(progress)
+
+            case .ended, .cancelled, .failed:
+                guard let target = rippleTargetPage, let direction = rippleDirection else {
+                    finishRippleOverlay()
+                    return
+                }
+                let shouldCommit: Bool
+                if vertical {
+                    // 与左右翻页同一门槛：拖过 34%，或甩得够快，就补完那一屏。
+                    shouldCommit = gesture.state == .ended
+                        && (abs(translation) / height > 0.34 || abs(velocity) > 560)
+                } else {
+                    let motion = ReaderCoverPageMotion(direction: direction, isRTL: isRTL)
+                    shouldCommit = gesture.state == .ended && motion.shouldCommit(
+                        translationX: translation,
+                        velocityX: velocity,
+                        width: width
+                    )
+                }
+                beginAnimatedTransition()
+                let navigationDirection: UIPageViewController.NavigationDirection = isRTL
+                    ? (direction == .forward ? .reverse : .forward)
+                    : (direction == .forward ? .forward : .reverse)
+                startRippleAnimation(
+                    to: shouldCommit ? 1 : 0,
+                    duration: Self.rippleCancelDuration
+                ) { [weak self] in
+                    guard let self else { return }
+                    if shouldCommit, let pvc = self.ripplePageViewController {
+                        self.commitRippleLanding(to: target, direction: navigationDirection, on: pvc)
+                    } else {
+                        self.finishRippleOverlay()
+                        if let pvc = self.ripplePageViewController {
+                            self.endAnimatedTransition(on: pvc)
+                        }
+                    }
+                }
+
+            default:
+                break
+            }
+        }
+
+        // MARK: 波纹 clock
+
+        private func startRippleAnimation(
+            to target: CGFloat,
+            duration: CFTimeInterval,
+            completion: @escaping () -> Void
+        ) {
+            cancelRippleAnimation()
+            rippleAnimation = (
+                from: rippleProgress,
+                to: target,
+                start: CACurrentMediaTime(),
+                duration: max(duration, 0.05)
+            )
+            rippleAnimationCompletion = completion
+            let link = CADisplayLink(target: self, selector: #selector(stepRipple(_:)))
+            // The same range the slide push asks for: a 120Hz device should sweep this
+            // at 120Hz, not drop to Core Animation's 60Hz phone default.
+            link.preferredFrameRateRange = ReaderSlideTurnAnimation.frameRateRange
+            link.add(to: .main, forMode: .common)
+            rippleLink = link
+        }
+
+        private func cancelRippleAnimation() {
+            rippleLink?.invalidate()
+            rippleLink = nil
+            rippleAnimation = nil
+            rippleAnimationCompletion = nil
+        }
+
+        @objc private func stepRipple(_ link: CADisplayLink) {
+            guard let animation = rippleAnimation else {
+                cancelRippleAnimation()
+                return
+            }
+            let elapsed = CACurrentMediaTime() - animation.start
+            let t = min(max(elapsed / animation.duration, 0), 1)
+            // Ease-out cubic: the wavefront leaves quickly and settles, which is what
+            // the 页间阅读 clip does rather than a constant-speed sweep.
+            let eased = 1 - pow(1 - t, 3)
+            rippleProgress = animation.from + (animation.to - animation.from) * eased
+            rippleTurnView?.setProgress(rippleProgress)
+            if t >= 1 {
+                let completion = rippleAnimationCompletion
+                cancelRippleAnimation()
+                completion?()
+            }
+        }
+
         // MARK: - Swipe-up exit gesture
 
         @objc func handleSwipeUpExitPan(_ gesture: UIPanGestureRecognizer) {
@@ -2933,17 +3292,40 @@ struct CoreTextPageEngineView: UIViewControllerRepresentable {
         // MARK: - UIGestureRecognizerDelegate (swipe-up exit / pull-down bookmark)
 
         func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+            if gestureRecognizer === ripplePanGesture {
+                // 左右波纹只吃横向拖动，上下翻页只吃纵向拖动；另一个方向留给
+                // 上滑退出 / 下拉书签。点按（会有几个点的抖动）两边都不起手，
+                // 否则 点屏幕中间 就呼不出菜单了。
+                guard let pan = gestureRecognizer as? UIPanGestureRecognizer,
+                      let view = pan.view,
+                      !isAnimatingTransition, !isPageTransitioning else { return false }
+                let translation = pan.translation(in: view)
+                let velocity = pan.velocity(in: view)
+                // Translation is the honest signal once the finger has moved; before
+                // that it is a few points of jitter, and velocity is what the first
+                // report carries.
+                let moved = abs(translation.x) + abs(translation.y) >= 4
+                let dx = moved ? translation.x : velocity.x
+                let dy = moved ? translation.y : velocity.y
+                return pageTurnOverlayIsVertical
+                    ? abs(dy) > abs(dx) * 1.15
+                    : abs(dx) > abs(dy) * 1.15
+            }
             if gestureRecognizer === pullDownBookmarkPanGesture {
+                // 上下翻页时纵向手势属于翻页：两者方向完全相同，无法靠方向区分，
+                // 只能让翻页独占（否则每翻一页都会顺带拉出书签或退出阅读）。
+                guard !pageTurnOverlayIsVertical else { return false }
                 guard let pan = gestureRecognizer as? UIPanGestureRecognizer,
                       let view = pan.view,
                       GlobalSettings.shared.readerPullDownToBookmark,
                       !isAnimatingTransition, !isPageTransitioning,
-                      // A 載入中 page is not a page yet; there is nothing to bookmark.
+                      // A 载入中 page is not a page yet; there is nothing to bookmark.
                       let visible = pullDownPageViewController.flatMap(readingPage(of:)),
                       !isPlaceholderDisplay(visible) else { return false }
                 return ReaderPullDownBookmarkMotion.shouldBegin(velocity: pan.velocity(in: view))
             }
             guard gestureRecognizer === swipeUpExitPanGesture else { return true }
+            guard !pageTurnOverlayIsVertical else { return false }
             guard let pan = gestureRecognizer as? UIPanGestureRecognizer,
                   let view = pan.view,
                   GlobalSettings.shared.readerSwipeUpToExit,

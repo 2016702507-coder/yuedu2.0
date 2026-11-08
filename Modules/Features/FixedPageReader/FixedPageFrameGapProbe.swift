@@ -3,11 +3,11 @@ import UIKit
 
 // MARK: - Frame gaps while the strip moves
 //
-// 回饋 #133：條漫捲動時大約每秒一次 67–150 ms 沒有新幀。`MainThreadMonitor` 只認 250 ms 以上
-// 不回應的主執行緒，這種長度的停頓它看不到；時間落在 Core Animation 提交或 SwiftUI 更新裡的，
-// 包在任何 span 裡也量不到。所以這裡直接看螢幕：捲動中每一幀記下時間，兩幀之間隔了兩幀以上就
-// 記一行 ⏱ `webtoon.frameGap`，附上這段期間主執行緒上跑過的條漫各階段（`span`／`note`）。
-// 空的那段期間就是落在沒有 span 的工作上——那一行本身就是下一個要補的 span。
+// 回馈 #133：条漫卷动时大约每秒一次 67–150 ms 没有新帧。`MainThreadMonitor` 只认 250 ms 以上
+// 不回应的主执行绪，这种长度的停顿它看不到；时间落在 Core Animation 提交或 SwiftUI 更新里的，
+// 包在任何 span 里也量不到。所以这里直接看萤幕：卷动中每一帧记下时间，两帧之间隔了两帧以上就
+// 记一行 ⏱ `webtoon.frameGap`，附上这段期间主执行绪上跑过的条漫各阶段（`span`／`note`）。
+// 空的那段期间就是落在没有 span 的工作上——那一行本身就是下一个要补的 span。
 
 @MainActor
 final class FixedPageFrameGapProbe {

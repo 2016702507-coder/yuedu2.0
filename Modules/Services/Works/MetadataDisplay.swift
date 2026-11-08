@@ -1,9 +1,9 @@
 import Foundation
 
-// 中繼資料語言偏好推薦 on what a source says of an item (maintainer, 2026-10-25): with Chinese
+// 中继资料语言偏好推荐 on what a source says of an item (maintainer, 2026-10-25): with Chinese
 // chosen, titles, authors and blurbs read in its script, and a blurb with nothing in Chinese
 // says so in place of the Japanese it has. Bangumi's summaries, the default home's rankings, are
-// 简体, 繁體 or Japanese, often a Chinese paragraph beside a Japanese one.
+// 简体, 繁体 or Japanese, often a Chinese paragraph beside a Japanese one.
 // - For display only: the route, the searches for a source and the match keys keep what the
 //   source sent, since a book source searched in the other script finds nothing.
 // - Other languages are shown as sent: nothing tells an English blurb from a French one, and
@@ -16,7 +16,7 @@ struct MetadataDisplay: Equatable, Sendable {
     /// The `MetadataLanguage` tag in effect (`ReadingLanguagePreferences.language`).
     let language: String
 
-    /// The app's 中繼資料語言偏好推薦.
+    /// The app's 中继资料语言偏好推荐.
     @MainActor static var current: MetadataDisplay {
         MetadataDisplay(language: AggregationSettingsStore.shared.readingLanguages.language)
     }
@@ -53,21 +53,21 @@ struct MetadataDisplay: Equatable, Sendable {
     }
 
     /// A blurb in the reader's script, its Japanese sentences left out; nil for none. Nothing left
-    /// says 沒有繁體中文簡介 (or 簡體).
+    /// says 没有繁体中文简介 (or 简体).
     func blurb(_ blurb: String?) -> Blurb? {
         guard let blurb, !blurb.isEmpty else { return nil }
         guard let conversion else { return .text(blurb) }
         guard let chinese = JapaneseSentences.removing(from: blurb) else {
-            return .unavailable(localized(conversion == .toTraditional ? "沒有繁體中文簡介" : "沒有簡體中文簡介"))
+            return .unavailable(localized(conversion == .toTraditional ? "没有繁体中文简介" : "没有简体中文简介"))
         }
         return .text(chinese.converted(to: conversion))
     }
 }
 
 /// A blurb's Japanese, by sentence. A sentence is Japanese when a tenth of its letters are
-/// hiragana (Japanese prose runs a third to a half) or half are kana (アルベラン王国将軍, ページ
+/// hiragana (Japanese prose runs a third to a half) or half are kana (アルベラン王国将军, ページ
 /// オーバー), while Chinese that quotes a Japanese title (原名フルメタル・パニック, 取り扱います)
-/// stays under both. One too short to tell (a title, a credit such as 第29回日本SF大賞受賞, a line
+/// stays under both. One too short to tell (a title, a credit such as 第29回日本SF大赏受赏, a line
 /// in Latin letters, a rule of dashes) goes with the nearest one that can be told, the one before
 /// it first. Measured on Bangumi's 120 top-ranked novel and manga summaries (MetadataDisplayTests).
 enum JapaneseSentences {

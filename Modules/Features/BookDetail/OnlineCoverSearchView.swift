@@ -3,7 +3,7 @@ import SwiftUI
 
 /// 封面搜索 — covers found on the web, independent of the installed book sources.
 ///
-/// Legado's equivalent (封面規則) returns a single cover and drops it into the
+/// Legado's equivalent (封面规则) returns a single cover and drops it into the
 /// change-cover grid; `OnlineCoverSearchService` queries the same two sites and
 /// keeps every distinct match so this screen can offer a choice.
 @MainActor
@@ -43,7 +43,7 @@ final class OnlineCoverSearchViewModel: ObservableObject {
     }
 }
 
-/// The 封面搜索 screen. Picking a cover hands it back to 書籍資訊.
+/// The 封面搜索 screen. Picking a cover hands it back to 书籍资讯.
 struct OnlineCoverSearchView: View {
     let title: String
     let author: String
@@ -59,7 +59,7 @@ struct OnlineCoverSearchView: View {
                 candidates: model.candidates,
                 isSearching: model.isSearching,
                 hasSearched: model.hasSearched,
-                emptyHint: localized("可以改用「換封面」在來源配置裡找，或從相簿選一張圖片。")
+                emptyHint: localized("可以改用「换封面」在来源配置里找，或从相簿选一张图片。")
             ) { candidate in
                 model.stop()
                 onSelect(candidate)
@@ -81,7 +81,7 @@ struct OnlineCoverSearchView: View {
                     Image(systemName: model.isSearching ? "stop.circle" : "arrow.clockwise")
                 }
                 .accessibilityLabel(
-                    model.isSearching ? localized("停止搜索") : localized("重新搜尋")
+                    model.isSearching ? localized("停止搜索") : localized("重新搜寻")
                 )
             }
         }
@@ -93,7 +93,7 @@ struct OnlineCoverSearchView: View {
 #Preview {
     NavigationStack {
         OnlineCoverSearchView(
-            title: "紅樓夢",
+            title: "红楼梦",
             author: "曹雪芹",
             onSelect: { _ in }
         )

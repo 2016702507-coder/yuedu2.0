@@ -76,9 +76,9 @@ struct Bookmark: Identifiable, Codable, Equatable {
         self.textVersion = textVersion
     }
 
-    /// 書籤卡片摘錄的字數上限。卡片給摘錄兩行，而章首那一頁的開頭是排進版面的
-    /// 章名、顯示時會被 `ReaderBookmarkExcerpt.body(of:chapterTitle:)` 去掉，
-    /// 所以要多存一點，扣掉章名後才剩得下兩行內文。
+    /// 书签卡片摘录的字数上限。卡片给摘录两行，而章首那一页的开头是排进版面的
+    /// 章名、显示时会被 `ReaderBookmarkExcerpt.body(of:chapterTitle:)` 去掉，
+    /// 所以要多存一点，扣掉章名后才剩得下两行内文。
     static let pageExcerptLength = 90
 
     var isChapterStartBookmark: Bool {
@@ -271,14 +271,14 @@ struct ReadingBook: Identifiable, Codable {
     // Cover image path (relative filename under Application Support/Covers, e.g. "xxx_cover.jpg")
     var coverImagePath: String?
 
-    /// The cover the user picked by hand in 書籍資訊 — a remote URL (封面搜索 or a
+    /// The cover the user picked by hand in 书籍资讯 — a remote URL (封面搜索 or a
     /// pasted address) or `localCustomCoverMarker` when it came from the photo
     /// library / Files. Non-nil is the definition of "this cover is customized",
-    /// which is what gates 重設封面. Mirrors Legado's `Book.customCoverUrl`.
+    /// which is what gates 重设封面. Mirrors Legado's `Book.customCoverUrl`.
     var customCoverUrl: String?
 
     /// Filename (under Application Support/Covers) of the cover the book had
-    /// before the user replaced it, so 重設封面 restores the source's / EPUB's own
+    /// before the user replaced it, so 重设封面 restores the source's / EPUB's own
     /// cover without a network round trip. Nil when nothing needed preserving.
     /// Not carried by iCloud sync — only `coverImagePath` is — so a restored
     /// device falls back to re-downloading `coverUrl`.
@@ -325,21 +325,21 @@ struct ReadingBook: Identifiable, Codable {
     /// and encoded only when present, for the reason `audioPlayMode` gives.
     var mobi: MOBIBookSource?
 
-    /// When 從繼續閱讀移除 or 標記為已讀完 last took the book out of 繼續閱讀 (unified library
+    /// When 从继续阅读移除 or 标记为已读完 last took the book out of 继续阅读 (unified library
     /// 5d-3c). It stays out until it is opened again, as Apple Books' Continue does: see
     /// `isInContinueReading`. Optional and encoded only when present, for the reason
     /// `audioPlayMode` gives.
     var continueReadingHiddenAt: Date?
 
-    /// 養肥 (grow a book): set when the reader puts this book on the 養肥 shelf by hand
-    /// (書架 → 長按 → 加入養肥), cleared when they take it out. Until 1.3 the chip meant
+    /// 养肥 (grow a book): set when the reader puts this book on the 养肥 shelf by hand
+    /// (书架 → 长按 → 加入养肥), cleared when they take it out. Until 1.3 the chip meant
     /// "never opened", so every freshly imported book landed there whether the reader
     /// wanted to watch it grow or not — the reader asked for it to be a shelf they keep
     /// themselves. Optional and encoded only when present, for the reason `audioPlayMode`
     /// gives: a default written into every book would change each one's sync hash.
     var fatteningAddedAt: Date?
 
-    /// The description the reader wrote in 編輯資訊 (unified library 5f-4d-2, decision 33). It
+    /// The description the reader wrote in 编辑资讯 (unified library 5f-4d-2, decision 33). It
     /// comes before every place's (`CopyMetadata`), and nothing but the reader writes it, so
     /// a source refresh never replaces it. Kept here, not in `Works/decisions.json`, so that it
     /// syncs as the title does (maintainer, 2026-10-12). Optional and encoded only when present,
@@ -352,13 +352,13 @@ struct ReadingBook: Identifiable, Codable {
     /// reason `audioPlayMode` gives.
     var module: ModuleBookReference?
 
-    /// Set on another version of a shelf book's work, kept off the shelf (換源 between versions,
-    /// maintainer 2026-10-26): the shelf book it belongs to. 換源 lists it and can switch back to
-    /// it; nothing else lists it, and it is never asked about with 「加入書架？」. Optional and
+    /// Set on another version of a shelf book's work, kept off the shelf (换源 between versions,
+    /// maintainer 2026-10-26): the shelf book it belongs to. 换源 lists it and can switch back to
+    /// it; nothing else lists it, and it is never asked about with 「加入书架？」. Optional and
     /// encoded only when present, for the reason `audioPlayMode` gives.
     var versionOf: UUID?
 
-    /// Its chapters are built by rules — a 來源配置's or a module's — into the cache's raw and
+    /// Its chapters are built by rules — a 来源配置's or a module's — into the cache's raw and
     /// normalized HTML (`ChapterFetcher.buildChapterPackage`); a browser import's are plain
     /// text a page gave.
     var chaptersBuiltByRules: Bool { bookSourceId != nil || module != nil }
@@ -517,7 +517,7 @@ struct ReadingBook: Identifiable, Codable {
 }
 
 extension ReadingBook {
-    /// Whether 繼續閱讀 lists it: opened, and not taken out since it was last opened.
+    /// Whether 继续阅读 lists it: opened, and not taken out since it was last opened.
     var isInContinueReading: Bool {
         guard let opened = lastOpenedDate else { return false }
         guard let hidden = continueReadingHiddenAt else { return true }
@@ -526,12 +526,12 @@ extension ReadingBook {
 }
 
 extension ReadingBook {
-    /// On the 養肥 shelf: the reader put it there by hand, so it stays until taken out.
+    /// On the 养肥 shelf: the reader put it there by hand, so it stays until taken out.
     var isFattening: Bool { fatteningAddedAt != nil }
 }
 
 extension ReadingBook {
-    /// The audiobook play mode; legado's default, 順序播放, is stored as absent.
+    /// The audiobook play mode; legado's default, 顺序播放, is stored as absent.
     var audiobookPlayMode: AudiobookPlayMode {
         get { audioPlayMode ?? .listEndStop }
         set { audioPlayMode = newValue == .listEndStop ? nil : newValue }
@@ -580,7 +580,7 @@ extension ReadingBook {
     /// Label for the 格式 chip. `.fixedPage` covers both fixed-layout EPUB and PDF,
     /// so the pipeline kind alone can't name the format — the import source can.
     var displayFormatLabel: String {
-        if isOnline { return localized("線上") }
+        if isOnline { return localized("线上") }
         if let mobi { return mobi.formatLabel }
         if resolvedPipelineKind == .fixedPage, source == "local_epub" { return "EPUB" }
         return resolvedPipelineKind.displayFormat
@@ -615,8 +615,8 @@ enum BookPipelineKind: String, Codable {
         case .txt: return "TXT"
         case .html: return "HTML"
         case .fixedPage: return "PDF"
-        case .manga: return localized("漫畫")
-        case .audio: return localized("有聲書")
+        case .manga: return localized("漫画")
+        case .audio: return localized("有声书")
         case .video: return localized("影片")
         }
     }
@@ -903,7 +903,7 @@ struct BookInfoPackage: Codable {
     /// `if (parsed.isNotEmpty() && (canReName || book.name.isEmpty()))`. 431 of 1912 real sources
     /// (22.5%) ship an empty `ruleBookInfo.name` precisely because they rely on that — their detail
     /// page never repeats the title. Parsing into a standalone value, as this reader does, dropped
-    /// it: the book opened with a blank name and 校驗書源 reported 詳情為空.
+    /// it: the book opened with a blank name and 校验书源 reported 详情为空.
     ///
     /// - Parameters:
     ///   - known: the book as the search/discover stage knew it, or nil when there is none
@@ -956,7 +956,7 @@ struct ReaderRenderSettings: Equatable {
     let lineSpacing: CGFloat
     let paragraphSpacing: CGFloat
     let letterSpacing: CGFloat
-    /// The reader's 左右邊距 as laid out, measured from the window's side safe areas. The page's
+    /// The reader's 左右边距 as laid out, measured from the window's side safe areas. The page's
     /// side insets, safe area included, are `contentInsets.left` and `.right`, which can differ.
     let marginH: CGFloat
     let marginV: CGFloat
@@ -984,23 +984,23 @@ struct ReaderRenderSettings: Equatable {
     var readerStyleAppearance: ReaderStyleAppearance = .light
     /// Invalidates draw-only image decoration snapshots after asset mutations.
     var readerStyleAssetRevision: UInt64 = 0
-    /// 對話氣泡. Lives here rather than being read from settings at draw time so
+    /// 对话气泡. Lives here rather than being read from settings at draw time so
     /// that switching it on re-runs layout: the bubble's side, width and padding
     /// are baked into paragraph indents while the string is built.
     var dialogueBubbleStyle: ReaderDialogueBubbleStyle = .default
-    /// 繁簡轉換. Applied while the string is built — ahead of replace rules, as legado
+    /// 繁简转换. Applied while the string is built — ahead of replace rules, as legado
     /// does — so switching it re-runs layout rather than repainting.
     var textConversion: TextConversion = .original
-    /// 整章翻譯. Translations are spliced into the chapter documents, so switching it re-runs
+    /// 整章翻译. Translations are spliced into the chapter documents, so switching it re-runs
     /// layout; a chapter's translations arriving refreshes that chapter alone.
     var translation: ReaderTranslationPresentation = .off
     /// The book being laid out. `CJKTypographyStyleResolver` keeps one CJK typography
     /// style per book, so its titles and chapters are set alike. Nil outside a book.
     var bookID: UUID? = nil
-    /// 底部對齊: spread each filled page's leftover space over its lines so the last line
+    /// 底部对齐: spread each filled page's leftover space over its lines so the last line
     /// sits on the content bottom. Paged surface only; the scroll surface always carries false.
     var bottomJustify: Bool = false
-    /// 套用書本間距: an EPUB's stylesheet line height and paragraph margins win over the
+    /// 套用书本间距: an EPUB's stylesheet line height and paragraph margins win over the
     /// reader's 行距／段距 (on), or are dropped so the reader's apply everywhere (off).
     /// Read by the EPUB builder alone; baked into paragraph styles, so a change re-runs layout.
     var usesBookSpacing: Bool = true
@@ -1075,7 +1075,7 @@ enum ReaderLayoutMetrics {
     /// computed instead of guessed. The safe-area inset is added on top because
     /// the reading surface spans the whole screen — a bar sitting at
     /// `headerTopPadding` alone would land under the notch.
-    /// - Parameter verticalMargin: the reader's 上下邊距, in points. Now honoured in
+    /// - Parameter verticalMargin: the reader's 上下边距, in points. Now honoured in
     ///   *both* modes. Paged mode used to take its vertical margin from the overlay
     ///   layout's hand-tuned "content reservation" while scroll mode used
     ///   `pageMarginV`, so the same slider meant different things depending on how
@@ -1243,15 +1243,15 @@ final class ReaderTelemetry: Sendable {
 enum BookSortOrder: String {
     case manual, recentlyRead, title, author
 
-    /// Where the 書架 tab keeps the order it sorts by.
+    /// Where the 书架 tab keeps the order it sorts by.
     static let storageKey = "bookSortOrder"
 
-    /// The 書架 tab's order, as it last saved it.
+    /// The 书架 tab's order, as it last saved it.
     static func saved(in defaults: UserDefaults = .standard) -> BookSortOrder {
         defaults.string(forKey: storageKey).flatMap(BookSortOrder.init(rawValue:)) ?? .manual
     }
 
-    /// `books` in this order: the 書架 tab's, and 探索's 書架 section's (feedback #24). 手動 is
+    /// `books` in this order: the 书架 tab's, and 探索's 书架 section's (feedback #24). 手动 is
     /// the order the shelf holds them in.
     func sorted(_ books: [ReadingBook]) -> [ReadingBook] {
         switch self {

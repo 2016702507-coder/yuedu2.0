@@ -1,8 +1,8 @@
 import SwiftUI
 
-/// 模組's 官方模組 and 匯入的模組: each module with its version and author, a module turned off
-/// said so, and a folder that could not be read, which can only be removed. 官方模組 lists the
-/// app's own first (`AppOfficialModule`), as 資源庫 does, with the app's version: they update with it.
+/// 模组's 官方模组 and 汇入的模组: each module with its version and author, a module turned off
+/// said so, and a folder that could not be read, which can only be removed. 官方模组 lists the
+/// app's own first (`AppOfficialModule`), as 资源库 does, with the app's version: they update with it.
 struct RuleModuleGroupView: View {
     let group: RuleModuleGroup
     @ObservedObject var library: RuleModuleLibrary
@@ -32,14 +32,14 @@ struct RuleModuleGroupView: View {
             if !library.isLoaded {
                 ProgressView()
             } else if appModules.isEmpty && modules.isEmpty && failures.isEmpty {
-                ContentUnavailableView { UnavailableLabel(localized("還沒有模組"), systemImage: "puzzlepiece.extension") }
+                ContentUnavailableView { UnavailableLabel(localized("还没有模组"), systemImage: "puzzlepiece.extension") }
             } else {
                 Form {
                     Section {
                         ForEach(appModules) { module in
                             NavigationLink(value: module.route) {
                                 RuleModuleRow(title: module.title, version: RuleModuleVersion.app, description: module.summary,
-                                              author: localized("閱讀"), isOfficial: true)
+                                              author: localized("阅读"), isOfficial: true)
                             }
                             .accessibilityIdentifier("modules.module.\(module.id)")
                         }
@@ -55,14 +55,14 @@ struct RuleModuleGroupView: View {
                             } label: {
                                 VStack(alignment: .leading, spacing: DSSpacing.xxs) {
                                     Text(failure.folder).foregroundStyle(DSColor.textPrimary)
-                                    Text(localized("檔案損毀，或需要較新版本的閱讀。"))
+                                    Text(localized("档案损毁，或需要较新版本的阅读。"))
                                         .font(DSFont.footnote)
                                         .foregroundStyle(DSColor.textSecondary)
                                 }
                             }
                             .accessibilityLabel(failure.folder)
-                            .accessibilityValue(localized("無法讀取的模組"))
-                            .accessibilityHint(localized("移除模組"))
+                            .accessibilityValue(localized("无法读取的模组"))
+                            .accessibilityHint(localized("移除模组"))
                         }
                     }
                     .interfaceSectionSurface()
@@ -70,7 +70,7 @@ struct RuleModuleGroupView: View {
                 .softScrollEdges()
             }
         }
-        .navigationTitle(localized(group == .official ? "官方模組" : "匯入的模組"))
+        .navigationTitle(localized(group == .official ? "官方模组" : "汇入的模组"))
         .toolbarTitleDisplayMode(.inline)
         .themedAppSurface(for: .settings)
         .hidesRootTabBar()
@@ -78,15 +78,15 @@ struct RuleModuleGroupView: View {
         .confirmationDialog(pendingRemoval.map { String(format: localized("移除「%@」？"), $0.folder) } ?? "",
                             isPresented: Binding(get: { pendingRemoval != nil }, set: { if !$0 { pendingRemoval = nil } }),
                             titleVisibility: .visible, presenting: pendingRemoval) { failure in
-            Button(localized("移除模組"), role: .destructive) {
+            Button(localized("移除模组"), role: .destructive) {
                 Task { await remove(failure.folder) }
             }
             Button(localized("取消"), role: .cancel) {}
         } message: { _ in
-            Text(localized("它的快取會一起刪除。"))
+            Text(localized("它的快取会一起删除。"))
         }
-        .alert(localized("操作失敗"), isPresented: Binding(get: { removalFailure != nil }, set: { if !$0 { removalFailure = nil } })) {
-            Button(localized("確定"), role: .cancel) {}
+        .alert(localized("操作失败"), isPresented: Binding(get: { removalFailure != nil }, set: { if !$0 { removalFailure = nil } })) {
+            Button(localized("确定"), role: .cancel) {}
         } message: {
             Text(removalFailure ?? "")
         }
@@ -110,7 +110,7 @@ struct RuleModuleRow: View {
     let author: String?
     var isOfficial = false
     var isEnabled = true
-    /// Trailing, in place of the version: 安裝, 更新 and the like on a repository's page.
+    /// Trailing, in place of the version: 安装, 更新 and the like on a repository's page.
     var status: String?
 
     init(title: String, version: String, description: String?, author: String?, isOfficial: Bool = false,
@@ -179,14 +179,14 @@ struct RuleModuleRow: View {
     }
 }
 
-#Preview("官方模組") {
+#Preview("官方模组") {
     NavigationStack {
         RuleModuleGroupView(group: .official, library: RuleModulePreviewData.officialLibrary())
     }
 }
 
-#Preview("匯入的模組") {
+#Preview("汇入的模组") {
     NavigationStack {
-        RuleModuleGroupView(group: .imported, library: RuleModulePreviewData.library(["新書速報", "排行榜"]))
+        RuleModuleGroupView(group: .imported, library: RuleModulePreviewData.library(["新书速报", "排行榜"]))
     }
 }

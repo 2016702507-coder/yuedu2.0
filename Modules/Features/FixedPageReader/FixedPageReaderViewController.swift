@@ -302,7 +302,7 @@ final class FixedPageReaderViewController: UIViewController, FixedPageReaderCont
                 )
                 self.state.isLoading = false
                 guard !pages.isEmpty else {
-                    self.state.errorMessage = localized("未找到圖片")
+                    self.state.errorMessage = localized("未找到图片")
                     return
                 }
                 self.currentPages = pages
@@ -374,7 +374,7 @@ final class FixedPageReaderViewController: UIViewController, FixedPageReaderCont
                 AppLogger.error("Fixed-page document has no readable pages: \(filename)")
                 self.state.errorMessage = isPDF
                     ? LocalPDFArchiveError.cannotReadDocument.errorDescription
-                    : localized("無法讀取這本書的頁面")
+                    : localized("无法读取这本书的页面")
                 return
             }
 
@@ -393,7 +393,7 @@ final class FixedPageReaderViewController: UIViewController, FixedPageReaderCont
             self.currentPages = pages
             self.documentSections = sections
             // No bookmarks means no table of contents to show, which the overlay
-            // reads as "hide the 目錄 button".
+            // reads as "hide the 目录 button".
             self.state.chapterListItems = sections.enumerated().map { offset, section in
                 FixedPageChapterListItem(id: UUID(), index: offset, title: section.title)
             }
@@ -445,7 +445,7 @@ final class FixedPageReaderViewController: UIViewController, FixedPageReaderCont
                 guard self.loadToken == token else { return }
                 self.state.isLoading = false
                 guard !pages.isEmpty else {
-                    self.state.errorMessage = localized("未找到圖片")
+                    self.state.errorMessage = localized("未找到图片")
                     return
                 }
                 let resolvedStart = max(0, min(startPage, pages.count - 1))
@@ -558,7 +558,7 @@ final class FixedPageReaderViewController: UIViewController, FixedPageReaderCont
     func readerToggleBookmark() {
         guard chapters.indices.contains(chapterIndex) else { return }
         let page = currentChapterPage
-        // 一頁一個書籤：這些書沒有字元位移，頁序號就是位置，一頁佔一格。
+        // 一页一个书签：这些书没有字元位移，页序号就是位置，一页占一格。
         let range = ReaderPageBookmarkRange(
             spineIndex: chapterIndex, startOffset: page, endOffset: page + 1)
         let title = isSingleChapterDocumentBook
@@ -569,7 +569,7 @@ final class FixedPageReaderViewController: UIViewController, FixedPageReaderCont
             chapterIndex: chapterIndex,
             chapterTitle: title,
             range: range,
-            excerpt: String(format: localized("第 %d 頁"), page + 1)
+            excerpt: String(format: localized("第 %d 页"), page + 1)
         )
     }
     func readerAutoScrollStateChanged(_ isActive: Bool) { state.isAutoScrolling = isActive }

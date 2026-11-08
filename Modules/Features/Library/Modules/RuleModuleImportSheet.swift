@@ -1,11 +1,11 @@
 import SwiftUI
 
-/// 新增模組 and 檢查更新's sheet (Phase 6e): the module is shown — who wrote it, its lists, the
+/// 新增模组 and 检查更新's sheet (Phase 6e): the module is shown — who wrote it, its lists, the
 /// sites it will send requests to — or the reason it was refused, before anything is written.
 struct RuleModuleImportSheet: View {
     @ObservedObject var model: RuleModuleImportModel
     let title: String
-    /// Only 從網址 asks for an address; a file or the clipboard is read as the sheet opens.
+    /// Only 从网址 asks for an address; a file or the clipboard is read as the sheet opens.
     var asksForAddress = false
     @Environment(\.dismiss) private var dismiss
     @FocusState private var addressFocused: Bool
@@ -23,7 +23,7 @@ struct RuleModuleImportSheet: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button { dismiss() } label: { Image(systemName: "xmark").accessibilityHidden(true) }
-                        .accessibilityLabel(localized("關閉"))
+                        .accessibilityLabel(localized("关闭"))
                         .accessibilityIdentifier("module.import.close")
                 }
                 if let commitTitle {
@@ -47,8 +47,8 @@ struct RuleModuleImportSheet: View {
     /// The checkmark's name: what confirming writes.
     private var commitTitle: String? {
         switch model.phase {
-        case .preview(let preview): localized(preview.replacing == nil ? "新增模組" : "更新模組")
-        case .repository: localized("訂閱模組倉庫")
+        case .preview(let preview): localized(preview.replacing == nil ? "新增模组" : "更新模组")
+        case .repository: localized("订阅模组仓库")
         default: nil
         }
     }
@@ -63,18 +63,18 @@ struct RuleModuleImportSheet: View {
                 .submitLabel(.go)
                 .focused($addressFocused)
                 .onSubmit { Task { await model.fetch() } }
-                .accessibilityLabel(localized("模組網址"))
+                .accessibilityLabel(localized("模组网址"))
                 .accessibilityIdentifier("module.import.address")
             Button {
                 addressFocused = false
                 Task { await model.fetch() }
             } label: {
-                SettingsRowLabel(localized("讀取"), systemImage: "arrow.down.circle", role: .action)
+                SettingsRowLabel(localized("读取"), systemImage: "arrow.down.circle", role: .action)
             }
             .disabled(model.address.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || model.isLoading)
             .accessibilityIdentifier("module.import.load")
         } header: {
-            Text(localized("模組網址")).foregroundStyle(DSColor.textSecondary)
+            Text(localized("模组网址")).foregroundStyle(DSColor.textSecondary)
         }
         .interfaceSectionSurface()
     }
@@ -88,7 +88,7 @@ struct RuleModuleImportSheet: View {
             Section {
                 HStack(spacing: DSSpacing.sm) {
                     ProgressView()
-                    Text(localized("讀取中")).foregroundStyle(DSColor.textSecondary)
+                    Text(localized("读取中")).foregroundStyle(DSColor.textSecondary)
                 }
                 .accessibilityElement(children: .combine)
             }
@@ -100,7 +100,7 @@ struct RuleModuleImportSheet: View {
                     .textSelection(.enabled)
                     .accessibilityIdentifier("module.import.failure")
             } header: {
-                Text(localized("無法加入這個模組")).foregroundStyle(DSColor.textSecondary)
+                Text(localized("无法加入这个模组")).foregroundStyle(DSColor.textSecondary)
             }
             .interfaceSectionSurface()
         case .upToDate(let message):
@@ -129,7 +129,7 @@ struct RuleModuleImportSheet: View {
             } header: {
                 Text(repository.index.name).foregroundStyle(DSColor.textSecondary)
             } footer: {
-                Text(localized("訂閱後在「模組」頁挑選要安裝的模組；倉庫裡的模組不會自動安裝。")).dsSectionFooter()
+                Text(localized("订阅后在「模组」页挑选要安装的模组；仓库里的模组不会自动安装。")).dsSectionFooter()
             }
             .interfaceSectionSurface()
             .accessibilityIdentifier("module.import.repository")
@@ -155,7 +155,7 @@ struct RuleModuleManifestSections: View {
                 LabeledContent(localized("最低格式版本"), value: required)
             }
             if let site = nonEmpty(module.site) {
-                LabeledContent(localized("網站"), value: site)
+                LabeledContent(localized("网站"), value: site)
             }
             if let description = nonEmpty(module.description) {
                 Text(description).foregroundStyle(DSColor.textPrimary)
@@ -182,10 +182,10 @@ struct RuleModuleManifestSections: View {
                 entryRow(title: localized("搜索"), description: search.description)
             }
             if let lookup = module.lookup {
-                entryRow(title: localized("以 ISBN 查詢"), description: lookup.description)
+                entryRow(title: localized("以 ISBN 查询"), description: lookup.description)
             }
         } header: {
-            Text(localized("清單")).foregroundStyle(DSColor.textSecondary)
+            Text(localized("清单")).foregroundStyle(DSColor.textSecondary)
         }
         .interfaceSectionSurface()
 
@@ -193,9 +193,9 @@ struct RuleModuleManifestSections: View {
             Section {
                 ForEach(addedHosts, id: \.self) { Text($0).foregroundStyle(DSColor.textPrimary) }
             } header: {
-                Text(localized("新增的網站")).foregroundStyle(DSColor.textSecondary)
+                Text(localized("新增的网站")).foregroundStyle(DSColor.textSecondary)
             } footer: {
-                Text(localized("更新後也會向這些網站送出請求。")).dsSectionFooter()
+                Text(localized("更新后也会向这些网站送出请求。")).dsSectionFooter()
             }
             .interfaceSectionSurface()
         }
@@ -203,19 +203,19 @@ struct RuleModuleManifestSections: View {
         Section {
             ForEach(module.hosts, id: \.self) { Text($0).foregroundStyle(DSColor.textPrimary) }
         } header: {
-            Text(localized("會連線的網站")).foregroundStyle(DSColor.textSecondary)
+            Text(localized("会连线的网站")).foregroundStyle(DSColor.textSecondary)
         } footer: {
             VStack(alignment: .leading, spacing: DSSpacing.xs) {
-                Text(localized("模組只會向這些網站送出請求，封面也只從這些網站載入。"))
+                Text(localized("模组只会向这些网站送出请求，封面也只从这些网站载入。"))
                 // Phase 6h: a module with a search fills by default (maintainer, 2026-10-15);
                 // one with a lookup is sent ISBNs (M4).
                 switch (module.search != nil, module.lookup != nil) {
                 case (true, false):
-                    Text(localized("自動補齊書籍資料開啟時，書架上的書名與作者也會送到這些網站，用來補上空白的簡介與分類；可在「資料來源」取消勾選。"))
+                    Text(localized("自动补齐书籍资料开启时，书架上的书名与作者也会送到这些网站，用来补上空白的简介与分类；可在「资料来源」取消勾选。"))
                 case (false, true):
-                    Text(localized("自動補齊書籍資料開啟時，書架上的書的 ISBN 也會送到這些網站，用來補上空白的封面、簡介與出版社；可在「資料來源」取消勾選。"))
+                    Text(localized("自动补齐书籍资料开启时，书架上的书的 ISBN 也会送到这些网站，用来补上空白的封面、简介与出版社；可在「资料来源」取消勾选。"))
                 case (true, true):
-                    Text(localized("自動補齊書籍資料開啟時，書架上的書名、作者與 ISBN 也會送到這些網站，用來補上空白的封面、簡介與分類；可在「資料來源」取消勾選。"))
+                    Text(localized("自动补齐书籍资料开启时，书架上的书名、作者与 ISBN 也会送到这些网站，用来补上空白的封面、简介与分类；可在「资料来源」取消勾选。"))
                 case (false, false):
                     EmptyView()
                 }
@@ -242,7 +242,7 @@ struct RuleModuleManifestSections: View {
 
 #Preview("A refused module") {
     let model = RuleModuleImportModel(download: { _ in throw URLError(.notConnectedToInternet) })
-    RuleModuleImportSheet(model: model, title: localized("新增模組"))
+    RuleModuleImportSheet(model: model, title: localized("新增模组"))
         .task {
             await model.read(clipboard: #"{"id":"bad id","title":"x","version":"1","hosts":[],"modules":[]}"#)
         }
@@ -250,16 +250,16 @@ struct RuleModuleManifestSections: View {
 
 #Preview("A module to add") {
     let model = RuleModuleImportModel(download: { _ in throw URLError(.notConnectedToInternet) })
-    RuleModuleImportSheet(model: model, title: localized("新增模組"))
-        .task { await model.read(clipboard: RuleModulePreviewData.json(id: "example.newbooks", title: "新書速報")) }
+    RuleModuleImportSheet(model: model, title: localized("新增模组"))
+        .task { await model.read(clipboard: RuleModulePreviewData.json(id: "example.newbooks", title: "新书速报")) }
 }
 
 #Preview("A module with a credit") {
     let model = RuleModuleImportModel(download: { _ in throw URLError(.notConnectedToInternet) })
-    RuleModuleImportSheet(model: model, title: localized("新增模組"))
+    RuleModuleImportSheet(model: model, title: localized("新增模组"))
         .task {
             await model.read(clipboard: #"""
-            {"id":"example.credit","title":"書籍資料","version":"1.0","requiredVersion":"3.0","hosts":["example.com"],
+            {"id":"example.credit","title":"书籍资料","version":"1.0","requiredVersion":"3.0","hosts":["example.com"],
              "attribution":{"text":"Supported by Example Developers","url":"https://example.com/dev"},
              "search":{"request":{"url":"https://example.com/s?q={{keyword}}"},"list":{"items":"$.items[*]","title":"$.title"}}}
             """#)
@@ -268,10 +268,10 @@ struct RuleModuleManifestSections: View {
 
 #Preview("A module that looks up ISBNs") {
     let model = RuleModuleImportModel(download: { _ in throw URLError(.notConnectedToInternet) })
-    RuleModuleImportSheet(model: model, title: localized("新增模組"))
+    RuleModuleImportSheet(model: model, title: localized("新增模组"))
         .task {
             await model.read(clipboard: #"""
-            {"id":"example.isbn","title":"書目資料","version":"1.0","requiredVersion":"3.0","hosts":["api.example.com"],"modules":[],
+            {"id":"example.isbn","title":"书目资料","version":"1.0","requiredVersion":"3.0","hosts":["api.example.com"],"modules":[],
              "lookup":{"request":{"url":"https://api.example.com/isbn/{{isbn}}"},"isbnPrefixes":["9784"],
                        "list":{"items":"$[*]","title":"$.title","isbn":"$.isbn"}}}
             """#)

@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// One shelf copy found by 搜索 (unified search 4b-1), with the 作品詳情 route frozen when it
+/// One shelf copy found by 搜索 (unified search 4b-1), with the 作品详情 route frozen when it
 /// was found (audit §11.5 rule 1).
 struct ShelfSearchMatch: Identifiable, Equatable {
     let book: ReadingBook
@@ -20,7 +20,7 @@ struct ShelfSearchMatch: Identifiable, Equatable {
     }
 }
 
-/// 搜索's 書架 matches, as you type (unified search 4b-1). Local: the work index in memory,
+/// 搜索's 书架 matches, as you type (unified search 4b-1). Local: the work index in memory,
 /// no network. Owned by the search page and read only by the views that draw it.
 @Observable
 @MainActor

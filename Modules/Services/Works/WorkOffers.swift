@@ -2,7 +2,7 @@ import Foundation
 
 /// Discovery 7b-1 (maintainer, 2026-10-13): where else the reader can read a work, known
 /// without a request — the books their own sources already listed of it (what the home's
-/// categories fetched, `ForYouCandidateStore`) and 青空文庫's catalog. 作品詳情 lists them among
+/// categories fetched, `ForYouCandidateStore`) and 青空文库's catalog. 作品详情 lists them among
 /// its versions (`ShelfProvider.versions(of:aozora:)`).
 ///
 /// A book is the work's when its title folds to the same `WorkMatchKey` and both name a
@@ -33,7 +33,7 @@ enum WorkOffers {
         return key.agreeing(offers, authors: matched)
     }
 
-    /// 青空文庫's works of the tapped work's title and author.
+    /// 青空文库's works of the tapped work's title and author.
     static func aozora(of work: WorkDetailRoute, in index: AozoraCatalogIndex) -> [WorkDetailRoute] {
         guard work.record.key.instance.type != .aozora, work.record.contentKind == .text,
               let key = Key(work.summary.title, authors: work.summary.authors) else { return [] }
@@ -46,7 +46,7 @@ enum WorkOffers {
     }
 
     /// The tapped work's books among what the saved libraries and the modules found under its
-    /// title (換源, maintainer 2026-10-26), matched as its offers are; each place witnesses the
+    /// title (换源, maintainer 2026-10-26), matched as its offers are; each place witnesses the
     /// author of its own books.
     static func found(of work: WorkDetailRoute, in found: [WorkDetailRoute]) -> [WorkDetailRoute] {
         guard let key = Key(work.summary.title, authors: work.summary.authors) else { return [] }

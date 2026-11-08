@@ -9,11 +9,11 @@ final class ShelfProvider: CollectionBrowsing {
     private let store: BookStore
     /// Each WebDAV connection's root, which an indexed file's address is built under.
     private let webDAVRoots: @MainActor () -> [String: URL]
-    /// What the home's categories fetched, which 作品詳情's versions read (7b-1).
+    /// What the home's categories fetched, which 作品详情's versions read (7b-1).
     private let candidates: ForYouCandidateStore
     /// The installed sources, turned on or not.
     private let sources: @MainActor () -> [BookSource]
-    /// The order the 書架 tab sorts by, which 探索's 書架 section follows.
+    /// The order the 书架 tab sorts by, which 探索's 书架 section follows.
     private let sortOrder: @MainActor () -> BookSortOrder
 
     init(store: BookStore, webDAVRoots: @escaping @MainActor () -> [String: URL] = ShelfProvider.liveWebDAVRoots,
@@ -35,7 +35,7 @@ final class ShelfProvider: CollectionBrowsing {
     }
 
     var instance: SourceInstanceKey { .localLibrary }
-    var displayName: String { localized("書架") }
+    var displayName: String { localized("书架") }
     var availability: ProviderAvailability { .available }
     var hosts: [String] { [] }
 
@@ -69,7 +69,7 @@ final class ShelfProvider: CollectionBrowsing {
         }
     }
 
-    /// 搜索's 書架 section (unified search 4b-1): the shelf copies of the works whose title or
+    /// 搜索's 书架 section (unified search 4b-1): the shelf copies of the works whose title or
     /// author matches `query` by `WorkMatchKey`, works with an equal title first. Reads the
     /// index as last refreshed: `WorkIndexService.current()` before the first search, and
     /// again when the shelf changes.
@@ -85,24 +85,24 @@ final class ShelfProvider: CollectionBrowsing {
         }
     }
 
-    /// 繼續閱讀: the copies opened most recently, newest first (design §13.3), leaving out
+    /// 继续阅读: the copies opened most recently, newest first (design §13.3), leaving out
     /// those taken out since they were last opened (5d-3c).
     func continueReading(limit: Int) -> [CollectionEntry] {
         items(recentlyOpened(limit: limit))
     }
 
-    /// 書架 (feedback #24): the shelf's books in the 書架 tab's order, the first `limit`. Books
+    /// 书架 (feedback #24): the shelf's books in the 书架 tab's order, the first `limit`. Books
     /// only, a group's too: a group's chip would have no page here to open.
     func bookshelf(limit: Int) -> [CollectionEntry] {
         items(Array(sortOrder().sorted(store.books).prefix(limit)))
     }
 
-    /// 書架 in a layout of lists (maintainer, 2026-10-27): a card per group, as the 書架 tab
-    /// groups it, then one of the books in none (未分組); each its first `limit` books in the tab's
+    /// 书架 in a layout of lists (maintainer, 2026-10-27): a card per group, as the 书架 tab
+    /// groups it, then one of the books in none (未分组); each its first `limit` books in the tab's
     /// order. No page lists a group outside the shelf, so a card opens the books it drew.
     func bookshelfGroups(limit: Int) -> [CollectionEntry] {
         let sorted = sortOrder().sorted(store.books)
-        let groups = store.allGroups.map { ($0, $0) } + [("", localized("未分組"))]
+        let groups = store.allGroups.map { ($0, $0) } + [("", localized("未分组"))]
         return groups.compactMap { group, title -> CollectionEntry? in
             let books = sorted.lazy.filter { $0.group == group }.prefix(limit)
             guard !books.isEmpty else { return nil }
@@ -126,8 +126,8 @@ final class ShelfProvider: CollectionBrowsing {
             .map(\.0))
     }
 
-    /// 相關 (unified library 5c-4): what `RelatedWorks` picks around the copy opened most
-    /// recently, from the shelf and the WebDAV index, leaving out 繼續閱讀's copies. Empty when
+    /// 相关 (unified library 5c-4): what `RelatedWorks` picks around the copy opened most
+    /// recently, from the shelf and the WebDAV index, leaving out 继续阅读's copies. Empty when
     /// nothing has been opened.
     func related(limit: Int) async -> [CollectionEntry] {
         let opened = recentlyOpened(limit: limit)
@@ -148,7 +148,7 @@ final class ShelfProvider: CollectionBrowsing {
         return entries
     }
 
-    /// 作品詳情's 作者其他作品 (Editorial Minimalism, 2026-10-12): what `RelatedWorks.byAuthors`
+    /// 作品详情's 作者其他作品 (Editorial Minimalism, 2026-10-12): what `RelatedWorks.byAuthors`
     /// picks for the authors of the page's versions, from the shelf and the WebDAV index,
     /// leaving out the works of those versions.
     func otherWorks(byAuthorsOf versions: [WorkDetailRoute], limit: Int) async -> [CollectionEntry] {
@@ -174,7 +174,7 @@ final class ShelfProvider: CollectionBrowsing {
         return entries
     }
 
-    /// 作品詳情's 同系列 (Editorial Minimalism, 2026-10-12): the series of the page's versions
+    /// 作品详情's 同系列 (Editorial Minimalism, 2026-10-12): the series of the page's versions
     /// and its volumes on the shelf and in the WebDAV index, by `SeriesWorks`; nil when no
     /// version records a series. The series' name is read back from the metadata that named
     /// it (a copy's sidecar, a file's package values), never its match key. Like 系列下一本, the
@@ -245,19 +245,19 @@ final class ShelfProvider: CollectionBrowsing {
         return entries
     }
 
-    /// 作品詳情's versions (5f): the tapped item, its copies on the shelf, and the other members
+    /// 作品详情's versions (5f): the tapped item, its copies on the shelf, and the other members
     /// of the works those belong to in the index that the reader knows (`WorkVersions.merge`,
     /// `WorkVersions.known`). Only shelf copies and WebDAV files are indexed, so a library or
     /// public-library book reaches its work through a copy of it.
     ///
-    /// Then, with no request (7b-1, maintainer 2026-10-13): 青空文庫's work of the same title
+    /// Then, with no request (7b-1, maintainer 2026-10-13): 青空文库's work of the same title
     /// and author, and the books of it the reader's sources listed on the home (`WorkOffers`).
     ///
     /// A copy taken from a public library is listed as the library's book even when nothing
-    /// else lists it — opened from 書架 or 繼續閱讀, its work holds no public-library item
-    /// (2026-10-12: ホノルル from 書架 showed only 來源 書架).
+    /// else lists it — opened from 书架 or 继续阅读, its work holds no public-library item
+    /// (2026-10-12: ホノルル from 书架 showed only 来源 书架).
     /// - Parameters:
-    ///   - aozora: 青空文庫's catalog, which a 青空文庫 copy's work is read from; without it (not
+    ///   - aozora: 青空文库's catalog, which a 青空文库 copy's work is read from; without it (not
     ///     read yet, or no cache offline) the copy stands for itself.
     ///   - extra: the work's other members 搜索 found (unified search 4c-3), listed after the
     ///     index's, each once, a copy's origin standing for it as for any member.
@@ -313,7 +313,7 @@ final class ShelfProvider: CollectionBrowsing {
     }
 
     /// The public-library book each copy was taken from, where no version lists it already:
-    /// a Gutenberg book by its number, a 青空文庫 work from the catalog.
+    /// a Gutenberg book by its number, a 青空文库 work from the catalog.
     private static func publicLibraryOrigins(of versions: [WorkDetailRoute],
                                              aozora: AozoraCatalogIndex?) -> [WorkDetailRoute] {
         var listed = Set(versions.filter(\.readsItsCopies).map(\.record.key))

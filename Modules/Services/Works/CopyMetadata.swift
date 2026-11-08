@@ -17,19 +17,19 @@ struct CopyMetadata: Hashable {
 
     struct Intro: Hashable {
         var text: String
-        /// Written by the reader in 編輯資訊.
+        /// Written by the reader in 编辑资讯.
         var isEdited: Bool
         /// The current book source's own description, as its page fetched it. Only then may
         /// the page read Legado's formats in it and run its actions (decision 33); any other
         /// description is plain text.
         var isSourcesOwn: Bool
-        /// `text` says the filled description has nothing in the reader's script (沒有繁體中文簡介).
+        /// `text` says the filled description has nothing in the reader's script (没有繁体中文简介).
         var isUnavailable = false
     }
 
     /// - `sidecar`: the copy's sidecar values (`BookStore.copyIntroValues(of:)`).
     /// - `liveIntro`: the description the page's source just gave, if it is a source's page.
-    /// - `display`: 中繼資料語言偏好推薦, for a description filled from another place.
+    /// - `display`: 中继资料语言偏好推荐, for a description filled from another place.
     static func resolve(copy book: ReadingBook, record: SourceRecord, decisions: [WorkDecision],
                         sidecar: [MetadataValue] = [], liveIntro: String? = nil, display: MetadataDisplay? = nil,
                         now: Date = Date()) -> CopyMetadata {

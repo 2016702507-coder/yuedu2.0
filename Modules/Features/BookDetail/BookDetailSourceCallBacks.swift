@@ -110,7 +110,7 @@ extension BookDetailSourceMenuActions {
         self.init(
             isListening: callBacks != nil,
             showsCustomButton: SourceCallBackService.showsCustomButton(source),
-            // legado has no event for it: the page opens as the reader's 開啟網頁 opens a chapter.
+            // legado has no event for it: the page opens as the reader's 开启网页 opens a chapter.
             onOpenWebPage: { SourceWebPage.open(bookURL, title: title, source: source) },
             onCopyBookURL: { tap(.clickCopyBookUrl, result: bookURL) { SourceWebPage.copy(bookURL) } },
             onCopyTOCURL: { tap(.clickCopyTocUrl, result: tocURL) { SourceWebPage.copy(tocURL) } },

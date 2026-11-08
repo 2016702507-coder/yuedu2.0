@@ -1,19 +1,19 @@
 import SwiftUI
 
-// Phase 5 plan, decision 34 (the maintainer, with Emby's 選擇模板): choosing a section's layout
-// shows what each one looks like. The maintainer, 2026-10-15, after Forward's 選擇模板: a
+// Phase 5 plan, decision 34 (the maintainer, with Emby's 选择模板): choosing a section's layout
+// shows what each one looks like. The maintainer, 2026-10-15, after Forward's 选择模板: a
 // gallery, not a list. Each choice is the real layout at its real size, cut off by the screen's
-// edge, with its name centred under it; a layout read downwards shows two rows. In 新增欄目's
-// first page and behind the form's 呈現方式.
+// edge, with its name centred under it; a layout read downwards shows two rows. In 新增栏目's
+// first page and behind the form's 呈现方式.
 //
 // The maintainer, 2026-10-13: each layout gets the covers that suit it best, no book in two
-// layouts, and not only Gutenberg's. Painted covers for 精選 and 大型閱讀卡片, comic books for
-// 多行橫向輪播, illustrated and comic magazines for 固定封面網格, Japanese and Chinese first
-// editions for 精簡閱讀卡片 and 圖文資訊清單, and two lists, 漫畫 and 東方經典, for 專題集合.
-// 2026-10-25, with Apple Books' layouts: illustrated children's books for 大型封面書架, dime novels
-// for 一大四小, and two lists each for 分類卡片 (詩歌, 博物誌) and 拼貼卡片 (推理, 冒險).
-// 2026-10-27: the colour band left 呈現方式 for the 頂部輪播圖, and its boldly coloured Japanese
-// and Chinese first editions went to 大圖卡片's two lists (日本裝幀, 新文學), whose cards take their
+// layouts, and not only Gutenberg's. Painted covers for 精选 and 大型阅读卡片, comic books for
+// 多行横向轮播, illustrated and comic magazines for 固定封面网格, Japanese and Chinese first
+// editions for 精简阅读卡片 and 图文资讯清单, and two lists, 漫画 and 东方经典, for 专题集合.
+// 2026-10-25, with Apple Books' layouts: illustrated children's books for 大型封面书架, dime novels
+// for 一大四小, and two lists each for 分类卡片 (诗歌, 博物志) and 拼贴卡片 (推理, 冒险).
+// 2026-10-27: the colour band left 呈现方式 for the 顶部轮播图, and its boldly coloured Japanese
+// and Chinese first editions went to 大图卡片's two lists (日本装帧, 新文学), whose cards take their
 // first cover's colour.
 
 /// One book a preview is drawn with: its cover, bundled as `layout-sample-<cover>.jpg`, and its
@@ -71,19 +71,19 @@ struct HomeLayoutSample {
             .init(cover: "war-and-peace", title: "War and Peace", work: "War and Peace", author: "Leo Tolstoy", language: "en"),
         ],
         .compactReadingCard: [
-            .init(cover: "tangsong-chuanqi", title: "唐宋傳奇集", work: "唐宋傳奇集", author: "魯迅", language: "zh"),
-            .init(cover: "omoigusa", title: "思ひ草", work: "思ひ草", author: "佐佐木信綱", language: "ja"),
-            .init(cover: "sishui", title: "死水", work: "死水", author: "聞一多", language: "zh"),
+            .init(cover: "tangsong-chuanqi", title: "唐宋传奇集", work: "唐宋传奇集", author: "鲁迅", language: "zh"),
+            .init(cover: "omoigusa", title: "思ひ草", work: "思ひ草", author: "佐佐木信纲", language: "ja"),
+            .init(cover: "sishui", title: "死水", work: "死水", author: "闻一多", language: "zh"),
         ],
         .list: [
-            .init(cover: "aiaigasa", title: "相合傘", work: "相合傘", author: "泉鏡花", language: "ja"),
-            .init(cover: "canshijie", title: "慘世界", work: "慘世界", author: "蘇曼殊、陳由己", language: "zh"),
+            .init(cover: "aiaigasa", title: "相合伞", work: "相合伞", author: "泉镜花", language: "ja"),
+            .init(cover: "canshijie", title: "惨世界", work: "惨世界", author: "苏曼殊、陈由己", language: "zh"),
             .init(cover: "wagahai", title: "吾輩ハ猫デアル", work: "吾輩ハ猫デアル", author: "夏目漱石", language: "ja"),
         ],
         .multiRow: [
             .init(cover: "little-nemo", title: "Little Nemo in Slumberland", work: "Little Nemo", author: "Winsor McCay", language: "en", kind: .comic),
             .init(cover: "becassine", title: "Bécassine chez les Alliés", work: "Bécassine", author: "Caumery, J.-P. Pinchon", language: "fr", kind: .comic),
-            .init(cover: "kyosai-manga", title: "暁斎漫画", work: "暁斎漫画", author: "河鍋暁斎", language: "ja", kind: .comic),
+            .init(cover: "kyosai-manga", title: "暁斎漫画", work: "暁斎漫画", author: "河锅暁斎", language: "ja", kind: .comic),
             .init(cover: "rarebit-fiend", title: "Dreams of the Rarebit Fiend", work: "Dreams of the Rarebit Fiend", author: "Winsor McCay", language: "en", kind: .comic),
             .init(cover: "fenouillard", title: "La Famille Fenouillard", work: "La Famille Fenouillard", author: "Christophe", language: "fr", kind: .comic),
             .init(cover: "yellow-kid", title: "The Yellow Kid", work: "The Yellow Kid", author: "R. F. Outcault", language: "en", kind: .comic),
@@ -115,9 +115,9 @@ struct HomeLayoutSample {
             .init(cover: "peter-pan-kensington", title: "Peter Pan in Kensington Gardens", work: "Peter Pan", author: "J. M. Barrie", language: "en"),
         ],
         .colorBand: [
-            .init(cover: "kuwana-shinju", title: "桑名心中", work: "桑名心中", author: "長田幹彦", language: "ja"),
-            .init(cover: "nihon-otogibanashi", title: "日本お伽噺集", work: "日本児童文庫", author: "巖谷小波", language: "ja"),
-            .init(cover: "tako", title: "凧", work: "凧", author: "竹久夢二", language: "ja"),
+            .init(cover: "kuwana-shinju", title: "桑名心中", work: "桑名心中", author: "长田干彦", language: "ja"),
+            .init(cover: "nihon-otogibanashi", title: "日本お伽噺集", work: "日本児童文库", author: "岩谷小波", language: "ja"),
+            .init(cover: "tako", title: "凧", work: "凧", author: "竹久梦二", language: "ja"),
             .init(cover: "menghu-ji", title: "猛虎集", work: "猛虎集", author: "徐志摩", language: "zh"),
         ],
         .heroGrid: [
@@ -132,25 +132,25 @@ struct HomeLayoutSample {
 
     /// Each layout of lists' sample: two lists of the books no layout has. They open nothing (a
     /// preview is not touched); `.gutenbergCollection` is only the one case `CollectionOpening` has.
-    /// 大圖卡片 draws no covers, only a face designed from each list's name (`HomeCategoryArt`), so
+    /// 大图卡片 draws no covers, only a face designed from each list's name (`HomeCategoryArt`), so
     /// its lists are named for kinds of book and hold none.
     static let lists: [(style: HomeLayoutStyle, id: String, titleKey: String, sourceName: String?, books: [HomeLayoutSampleBook])] = [
-        (style: .collection, id: "comics", titleKey: "漫畫", sourceName: nil, books: [
-            .init(cover: "chojugiga", title: "鳥獣人物戯画", work: "鳥獣人物戯画", author: "伝 鳥羽僧正", language: "ja", kind: .comic),
-            .init(cover: "hokusai-manga", title: "北斎漫画", work: "北斎漫画", author: "葛飾北斎", language: "ja", kind: .comic),
+        (style: .collection, id: "comics", titleKey: "漫画", sourceName: nil, books: [
+            .init(cover: "chojugiga", title: "鸟獣人物戯画", work: "鸟獣人物戯画", author: "伝 鸟羽僧正", language: "ja", kind: .comic),
+            .init(cover: "hokusai-manga", title: "北斎漫画", work: "北斎漫画", author: "葛饰北斎", language: "ja", kind: .comic),
             .init(cover: "max-und-moritz", title: "Max und Moritz", work: "Max und Moritz", author: "Wilhelm Busch", language: "de", kind: .comic),
         ]),
-        (style: .collection, id: "easternClassics", titleKey: "東方經典", sourceName: nil, books: [
-            .init(cover: "midaregami", title: "みだれ髪", work: "みだれ髪", author: "与謝野晶子", language: "ja"),
+        (style: .collection, id: "easternClassics", titleKey: "东方经典", sourceName: nil, books: [
+            .init(cover: "midaregami", title: "みだれ髪", work: "みだれ髪", author: "与谢野晶子", language: "ja"),
             .init(cover: "kokoro", title: "心", work: "心", author: "夏目漱石", language: "ja"),
-            .init(cover: "panghuang", title: "彷徨", work: "彷徨", author: "魯迅", language: "zh"),
+            .init(cover: "panghuang", title: "彷徨", work: "彷徨", author: "鲁迅", language: "zh"),
         ]),
-        (style: .categoryCards, id: "poetry", titleKey: "詩歌", sourceName: nil, books: [
+        (style: .categoryCards, id: "poetry", titleKey: "诗歌", sourceName: nil, books: [
             .init(cover: "songs-of-innocence", title: "Songs of Innocence", work: "Songs of Innocence", author: "William Blake", language: "en"),
             .init(cover: "goblin-market", title: "Goblin Market and Other Poems", work: "Goblin Market", author: "Christina Rossetti", language: "en"),
             .init(cover: "leaves-of-grass", title: "Leaves of Grass", work: "Leaves of Grass", author: "Walt Whitman", language: "en"),
         ]),
-        (style: .categoryCards, id: "naturalHistory", titleKey: "博物誌", sourceName: nil, books: [
+        (style: .categoryCards, id: "naturalHistory", titleKey: "博物志", sourceName: nil, books: [
             .init(cover: "kunstformen-der-natur", title: "Kunstformen der Natur", work: "Kunstformen der Natur", author: "Ernst Haeckel", language: "de"),
             .init(cover: "british-algae", title: "Photographs of British Algae", work: "Photographs of British Algae", author: "Anna Atkins", language: "en"),
             .init(cover: "psittacidae", title: "Illustrations of the Family of Psittacidae, or Parrots", work: "Illustrations of the Family of Psittacidae", author: "Edward Lear", language: "en"),
@@ -164,7 +164,7 @@ struct HomeLayoutSample {
             .init(cover: "leavenworth-case", title: "The Leavenworth Case", work: "The Leavenworth Case",
                   author: "Anna Katharine Green", language: "en"),
         ]),
-        (style: .collageCards, id: "adventure", titleKey: "冒險", sourceName: nil, books: [
+        (style: .collageCards, id: "adventure", titleKey: "冒险", sourceName: nil, books: [
             .init(cover: "call-of-the-wild", title: "The Call of the Wild", work: "The Call of the Wild", author: "Jack London", language: "en"),
             .init(cover: "jungle-book", title: "The Jungle Book", work: "The Jungle Book", author: "Rudyard Kipling", language: "en"),
             .init(cover: "naufrages-du-jonathan", title: "Les Naufragés du « Jonathan »", work: "Voyages extraordinaires", author: "Jules Verne", language: "fr"),
@@ -174,15 +174,15 @@ struct HomeLayoutSample {
                   language: "en"),
         ]),
         (style: .bannerCards, id: "fantasy", titleKey: "奇幻", sourceName: nil, books: []),
-        (style: .bannerCards, id: "history", titleKey: "歷史", sourceName: nil, books: []),
-        (style: .chart, id: "novelChart", titleKey: "小說", sourceName: nil, books: [
-            .init(cover: "nahan", title: "吶喊", work: "吶喊", author: "魯迅", language: "zh"),
-            .init(cover: "chenlun", title: "沉淪", work: "沉淪", author: "郁達夫", language: "zh"),
-            .init(cover: "rashomon", title: "羅生門", work: "羅生門", author: "芥川龍之介", language: "ja"),
+        (style: .bannerCards, id: "history", titleKey: "历史", sourceName: nil, books: []),
+        (style: .chart, id: "novelChart", titleKey: "小说", sourceName: nil, books: [
+            .init(cover: "nahan", title: "呐喊", work: "呐喊", author: "鲁迅", language: "zh"),
+            .init(cover: "chenlun", title: "沉沦", work: "沉沦", author: "郁达夫", language: "zh"),
+            .init(cover: "rashomon", title: "罗生门", work: "罗生门", author: "芥川龙之介", language: "ja"),
         ]),
-        (style: .chart, id: "poetryChart", titleKey: "詩集", sourceName: nil, books: [
-            .init(cover: "hongzhu", title: "紅燭", work: "紅燭", author: "聞一多", language: "zh"),
-            .init(cover: "haru-to-shura", title: "春と修羅", work: "春と修羅", author: "宮沢賢治", language: "ja"),
+        (style: .chart, id: "poetryChart", titleKey: "诗集", sourceName: nil, books: [
+            .init(cover: "hongzhu", title: "红烛", work: "红烛", author: "闻一多", language: "zh"),
+            .init(cover: "haru-to-shura", title: "春と修羅", work: "春と修羅", author: "宫沢贤治", language: "ja"),
             .init(cover: "tsuki-ni-hoeru", title: "月に吠える", work: "月に吠える", author: "萩原朔太郎", language: "ja"),
         ]),
     ]
@@ -224,7 +224,7 @@ struct HomeLayoutSample {
 }
 
 /// The layouts as a gallery: each one's preview, then its name centred under it, with a
-/// checkmark on the current one. 新增欄目 and the form's page lay them out alike.
+/// checkmark on the current one. 新增栏目 and the form's page lay them out alike.
 struct HomeLayoutGallery: View {
     let choices: [HomeLayoutStyle]
     var current: HomeSectionLayout?
@@ -310,7 +310,7 @@ struct HomeLayoutPreview: View {
     }
 }
 
-/// The form's 呈現方式, pushed.
+/// The form's 呈现方式, pushed.
 struct HomeLayoutChoicePage: View {
     let choices: [HomeLayoutStyle]
     let current: HomeSectionLayout
@@ -320,20 +320,20 @@ struct HomeLayoutChoicePage: View {
     var body: some View {
         HomeLayoutGallery(choices: choices, current: current, sample: sample,
                           identifierPrefix: "homeSection.layoutChoice", choose: choose)
-            .navigationTitle(localized("呈現方式"))
+            .navigationTitle(localized("呈现方式"))
             .toolbarTitleDisplayMode(.inline)
     }
 }
 
 #if DEBUG
-#Preview("呈現方式，即時預覽") {
+#Preview("呈现方式，即时预览") {
     NavigationStack {
         HomeLayoutChoicePage(choices: HomeLayoutStyle.allCases, current: .featured,
                              sample: .standard, choose: { _ in })
     }
 }
 
-#Preview("呈現方式，沒有書時") {
+#Preview("呈现方式，没有书时") {
     NavigationStack {
         HomeLayoutChoicePage(choices: HomeLayoutStyle.choices(for: .latest), current: .row,
                              sample: HomeLayoutSample(cards: [:], collections: [:]), choose: { _ in })

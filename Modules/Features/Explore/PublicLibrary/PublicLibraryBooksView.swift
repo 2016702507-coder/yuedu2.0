@@ -36,7 +36,7 @@ struct PublicLibraryCover: View {
 struct PublicLibraryBookCard: View {
     let book: PublicLibraryBook
     var showsMetadata = true
-    /// 已加入書架 or 已下載 (unified library 2c), shown where the price line would be.
+    /// 已加入书架 or 已下载 (unified library 2c), shown where the price line would be.
     var status: CopyLookup.Status? = nil
 
     var body: some View {
@@ -49,7 +49,7 @@ struct PublicLibraryBookCard: View {
                     .lineLimit(2, reservesSpace: true)
                 Text(book.author).font(DSFont.subheadline).foregroundStyle(DSColor.textSecondary)
                     .lineLimit(1, reservesSpace: true)
-                Text(status?.title ?? localized("免費"))
+                Text(status?.title ?? localized("免费"))
                     .font(DSFont.caption.weight(.semibold)).foregroundStyle(DSColor.textPrimary)
             }
         }
@@ -131,10 +131,10 @@ struct PublicLibraryFeedView: View {
                 }
                 if let error = model.loadError {
                     ContentUnavailableView {
-                        UnavailableLabel(localized("無法載入書庫"), systemImage: "wifi.exclamationmark")
+                        UnavailableLabel(localized("无法载入书库"), systemImage: "wifi.exclamationmark")
                     } description: { Text(error).font(DSFont.unavailableDescription) } actions: {
                         UnavailableActions {
-                            Button(localized("重試")) {
+                            Button(localized("重试")) {
                                 request = Task {
                                     if model.failedWhileLoadingMore { await model.loadMore() }
                                     else { await model.load(query: query) }
@@ -143,15 +143,15 @@ struct PublicLibraryFeedView: View {
                         }
                     }
                 } else if model.isLoading {
-                    ProgressView(localized("正在載入書庫"))
+                    ProgressView(localized("正在载入书库"))
                         .frame(maxWidth: .infinity).padding(.vertical, DSSpacing.xxl)
                 } else if model.didLoad && model.entries.isEmpty {
-                    ContentUnavailableView { UnavailableLabel(localized("此目錄沒有內容"), systemImage: "books.vertical") }
+                    ContentUnavailableView { UnavailableLabel(localized("此目录没有内容"), systemImage: "books.vertical") }
                 }
                 if model.nextPageURL != nil {
                     Button { request = Task { await model.loadMore() } } label: {
                         if model.isLoadingMore { ProgressView() }
-                        else { Text(localized("載入更多")) }
+                        else { Text(localized("载入更多")) }
                     }
                     .buttonStyle(.bordered).buttonBorderShape(.capsule)
                     .disabled(model.isLoading || model.isLoadingMore)
@@ -163,7 +163,7 @@ struct PublicLibraryFeedView: View {
         .navigationTitle(route.title)
         .toolbarTitleDisplayMode(.inline)
         .themedAppSurface(for: .explore)
-        .searchable(text: $query, prompt: localized("搜尋此目錄"))
+        .searchable(text: $query, prompt: localized("搜寻此目录"))
         .onSubmit(of: .search) {
             request?.cancel()
             request = Task { await model.load(query: query) }
@@ -174,19 +174,19 @@ struct PublicLibraryFeedView: View {
     }
 }
 
-#Preview("公有書庫雙欄書架") {
+#Preview("公有书库双栏书架") {
     NavigationStack { PublicLibraryCollectionView(collection: .chinese) }.environmentObject(BookStore())
 }
 
-#Preview("公有書庫分類") {
+#Preview("公有书库分类") {
     NavigationStack {
         PublicLibraryFeedView(route: OPDSFeedRoute(catalogID: PublicLibraryID.gutenberg.rawValue,
-            url: PublicLibrary.gutenbergSearchURL(query: "l.zh").absoluteString, title: localized("中文書籍"),
+            url: PublicLibrary.gutenbergSearchURL(query: "l.zh").absoluteString, title: localized("中文书籍"),
             presentation: .storefront))
     }.environmentObject(BookStore())
 }
 
-#Preview("書卡狀態") {
+#Preview("书卡状态") {
     HStack(alignment: .top, spacing: DSSpacing.lg) {
         ForEach([nil, CopyLookup.Status.onShelf, .downloaded], id: \.self) { status in
             PublicLibraryBookCard(book: .gutenberg(GutenbergBook(id: 1342, title: "Pride and Prejudice", author: "Jane Austen")),
@@ -197,8 +197,8 @@ struct PublicLibraryFeedView: View {
     .padding()
 }
 
-#Preview("封面：古騰堡自己的與產生的") {
-    let book = GutenbergBook(id: 24264, title: "紅樓夢", author: "曹雪芹")
+#Preview("封面：古腾堡自己的与产生的") {
+    let book = GutenbergBook(id: 24264, title: "红楼梦", author: "曹雪芹")
     HStack(alignment: .top, spacing: DSSpacing.lg) {
         PublicLibraryCover(title: book.title, author: book.author, coverURL: book.coverURL)
         PublicLibraryCover(title: book.title, author: book.author, coverURL: nil)

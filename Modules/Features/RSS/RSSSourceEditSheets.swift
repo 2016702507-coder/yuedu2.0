@@ -38,12 +38,12 @@ struct EditRSSSourceSheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section(header: Text(localized("來源名稱")).foregroundStyle(DSColor.textSecondary)) {
-                    TextField(localized("來源名稱"), text: $name)
+                Section(header: Text(localized("来源名称")).foregroundStyle(DSColor.textSecondary)) {
+                    TextField(localized("来源名称"), text: $name)
                 }
                 .interfaceSectionSurface()
 
-                Section(header: Text(localized("RSS 網址")).foregroundStyle(DSColor.textSecondary)) {
+                Section(header: Text(localized("RSS 网址")).foregroundStyle(DSColor.textSecondary)) {
                     TextField("https://", text: $url)
                         .keyboardType(.URL)
                         .textInputAutocapitalization(.never)
@@ -52,9 +52,9 @@ struct EditRSSSourceSheet: View {
                 }
                 .interfaceSectionSurface()
 
-                Section(header: Text(localized("資料夾")).foregroundStyle(DSColor.textSecondary)) {
-                    Picker(localized("資料夾"), selection: $selectedFolderID) {
-                        Text(localized("無資料夾")).tag(Self.rootFolderID)
+                Section(header: Text(localized("资料夹")).foregroundStyle(DSColor.textSecondary)) {
+                    Picker(localized("资料夹"), selection: $selectedFolderID) {
+                        Text(localized("无资料夹")).tag(Self.rootFolderID)
                         ForEach(folders) { folder in
                             Text(folder.name).tag(folder.id)
                         }
@@ -71,7 +71,7 @@ struct EditRSSSourceSheet: View {
                 }
             }
             .softScrollEdges()
-            .navigationTitle(localized("編輯訂閱"))
+            .navigationTitle(localized("编辑订阅"))
             .toolbarTitleDisplayMode(.inline)
             .themedAppSurface(for: .rss)
             .toolbar {
@@ -87,7 +87,7 @@ struct EditRSSSourceSheet: View {
                     Button {
                         Task { await save() }
                     } label: {
-                        Label(localized("儲存"), systemImage: "checkmark")
+                        Label(localized("储存"), systemImage: "checkmark")
                             .labelStyle(.iconOnly)
                     }
                     .disabled(!canSave)
@@ -96,19 +96,19 @@ struct EditRSSSourceSheet: View {
             .disabled(isSaving)
             .overlay {
                 if isSaving {
-                    ProgressView(localized("正在驗證網址…"))
+                    ProgressView(localized("正在验证网址…"))
                         .padding()
                         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
                 }
             }
-            .alert(localized("無法解析此網址"), isPresented: $showUnreachableConfirm) {
-                Button(localized("仍要儲存"), role: .destructive) {
+            .alert(localized("无法解析此网址"), isPresented: $showUnreachableConfirm) {
+                Button(localized("仍要储存"), role: .destructive) {
                     commit()
                     dismiss()
                 }
                 Button(localized("取消"), role: .cancel) {}
             } message: {
-                Text(localized("此 RSS 網址無法取得內容，是否仍要儲存？"))
+                Text(localized("此 RSS 网址无法取得内容，是否仍要储存？"))
             }
         }
     }
@@ -120,7 +120,7 @@ struct EditRSSSourceSheet: View {
         guard let parsed = URL(string: trimmedURL),
               let scheme = parsed.scheme?.lowercased(),
               ["http", "https"].contains(scheme) else {
-            errorMessage = localized("RSS URL 無效")
+            errorMessage = localized("RSS URL 无效")
             return
         }
         errorMessage = nil
@@ -202,7 +202,7 @@ struct RSSOrganizeSheet: View {
                 let folders = store.orderedFolders()
 
                 if folders.count > 1 {
-                    Section(header: Text(localized("資料夾")).foregroundStyle(DSColor.textSecondary)) {
+                    Section(header: Text(localized("资料夹")).foregroundStyle(DSColor.textSecondary)) {
                         ForEach(folders) { folder in
                             Label(folder.name, systemImage: "folder")
                                 .foregroundStyle(DSColor.textPrimary)
@@ -231,7 +231,7 @@ struct RSSOrganizeSheet: View {
 
                 let rootSources = store.rootSources()
                 if !rootSources.isEmpty {
-                    Section(header: Text(folders.isEmpty ? "" : localized("未分類")).foregroundStyle(DSColor.textSecondary)) {
+                    Section(header: Text(folders.isEmpty ? "" : localized("未分类")).foregroundStyle(DSColor.textSecondary)) {
                         ForEach(rootSources) { source in
                             sourceRow(source)
                         }
@@ -244,7 +244,7 @@ struct RSSOrganizeSheet: View {
             }
             .softScrollEdges()
             .environment(\.editMode, $editMode)
-            .navigationTitle(localized("整理訂閱"))
+            .navigationTitle(localized("整理订阅"))
             .toolbarTitleDisplayMode(.inline)
             .themedAppSurface(for: .rss)
             .toolbar {
@@ -255,7 +255,7 @@ struct RSSOrganizeSheet: View {
                         }
                     } label: {
                         Label(
-                            editMode == .active ? localized("退出編輯") : localized("編輯"),
+                            editMode == .active ? localized("退出编辑") : localized("编辑"),
                             systemImage: editMode == .active ? "xmark" : "checklist"
                         )
                         .labelStyle(.iconOnly)

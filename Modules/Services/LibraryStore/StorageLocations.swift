@@ -46,7 +46,7 @@ enum StorageLocations {
             .appendingPathComponent("RemoteLibrary", isDirectory: true)
     }
 
-    /// The bytes of covers fetched from the network (探索, 搜尋, a source's 發現頁), one file
+    /// The bytes of covers fetched from the network (探索, 搜寻, a source's 发现页), one file
     /// per address, kept by `CoverImagePipeline` so a cover its memory let go of comes back
     /// from disk instead of the network. Regenerable, so Caches: not backed up, and the
     /// system may empty it when the device runs out of space.
@@ -55,7 +55,7 @@ enum StorageLocations {
             .appendingPathComponent("NetworkCovers", isDirectory: true)
     }
 
-    /// Stills taken from video episodes for 選集 (`VideoEpisodeStills`), one JPEG per
+    /// Stills taken from video episodes for 选集 (`VideoEpisodeStills`), one JPEG per
     /// episode. Apart from `networkCoverCache` on purpose: both are regenerable, but
     /// 快取管理 clears 影片 and 封面 separately, and a still is a video's, not a cover's.
     static var videoStillCache: URL {
@@ -85,15 +85,15 @@ enum StorageLocations {
     }
 
     /// Saved cover images, named by `ReadingBook.coverImagePath`: those downloaded from a
-    /// book's `coverUrl`, and an imported book's own artwork. 設定 → 快取管理 deletes only
+    /// book's `coverUrl`, and an imported book's own artwork. 设置 → 快取管理 deletes only
     /// what can be downloaded again (`SavedCoverOwner`).
     static var covers: URL {
         directory(coversDirectoryName)
     }
 
-    /// Covers the user set by hand in 書籍資訊 (封面搜索 / 相簿).
+    /// Covers the user set by hand in 书籍资讯 (封面搜索 / 相簿).
     ///
-    /// Deliberately outside `covers`, which 設定 → 快取管理 clears: a picture the user
+    /// Deliberately outside `covers`, which 设置 → 快取管理 clears: a picture the user
     /// chose from their photo library has no second source.
     static var customCovers: URL {
         directory(customCoversDirectoryName)
@@ -186,7 +186,7 @@ enum StorageLocations {
         directory("txt_chapter_cache")
     }
 
-    /// Diagnostic logs shown in 設定 → 診斷與回報, and the crash/hang payloads
+    /// Diagnostic logs shown in 设置 → 诊断与回报, and the crash/hang payloads
     /// MetricKit hands back on the launch after the event.
     ///
     /// Excluded from backup on purpose. Application Support is backed up by

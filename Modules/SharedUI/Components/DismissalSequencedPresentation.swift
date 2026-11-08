@@ -42,8 +42,8 @@ enum BookSourceImportPresentationPolicy {
     }
 }
 
-/// 書籍資訊 (book info / cover editing) presents the photo and file pickers for
-/// 選擇圖片. As a sheet it is the same shape iOS 17 drops: a presented sheet asked
+/// 书籍资讯 (book info / cover editing) presents the photo and file pickers for
+/// 选择图片. As a sheet it is the same shape iOS 17 drops: a presented sheet asked
 /// to resolve a presenter for a picker. Push it from the bookshelf on iOS 17 so
 /// its pickers are first-level presentations, exactly as book-source management
 /// does. iOS 18 keeps the sheet. Delete when the deployment target reaches iOS 18.
@@ -69,8 +69,8 @@ enum BookInfoEditPresentationPolicy {
 /// iOS 18.
 ///
 /// Covers every document picker reader settings owns — font import, and the
-/// 閱讀設定 / 正則高亮 style importers, whose 匯入 controls sit on pages pushed
-/// *inside* that sheet (and, for 正則高亮, inside a `Menu` as well) — and the
+/// 阅读设置 / 正则高亮 style importers, whose 汇入 controls sit on pages pushed
+/// *inside* that sheet (and, for 正则高亮, inside a `Menu` as well) — and the
 /// paywall its locked Pro rows open, in both the flowing and the fixed-page
 /// reader's settings.
 enum ReaderSettingsPresentationPolicy {
@@ -90,8 +90,8 @@ enum ReaderSettingsPresentationPolicy {
 /// A `ShareLink` inside a `Menu` asks UIKit for the share sheet while the menu's
 /// own presentation controller is still dismissing, and that request is dropped —
 /// the same boundary as a sheet or document picker. UIKit owning the presentation
-/// does not remove it; 匯出書源 was reported dead on iOS 17.7 for exactly this
-/// reason, and 診斷與回報 and 匯出主題 were moved out of their menus earlier for the
+/// does not remove it; 汇出书源 was reported dead on iOS 17.7 for exactly this
+/// reason, and 诊断与回报 and 汇出主题 were moved out of their menus earlier for the
 /// same symptom.
 ///
 /// Before iOS 18 the menu row becomes a plain `Button` that hands the payload to

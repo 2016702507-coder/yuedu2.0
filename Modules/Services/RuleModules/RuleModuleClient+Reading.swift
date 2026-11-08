@@ -10,7 +10,7 @@ struct ModuleChapter: Hashable, Sendable {
 
 /// Reading a module's book (module ecosystem M5, format 3.0 `reading`): its table of contents
 /// from the book's page, and a chapter's text through `ChapterFetcher.buildChapterPackage`, the
-/// path a 來源配置's chapter takes, so the cache, the normalizer and the reader are one.
+/// path a 来源配置's chapter takes, so the cache, the normalizer and the reader are one.
 /// Every page is a request of the module's (`send`): its hosts, its `rateLimit`.
 extension RuleModuleClient {
     /// A list longer than this many pages is cut there: 300 pages of なろう's 100 is 30,000

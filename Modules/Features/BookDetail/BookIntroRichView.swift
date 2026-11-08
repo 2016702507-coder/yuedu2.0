@@ -8,7 +8,7 @@ import WebKit
 /// in full — legado-E shows `<useweb>` in a WebView and MD3 both modes. The view
 /// reports its content height and never scrolls itself; the detail page scrolls.
 ///
-/// A fragment's `<button>名稱@onclick:腳本</button>` and `url,{"click":…}` images run
+/// A fragment's `<button>名称@onclick:脚本</button>` and `url,{"click":…}` images run
 /// their scripts through `onAction`, as legado-E and MD3 do on `<usehtml>` only: a
 /// `<useweb>` page is shown as written.
 struct BookIntroWebView: UIViewRepresentable {
@@ -267,7 +267,7 @@ private extension UIColor {
 
 // MARK: - Running intro scripts
 
-/// One tap on a 簡介 button or image, with the book and source its script runs against.
+/// One tap on a 简介 button or image, with the book and source its script runs against.
 struct BookIntroActionRequest: Identifiable, Equatable {
     let id = UUID()
     let action: BookIntroAction
@@ -279,7 +279,7 @@ struct BookIntroActionRequest: Identifiable, Equatable {
 }
 
 extension View {
-    /// Runs the 簡介 script in `request` and shows what it asks for: toasts, a page it
+    /// Runs the 简介 script in `request` and shows what it asks for: toasts, a page it
     /// builds, its error, and — for `java.refreshBookInfo()` — the detail page's reload.
     func bookIntroActions(
         _ request: Binding<BookIntroActionRequest?>,
@@ -332,7 +332,7 @@ private struct BookIntroActionHost: ViewModifier {
             }
             .sheetOutsideTapDismiss(item: $page, isEnabled: page?.isReviewSheetHideable ?? true)
             .alert(
-                localized("來源配置腳本錯誤"),
+                localized("来源配置脚本错误"),
                 isPresented: Binding(get: { failure != nil }, set: { if !$0 { failure = nil } }),
                 presenting: failure
             ) { _ in

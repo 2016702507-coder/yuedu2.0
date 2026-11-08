@@ -1,23 +1,23 @@
 import Foundation
 
-/// 換源 between versions of one work (maintainer 2026-10-26: 「自己導入的書、來源配置、WebDAV、
-/// Calibre、模組⋯都是相同地位」): the shelf book moves to another version, and the one it was
-/// becomes a version of it, kept off the shelf so 換源 can switch back.
+/// 换源 between versions of one work (maintainer 2026-10-26: 「自己导入的书、来源配置、WebDAV、
+/// Calibre、模组⋯都是相同地位」): the shelf book moves to another version, and the one it was
+/// becomes a version of it, kept off the shelf so 换源 can switch back.
 ///
 /// A version is a copy of its own (`ReadingBook`): its file, chapters, caches, AI data and
 /// highlights belong to its text, so a switch never rewrites a copy's origin — only which copy
-/// the shelf shows. The one exception stays where it was: between two 來源配置 the shelf book is
-/// rebound in place (`OnlineBookSourceSwitch`), as a work has one 來源配置 copy (feedback #16).
+/// the shelf shows. The one exception stays where it was: between two 来源配置 the shelf book is
+/// rebound in place (`OnlineBookSourceSwitch`), as a work has one 来源配置 copy (feedback #16).
 ///
 /// What moves to the version taken on, and what stays with each copy:
-/// - Moves: being on the shelf, the versions kept beside it (`versionOf`), 書架分組, a custom
-///   cover and custom intro, the date it was added (the shelf keeps its place), 繼續閱讀's
+/// - Moves: being on the shelf, the versions kept beside it (`versionOf`), 书架分组, a custom
+///   cover and custom intro, the date it was added (the shelf keeps its place), 继续阅读's
 ///   hidden state, the book's reader settings (`BookReaderSettingsStore.carrySettings`), the
 ///   reading place and the bookmarks, each found again in the new chapter list
 ///   (`VersionPlaceMapping`).
 /// - Stays: the copy's file and downloaded chapters, its sidecar (what its import read), AI
-///   summaries / translations / character memory / chats and 多角色朗讀 casts (built from its
-///   text), its own highlights (their ranges are offsets into its text), its 換源 cache, and the
+///   summaries / translations / character memory / chats and 多角色朗读 casts (built from its
+///   text), its own highlights (their ranges are offsets into its text), its 换源 cache, and the
 ///   work-index decisions anchored to its copy key.
 @MainActor
 struct ShelfVersionSwitch {
@@ -27,7 +27,7 @@ struct ShelfVersionSwitch {
     /// A copy the switch names is gone: deleted, or removed by a sync, since the list was shown.
     struct CopyMissing: LocalizedError {
         let id: UUID
-        var errorDescription: String? { localized("這個版本已不在這台裝置上。") }
+        var errorDescription: String? { localized("这个版本已不在这台装置上。") }
     }
 
     let store: BookStore
@@ -50,8 +50,8 @@ struct ShelfVersionSwitch {
         }
     }
 
-    /// The work's 來源配置 copy, reading from `origin`, for shelf book `shelfID` read from elsewhere:
-    /// the one kept beside it, rebound to `origin` (a work has one 來源配置 copy, feedback #16);
+    /// The work's 来源配置 copy, reading from `origin`, for shelf book `shelfID` read from elsewhere:
+    /// the one kept beside it, rebound to `origin` (a work has one 来源配置 copy, feedback #16);
     /// else a copy of `origin` read before and never shelved; else a new one, off the shelf until
     /// `commit` puts it there. Throws, changing nothing, when the rebind does
     /// (`OnlineBookSourceSwitch.commit`: an empty list).
@@ -83,7 +83,7 @@ struct ShelfVersionSwitch {
     /// - Parameters:
     ///   - spine: the place on screen; nil reads the stored one.
     ///   - carriesPlace: false when the target was read last and keeps its own place
-    ///     (加入書架 of a copy just read, `ShelfWorkService.shelveReadCopy`).
+    ///     (加入书架 of a copy just read, `ShelfWorkService.shelveReadCopy`).
     /// - Returns: where the target's reader opens — its entry for the chapter being read — or
     ///   nil when no chapter could be found again (either list is empty), or the place is not
     ///   carried, and it opens where it was left.
@@ -104,9 +104,9 @@ struct ShelfVersionSwitch {
         taken.isInBookshelf = current.isInBookshelf
         taken.addedDate = current.addedDate
         taken.continueReadingHiddenAt = current.continueReadingHiddenAt
-        // 養肥 follows the reader's intent, not the copy: switching source keeps it there.
+        // 养肥 follows the reader's intent, not the copy: switching source keeps it there.
         taken.fatteningAddedAt = current.fatteningAddedAt
-        // The copy read from now on: 繼續閱讀 and 最近閱讀 lead with it, as an open does. A reader
+        // The copy read from now on: 继续阅读 and 最近阅读 lead with it, as an open does. A reader
         // the shelf's card opened never stamps its own open (`BookReaderView`).
         if current.lastOpenedDate != nil { taken.lastOpenedDate = Date() }
         if !current.group.isEmpty { taken.group = current.group }

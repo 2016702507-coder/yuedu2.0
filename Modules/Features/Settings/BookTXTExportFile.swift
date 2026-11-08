@@ -1,17 +1,17 @@
 import Foundation
 
-/// 把一本**已下載**的書寫成單一 TXT，交給系統分享面板存到「檔案」或傳出去。
+/// 把一本**已下载**的书写成单一 TXT，交给系统分享面板存到「档案」或传出去。
 ///
-/// 只輸出這台裝置真的存下來的章節：`ChapterCacheRepository` 的章節包是閱讀管線
-/// 的唯一來源，缺章就跳過並回報數量。不為了湊滿目錄去連網——匯出的內容必須跟
-/// 離線打開時看到的一致，否則使用者會拿到一本封面完整、內文有洞的書。
+/// 只输出这台装置真的存下来的章节：`ChapterCacheRepository` 的章节包是阅读管线
+/// 的唯一来源，缺章就跳过并回报数量。不为了凑满目录去连网——汇出的内容必须跟
+/// 离线打开时看到的一致，否则使用者会拿到一本封面完整、内文有洞的书。
 ///
-/// 輸入先在主執行緒攤平成 `Input`（`Sendable`），寫檔在 detached task 裡做：
-/// 一本三千章的書是幾十 MB 的字串拼接，留在主執行緒會讓匯出按鈕按下後畫面卡住。
+/// 输入先在主执行绪摊平成 `Input`（`Sendable`），写档在 detached task 里做：
+/// 一本三千章的书是几十 MB 的字串拼接，留在主执行绪会让汇出按钮按下后画面卡住。
 enum BookTXTExportFile {
 
-    /// 匯出需要的全部資料。刻意不帶 `ReadingBook`——它是可變的 UI 狀態，
-    /// 跨執行緒傳會踩到這個專案的嚴格併發檢查。
+    /// 汇出需要的全部资料。刻意不带 `ReadingBook`——它是可变的 UI 状态，
+    /// 跨执行绪传会踩到这个专案的严格并发检查。
     struct Input: Sendable {
         var bookId: UUID
         var title: String
@@ -36,7 +36,7 @@ enum BookTXTExportFile {
         var errorDescription: String? {
             switch self {
             case .nothingDownloaded:
-                return localized("這本書還沒有已下載的章節。")
+                return localized("这本书还没有已下载的章节。")
             }
         }
     }
@@ -72,8 +72,8 @@ enum BookTXTExportFile {
                 skipped += 1
                 continue
             }
-            // 目錄不一定還在記憶體裡（`BookStore` 的紀錄刻意不帶章節表），
-            // 這時用快取包自己記下的目錄標題，標題才不會退化成「第 N 章」。
+            // 目录不一定还在记忆体里（`BookStore` 的纪录刻意不带章节表），
+            // 这时用快取包自己记下的目录标题，标题才不会退化成「第 N 章」。
             let heading = chapter.title.trimmingCharacters(in: .whitespacesAndNewlines)
             let resolved = !heading.isEmpty
                 ? heading
@@ -93,10 +93,10 @@ enum BookTXTExportFile {
         return Result(url: url, exportedChapters: exported, skippedChapters: skipped)
     }
 
-    /// 「檔案」App 與各類雲盤對 `/`、`:` 這幾個字元都不客氣，書名裡帶標點很常見。
+    /// 「档案」App 与各类云盘对 `/`、`:` 这几个字元都不客气，书名里带标点很常见。
     private static func safeFilename(_ raw: String) -> String {
         let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-        let base = trimmed.isEmpty ? localized("未命名書籍") : trimmed
+        let base = trimmed.isEmpty ? localized("未命名书籍") : trimmed
         let illegal = CharacterSet(charactersIn: "/\\:*?\"<>|\n\r\t")
         return base.components(separatedBy: illegal).joined(separator: " ")
     }

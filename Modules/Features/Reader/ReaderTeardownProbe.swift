@@ -6,7 +6,7 @@ import UIKit
 /// A zero-sized view that reports when the reader leaves the view hierarchy for good.
 ///
 /// `onDisappear` cannot say that: it also fires when the reader is only covered — a pushed
-/// 作品詳情, a full-screen cover — and is about to come back. SwiftUI dismantles a
+/// 作品详情, a full-screen cover — and is about to come back. SwiftUI dismantles a
 /// representable only when its view is really removed, so `dismantleUIView` is the one
 /// signal every way out of the reader shares: the close button, a swipe back, a modal
 /// dismissal, a detail stack popping.

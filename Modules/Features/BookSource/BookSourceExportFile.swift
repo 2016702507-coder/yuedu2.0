@@ -2,16 +2,16 @@ import CoreTransferable
 import Foundation
 import UniformTypeIdentifiers
 
-/// Legado-format `.json` payload handed to `ShareLink` for 匯出書源（儲存到「檔案」、AirDrop…）.
+/// Legado-format `.json` payload handed to `ShareLink` for 汇出书源（储存到「档案」、AirDrop…）.
 ///
 /// Shared through `ShareLink` rather than `.fileExporter` on purpose: a document picker opened
 /// from a SwiftUI `Menu` action hits the iOS 17 menu-dismissal race documented in
 /// `Technotes/iOS17MenuModalPresentation.md`. The app sequences that boundary from the real
-/// chooser dismissal instead of guessing a delay. 「儲存到檔案」 is also one tap inside the
+/// chooser dismissal instead of guessing a delay. 「储存到档案」 is also one tap inside the
 /// share sheet.
 ///
 /// `ShareLink` does NOT escape that race, though — this comment used to claim UIKit ownership
-/// removed the boundary, and 匯出書源 was reported dead on iOS 17.7 because of it. The share
+/// removed the boundary, and 汇出书源 was reported dead on iOS 17.7 because of it. The share
 /// sheet is a second presentation like any other, so the link has to be a direct page or sheet
 /// control: `BookSourceExportShareLink` hands this payload to `BookSourceListView`'s
 /// first-level `ShareExportSheet` before iOS 18. See `MenuShareLinkPresentationPolicy`.
@@ -38,7 +38,7 @@ struct BookSourceExportFile: Transferable {
         }
     }
 
-    /// Turns a user-facing label (書源名稱, 分組名, 「全部書源」…) into a safe `.json` filename.
+    /// Turns a user-facing label (书源名称, 分组名, 「全部书源」…) into a safe `.json` filename.
     /// Group and source names come from imported JSON, so they can contain path separators and
     /// newlines that would otherwise produce an unwritable URL.
     static func filename(for label: String) -> String {

@@ -1,19 +1,19 @@
 import Combine
 import Foundation
 
-/// Unified library Phase 3d: when the filler runs (maintainer, 2026-10-14: 背景自動補齊
-/// 「做，預設開啟」).
+/// Unified library Phase 3d: when the filler runs (maintainer, 2026-10-14: 背景自动补齐
+/// 「做，预设开启」).
 ///
 /// - A pass runs while the app is active, the network allows background work (Wi-Fi or wired,
 ///   not expensive or constrained: the rule WebDAV indexing uses), Low Power Mode is off and
-///   設定 → 網路設定 → 自動補齊書籍資料 is on.
+///   设置 → 网路设置 → 自动补齐书籍资料 is on.
 /// - It starts when the app becomes active, when the shelf has loaded, when a book joins the
 ///   shelf, when an import writes more about a shelf copy (`announcedWrites`), and when the
 ///   book sources there are to ask change (imported, turned on); it stops
 ///   when any condition stops holding. Each copy is asked once per
 ///   provider (`MetadataFillLedger`), so a pass after the first asks only new or changed
 ///   copies.
-/// - The places it asks, and their order, are 資料來源's (`MetadataFillOrder`, Phase 6h). When
+/// - The places it asks, and their order, are 资料来源's (`MetadataFillOrder`, Phase 6h). When
 ///   that list or the installed modules change, a running pass stops at once and starts again
 ///   with the new places: a module just unchecked or removed is asked nothing more.
 @MainActor
@@ -21,7 +21,7 @@ final class MetadataFillCoordinator {
     private let store: BookStore
     private let makeProviders: @MainActor () -> [any MetadataFillProvider]
     /// What the providers need read first: the installed modules, which nothing else may have
-    /// loaded yet when 探索, 資源庫 and 搜索 were never opened.
+    /// loaded yet when 探索, 资源库 and 搜索 were never opened.
     private let prepare: @MainActor () async -> Void
     private let network: NetworkPathProviding
     private let isEnabled: @MainActor () -> Bool
@@ -35,7 +35,7 @@ final class MetadataFillCoordinator {
     private var cancellables: Set<AnyCancellable> = []
 
     /// - Parameters:
-    ///   - placesChanged: the places to ask changed; by default 資料來源's order or the
+    ///   - placesChanged: the places to ask changed; by default 资料来源's order or the
     ///     installed modules that can fill.
     ///   - sourcesChanged: the book sources to ask changed; by default the ones
     ///     `BookSourceFillProvider` would ask. Nothing by default with injected providers.
@@ -61,7 +61,7 @@ final class MetadataFillCoordinator {
             .sink { [weak self] _ in self?.conditionsChanged() }
             .store(in: &cancellables)
         store.shelfPublisher
-            // What a copy is asked by: a new copy, or a title or author edited (編輯資訊, a TXT
+            // What a copy is asked by: a new copy, or a title or author edited (编辑资讯, a TXT
             // whose author was recovered), is asked again.
             .map { Dictionary($0.map { ($0.id, $0.title + "\u{1F}" + $0.author) }, uniquingKeysWith: { first, _ in first }) }
             .removeDuplicates()
@@ -102,7 +102,7 @@ final class MetadataFillCoordinator {
         if mayRun { start() }
     }
 
-    /// 資料來源's checked places, first first. AI 推薦's missing covers are asked of them too
+    /// 资料来源's checked places, first first. AI 推荐's missing covers are asked of them too
     /// (`AIRecommendationService.fillCovers`). The installed modules must have been read.
     static func liveProviders() -> [any MetadataFillProvider] {
         let modules = RuleModuleLibrary.shared.fillingModules

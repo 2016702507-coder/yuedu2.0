@@ -4,22 +4,22 @@ import Foundation
 // - The home draws one group per section. 最新's rows, one per source because each source
 //   loads on its own terms (`SectionLoadPolicy`), draw as one: their books take turns, since
 //   no source gives dates to sort them by.
-// - 範圍 filters the same home: a source's own rows stay, the shelf's rows (繼續閱讀, 相關)
+// - 范围 filters the same home: a source's own rows stay, the shelf's rows (继续阅读, 相关)
 //   keep that source's copies, and every other row goes. Nothing names a source on the home.
-// - 中繼資料語言偏好推薦 (2026-10-21; 偏好閱讀語言 in 5d-3d, decision 21) orders each section's
-//   books, after 最新's turns, and leaves none out. 繼續閱讀 keeps its own order: most recently
+// - 中继资料语言偏好推荐 (2026-10-21; 偏好阅读语言 in 5d-3d, decision 21) orders each section's
+//   books, after 最新's turns, and leaves none out. 继续阅读 keeps its own order: most recently
 //   opened first.
-// - 隱藏已讀 (5d-3g) leaves read books out of 最新 and 相關 before anything else.
+// - 隐藏已读 (5d-3g) leaves read books out of 最新 and 相关 before anything else.
 // - A section's rows keep the model's order, so 最新's books take turns in the libraries' order
-//   (`LibraryKeys`); 書庫順序 (5d-3e), which reordered them, went on 2026-10-25.
+//   (`LibraryKeys`); 书库顺序 (5d-3e), which reordered them, went on 2026-10-25.
 
 /// One section as the home draws it.
 struct HomeSectionGroup: Identifiable, Equatable {
     let section: HomeSection
-    /// The section's rows that 範圍 keeps: the shelf's, the libraries', then the book sources'
+    /// The section's rows that 范围 keeps: the shelf's, the libraries', then the book sources'
     /// in 探索's order.
     let rows: [HomeModel.Row]
-    /// What each row shows under 範圍, by row id; a row not yet loaded has none.
+    /// What each row shows under 范围, by row id; a row not yet loaded has none.
     let entries: [String: [CollectionEntry]]
     /// The reader's languages, which order the section's books; nil leaves them as loaded.
     var languages: ReadingLanguagePreferences?
@@ -39,7 +39,7 @@ struct HomeSectionGroup: Identifiable, Equatable {
     /// The rows' states as one:
     /// - any row with books shows them, the others joining as they load;
     /// - else, while any row is still to load, it is loading;
-    /// - else, if any failed, the first failure, which 重試 asks of every failed row;
+    /// - else, if any failed, the first failure, which 重试 asks of every failed row;
     /// - else it is empty, and takes no room.
     /// A failed row beside one with books is not shown; the model logs its failure.
     var state: HomeModel.RowState {
@@ -58,7 +58,7 @@ struct HomeSectionGroup: Identifiable, Equatable {
     }
 
     /// A section of lists (`HomeSection.listCards`): loading until every card's row has loaded, so
-    /// the cards come together in their order (as 分類卡片 did); then the cards, a row that loaded
+    /// the cards come together in their order (as 分类卡片 did); then the cards, a row that loaded
     /// nothing or failed leaving its card out; failed when every card failed.
     private var listsState: HomeModel.RowState {
         if rows.contains(where: { if case .idle = $0.state { true } else if case .loading = $0.state { true } else { false } }) {
@@ -79,8 +79,8 @@ struct HomeSectionGroup: Identifiable, Equatable {
         rows.map(CollectionSummary.loading)
     }
 
-    /// Loaded with nothing in it: the home gives it no room. AI 推薦 is never settled empty:
-    /// with no list yet it offers 產生推薦 (AI 推薦 plan 8c).
+    /// Loaded with nothing in it: the home gives it no room. AI 推荐 is never settled empty:
+    /// with no list yet it offers 产生推荐 (AI 推荐 plan 8c).
     var isSettledEmpty: Bool {
         if section.binding == .aiRecommendations { return false }
         if case .loaded(let entries) = state { return entries.isEmpty }
@@ -99,7 +99,7 @@ struct HomeSectionGroup: Identifiable, Equatable {
 }
 
 extension HomeModel {
-    /// The home's groups under 範圍 (`scope` nil is 全部), one per section with a row kept,
+    /// The home's groups under 范围 (`scope` nil is 全部), one per section with a row kept,
     /// their books in the reader's languages' order.
     func groups(in scope: SourceInstanceKey?, languages: ReadingLanguagePreferences? = nil,
                 readFilter: HomeReadFilter? = nil) -> [HomeSectionGroup] {
@@ -107,7 +107,7 @@ extension HomeModel {
     }
 
     /// The home is on screen: the rows that load with it start now, also those below the
-    /// fold, whose views have not been made yet. Only those 範圍 keeps: choosing 青空文庫
+    /// fold, whose views have not been made yet. Only those 范围 keeps: choosing 青空文库
     /// sends nothing to Gutenberg.
     func homeAppeared(in scope: SourceInstanceKey?) {
         for row in rows where row.policy == .withHome && HomeScopeFilter.keeps(row, in: scope) { load(row.id) }
@@ -115,14 +115,14 @@ extension HomeModel {
 }
 
 enum HomeScopeFilter {
-    /// Whether 範圍 keeps a row at all: its own source's, or the shelf's, whose copies it
+    /// Whether 范围 keeps a row at all: its own source's, or the shelf's, whose copies it
     /// filters.
     static func keeps(_ row: HomeModel.Row, in scope: SourceInstanceKey?) -> Bool {
         guard let scope else { return true }
         return row.source == scope || row.source == .localLibrary
     }
 
-    /// What a row shows under 範圍. The shelf's rows keep the copies whose current source is
+    /// What a row shows under 范围. The shelf's rows keep the copies whose current source is
     /// the chosen one (`SourceRecord.derived(from:)` names it); their groups are not places of
     /// that source, so they go.
     static func entries(_ entries: [CollectionEntry], of row: HomeModel.Row, in scope: SourceInstanceKey?) -> [CollectionEntry] {
@@ -159,8 +159,8 @@ enum HomeScopeFilter {
         }
     }
 
-    /// 繼續閱讀 and 系列下一本 keep the order the books were opened in; 書架, the 書架 tab's;
-    /// 訂閱的最新文章, the newest first: never 偏好閱讀語言's.
+    /// 继续阅读 and 系列下一本 keep the order the books were opened in; 书架, the 书架 tab's;
+    /// 订阅的最新文章, the newest first: never 偏好阅读语言's.
     static func keepsOrder(_ binding: HomeSectionBinding) -> Bool {
         [.continueReading, .bookshelf, .nextInSeries, .subscriptionArticles].contains(binding)
     }

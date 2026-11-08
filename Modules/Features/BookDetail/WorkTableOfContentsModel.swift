@@ -1,11 +1,11 @@
 import Combine
 import Foundation
 
-/// 作品詳情's 目錄 for the version shown: its reading copy's chapters (`WorkTableOfContents`).
+/// 作品详情's 目录 for the version shown: its reading copy's chapters (`WorkTableOfContents`).
 @MainActor
 final class WorkTableOfContentsModel: ObservableObject {
     enum State: Equatable {
-        /// No 目錄: a version read on its source's page, or a copy with no chapters to list.
+        /// No 目录: a version read on its source's page, or a copy with no chapters to list.
         case none
         case loading
         /// `bookID` is the copy the chapters open in.
@@ -17,7 +17,7 @@ final class WorkTableOfContentsModel: ObservableObject {
     /// The latest load: one the version has since moved on from never sets the state.
     private var generation = UUID()
 
-    /// Reads the chapters of the copy `copy` gives; with no copy, the version has no 目錄.
+    /// Reads the chapters of the copy `copy` gives; with no copy, the version has no 目录.
     func load(copy: (() async throws -> ReadingBook)?, store: BookStore, remoteLibrary: any RemoteLibraryServing,
               positions: any ReadingPositionStore) async {
         let generation = UUID()

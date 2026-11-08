@@ -1,9 +1,9 @@
 import UIKit
 
 /// The system share sheet for a file already written — for an export that asks for
-/// its name first (匯出閱讀設定, 2026-09-29). Everything else shares through
+/// its name first (汇出阅读设置, 2026-09-29). Everything else shares through
 /// `ShareLink`, which has to be the control that is tapped; here the tap belongs to the
-/// name alert's 匯出 button, and `ShareLink` cannot be triggered from code.
+/// name alert's 汇出 button, and `ShareLink` cannot be triggered from code.
 ///
 /// Presented on the topmost view controller that is not on its way out. When that
 /// controller is still mid-transition — the name alert being dismissed — the sheet

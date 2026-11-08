@@ -6,7 +6,7 @@ import Foundation
 ///   did; nothing is cached. `OPDSCatalogStore` is not `@MainActor`, and a registry rebuilt
 ///   from `$catalogs` could lag behind an add or a removal.
 /// - Availability shapes the list only. A lookup by id still answers for Gutenberg in the
-///   China region, so an open storefront never turns into 「書庫連線已移除」.
+///   China region, so an open storefront never turns into 「书库连线已移除」.
 /// - The shelf is listed only when a store is passed: `BookStore` is the app's
 ///   `@StateObject`, not a singleton.
 @MainActor
@@ -72,7 +72,7 @@ final class SourceProviderRegistry {
         return manifests
     }
 
-    /// The manifest of every enabled 來源配置, in the library's order (Phase 6b). Callers wait
+    /// The manifest of every enabled 来源配置, in the library's order (Phase 6b). Callers wait
     /// for `BookSourceStore.waitUntilLoaded()` first.
     func sourceManifests(in store: BookSourceStore = .shared) async -> [ProviderManifest] {
         await Self.sourceManifests(of: store.enabledSources)
@@ -92,7 +92,7 @@ final class SourceProviderRegistry {
     }
 
     /// Every source that can put rows on the Explore home (5b), in the order 「最新」 lists
-    /// them: the shelf (and 訂閱的最新文章, which serves no 最新), saved connections, Gutenberg,
+    /// them: the shelf (and 订阅的最新文章, which serves no 最新), saved connections, Gutenberg,
     /// Aozora, the installed modules, then the explore sources as 探索 lists them. WebDAV connections read `shelf.remoteRecords` for their 「最新」.
     ///
     /// Callers wait for `BookSourceStore.waitUntilLoaded()` first: before the library is read

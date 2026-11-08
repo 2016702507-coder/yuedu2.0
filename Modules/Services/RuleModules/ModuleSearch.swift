@@ -20,7 +20,7 @@ final class ModuleSearch: SearchAnswering {
         self.shown = shown ?? { AggregationSettingsStore.shared.isShownInSearch($0) }
     }
 
-    /// The modules a search asks: those with a search that 搜尋來源 keeps checked (search 9d).
+    /// The modules a search asks: those with a search that 搜寻来源 keeps checked (search 9d).
     private var searching: [ModuleProvider] { providers().filter { $0.module.search != nil && shown($0.instance) } }
 
     var isAvailable: Bool { !searching.isEmpty }

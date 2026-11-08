@@ -17,7 +17,7 @@ struct ExploreTileButtonStyle: ButtonStyle {
 
 #Preview {
     Button {} label: {
-        Label(localized("瀏覽器"), systemImage: "safari")
+        Label(localized("浏览器"), systemImage: "safari")
             .padding()
     }
     .buttonStyle(ExploreTileButtonStyle())

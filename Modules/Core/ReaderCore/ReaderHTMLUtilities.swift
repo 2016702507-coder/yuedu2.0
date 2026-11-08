@@ -142,7 +142,7 @@ enum ReaderHTMLUtilities {
     /// Wraps newline-separated segments in `<p>` when the HTML has no block-level structure.
     ///
     /// Online sources frequently deliver chapter bodies as plain-text paragraphs joined by "\n"
-    /// or by `<br>`, with only *inline* markup mixed in (links, 段評 bubble `<img>`s). Handed
+    /// or by `<br>`, with only *inline* markup mixed in (links, 段评 bubble `<img>`s). Handed
     /// straight to SwiftSoup, those breaks collapse to whitespace (or to a soft break inside one
     /// block) and the whole chapter renders as a single run-on paragraph. This restores paragraph
     /// breaks generically (not per-source): content that already carries its own block structure
@@ -524,7 +524,7 @@ enum ReaderHTMLUtilities {
         return sentenceBreaks >= 6
     }
 
-    // MARK: - Paragraph review (段評) markers
+    // MARK: - Paragraph review (段评) markers
 
     /// A tappable paragraph-review target, used to present the source's review web page.
     ///
@@ -710,7 +710,7 @@ enum ReaderHTMLUtilities {
         /// Review hrefs are persisted in normalized chapter HTML. Never freeze credentials
         /// into that artifact: login data is read live from `source` when the action runs.
         private static func safeActionVariables(_ variables: [String: String]) -> [String: String] {
-            let sensitive = ["token", "secret", "password", "passwd", "authorization", "cookie", "session", "apikey", "api_key", "密钥", "密碼", "密码"]
+            let sensitive = ["token", "secret", "password", "passwd", "authorization", "cookie", "session", "apikey", "api_key", "密钥", "密码", "密码"]
             var result: [String: String] = [:]
             var byteCount = 0
             for key in variables.keys.sorted() {
@@ -779,7 +779,7 @@ enum ReaderHTMLUtilities {
     /// `ydreview://` anchors. Reading both representations lets a single log schema identify the
     /// exact stage where a duplicate semantic target first appears without logging prose, tokens,
     /// SVG payloads, or full review URLs.
-    /// Whether a chapter shows paragraph-review bubbles — what 閱讀設定 › 段評氣泡 styles,
+    /// Whether a chapter shows paragraph-review bubbles — what 阅读设置 › 段评气泡 styles,
     /// and so whether that entry is shown. Four forms, the four the renderer draws:
     /// a review link, a `<comment>` marker, a raw `showCmt(` call, and a bubble SVG with
     /// no link at all.
@@ -812,7 +812,7 @@ enum ReaderHTMLUtilities {
         return found
     }
 
-    // The markup scanners below run several times per chapter over documents that a 段評 source
+    // The markup scanners below run several times per chapter over documents that a 段评 source
     // makes hundreds of KB; compiling them per call was a measurable share of that.
     private static let imageTagRegex = try! NSRegularExpression(pattern: #"<img\b[^>]*>"#, options: [.caseInsensitive])
     private static let commentTagRegex = try! NSRegularExpression(pattern: #"<comment\b[^>]*>"#, options: [.caseInsensitive])
@@ -908,7 +908,7 @@ enum ReaderHTMLUtilities {
         }
     ) {
         let diagnostics = reviewMarkupDiagnostics(in: html)
-        let isTargetSource = sourceName.contains("同人小说网") || sourceName.contains("同人小說網")
+        let isTargetSource = sourceName.contains("同人小说网") || sourceName.contains("同人小说网")
         guard isTargetSource || diagnostics.markerCount > 0 else { return }
 
         var logContext = context
@@ -1024,7 +1024,7 @@ enum ReaderHTMLUtilities {
     /// Replaces long base64 `data:` URI payloads with short placeholder tokens so heavy
     /// whole-document processing runs on a few KB of structure instead of hundreds of KB.
     ///
-    /// A 段評-heavy 起点 chapter is ~275KB of inline base64 SVG (96 bubbles); `SwiftSoup.parse`
+    /// A 段评-heavy 起点 chapter is ~275KB of inline base64 SVG (96 bubbles); `SwiftSoup.parse`
     /// degrades badly on inputs that size and effectively hangs (`⟐ swiftSoup start` with no
     /// `done`). The payloads are opaque to structural parsing, so we lift them out, parse the
     /// slimmed HTML, then restore. Pair with `restoreDataURIPayloads` AFTER parsing.
@@ -1102,7 +1102,7 @@ enum ReaderHTMLUtilities {
     }
 
     /// Character count of `content` with long base64 data-URI payloads excluded — its "prose"
-    /// length. 段評-heavy chapters carry 100s of KB of legitimate inline base64 SVG bubbles (a 起点
+    /// length. 段评-heavy chapters carry 100s of KB of legitimate inline base64 SVG bubbles (a 起点
     /// 大热章节 is 260KB+, almost all bubbles); that bulk must NOT count toward heuristics that flag
     /// over-long content as a multi-chapter merge, or the chapter gets endlessly re-fetched.
     static func lengthExcludingBase64Payloads(_ content: String) -> Int {
@@ -1452,12 +1452,12 @@ enum ReaderHTMLUtilities {
     /// The iOS-runtime form of the same tap contract: the handler sits on the image itself —
     /// `<img src="data:…svg" onClick="java.startBrowser('<url>','起点段评')"/>` — exactly as it
     /// sits on a `<comment>` marker, instead of in a Legado `,{"click":…}` suffix. 起点 qimo's
-    /// `qidianggetCommentsIOS` builds its 熱評 and 本章讨论 cards this way; with no rewrite the
+    /// `qidianggetCommentsIOS` builds its 热评 and 本章讨论 cards this way; with no rewrite the
     /// card rendered as a bare picture and a tap opened the image preview.
     ///
     /// The markup carries no `style`. Those cards are what the Android branch of the same
     /// source marks `FULL`, so anything that is not a bubble becomes a block: left inline, a
-    /// 熱評 card shares its paragraph's last line box and the line holding that paragraph's
+    /// 热评 card shares its paragraph's last line box and the line holding that paragraph's
     /// bubble is justified across the column.
     private static func rewriteImageHandlerTag(
         _ tag: String,
@@ -1509,7 +1509,7 @@ enum ReaderHTMLUtilities {
     private static func isQidianSource(_ context: LegadoReviewContext?) -> Bool {
         guard let context else { return false }
         return context.sourceName.contains("起点")
-            || context.sourceName.contains("起點")
+            || context.sourceName.contains("起点")
             || context.sourceURL.localizedCaseInsensitiveContains("qidian")
     }
 
@@ -1609,7 +1609,7 @@ enum ReaderHTMLUtilities {
     }
 
     /// Parses a Legado `,{json}` click-config suffix into a dictionary, tolerating the
-    /// single-quoted keys/values some sources emit. 起點/企點 段評 bubbles use strict JSON
+    /// single-quoted keys/values some sources emit. 起点/企点 段评 bubbles use strict JSON
     /// (`{"js":"showCmt('u' )","style":"text"}`), but the 本章说 config wraps `endclick`'s
     /// double-quoted `js` value in single-quoted siblings
     /// (`{'style':'FULL','type':'qd',"js":"showCmt('u','本章说' )"}`), which is invalid strict
@@ -1826,7 +1826,7 @@ enum ReaderHTMLUtilities {
             // comment-page URL. Handle URL-shaped args before the numeric Qidian signature.
             if let url = absoluteReviewURL(from: args.first) {
                 let sources = args.count >= 2 ? cleanLegadoArgument(args[1]) : ""
-                return sourceBrowserTarget(url: url, title: sources.isEmpty ? "段評" : "\(sources)段評", context: context)
+                return sourceBrowserTarget(url: url, title: sources.isEmpty ? "段评" : "\(sources)段评", context: context)
             }
             if args.count >= 2 {
                 let authoredTitle = cleanLegadoArgument(args[1])
@@ -1840,18 +1840,18 @@ enum ReaderHTMLUtilities {
             ?? legadoFunctionArgs(named: "androidshowChapterComments", in: trimmed) {
             if let url = absoluteReviewURL(from: args.first) {
                 let sources = args.count >= 2 ? cleanLegadoArgument(args[1]) : ""
-                return sourceBrowserTarget(url: url, title: sources.isEmpty ? "本章討論" : "\(sources)本章討論", context: context)
+                return sourceBrowserTarget(url: url, title: sources.isEmpty ? "本章讨论" : "\(sources)本章讨论", context: context)
             }
-            sourceActionTitle = "本章討論"
+            sourceActionTitle = "本章讨论"
         }
 
         // Legado never special-cases the click action: it evaluates the click-config JS in the
         // source's own runtime and lets the source decide what to open (`java.showBrowser`). The
         // named handlers above only exist because those URLs can be derived statically, which is
-        // cheaper. Everything else is still a real, tappable review — 同人小说网's 段評 bubbles are
+        // cheaper. Everything else is still a real, tappable review — 同人小说网's 段评 bubbles are
         // `createSvg(bid,cid,pid,count,nano)`, a jsLib call that signs its own URL with the user's
         // shared token, so nothing here could reconstruct it. Returning nil dropped all 67 bubbles
-        // per chapter: not tappable, and — because the 氣泡設定 entry is gated on the chapter
+        // per chapter: not tappable, and — because the 气泡设置 entry is gated on the chapter
         // carrying review links — the bubble settings screen never appeared either.
         if allowsSourceJSFallback,
            let context,
@@ -1861,7 +1861,7 @@ enum ReaderHTMLUtilities {
             return ReviewTarget(
                 url: "",
                 title: sourceActionTitle
-                    ?? (trimmed.localizedCaseInsensitiveContains("chapter") ? "本章討論" : "段評"),
+                    ?? (trimmed.localizedCaseInsensitiveContains("chapter") ? "本章讨论" : "段评"),
                 sourceJS: trimmed,
                 sourceURL: context.sourceURL,
                 actionContext: actionContext
@@ -1873,7 +1873,7 @@ enum ReaderHTMLUtilities {
 
     private static func usesShushanCommentRuntime(_ context: LegadoReviewContext?) -> Bool {
         guard let name = context?.sourceName else { return false }
-        return name.contains("书山") || name.contains("書山")
+        return name.contains("书山") || name.contains("书山")
     }
 
     /// Whether an action is a bare source-function call (`name(args…)`) we can hand back to the
@@ -1925,7 +1925,7 @@ enum ReaderHTMLUtilities {
             )
             return ReviewTarget(
                 url: url,
-                title: kind == .paragraph ? "起點段評" : "本章討論"
+                title: kind == .paragraph ? "起点段评" : "本章讨论"
             )
         }
 
@@ -1953,7 +1953,7 @@ enum ReaderHTMLUtilities {
             )
             return ReviewTarget(
                 url: url,
-                title: kind == .paragraph ? "起點段評" : "本章討論"
+                title: kind == .paragraph ? "起点段评" : "本章讨论"
             )
         }
 
@@ -1978,7 +1978,7 @@ enum ReaderHTMLUtilities {
         )
         return ReviewTarget(
             url: url,
-            title: kind == .paragraph ? "起點段評" : "本章討論"
+            title: kind == .paragraph ? "起点段评" : "本章讨论"
         )
     }
 
@@ -2040,7 +2040,7 @@ enum ReaderHTMLUtilities {
 
     private static func usesShaziQidianEndpoint(_ context: LegadoReviewContext?) -> Bool {
         guard let context else { return false }
-        return context.sourceName.contains("企點")
+        return context.sourceName.contains("企点")
             || context.sourceName.contains("企点")
             || context.sourceURL.contains("m.qidian.com")
     }
@@ -2121,9 +2121,9 @@ enum ReaderHTMLUtilities {
         return (url.hasPrefix("http://") || url.hasPrefix("https://")) ? url : nil
     }
 
-    /// A 企點 `showCmt` destination, resolved the way the source's own jsLib resolves it:
+    /// A 企点 `showCmt` destination, resolved the way the source's own jsLib resolves it:
     /// `const sb = 'https://sb.shazi.tk'; if (!url.includes('http')) url = sb + url`.
-    /// An integer argument is 起點's numeric `showCmt(bookId, chapterId, paragraphId, …)`
+    /// An integer argument is 起点's numeric `showCmt(bookId, chapterId, paragraphId, …)`
     /// signature — derived by `qidianReviewTarget`, never concatenated onto a host — and an
     /// absolute URL has already been taken by `absoluteReviewURL` before this is reached.
     private static func shaziReviewURL(
@@ -2395,7 +2395,7 @@ enum ReaderHTMLUtilities {
     /// that renders its own title heading shows it twice. Legado strips one leading occurrence
     /// with `^(\s|\p{P}|<bookName>)*<title> *\n?`; this is the same rule minus the book-name
     /// branch (the book name is not plumbed down to the chapter-render layer — add it here if a
-    /// source turns up that prefixes the title with `書名` rather than punctuation, which the
+    /// source turns up that prefixes the title with `书名` rather than punctuation, which the
     /// `\p{P}` branch already covers).
     ///
     /// Only the *leading* occurrence goes: a title that legitimately recurs mid-chapter stays.

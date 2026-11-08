@@ -11,7 +11,7 @@ enum MatchEvidence: Hashable, Codable, Sendable {
     /// A-level: the same item of the same place, e.g. two copies of one OPDS entry.
     case sameSourceItem
     /// B-level: equal `WorkMatchKey` titles and compatible authors. Shown as
-    /// 「依書名與作者判斷」 and splittable.
+    /// 「依书名与作者判断」 and splittable.
     case titleAuthor
     /// The reader said so (`WorkDecision.sameWork`).
     case decision
@@ -60,7 +60,7 @@ struct WorkIndexEntry: Hashable, Codable, Sendable {
     /// keeps its entry, keys included, from one refresh to the next.
     var titleKey: String
     var authorKeys: [String]
-    /// `WorkMatchKey` of the series the record's metadata names, for 相關 (unified library
+    /// `WorkMatchKey` of the series the record's metadata names, for 相关 (unified library
     /// 5c-4). It never merges works: two books of a series are two works.
     var seriesKey: String?
     /// The record's number in that series, for 系列下一本 (5d-6b): from the same place as the
@@ -80,7 +80,7 @@ struct WorkIndexEntry: Hashable, Codable, Sendable {
     }
 
     /// The record's node in the index: a copy's own key, which is unique and does not change
-    /// on 換源; otherwise the record's key.
+    /// on 换源; otherwise the record's key.
     var nodeKey: SourceItemKey { record.copyKey ?? record.key }
 }
 
@@ -103,7 +103,7 @@ struct Work: Hashable, Codable, Sendable {
     var searchKeys: [String]
 
     /// Whether some member joined only by title and author, which the work page labels
-    /// 「依書名與作者判斷」 and lets the reader split.
+    /// 「依书名与作者判断」 and lets the reader split.
     var isMergedByTitleAndAuthor: Bool { links.contains { $0.evidence == .titleAuthor } }
 }
 

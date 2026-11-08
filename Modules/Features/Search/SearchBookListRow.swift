@@ -8,12 +8,12 @@ import UIKit
 /// author, and one line of detail. Decided once from the book, outside `body`.
 struct SearchBookListRowContent: Equatable {
     let title: String
-    /// The grey tag after the title — 有聲書 — or nil for every other book.
+    /// The grey tag after the title — 有声书 — or nil for every other book.
     let titleTag: String?
     let author: String
     let detail: String
-    /// The detail as VoiceOver reads it, when its parts are joined for the eye (「在書架上 · 3 源」
-    /// is heard as 「在書架上，3 源」); nil reads `detail`.
+    /// The detail as VoiceOver reads it, when its parts are joined for the eye (「在书架上 · 3 源」
+    /// is heard as 「在书架上，3 源」); nil reads `detail`.
     var spokenDetail: String? = nil
 
     /// The whole row as VoiceOver reads it.
@@ -26,7 +26,7 @@ struct SearchBookListRowContent: Equatable {
 
 extension SearchBookListRowContent {
     /// A search result, its detail where Apple Books puts a result's format and rating:
-    /// what kind of book it is and how many sources carry it — 「小說 · 3 源」. An
+    /// what kind of book it is and how many sources carry it — 「小说 · 3 源」. An
     /// audiobook's tag already names its kind, so its detail is the count alone — 「1 源」.
     @MainActor
     init(result book: SearchBook) {
@@ -43,20 +43,20 @@ extension SearchBookListRowContent {
         )
     }
 
-    /// A book on the shelf, its detail how far it has been read — 「已讀 37%」.
+    /// A book on the shelf, its detail how far it has been read — 「已读 37%」.
     init(shelfBook book: ReadingBook) {
         self.init(
             title: book.title,
             titleTag: ContentKind(book.resolvedPipelineKind).mediaTag,
             author: book.author,
             detail: book.currentPosition >= 0.99
-                ? localized("已讀完")
-                : String(format: localized("已讀 %d%%"), Int(book.currentPosition * 100))
+                ? localized("已读完")
+                : String(format: localized("已读 %d%%"), Int(book.currentPosition * 100))
         )
     }
 
     /// A book read that is not on the shelf: only its name, author and cover were kept, so
-    /// its detail is when it was last read — 「2 小時前」.
+    /// its detail is when it was last read — 「2 小时前」.
     init(offShelfRecord record: OffShelfReadRecords.Record) {
         self.init(
             title: record.title,
@@ -68,9 +68,9 @@ extension SearchBookListRowContent {
 
     static func kindTitle(_ kind: OnlineBookContentKind) -> String {
         switch kind {
-        case .text: localized("小說")
-        case .audio: localized("有聲書")
-        case .manga: localized("漫畫")
+        case .text: localized("小说")
+        case .audio: localized("有声书")
+        case .manga: localized("漫画")
         case .video: localized("影片")
         }
     }
@@ -174,7 +174,7 @@ struct SearchListCover<Artwork: View>: View {
 
 // MARK: - Title tag
 
-/// The grey tag after a title — Apple Books' language tag (「ZH」), here 有聲書: a rounded
+/// The grey tag after a title — Apple Books' language tag (「ZH」), here 有声书: a rounded
 /// box with its text cut out, so the page shows through as the text colour, white on
 /// the grey in light mode as Apple's is. Drawn once per text and size as a template
 /// image, which SwiftUI's `Text` and UIKit's labels both flow inline after the title and
@@ -269,20 +269,20 @@ enum SearchTitleTag {
 #Preview("搜索列") {
     List {
         SearchBookListRow(content: SearchBookListRowContent(
-            title: "斗羅大陸",
+            title: "斗罗大陆",
             titleTag: nil,
             author: "唐家三少",
-            detail: "小說 · 3 源"
+            detail: "小说 · 3 源"
         )) {
-            BookCoverImage(coverURL: "", title: "斗羅大陸", author: "唐家三少")
+            BookCoverImage(coverURL: "", title: "斗罗大陆", author: "唐家三少")
         }
         SearchBookListRow(content: SearchBookListRowContent(
             title: "三體：地球往事・黑暗森林・死神永生（廣播劇全集）",
-            titleTag: "有聲書",
-            author: "劉慈欣",
-            detail: "有聲書 · 1 源"
+            titleTag: "有声书",
+            author: "刘慈欣",
+            detail: "有声书 · 1 源"
         )) {
-            BookCoverImage(coverURL: "", title: "三體", author: "劉慈欣")
+            BookCoverImage(coverURL: "", title: "三体", author: "刘慈欣")
         }
     }
     .listStyle(.plain)

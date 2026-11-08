@@ -2,7 +2,7 @@ import SwiftUI
 
 struct NetworkSettingsView: View {
     @Bindable private var settings = GlobalSettings.shared
-    /// 封面並發數, 探索設定's until 5d-1b; a network setting since decision 31, same key.
+    /// 封面并发数, 探索设置's until 5d-1b; a network setting since decision 31, same key.
     @AppStorage(BookCoverLoader.downloadLimitKey) private var coverDownloadLimit = 0
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var store: BookStore
@@ -12,29 +12,29 @@ struct NetworkSettingsView: View {
             Form {
                 Section {
                     stepperRow(
-                        title: localized("並發數"),
+                        title: localized("并发数"),
                         description: localized("搜索/缓存/下载/校验等网络请求并发数，建议16个"),
                         value: $settings.searchConcurrency,
                         range: 1...30
                     )
                     stepperRow(
-                        title: localized("自動暫停"),
-                        description: localized("每搜索到N个精確結果(或5N個模糊結果)後自動暫停(0不暫停)，防止設備發燙和流量消耗過多"),
+                        title: localized("自动暂停"),
+                        description: localized("每搜索到N个精确结果(或5N个模糊结果)后自动暂停(0不暂停)，防止设备发烫和流量消耗过多"),
                         value: $settings.searchAutoPauseCount,
                         range: 0...50
                     )
                     stepperRow(
-                        title: localized("搜索結果快取天數"),
-                        description: localized("搜索時啟用快取，避免重複搜索，預設快取 5 日"),
+                        title: localized("搜索结果快取天数"),
+                        description: localized("搜索时启用快取，避免重复搜索，预设快取 5 日"),
                         value: $settings.searchCacheDays,
                         range: 0...30
                     )
                     Toggle(
-                        localized("換源時載入目錄"),
+                        localized("换源时载入目录"),
                         isOn: $settings.changeSourceLoadToc
                     )
                 } footer: {
-                    Text(localized("換源搜索時順便抓取每個來源配置的目錄，點選來源配置可立即切換；代價是搜索期間的網路請求加倍"))
+                    Text(localized("换源搜索时顺便抓取每个来源配置的目录，点选来源配置可立即切换；代价是搜索期间的网路请求加倍"))
                         .dsSectionFooter()
                 }
                 .interfaceSectionSurface()
@@ -44,35 +44,35 @@ struct NetworkSettingsView: View {
                             Text(limit == 0 ? localized("不限制") : limit.formatted()).tag(limit)
                         }
                     } label: {
-                        Text(localized("封面並發數"))
+                        Text(localized("封面并发数"))
                     }
                     .pickerStyle(.menu)
                     .accessibilityIdentifier("network.coverDownloadLimit")
                 } footer: {
-                    Text(localized("同時下載的封面上限，書架和書籍詳情的封面也算在內。數字越低捲動時越不容易發熱，但封面出現得慢一些。"))
+                    Text(localized("同时下载的封面上限，书架和书籍详情的封面也算在内。数字越低卷动时越不容易发热，但封面出现得慢一些。"))
                         .dsSectionFooter()
                 }
                 .interfaceSectionSurface()
                 Section {
-                    Toggle(localized("自動補齊書籍資料"), isOn: $settings.autoFillBookMetadata)
+                    Toggle(localized("自动补齐书籍资料"), isOn: $settings.autoFillBookMetadata)
                         .accessibilityIdentifier("network.autoFillBookMetadata")
                         .onChange(of: settings.autoFillBookMetadata) { store.metadataFill.conditionsChanged() }
-                    // Phase 6h: which places fill, in what order (Emby's 中繼資料下載器).
+                    // Phase 6h: which places fill, in what order (Emby's 中继资料下载器).
                     NavigationLink {
                         MetadataFillSourcesView()
                     } label: {
-                        Text(localized("資料來源"))
+                        Text(localized("资料来源"))
                     }
                     .accessibilityIdentifier("network.metadataFillSources")
                 } footer: {
-                    Text(localized("書名、作者與 ISBN 會送到「資料來源」裡勾選的地方，用來補上空白的封面、簡介與分類；只在 Wi-Fi 下進行。"))
+                    Text(localized("书名、作者与 ISBN 会送到「资料来源」里勾选的地方，用来补上空白的封面、简介与分类；只在 Wi-Fi 下进行。"))
                         .dsSectionFooter()
                 }
                 .interfaceSectionSurface()
             }
             .softScrollEdges()
             .themedAppSurface(for: .settings)
-            .navigationTitle(localized("網路設定"))
+            .navigationTitle(localized("网路设置"))
             .toolbarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {

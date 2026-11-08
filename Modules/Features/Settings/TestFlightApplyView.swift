@@ -21,10 +21,10 @@ struct TestFlightApplyView: View {
                         .font(DSFont.fixed(size: 40))
                         .foregroundStyle(DSColor.accent)
                         .accessibilityHidden(true)
-                    Text(localized("搶先體驗新功能"))
+                    Text(localized("抢先体验新功能"))
                         .font(DSFont.title3.weight(.semibold))
                         .foregroundStyle(DSColor.textPrimary)
-                    Text(localized("加入 TestFlight 測試版，搶先體驗新功能並協助我們改善 Yuedu Reader。名額為永久會員專屬，申請後我們會寄邀請郵件到你填寫的郵箱。"))
+                    Text(localized("加入 TestFlight 测试版，抢先体验新功能并协助我们改善 Yuedu Reader。名额为永久会员专属，申请后我们会寄邀请邮件到你填写的邮箱。"))
                         .font(DSFont.footnote)
                         .foregroundColor(DSColor.textSecondary)
                         .multilineTextAlignment(.center)
@@ -41,7 +41,7 @@ struct TestFlightApplyView: View {
                 blockedRow(reason: reason)
             } else {
                 Section {
-                    TextField(localized("輸入你的郵箱"), text: $email)
+                    TextField(localized("输入你的邮箱"), text: $email)
                         .keyboardType(.emailAddress)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
@@ -55,7 +55,7 @@ struct TestFlightApplyView: View {
                             if isSubmitting {
                                 ProgressView().tint(DSColor.textOnAccent)
                             } else {
-                                Text(localized("申請加入"))
+                                Text(localized("申请加入"))
                                     .font(DSFont.bodyBold)
                             }
                         }
@@ -63,7 +63,7 @@ struct TestFlightApplyView: View {
                         .frame(minHeight: 44)
                     }
                     // Working, not disabled, while submitting: see `OnAccentProminentButtonStyle.work`.
-                    .buttonStyle(.onAccentProminent(working: isSubmitting, title: Text(localized("申請加入"))))
+                    .buttonStyle(.onAccentProminent(working: isSubmitting, title: Text(localized("申请加入"))))
                 }
                 .interfaceSectionSurface()
             }
@@ -167,33 +167,33 @@ struct TestFlightApplyView: View {
 
     private var submittedTitle: String {
         if submissionStatus == "alreadyInTestFlight" {
-            return localized("此郵箱已在 TestFlight")
+            return localized("此邮箱已在 TestFlight")
         }
         if wasAlreadySubmitted {
-            return localized("已申請過 TestFlight")
+            return localized("已申请过 TestFlight")
         }
         if submissionStatus == "failed" {
-            return localized("申請已記錄")
+            return localized("申请已记录")
         }
-        return localized("申請已送出")
+        return localized("申请已送出")
     }
 
     private var submittedMessage: String {
         if submissionStatus == "alreadyInTestFlight" {
-            return localized("此郵箱已經在 TestFlight；如果尚未看到測試版，請確認 Apple 帳號與 TestFlight App。")
+            return localized("此邮箱已经在 TestFlight；如果尚未看到测试版，请确认 Apple 帐号与 TestFlight App。")
         }
         if wasAlreadySubmitted {
-            return localized("每個 Pro 帳號只能申請一次；如果尚未收到邀請，請聯絡管理員。")
+            return localized("每个 Pro 帐号只能申请一次；如果尚未收到邀请，请联络管理员。")
         }
         if submissionStatus == "failed" {
-            return localized("申請已記錄，但邀請尚未完成，請聯絡管理員。")
+            return localized("申请已记录，但邀请尚未完成，请联络管理员。")
         }
-        return localized("我們會將 TestFlight 邀請寄到你的郵箱，請留意收件匣。")
+        return localized("我们会将 TestFlight 邀请寄到你的邮箱，请留意收件匣。")
     }
 
     private func submit() {
         guard isValidEmail(email) else {
-            errorMessage = localized("請輸入有效的郵箱地址")
+            errorMessage = localized("请输入有效的邮箱地址")
             return
         }
         errorMessage = nil
@@ -214,7 +214,7 @@ struct TestFlightApplyView: View {
                     errorMessage = nil
                 default:
                     state = .idle
-                    errorMessage = localized("無法送出申請，請檢查網路後再試")
+                    errorMessage = localized("无法送出申请，请检查网路后再试")
                 }
             }
         }
@@ -259,17 +259,17 @@ private enum TestFlightBlockReason {
 
     var title: String {
         switch self {
-        case .oneSlotUsed: return localized("TestFlight 名額已使用")
-        case .requiresLifetime: return localized("需要永久會員")
+        case .oneSlotUsed: return localized("TestFlight 名额已使用")
+        case .requiresLifetime: return localized("需要永久会员")
         }
     }
 
     var message: String {
         switch self {
         case .oneSlotUsed:
-            return localized("這個 Pro 帳號已經申請過一個郵箱，不能再邀請第二個。")
+            return localized("这个 Pro 帐号已经申请过一个邮箱，不能再邀请第二个。")
         case .requiresLifetime:
-            return localized("TestFlight 名額只開放給永久會員。月會員可以在「閱讀Pro」升級為永久會員後申請。")
+            return localized("TestFlight 名额只开放给永久会员。月会员可以在「阅读Pro」升级为永久会员后申请。")
         }
     }
 }

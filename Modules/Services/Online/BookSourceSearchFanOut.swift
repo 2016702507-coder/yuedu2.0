@@ -21,7 +21,7 @@ enum SearchSourceOutcome: Sendable, Equatable {
 }
 
 /// The fan-out a search over many book sources runs (Phase 4a, extracted from
-/// `SearchAggregator`'s first search and 載入更多, which each had a copy): at most
+/// `SearchAggregator`'s first search and 载入更多, which each had a copy): at most
 /// `concurrency` sources at a time, each against its own timeout, a source that finishes
 /// handing its slot to the next.
 ///

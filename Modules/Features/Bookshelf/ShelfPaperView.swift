@@ -1,15 +1,15 @@
 import SwiftUI
 
-// MARK: - 書架（紙感版）
+// MARK: - 书架（纸感版）
 //
 // The shelf, drawn as the maintainer's reference (2026-11-04): one page of paper with the
 // book you were last in at the top — cover, title, author, the chapter you stopped at — then
-// the rest of the shelf as a grid. The tab keeps its name: 書架, never 藏書.
+// the rest of the shelf as a grid. The tab keeps its name: 书架, never 藏书.
 //
 // What the old grid did and this one still does: open a book, add a book, sort, select and
-// delete. 分組 pages are gone with the old layout — the chips across the middle filter the
-// shelf (全部 / 本地 / 漫畫 / 視頻 / 聽書 / 養肥) instead of by folder, which is what the
-// reference shows and what the shelf is actually used for. Only 養肥 is a shelf the reader
+// delete. 分组 pages are gone with the old layout — the chips across the middle filter the
+// shelf (全部 / 本地 / 漫画 / 视频 / 听书 / 养肥) instead of by folder, which is what the
+// reference shows and what the shelf is actually used for. Only 养肥 is a shelf the reader
 // fills by hand; the rest read from the book itself.
 
 struct ShelfPaperView: View {
@@ -25,10 +25,15 @@ struct ShelfPaperView: View {
     @State private var readingBookID: UUID?
     @State private var showsAddBook = false
     @State private var confirmsDelete = false
+    /// 长按「搜索网络封面」时要找封面的那本书。用整本书而不只是 id：封面搜索按
+    /// 书名 + 作者查，换书的同一帧里 state 还没落盘时也能拿到正确的名字。
+    @State private var coverSearchBook: ReadingBook?
+    /// 选完封面后正在下载 —— 期间再点一次不应叠第二个下载。
+    @State private var isApplyingCover = false
 
     // MARK: Data
 
-    /// The book the reader was in last: what 接着讀 offers, and the one the grid leaves out.
+    /// The book the reader was in last: what 接着读 offers, and the one the grid leaves out.
     private var currentBook: ReadingBook? {
         store.books
             .filter { $0.lastOpenedDate != nil }
@@ -42,13 +47,13 @@ struct ShelfPaperView: View {
             .sorted(by: sort.areInIncreasingOrder)
     }
 
-    /// Every chip stays on the bar even when its count is 0 — 視頻 / 漫畫 / 聽書 are how the
+    /// Every chip stays on the bar even when its count is 0 — 视频 / 漫画 / 听书 are how the
     /// maintainer looks for those books, so hiding the entry until one exists made them
     /// impossible to find. An empty chip now says so instead of disappearing.
     private var availableFilters: [ShelfFilter] { ShelfFilter.allCases }
 
-    /// 讀者給書架設了頁面背景圖時，頁面下半的書名會直接坐在圖上 —— 那時才需要底下那層
-    /// 從透明回到頁面色的柔邊。沒設圖時整頁都是底色，柔邊只會讓頁面發灰。
+    /// 读者给书架设了页面背景图时，页面下半的书名会直接坐在图上 —— 那时才需要底下那层
+    /// 从透明回到页面色的柔边。没设图时整页都是底色，柔边只会让页面发灰。
     private var showsArtwork: Bool {
         guard subscription.hasAccess(.readerThemePacks) else { return false }
         return gs.resolvedPageBackgroundSlice(for: .bookshelf, colorScheme: scheme) != nil
@@ -73,9 +78,9 @@ struct ShelfPaperView: View {
         }
         .scrollIndicators(.hidden)
         .background {
-            // 有背景圖時，頁面下半的書名直接坐在山水上，灰字讀不清。這層柔邊把頁面下半
-            // 漸回頁面底色，圖仍從上半頁透出來；它鋪在內容**之下**，所以封面和文字照舊
-            // 清楚，只是它們背後的圖淡了。沒設圖時它整層隱形。
+            // 有背景图时，页面下半的书名直接坐在山水上，灰字读不清。这层柔边把页面下半
+            // 渐回页面底色，图仍从上半页透出来；它铺在内容**之下**，所以封面和文字照旧
+            // 清楚，只是它们背后的图淡了。没设图时它整层隐形。
             ZStack(alignment: .bottom) {
                 PaperBackground(scope: .bookshelf)
 
@@ -110,27 +115,49 @@ struct ShelfPaperView: View {
                     .environmentObject(store)
             }
         }
+        // 书架长按 → 搜索网络封面。复用 书籍资讯 → 封面 里那张页，只是把入口从
+        // 三层深的面板搬到长按菜单上：想换封面的时候人正在书架上，不该先点进书。
+        // onDismiss 一定把 item 清掉：页内选中后是它自己 dismiss 的，binding 若还留着
+        // 那本书，下次长按同一本不会重新弹出。
+        .sheet(item: $coverSearchBook, onDismiss: { coverSearchBook = nil }) { book in
+            NavigationStack {
+                OnlineCoverSearchView(
+                    title: book.title,
+                    author: book.author
+                ) { candidate in
+                    applyCover(candidate, to: book)
+                }
+                .toolbar {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button(localized("取消")) { coverSearchBook = nil }
+                    }
+                }
+            }
+            // 全 App 的浮层都是玻璃，这一张也一样：后面的书架透上来，
+            // 封面格子自己带 surface，不会糊成一片。
+            .presentationBackground(.ultraThinMaterial)
+        }
         .confirmationDialog(
-            localized("刪除所選書籍"),
+            localized("删除所选书籍"),
             isPresented: $confirmsDelete,
             titleVisibility: .visible
         ) {
-            Button(localized("刪除"), role: .destructive) {
+            Button(localized("删除"), role: .destructive) {
                 for id in selection { store.delete(bookId: id) }
                 selection = []
                 isManaging = false
             }
             Button(localized("取消"), role: .cancel) {}
         } message: {
-            Text(localized("刪除後，書籍與其閱讀進度都會從這台裝置移除。"))
+            Text(localized("删除后，书籍与其阅读进度都会从这台装置移除。"))
         }
     }
 
-    // MARK: 標題
+    // MARK: 标题
 
     private var masthead: some View {
         HStack(alignment: .center) {
-            Text(localized("書架"))
+            Text(localized("书架"))
                 .font(PaperFont.serif(32))
                 .foregroundStyle(ShelfInk.strong(scheme))
                 .accessibilityAddTraits(.isHeader)
@@ -157,7 +184,7 @@ struct ShelfPaperView: View {
                     Button {
                         showsAddBook = true
                     } label: {
-                        Label(localized("添加書籍"), systemImage: "plus")
+                        Label(localized("添加书籍"), systemImage: "plus")
                     }
                     Divider()
                     Picker(localized("排序"), selection: $sort) {
@@ -178,27 +205,27 @@ struct ShelfPaperView: View {
                         .frame(width: 38, height: 38)
                         .glassCircle(scheme)
                 }
-                .accessibilityLabel(localized("書架選項"))
+                .accessibilityLabel(localized("书架选项"))
             }
         }
         .padding(.top, 6)
     }
 
-    // MARK: 接着讀
+    // MARK: 接着读
 
     @ViewBuilder
     private var continueReading: some View {
-        // 篩到某個分類時，卡片跟著走：在「漫畫」下卻頂著最近讀的 TXT，會讓人以為
-        // 那本書屬於這個分類 —— 養肥尤其如此，它現在是讀者自己挑的一架書。
+        // 筛到某个分类时，卡片跟著走：在「漫画」下却顶著最近读的 TXT，会让人以为
+        // 那本书属于这个分类 —— 养肥尤其如此，它现在是读者自己挑的一架书。
         if let book = currentBook, filter.accepts(book) {
             VStack(alignment: .leading, spacing: 12) {
                 HStack(spacing: 6) {
-                    Text(localized("接着讀"))
+                    Text(localized("接着读"))
                         .font(.system(size: 12.5, weight: .semibold))
                         .tracking(0.6)
                         .foregroundStyle(ShelfInk.strong(scheme))
                     Spacer(minLength: 0)
-                    Text(localized("上次打開"))
+                    Text(localized("上次打开"))
                         .font(.system(size: 11.5))
                         .foregroundStyle(ShelfInk.muted(scheme))
                     Image(systemName: "chevron.right")
@@ -224,7 +251,7 @@ struct ShelfPaperView: View {
                                 .lineLimit(1)
                                 .padding(.top, 5)
 
-                            Text(chapterLine(for: book) ?? localized("還沒有開始讀"))
+                            Text(chapterLine(for: book) ?? localized("还没有开始读"))
                                 .font(.system(size: 12.5))
                                 .foregroundStyle(ShelfInk.muted(scheme))
                                 .lineLimit(1)
@@ -233,13 +260,13 @@ struct ShelfPaperView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
 
-                    // 書簽提示在左、繼續閱讀在右 — the button used to sit under the title
+                    // 书签提示在左、继续阅读在右 — the button used to sit under the title
                     // and squeezed the three lines of text into a narrow column.
                     HStack(spacing: 12) {
                         HStack(spacing: 5) {
                             Image(systemName: "bookmark")
                                 .font(.system(size: 10))
-                            Text(localized("已為你保留上次閱讀位置"))
+                            Text(localized("已为你保留上次阅读位置"))
                                 .font(.system(size: 11.5))
                                 .lineLimit(1)
                         }
@@ -254,7 +281,7 @@ struct ShelfPaperView: View {
                             }
                         } label: {
                             HStack(spacing: 6) {
-                                Text(localized("繼續閱讀"))
+                                Text(localized("继续阅读"))
                                     .font(.system(size: 13, weight: .medium))
                                 Image(systemName: "arrow.right")
                                     .font(.system(size: 11, weight: .semibold))
@@ -262,8 +289,8 @@ struct ShelfPaperView: View {
                             .foregroundStyle(ShelfInk.strong(scheme))
                             .padding(.horizontal, 16)
                             .padding(.vertical, 9)
-                            // 主題色染的實底，不是又一層玻璃：卡片本身已經是玻璃，裡面
-                            // 再套一層玻璃，iOS 26 的兩層 glassEffect 會互相採樣，糊成一團。
+                            // 主题色染的实底，不是又一层玻璃：卡片本身已经是玻璃，里面
+                            // 再套一层玻璃，iOS 26 的两层 glassEffect 会互相采样，糊成一团。
                             .background {
                                 Capsule().fill(
                                     DSColor.accent.opacity(scheme == .dark ? 0.26 : 0.14)
@@ -277,10 +304,10 @@ struct ShelfPaperView: View {
                 .padding(16)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .paperCard(radius: 22)
-                // 長按整張卡都能彈出菜單，不只是封面和文字那幾塊 —— 讀者圈著整張卡說
-                // 「這裡刪不掉」，就是因為空白處（右半邊、書名右側）沒有命中區域。
+                // 长按整张卡都能弹出菜单，不只是封面和文字那几块 —— 读者圈著整张卡说
+                // 「这里删不掉」，就是因为空白处（右半边、书名右侧）没有命中区域。
                 .contentShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
-                // The book being read is the one most often 養肥-ed (a serial you are
+                // The book being read is the one most often 养肥-ed (a serial you are
                 // letting run), and it never appears in the grid below — so the menu
                 // has to be reachable here too.
                 .contextMenu {
@@ -289,27 +316,32 @@ struct ShelfPaperView: View {
                             readingBookID = book.id
                         }
                     } label: {
-                        Label(localized("打開"), systemImage: "book")
+                        Label(localized("打开"), systemImage: "book")
+                    }
+                    Button {
+                        requestCoverSearch(for: book)
+                    } label: {
+                        Label(localized("搜索网络封面"), systemImage: "photo.on.rectangle.angled")
                     }
                     Button {
                         store.setFattening(!book.isFattening, for: book.id)
                     } label: {
                         Label(
-                            book.isFattening ? localized("移出養肥") : localized("加入養肥"),
+                            book.isFattening ? localized("移出养肥") : localized("加入养肥"),
                             systemImage: book.isFattening ? "leaf.fill" : "leaf"
                         )
                     }
                     Button(role: .destructive) {
                         store.delete(bookId: book.id)
                     } label: {
-                        Label(localized("刪除"), systemImage: "trash")
+                        Label(localized("删除"), systemImage: "trash")
                     }
                 }
             }
         }
     }
 
-    // MARK: 分類
+    // MARK: 分类
 
     private var chips: some View {
         ScrollView(.horizontal) {
@@ -337,8 +369,8 @@ struct ShelfPaperView: View {
                         .padding(.vertical, 9)
                         .background {
                             if isOn {
-                                // 選中態染主題強調色，不畫一塊不透明的灰：玻璃上的不透明
-                                // 色塊會把整條 bar 的玻璃打斷，看起來像貼紙。
+                                // 选中态染主题强调色，不画一块不透明的灰：玻璃上的不透明
+                                // 色块会把整条 bar 的玻璃打断，看起来像贴纸。
                                 Capsule().fill(
                                     DSColor.accent.opacity(scheme == .dark ? 0.28 : 0.16)
                                 )
@@ -356,12 +388,12 @@ struct ShelfPaperView: View {
         .padding(.top, 18)
     }
 
-    // MARK: 其餘書籍
+    // MARK: 其余书籍
 
-    /// 「其餘書籍」 only describes the whole shelf; once a chip is chosen the list below is
-    /// that shelf, so it takes the chip's own name — 養肥 is the reader's own shelf now.
+    /// 「其余书籍」 only describes the whole shelf; once a chip is chosen the list below is
+    /// that shelf, so it takes the chip's own name — 养肥 is the reader's own shelf now.
     private var sectionTitle: String {
-        filter == .all ? localized("其餘書籍") : filter.title
+        filter == .all ? localized("其余书籍") : filter.title
     }
 
     private var restOfShelf: some View {
@@ -378,13 +410,13 @@ struct ShelfPaperView: View {
                 Spacer(minLength: 8)
 
                 if isManaging {
-                    Text("\(selection.count) \(localized("已選"))")
+                    Text("\(selection.count) \(localized("已选"))")
                         .font(.system(size: 12))
                         .foregroundStyle(ShelfInk.muted(scheme))
                     Button {
                         confirmsDelete = true
                     } label: {
-                        Text(localized("刪除"))
+                        Text(localized("删除"))
                             .font(.system(size: 12.5, weight: .medium))
                             .foregroundStyle(.red)
                             .padding(.horizontal, 12)
@@ -415,20 +447,20 @@ struct ShelfPaperView: View {
 
             if restBooks.isEmpty {
                 if filter == .fattening {
-                    // 養肥 is a shelf the reader fills by hand now, so 空 is the normal
+                    // 养肥 is a shelf the reader fills by hand now, so 空 is the normal
                     // state on a fresh install — say how to add one instead of "no books".
                     VStack(alignment: .leading, spacing: 8) {
-                        Text(localized("養肥還是空的"))
+                        Text(localized("养肥还是空的"))
                             .font(.system(size: 14, weight: .medium))
                             .foregroundStyle(ShelfInk.strong(scheme))
-                        Text(localized("長按書架上的書，選「加入養肥」。"))
+                        Text(localized("长按书架上的书，选「加入养肥」。"))
                             .font(.system(size: 12.5))
                             .foregroundStyle(ShelfInk.muted(scheme))
                         Button {
                             withAnimation(.snappy(duration: 0.18)) { filter = .all }
                         } label: {
                             HStack(spacing: 5) {
-                                Text(localized("去挑書"))
+                                Text(localized("去挑书"))
                                     .font(.system(size: 12.5, weight: .medium))
                                 Image(systemName: "arrow.right")
                                     .font(.system(size: 10, weight: .semibold))
@@ -445,7 +477,7 @@ struct ShelfPaperView: View {
                     .padding(.horizontal, 4)
                     .padding(.vertical, 18)
                 } else {
-                    Text(localized("這個分類還沒有書"))
+                    Text(localized("这个分类还没有书"))
                         .font(.system(size: 12.5))
                         .foregroundStyle(ShelfInk.muted(scheme))
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -501,15 +533,15 @@ struct ShelfPaperView: View {
                         .foregroundStyle(ShelfInk.strong(scheme))
                         .lineLimit(1)
 
-                    // 次要行用二級文字而非三級：書名下面這一行在頁面背景圖上也要讀得清。
+                    // 次要行用二级文字而非三级：书名下面这一行在页面背景图上也要读得清。
                     Text(subtitle(for: book))
                         .font(.system(size: 11.5))
                         .foregroundStyle(ShelfInk.soft(scheme))
                         .lineLimit(1)
                 }
             }
-            // 封面與書名之間的空隙原本不屬於任何可命中區域，長按會落空；鋪平之後
-            // 整格都是長按範圍，刪除、加入養肥不必對準封面。
+            // 封面与书名之间的空隙原本不属于任何可命中区域，长按会落空；铺平之后
+            // 整格都是长按范围，删除、加入养肥不必对准封面。
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -520,30 +552,35 @@ struct ShelfPaperView: View {
                     readingBookID = book.id
                 }
             } label: {
-                Label(localized("打開"), systemImage: "book")
+                Label(localized("打开"), systemImage: "book")
+            }
+            Button {
+                requestCoverSearch(for: book)
+            } label: {
+                Label(localized("搜索网络封面"), systemImage: "photo.on.rectangle.angled")
             }
             Button {
                 store.setFattening(!book.isFattening, for: book.id)
             } label: {
                 Label(
-                    book.isFattening ? localized("移出養肥") : localized("加入養肥"),
+                    book.isFattening ? localized("移出养肥") : localized("加入养肥"),
                     systemImage: book.isFattening ? "leaf.fill" : "leaf"
                 )
             }
             Button(role: .destructive) {
                 store.delete(bookId: book.id)
             } label: {
-                Label(localized("刪除"), systemImage: "trash")
+                Label(localized("删除"), systemImage: "trash")
             }
         }
     }
 
     private var emptyShelf: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(localized("書架還是空的"))
+            Text(localized("书架还是空的"))
                 .font(PaperFont.serif(20))
                 .foregroundStyle(ShelfInk.strong(scheme))
-            Text(localized("匯入一本書，這裡就會亮起來。"))
+            Text(localized("汇入一本书，这里就会亮起来。"))
                 .font(.system(size: 13))
                 .foregroundStyle(ShelfInk.soft(scheme))
             Button {
@@ -552,7 +589,7 @@ struct ShelfPaperView: View {
                 HStack(spacing: 6) {
                     Image(systemName: "plus")
                         .font(.system(size: 11, weight: .semibold))
-                    Text(localized("添加書籍"))
+                    Text(localized("添加书籍"))
                         .font(.system(size: 13, weight: .medium))
                 }
                 .foregroundStyle(ShelfInk.strong(scheme))
@@ -607,7 +644,7 @@ struct ShelfPaperView: View {
             return chapterNumber(index)
         }
         if book.currentPosition > 0.001 {
-            return String(format: localized("讀至 %d%%"), Int(book.currentPosition * 100))
+            return String(format: localized("读至 %d%%"), Int(book.currentPosition * 100))
         }
         return nil
     }
@@ -619,15 +656,57 @@ struct ShelfPaperView: View {
 
     /// 第 12 章 · 本地 — where it is, and how far in.
     private func subtitle(for book: ReadingBook) -> String {
-        let place = book.isOnline ? localized("雲端") : localized("本地")
+        let place = book.isOnline ? localized("云端") : localized("本地")
         guard let chapter = chapterLine(for: book) else {
-            return "\(localized("未讀")) · \(place)"
+            return "\(localized("未读")) · \(place)"
         }
         return "\(chapter) · \(place)"
     }
+
+    // MARK: 搜索网络封面
+
+    /// 从长按菜单请求封面搜索。
+    ///
+    /// 菜单收起和 sheet 弹出若撞在同一帧，iOS 会把这个 presentation 丢掉 —— 表现就是
+    /// 「长按点了没反应」。让出两帧再设 item，菜单先收干净。
+    private func requestCoverSearch(for book: ReadingBook) {
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(220))
+            coverSearchBook = book
+        }
+    }
+
+    /// 下载长按选中封面并设成这本书的封面。
+    ///
+    /// 走的是 书籍资讯 里同一个 `applyCustomCover`，所以去重、备份原封面、
+    /// 「重设封面」能还原，全都和面板里改的一致。失败不静默：书架上的封面没变，
+    /// 不说一声就会以为点空了。
+    private func applyCover(_ candidate: CoverCandidate, to book: ReadingBook) {
+        guard !isApplyingCover else {
+            BookSourceFormLoginView.presentToastAlert(message: localized("正在应用上一张封面…"))
+            return
+        }
+        isApplyingCover = true
+        Task { @MainActor in
+            let applied = await store.applyCustomCover(
+                bookId: book.id,
+                coverUrl: candidate.coverUrl,
+                sourceId: candidate.sourceId
+            )
+            isApplyingCover = false
+            // 选中后面板会自己关掉；关闭动画还在跑时 present 会落在一个正在消失的
+            // 控制器上，系统直接丢掉这个 alert。等一拍，等它落定。
+            try? await Task.sleep(for: .milliseconds(350))
+            BookSourceFormLoginView.presentToastAlert(
+                message: applied
+                    ? localized("封面已更新")
+                    : localized("无法下载这张封面，请换一张或检查网络。")
+            )
+        }
+    }
 }
 
-// MARK: - 分類與排序
+// MARK: - 分类与排序
 
 enum ShelfFilter: String, CaseIterable, Identifiable {
     case all
@@ -643,12 +722,12 @@ enum ShelfFilter: String, CaseIterable, Identifiable {
         switch self {
         case .all: return localized("全部")
         case .local: return localized("本地")
-        case .manga: return localized("漫畫")
-        // 視頻一直被 `isMediaOnly` 擋在「本地」之外，卻沒有自己的篩選 ——
-        // 視頻書只出現在「全部」裡，等於沒法找。漫畫、聽書都有，它也得有。
-        case .video: return localized("視頻")
-        case .audio: return localized("聽書")
-        case .fattening: return localized("養肥")
+        case .manga: return localized("漫画")
+        // 视频一直被 `isMediaOnly` 挡在「本地」之外，却没有自己的筛选 ——
+        // 视频书只出现在「全部」里，等于没法找。漫画、听书都有，它也得有。
+        case .video: return localized("视频")
+        case .audio: return localized("听书")
+        case .fattening: return localized("养肥")
         }
     }
 
@@ -660,14 +739,14 @@ enum ShelfFilter: String, CaseIterable, Identifiable {
         case .video: return kind == .video
         case .audio: return kind == .audio
         case .local: return !book.isOnline && !Self.isMediaOnly(kind)
-        // 養肥 — a shelf the reader keeps themselves (長按 → 加入養肥), not "everything
+        // 养肥 — a shelf the reader keeps themselves (长按 → 加入养肥), not "everything
         // imported but never opened": that swept in every new book and left no way to
         // leave one out. Nothing lands here unless the reader puts it here.
         case .fattening: return book.isFattening
         }
     }
 
-    /// 漫畫 / 聽書 hang off their own chips; 本地 means "text books on this device".
+    /// 漫画 / 听书 hang off their own chips; 本地 means "text books on this device".
     private static func isMediaOnly(_ kind: BookPipelineKind) -> Bool {
         kind == .video || kind == .manga || kind == .audio
     }
@@ -682,9 +761,9 @@ enum ShelfSort: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .recent: return localized("最近閱讀")
+        case .recent: return localized("最近阅读")
         case .added: return localized("最近添加")
-        case .title: return localized("書名")
+        case .title: return localized("书名")
         }
     }
 
@@ -720,13 +799,13 @@ enum ShelfInk {
     }
 }
 
-// MARK: - 玻璃按鈕
+// MARK: - 玻璃按钮
 
 private extension View {
     /// The app's one glass entry point, not a private copy of it.
     ///
     /// These used to paint `.ultraThinMaterial` themselves, which meant 毛玻璃、透明度
-    /// and 光暈 in 外觀主題 › 界面效果 never reached them, and iOS 26's `glassEffect` —
+    /// and 光晕 in 外观主题 › 界面效果 never reached them, and iOS 26's `glassEffect` —
     /// the material the system's own toolbars are made of — was never used on the page
     /// that has the most chrome on it.
     func glassCapsule(_ scheme: ColorScheme) -> some View {

@@ -12,7 +12,7 @@ struct RuleModule: Codable, Hashable, Sendable {
     var description: String?
     var author: String?
     var site: String?
-    /// Numeric dot form (`1.0.0`); 檢查更新 accepts a higher one.
+    /// Numeric dot form (`1.0.0`); 检查更新 accepts a higher one.
     var version: String
     /// The lowest app version that reads this file.
     var requiredVersion: String?
@@ -54,7 +54,7 @@ struct RuleModule: Codable, Hashable, Sendable {
     }
 
     struct Content: Codable, Hashable, Sendable {
-        /// The chapter's text, HTML kept (`@html`), as a 來源配置's content rule.
+        /// The chapter's text, HTML kept (`@html`), as a 来源配置's content rule.
         var text: String
         var title: String?
         /// A chapter split over several pages.
@@ -76,7 +76,7 @@ struct RuleModule: Codable, Hashable, Sendable {
     struct EntryText: Codable, Hashable, Sendable {
         var title: String?
         var description: String?
-        /// By parameter name: what the section form shows for it (趨勢's 地區 and its options).
+        /// By parameter name: what the section form shows for it (趋势's 地区 and its options).
         var params: [String: ParamText]?
     }
 
@@ -185,8 +185,8 @@ struct RuleModule: Codable, Hashable, Sendable {
         /// parameter, the first page's position, a whole number (format 3.0).
         var value: String?
         var enumOptions: [Option]?
-        /// An enumeration whose default is the option in the reader's 中繼資料語言偏好推薦 (format
-        /// 3.0): 趨勢's 地區. `value` is the default when no option is in that language.
+        /// An enumeration whose default is the option in the reader's 中继资料语言偏好推荐 (format
+        /// 3.0): 趋势's 地区. `value` is the default when no option is in that language.
         var followsLanguage: Bool?
 
         var kind: ParamType? { ParamType(rawValue: type) }
@@ -278,7 +278,7 @@ struct RuleModule: Codable, Hashable, Sendable {
         var isbn: String? = nil
         var series: String? = nil
         /// The covers of the series' other volumes, several values, in series order after the
-        /// item, which stands for the series (趨勢 lists a series under its first book). 作品詳情
+        /// item, which stands for the series (趋势 lists a series under its first book). 作品详情
         /// fans them behind the item's cover; only from `hosts`, as `cover` is (format 3.0).
         var seriesCovers: String? = nil
         /// `comic` makes the item a comic; any other value leaves the entry's kind (format 3.0).
@@ -338,7 +338,7 @@ enum RuleModuleFormat {
 }
 
 extension RuleModule.ListRules {
-    /// The same mapping a 來源配置's search list uses.
+    /// The same mapping a 来源配置's search list uses.
     var fields: RuleListFields {
         RuleListFields(name: title, author: author ?? "", bookUrl: url ?? "", coverUrl: cover ?? "",
                        intro: intro ?? "", wordCount: "", lastChapter: "", kind: kind ?? "", language: language ?? "",

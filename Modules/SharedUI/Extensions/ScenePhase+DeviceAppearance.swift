@@ -8,7 +8,7 @@ extension ScenePhase {
     /// follows the device's appearance acts on it only outside the background, and takes
     /// it up again as the scene comes back.
     ///
-    /// Reported 2026-10-04: with 主題切換 › 跟隨系統 on, every trip out of the app put a
+    /// Reported 2026-10-04: with 主题切换 › 跟随系统 on, every trip out of the app put a
     /// reader set to 白天 on a dark device back in 深色. The snapshots read as the device
     /// turning light — so the reader followed it again — and then dark; they also laid the
     /// open book out twice and wore the other appearance's theme setup in between.

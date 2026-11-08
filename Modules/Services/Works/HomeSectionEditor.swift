@@ -1,12 +1,12 @@
 import Combine
 import Foundation
 
-/// Unified library 5d-5: one section's form, for 新增欄目 and for a section already on the home
-/// (design §13.3, Rex's 「設定資料來源」; Phase 5 plan, decision 23).
+/// Unified library 5d-5: one section's form, for 新增栏目 and for a section already on the home
+/// (design §13.3, Rex's 「设置资料来源」; Phase 5 plan, decision 23).
 ///
-/// - 新增欄目 keeps its section here until 新增: a form left with 取消 changes nothing. Its
-///   section has no binding until 選擇內容來源 gives it one.
-/// - A section already on the home is written back on every change, as the rest of 編輯首頁
+/// - 新增栏目 keeps its section here until 新增: a form left with 取消 changes nothing. Its
+///   section has no binding until 选择内容来源 gives it one.
+/// - A section already on the home is written back on every change, as the rest of 编辑首页
 ///   writes (`HomePageStore.edit`), in its place.
 /// - The preview is a home of its own (`preview`) with the one section, so it loads one real
 ///   page of it as the home would, without touching the home's rows.
@@ -33,17 +33,17 @@ final class HomeSectionEditor: ObservableObject {
     }
 
     @Published private(set) var draft: Draft
-    /// 新增欄目's form, not yet on the home.
+    /// 新增栏目's form, not yet on the home.
     let isNew: Bool
     let preview: HomeModel
     private let store: HomePageStore
     private let aggregation: AggregationSettingsStore
-    /// 新增欄目's 顯示在最新 choices, written on 新增 (`isNew` only).
+    /// 新增栏目's 显示在最新 choices, written on 新增 (`isNew` only).
     @Published private var pendingLatest: [SourceInstanceKey: Bool] = [:]
     /// The title the last choice gave, which the next one may replace.
     private var chosenTitle = ""
 
-    /// 新增欄目: `layout` chosen first (Rex's order, decision 23).
+    /// 新增栏目: `layout` chosen first (Rex's order, decision 23).
     init(newSectionIn store: HomePageStore? = nil, layout: HomeSectionLayout,
          aggregation: AggregationSettingsStore? = nil, preview: HomeModel) {
         draft = Draft(id: UUID(), layout: layout, title: "", subtitle: "", binding: nil, isEnabled: true, parameters: [:])
@@ -63,7 +63,7 @@ final class HomeSectionEditor: ObservableObject {
         self.preview = preview
     }
 
-    /// What the preview draws: the section, shown, whatever 在首頁顯示 says.
+    /// What the preview draws: the section, shown, whatever 在首页显示 says.
     var previewPage: HomePage? {
         guard var section = draft.section else { return nil }
         section.isEnabled = true
@@ -88,10 +88,10 @@ final class HomeSectionEditor: ObservableObject {
         change { $0.isEnabled = isEnabled }
     }
 
-    /// 選擇內容來源's choice, with the parameters that go with it; those of the binding it
+    /// 选择内容来源's choice, with the parameters that go with it; those of the binding it
     /// replaces go.
     /// - Parameter itemTitle: the choice's name, for a binding that cannot name itself (a
-    ///   feed): it becomes the title (design §13.3: 「預設帶入子項目名稱」), unless the reader
+    ///   feed): it becomes the title (design §13.3: 「预设带入子项目名称」), unless the reader
     ///   gave one. A binding that names itself leaves the title empty, to follow it.
     func choose(_ binding: HomeSectionBinding, parameters: [String: String] = [:], itemTitle: String = "") {
         let ownName = HomeSection(layout: draft.layout, binding: binding).displayTitle(sourceName: "")
@@ -150,7 +150,7 @@ final class HomeSectionEditor: ObservableObject {
         listCards.count < HomeSection.listCardLimit
     }
 
-    /// 加入清單: `cards` after the ones there, each once, up to `HomeSection.listCardLimit`.
+    /// 加入清单: `cards` after the ones there, each once, up to `HomeSection.listCardLimit`.
     func addCards(_ cards: [HomeListCard]) {
         var kept = listCards
         for card in cards where kept.count < HomeSection.listCardLimit && !kept.contains(card) { kept.append(card) }
@@ -176,7 +176,7 @@ final class HomeSectionEditor: ObservableObject {
         setCards(cards)
     }
 
-    /// A card's own parameter (趨勢's 地區, maintainer 2026-10-27); nil goes back to its list's default.
+    /// A card's own parameter (趋势's 地区, maintainer 2026-10-27); nil goes back to its list's default.
     func setCardParameter(at index: Int, _ name: String, to value: String?) {
         var cards = listCards
         guard cards.indices.contains(index) else { return }
@@ -194,7 +194,7 @@ final class HomeSectionEditor: ObservableObject {
         setCards(cards)
     }
 
-    /// 大圖卡片's photos, the home's.
+    /// 大图卡片's photos, the home's.
     var cardPhotos: HomeListCardPhotos { store.cardPhotos }
 
     /// The photo `card` has in this section (`HomeListCardPhotoID`).
@@ -211,7 +211,7 @@ final class HomeSectionEditor: ObservableObject {
 
     /// The cards written as the section (`HomeSection.settingCards`), and after them those the
     /// form does not show, kept as they were: a later build's lists, and any past the limit. One
-    /// card of a list that cannot name itself titles the section as 選擇內容來源's choice does;
+    /// card of a list that cannot name itself titles the section as 选择内容来源's choice does;
     /// more cards take that title back, so the section follows its source.
     private func setCards(_ cards: [HomeListCard]) {
         guard !cards.isEmpty else { return }
@@ -234,9 +234,9 @@ final class HomeSectionEditor: ObservableObject {
 
     // MARK: 最新's libraries
 
-    /// 顯示在最新, set in 最新's form as Emby 4.10 sets a section's libraries (decision 36). It
-    /// stays 聚合設定's one value (`AggregationSettingsStore.hiddenFromLatest`), which every 最新
-    /// section shares; 新增欄目 keeps the reader's choice until 新增.
+    /// 显示在最新, set in 最新's form as Emby 4.10 sets a section's libraries (decision 36). It
+    /// stays 聚合设置's one value (`AggregationSettingsStore.hiddenFromLatest`), which every 最新
+    /// section shares; 新增栏目 keeps the reader's choice until 新增.
     func isShownInLatest(_ key: SourceInstanceKey) -> Bool {
         pendingLatest[key] ?? aggregation.isShownInLatest(key)
     }
@@ -254,7 +254,7 @@ final class HomeSectionEditor: ObservableObject {
         return hidden
     }
 
-    /// 新增: the section at the end of the selected 首頁配置, and, for 最新, its libraries' choices.
+    /// 新增: the section at the end of the selected 首页配置, and, for 最新, its libraries' choices.
     /// False when it has no binding yet.
     @discardableResult
     func add() -> Bool {

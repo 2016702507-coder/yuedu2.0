@@ -6,7 +6,7 @@ import UIKit
 // MARK: - The app root's now-playing bar
 //
 // What plays on with no reader on screen — an audiobook, or narration whose book was closed —
-// shows as one bar over the tabs (maintainer, 2026-11-05: 「統一改成 MiniPlayer」), and an
+// shows as one bar over the tabs (maintainer, 2026-11-05: 「统一改成 MiniPlayer」), and an
 // audiobook's player grows out of it and folds back into it, under the finger, as Apple Books'
 // and Apple Music's do. The bar and those transitions are LNPopupUI's (Léo Natan, MIT), the
 // community's long-standing recreation of Apple Music's popup — the maintainer's choice
@@ -15,7 +15,7 @@ import UIKit
 // LNPopupUI draws iOS 26's floating glass bar there and iOS 17's Apple Music card before it.
 //
 // The bar carries Apple Books' layout from iOS 26 — cover, book over chapter, the price pill
-// (here 加入書架, for an audiobook played without being shelved) and ⏸ — and Apple Music's
+// (here 加入书架, for an audiobook played without being shelved) and ⏸ — and Apple Music's
 // before: cover, book over chapter, ▶︎ and ⏭. A long press opens Apple Books' menu for it
 // (`NowPlayingBarRoute`). A reader on screen keeps its own capsule (`NowPlayingMiniPlayer`),
 // and the bar steps aside for it.
@@ -23,9 +23,9 @@ import UIKit
 // Narration has no player page: its bar reopens the book, whose reader takes the narration over.
 
 /// What the bar's long press offers: Apple Books' menu for its audiobook bar (maintainer,
-/// 2026-11-05, from a screenshot), in its order, on what Yuedu has — 分享 and 加入分組
-/// (欲讀清單) side by side, 停止播放 (關閉音訊播放程式), 加入書架 (加入藏書), 標記為已讀完,
-/// 作品詳情 (在商店中檢視), then 移除書架… (移除…). 增加建議 and 減少建議 have no counterpart.
+/// 2026-11-05, from a screenshot), in its order, on what Yuedu has — 分享 and 加入分组
+/// (欲读清单) side by side, 停止播放 (关闭音讯播放程式), 加入书架 (加入藏书), 标记为已读完,
+/// 作品详情 (在商店中检视), then 移除书架… (移除…). 增加建议 and 减少建议 have no counterpart.
 /// The audiobook player's ••• maps the same rows (`AudiobookMoreRoute`), and shares their names.
 enum NowPlayingBarRoute: Hashable {
     case share
@@ -119,7 +119,7 @@ enum NowPlayingBookActions {
         return url
     }
 
-    /// 作品詳情 of a shelf book, frozen at the navigation boundary: the page never re-resolves
+    /// 作品详情 of a shelf book, frozen at the navigation boundary: the page never re-resolves
     /// it from what is playing.
     static func workDetailRoute(for record: ReadingBook, store: BookStore) -> WorkDetailRoute? {
         guard let route = ShelfProvider(store: store).items([record]).first.flatMap(WorkDetailRoute.init) else {
@@ -129,13 +129,13 @@ enum NowPlayingBookActions {
         return route
     }
 
-    /// 標記為已讀完. Paused first: a place saved while it plays would write the progress back.
+    /// 标记为已读完. Paused first: a place saved while it plays would write the progress back.
     static func markFinished(bookId: UUID, store: BookStore) {
         NowPlayingHub.shared.pause()
         store.markFinished(bookId: bookId)
     }
 
-    /// 移除書架: what plays stops with the book. `close` takes the page acting on it away
+    /// 移除书架: what plays stops with the book. `close` takes the page acting on it away
     /// before the book goes.
     static func removeFromShelf(bookId: UUID, store: BookStore, closing close: () -> Void = {}) {
         let record = store.readingBook(id: bookId)
@@ -147,14 +147,14 @@ enum NowPlayingBookActions {
         store.delete(bookId: bookId)
     }
 
-    /// 加入書架 for the audiobook playing without being shelved. The shelf book it became, or
+    /// 加入书架 for the audiobook playing without being shelved. The shelf book it became, or
     /// nil when it did not — said in a toast either way.
     static func addPlayingAudiobookToShelf(store: BookStore, dependencies: AppDependencies) async -> UUID? {
         let player = AudiobookPlayer.shared
         do {
             try await player.addPlayingBookToShelf(dependencies: dependencies)
             guard let id = player.bookId, store.shelfRecord(id: id) != nil else { return nil }
-            BookSourceFormLoginView.presentToastAlert(message: localized("已加入書架"))
+            BookSourceFormLoginView.presentToastAlert(message: localized("已加入书架"))
             return id
         } catch {
             AppLogger.error("now playing add to shelf failed", error: error)
@@ -202,7 +202,7 @@ final class NowPlayingBarActions {
     private(set) var isAddingToShelf = false
     private var removalBookID: UUID?
     private var chooserSequence = DismissalSequencedPresentation<NowPlayingBarRoute>()
-    /// 作品詳情's 繼續閱讀: what plays opens once the page is gone (`continueAfterWorkDetail`).
+    /// 作品详情's 继续阅读: what plays opens once the page is gone (`continueAfterWorkDetail`).
     private var continuesAfterWorkDetail = false
 
     func perform(
@@ -266,9 +266,9 @@ final class NowPlayingBarActions {
         perform(route, on: book, store: store, dependencies: dependencies)
     }
 
-    // 作品詳情
+    // 作品详情
 
-    /// 繼續閱讀 on 作品詳情: back to what plays — the audiobook's player at the chapter picked,
+    /// 继续阅读 on 作品详情: back to what plays — the audiobook's player at the chapter picked,
     /// or the narrated book's reader, which takes the narration over.
     func continueFromWorkDetail(at target: ReaderTOCTarget?) {
         let hub = NowPlayingHub.shared
@@ -334,7 +334,7 @@ struct NowPlayingBarState: Equatable {
 
     /// What VoiceOver says tapping the bar does — as the reader capsule's cover says it.
     var openHint: String {
-        localized(reopensNarratedBook ? "打開這本書到正在朗讀的地方" : "打開播放控制面板")
+        localized(reopensNarratedBook ? "打开这本书到正在朗读的地方" : "打开播放控制面板")
     }
 
     static func == (lhs: Self, rhs: Self) -> Bool {
@@ -370,7 +370,7 @@ enum NowPlayingPopup {
         )
     }
 
-    /// The bar's buttons: Apple Books' from iOS 26 — 加入書架 for a book played without being
+    /// The bar's buttons: Apple Books' from iOS 26 — 加入书架 for a book played without being
     /// shelved, and ⏸ — and Apple Music's before, ▶︎ and ⏭.
     static func barButtons(usesAppleBooksLayout: Bool, showsAddToShelf: Bool) -> [NowPlayingBarButton] {
         if usesAppleBooksLayout {
@@ -548,7 +548,7 @@ struct NowPlayingPopupHost: ViewModifier {
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button { actions.workDetail = nil } label: { Image(systemName: "xmark") }
-                        .accessibilityLabel(localized("關閉"))
+                        .accessibilityLabel(localized("关闭"))
                 }
             }
         }
@@ -799,7 +799,7 @@ struct NowPlayingPopupContent: View {
             Image(systemName: bar.isPlaying ? "pause.fill" : "play.fill")
                 .contentTransition(.symbolEffect(.replace))
         }
-        .accessibilityLabel(localized(bar.isPlaying ? "暫停" : "播放"))
+        .accessibilityLabel(localized(bar.isPlaying ? "暂停" : "播放"))
         .accessibilityIdentifier("now_playing_global_play_pause")
     }
 
@@ -821,7 +821,7 @@ struct NowPlayingPopupContent: View {
         Button {
             actions.addToShelf(store: store, dependencies: dependencies)
         } label: {
-            Text(localized(actions.isAddingToShelf ? "加入中…" : "加入書架"))
+            Text(localized(actions.isAddingToShelf ? "加入中…" : "加入书架"))
                 .font(DSFont.footnote.weight(.semibold))
                 .foregroundStyle(DSColor.nowPlayingPillText)
                 .lineLimit(1)
@@ -843,16 +843,16 @@ struct NowPlayingPopupContent: View {
     @Previewable @State var isOpen = false
     TabView {
         List(1..<40) { Text("Row \($0)") }
-            .tabItem { Label("書架", systemImage: "books.vertical") }
+            .tabItem { Label("书架", systemImage: "books.vertical") }
         Text("Settings")
-            .tabItem { Label("設定", systemImage: "gearshape") }
+            .tabItem { Label("设置", systemImage: "gearshape") }
     }
     .popup(isBarPresented: $isBarPresented, isPopupOpen: $isOpen) {
         Color.black
-            .popupItem(PopupItem(id: "book", verbatimTitle: "傲慢與偏見", verbatimSubtitle: "第十章", trailingButtons: {
+            .popupItem(PopupItem(id: "book", verbatimTitle: "傲慢与偏见", verbatimSubtitle: "第十章", trailingButtons: {
                 ToolbarItemGroup(placement: .popupBar) {
                     Button {} label: { Image(systemName: "pause.fill") }
-                        .accessibilityLabel(localized("暫停"))
+                        .accessibilityLabel(localized("暂停"))
                 }
             }))
     }

@@ -4,8 +4,8 @@ import Foundation
 /// The character cards built for each book.
 ///
 /// Kept on disk rather than recomputed because each card costs the user a real API call, and
-/// because 多角色朗讀 reads the alias table on every chapter — a listener should not have to
-/// wait on the network to find out that 塵哥 is 張若塵.
+/// because 多角色朗读 reads the alias table on every chapter — a listener should not have to
+/// wait on the network to find out that 尘哥 is 张若尘.
 @MainActor
 final class AICharacterCardStore: ObservableObject {
     static let shared = AICharacterCardStore()
@@ -59,11 +59,11 @@ final class AICharacterCardStore: ObservableObject {
         save(current, bookID: bookID)
     }
 
-    /// Alias → canonical name for 多角色朗讀.
+    /// Alias → canonical name for 多角色朗读.
     ///
     /// This is the single crossing point between the AI work and the read-aloud work: the
-    /// dialogue heuristic can tell that someone spoke, but only the cards know that 張若塵,
-    /// 若塵 and 塵哥 are one person who should get one voice.
+    /// dialogue heuristic can tell that someone spoke, but only the cards know that 张若尘,
+    /// 若尘 and 尘哥 are one person who should get one voice.
     func aliasMap(forBook bookID: UUID, boundary: AIReadingBoundary? = nil) -> [String: String] {
         loadIfNeeded(forBook: bookID)
         guard let boundary else { return [:] }

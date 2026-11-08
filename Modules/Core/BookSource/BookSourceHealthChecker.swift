@@ -156,9 +156,9 @@ struct BookSourceCheckPolicy: Equatable {
         var id: String { rawValue }
         var title: String {
             switch self {
-            case .markOnly: return localized("僅標記")
+            case .markOnly: return localized("仅标记")
             case .disable:  return localized("停用")
-            case .delete:   return localized("刪除")
+            case .delete:   return localized("删除")
             }
         }
     }
@@ -209,9 +209,9 @@ enum ValidationStage: Int, CaseIterable, Identifiable {
     var title: String {
         switch self {
         case .search:    return localized("搜索")
-        case .discovery: return localized("發現")
-        case .detail:    return localized("詳情")
-        case .toc:       return localized("目錄")
+        case .discovery: return localized("发现")
+        case .detail:    return localized("详情")
+        case .toc:       return localized("目录")
         case .content:   return localized("正文")
         }
     }
@@ -219,21 +219,21 @@ enum ValidationStage: Int, CaseIterable, Identifiable {
     /// Full stage name shown on the prepare page.
     var longTitle: String {
         switch self {
-        case .search:    return localized("搜索書籍")
-        case .discovery: return localized("發現分類")
-        case .detail:    return localized("詳情頁")
-        case .toc:       return localized("章節目錄")
-        case .content:   return localized("正文內容")
+        case .search:    return localized("搜索书籍")
+        case .discovery: return localized("发现分类")
+        case .detail:    return localized("详情页")
+        case .toc:       return localized("章节目录")
+        case .content:   return localized("正文内容")
         }
     }
 
     var explanation: String {
         switch self {
-        case .search:    return localized("用測試關鍵字搜索並解析結果")
-        case .discovery: return localized("解析發現頁第一個分類的書單")
-        case .detail:    return localized("獲取並解析書籍詳情")
-        case .toc:       return localized("解析第一本書的章節目錄（前兩章）")
-        case .content:   return localized("獲取第一章正文內容")
+        case .search:    return localized("用测试关键字搜索并解析结果")
+        case .discovery: return localized("解析发现页第一个分类的书单")
+        case .detail:    return localized("获取并解析书籍详情")
+        case .toc:       return localized("解析第一本书的章节目录（前两章）")
+        case .content:   return localized("获取第一章正文内容")
         }
     }
 
@@ -273,14 +273,14 @@ enum FailureCategory: Equatable {
 
     var title: String {
         switch self {
-        case .ruleMissing:    return localized("規則缺失")
+        case .ruleMissing:    return localized("规则缺失")
         case .searchFailed:   return localized("搜索失效")
-        case .discoveryFailed: return localized("發現失效")
-        case .tocEmpty:       return localized("目錄失效")
+        case .discoveryFailed: return localized("发现失效")
+        case .tocEmpty:       return localized("目录失效")
         case .contentEmpty:   return localized("正文失效")
-        case .timeout:        return localized("校驗超時")
+        case .timeout:        return localized("校验超时")
         case .jsError:        return localized("js失效")
-        case .siteError:      return localized("網站失效")
+        case .siteError:      return localized("网站失效")
         }
     }
 
@@ -600,7 +600,7 @@ final class BookSourceHealthChecker: ObservableObject {
 
         var parts: [String] = []
         if !toDisable.isEmpty { parts.append(String(format: localized("已停用 %d"), toDisable.count)) }
-        if deleted > 0 { parts.append(String(format: localized("已刪除 %d"), deleted)) }
+        if deleted > 0 { parts.append(String(format: localized("已删除 %d"), deleted)) }
         lastSummary = parts.isEmpty ? nil : parts.joined(separator: localized("，"))
     }
 
@@ -748,7 +748,7 @@ final class BookSourceHealthChecker: ObservableObject {
             switch items[index].outcome(stage).status {
             case .running:
                 items[index].stages[stage.rawValue] = StageOutcome(
-                    status: .fail, summary: localized("校驗超時")
+                    status: .fail, summary: localized("校验超时")
                 )
             case .pending:
                 items[index].stages[stage.rawValue] = StageOutcome(status: .skipped, summary: "—")
@@ -826,7 +826,7 @@ final class BookSourceHealthChecker: ObservableObject {
                 items[index].discoveryBook = book
                 guard await runBookTrack(
                     at: index,
-                    track: localized("發現"),
+                    track: localized("发现"),
                     book: book,
                     source: source
                 ) else {
@@ -976,7 +976,7 @@ final class BookSourceHealthChecker: ObservableObject {
     private func probeSearch(keyword: String, source: BookSource) async -> ProbeResult<OnlineBook> {
         let url = source.searchUrl.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !url.isEmpty else {
-            return .failure(.ruleMissing, localized("搜索鏈接規則為空"))
+            return .failure(.ruleMissing, localized("搜索链接规则为空"))
         }
         do {
             let books = try await fetcher.search(
@@ -1019,16 +1019,16 @@ final class BookSourceHealthChecker: ObservableObject {
         do {
             let sections = contentSections(try await fetcher.discoverItems(page: 1, in: source))
             guard let section = sections.first else {
-                return .failure(.ruleMissing, localized("發現規則為空"))
+                return .failure(.ruleMissing, localized("发现规则为空"))
             }
             let books = try await fetcher.discoverBooks(from: section, page: 1, in: source)
             guard let book = OnlineBookValidationSelector.preferredBook(
                 from: books,
                 for: source
             ) else {
-                return .failure(.discoveryFailed, localized("發現失效"))
+                return .failure(.discoveryFailed, localized("发现失效"))
             }
-            let title = section.title ?? localized("發現")
+            let title = section.title ?? localized("发现")
             return .success(book, String(format: localized("「%1$@」%2$d 本"), title, books.count))
         } catch let error as ModernParserBridge.ExploreScriptError {
             return .failure(.jsError, error.message)
@@ -1057,7 +1057,7 @@ final class BookSourceHealthChecker: ObservableObject {
             )
             var info = package.onlineBook
             let name = info.name.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !name.isEmpty else { return .failure(.ruleMissing, localized("詳情為空")) }
+            guard !name.isEmpty else { return .failure(.ruleMissing, localized("详情为空")) }
             if info.tocUrl.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 info.tocUrl = book.tocUrl.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                     ? book.bookUrl
@@ -1078,7 +1078,7 @@ final class BookSourceHealthChecker: ObservableObject {
     private func probeTOC(book: OnlineBook, source: BookSource) async -> ProbeResult<ValidatedChapter> {
         let tocURL = book.tocUrl.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !tocURL.isEmpty else {
-            return .failure(.ruleMissing, localized("目錄地址為空"))
+            return .failure(.ruleMissing, localized("目录地址为空"))
         }
         let startedAt = SourcePerfTrace.now
         var chapterCount = 0
@@ -1105,7 +1105,7 @@ final class BookSourceHealthChecker: ObservableObject {
             guard var first = package.chapters.first(where: {
                 !$0.shouldRenderAsVolumeSeparator && $0.hasLoadableContentURL
             }) else {
-                return .failure(.tocEmpty, localized("目錄失效"))
+                return .failure(.tocEmpty, localized("目录失效"))
             }
             var mergedVariables = book.runtimeVariables ?? [:]
             for (key, value) in package.runtimeVariables ?? [:] {
@@ -1150,7 +1150,7 @@ final class BookSourceHealthChecker: ObservableObject {
             guard count > 0 else { return .failure(.contentEmpty, localized("正文失效")) }
             try ChapterFetcher.shared.validateResolvedContent(text)
             guard !ChapterFetchManager.isSuspiciousChapterContent(text) else {
-                return .failure(.contentEmpty, localized("正文疑似包含多章內容"))
+                return .failure(.contentEmpty, localized("正文疑似包含多章内容"))
             }
             return .success(count, String(format: localized("抓取 %d 字"), count))
         } catch {

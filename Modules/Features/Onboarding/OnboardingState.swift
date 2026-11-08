@@ -1,10 +1,10 @@
 import Foundation
 import Observation
 
-/// 新手導覽 (maintainer, 2026-10-24): what the app is and how it is used, 探索 first, in six
+/// 新手导览 (maintainer, 2026-10-24): what the app is and how it is used, 探索 first, in six
 /// pages a reader can skip at any point, the last one opening where they choose to start.
 /// Shown once on each device, to a new install and to a reader updating from an earlier
-/// version alike, and again from 設定 → 關於.
+/// version alike, and again from 设置 → 关于.
 ///
 /// Its own key rather than a `GlobalSettings` value, which the settings sync and export carry:
 /// having seen the tour on one device says nothing about another.
@@ -26,7 +26,7 @@ final class OnboardingState {
         isPresented = !defaults.bool(forKey: Self.completedKey)
     }
 
-    /// 設定 → 關於 → 新手導覽.
+    /// 设置 → 关于 → 新手导览.
     func replay() {
         isPresented = true
     }
@@ -49,20 +49,20 @@ final class OnboardingState {
 /// The tour's pages, in order.
 enum OnboardingPage: Int, CaseIterable, Identifiable {
     case welcome
-    /// 從探索找書.
+    /// 从探索找书.
     case explore
-    /// 一部作品，一個頁面: 搜尋 and 作品詳情 by the work.
+    /// 一部作品，一个页面: 搜寻 and 作品详情 by the work.
     case works
-    /// 連接你的所有資源.
+    /// 连接你的所有资源.
     case sources
-    /// 長時間閱讀也舒服.
+    /// 长时间阅读也舒服.
     case reading
     case start
 
     var id: Int { rawValue }
 }
 
-/// Where the last page sends the reader: a tab, and on 書架 and 資源庫 the page past it.
+/// Where the last page sends the reader: a tab, and on 书架 and 资源库 the page past it.
 enum OnboardingStart: String, CaseIterable, Identifiable {
     case explore
     case addSources
@@ -79,27 +79,27 @@ enum OnboardingStart: String, CaseIterable, Identifiable {
         }
     }
 
-    /// 資源庫's 來源配置管理 and 遠端書庫, and 書架's 添加書籍, are a page past the tab; 探索 is
+    /// 资源库's 来源配置管理 and 远端书库, and 书架's 添加书籍, are a page past the tab; 探索 is
     /// the tab itself.
     var opensPage: Bool { self != .explore }
 
     var titleKey: String {
         switch self {
-        case .explore: return "去探索找書"
-        // What 來源配置管理's 「＋」 is called, as 設定 adds one (2026-10-27).
-        case .addSources: return "新增來源配置"
-        case .connectLibrary: return "連接書庫"
-        // 添加書籍's own tab, by its name.
-        case .importFiles: return "匯入文件"
+        case .explore: return "去探索找书"
+        // What 来源配置管理's 「＋」 is called, as 设置 adds one (2026-10-27).
+        case .addSources: return "新增来源配置"
+        case .connectLibrary: return "连接书库"
+        // 添加书籍's own tab, by its name.
+        case .importFiles: return "汇入文件"
         }
     }
 
     var detailKey: String {
         switch self {
-        case .explore: return "看看首頁幫你排好的書"
-        case .addSources: return "從檔案或網址匯入，也能手動新增"
-        case .connectLibrary: return "連上 WebDAV、OPDS 或 Calibre"
-        case .importFiles: return "把 TXT、EPUB、PDF、漫畫或有聲書加入書架"
+        case .explore: return "看看首页帮你排好的书"
+        case .addSources: return "从档案或网址汇入，也能手动新增"
+        case .connectLibrary: return "连上 WebDAV、OPDS 或 Calibre"
+        case .importFiles: return "把 TXT、EPUB、PDF、漫画或有声书加入书架"
         }
     }
 }

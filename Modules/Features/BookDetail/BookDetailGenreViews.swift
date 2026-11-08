@@ -60,7 +60,7 @@ struct BookDetailCategoryPage: View {
                 )
             } else {
                 ContentUnavailableView {
-                    UnavailableLabel(localized("暫無發現內容"), systemImage: "books.vertical")
+                    UnavailableLabel(localized("暂无发现内容"), systemImage: "books.vertical")
                 }
                 .navigationTitle(reference.title)
                 .toolbarTitleDisplayMode(.inline)
@@ -72,7 +72,7 @@ struct BookDetailCategoryPage: View {
     }
 }
 
-/// A book a detail page links to (同題材, a genre's category), opened as Explore opens one.
+/// A book a detail page links to (同题材, a genre's category), opened as Explore opens one.
 struct BookDetailRelatedBookDestination: View {
     let book: OnlineBook
     @EnvironmentObject private var bookStore: BookStore
@@ -86,14 +86,14 @@ struct BookDetailRelatedBookDestination: View {
     }
 }
 
-// MARK: - 同題材
+// MARK: - 同题材
 
-/// 同題材作品: the first page of the source's category one of the book's genres names, as a
+/// 同题材作品: the first page of the source's category one of the book's genres names, as a
 /// shelf of covers. Not shown when no genre names a category (`SourceGenreLinks.Related`).
 /// The menu beside the title picks another category (maintainer, 2026-10-15).
 struct BookDetailRelatedSection: View {
     /// How the works are laid out: a row that scrolls (books), or a wall of posters, as a media
-    /// centre shows a genre (videos; maintainer, 2026-11-01: 「海報牆」).
+    /// centre shows a genre (videos; maintainer, 2026-11-01: 「海报墙」).
     enum Layout {
         case shelf
         case wall
@@ -111,7 +111,7 @@ struct BookDetailRelatedSection: View {
         if let reference {
             VStack(alignment: .leading, spacing: DSSpacing.sm) {
                 BookDetailSectionHeader(
-                    title: localized("同題材作品"),
+                    title: localized("同题材作品"),
                     actionTitle: localized("查看全部"),
                     action: { onShowAll(reference) }
                 ) {
@@ -138,12 +138,12 @@ struct BookDetailRelatedSection: View {
     private func categoryMenu(_ choices: RelatedCategoryChoices) -> some View {
         let selection = Binding(get: { choices.current }, set: { onChoose($0) })
         return Menu {
-            Picker(localized("同題材分類"), selection: selection) {
+            Picker(localized("同题材分类"), selection: selection) {
                 ForEach(choices.matched, id: \.self) { Text($0).tag($0) }
             }
             .pickerStyle(.inline)
             if !choices.others.isEmpty {
-                Picker(localized("其他分類"), selection: selection) {
+                Picker(localized("其他分类"), selection: selection) {
                     ForEach(choices.others, id: \.self) { Text($0).tag($0) }
                 }
                 .pickerStyle(.menu)
@@ -161,7 +161,7 @@ struct BookDetailRelatedSection: View {
             .frame(minHeight: DSLayout.minimumTapTarget)
             .contentShape(Rectangle())
         }
-        .accessibilityLabel(localized("同題材分類"))
+        .accessibilityLabel(localized("同题材分类"))
         .accessibilityValue(choices.current)
         .accessibilityIdentifier("detail.related.category")
     }
@@ -170,7 +170,7 @@ struct BookDetailRelatedSection: View {
     private func content(_ reference: ExploreCategoryReference) -> some View {
         switch related {
         case .loaded(_, let section) where section.books.isEmpty:
-            Text(localized("這個分類沒有其他作品"))
+            Text(localized("这个分类没有其他作品"))
                 .font(DSFont.subheadline)
                 .foregroundStyle(DSColor.textSecondary)
                 .frame(maxWidth: .infinity, minHeight: DSLayout.discoverShelfCoverHeight)
@@ -182,7 +182,7 @@ struct BookDetailRelatedSection: View {
             }
         case .failed:
             Button(action: onRetry) {
-                Label(localized("載入失敗，點按重試"), systemImage: "arrow.clockwise")
+                Label(localized("载入失败，点按重试"), systemImage: "arrow.clockwise")
                     .font(DSFont.subheadline)
                     .foregroundStyle(DSColor.accent)
                     .frame(maxWidth: .infinity, minHeight: DSLayout.discoverShelfCoverHeight)
@@ -255,13 +255,13 @@ struct BookDetailRelatedSection: View {
     }
 }
 
-#Preview("同題材") {
+#Preview("同题材") {
     let reference = ExploreCategoryReference(sourceURL: "https://source.test", title: "玄幻", url: "/xuanhuan")
-    let books = ["斗羅大陸", "鬥破蒼穹", "完美世界", "遮天"].map { name in
+    let books = ["斗罗大陆", "斗破苍穹", "完美世界", "遮天"].map { name in
         DiscoverBookDisplay(
             book: OnlineBook(name: name, author: "作者", intro: "", coverUrl: "", bookUrl: "/\(name)",
                              tocUrl: "", wordCount: "", lastChapter: "", kind: "玄幻",
-                             sourceId: UUID(), sourceName: "晴天小說"),
+                             sourceId: UUID(), sourceName: "晴天小说"),
             intro: "", contentKind: .text
         )
     }
@@ -272,7 +272,7 @@ struct BookDetailRelatedSection: View {
     return ScrollView {
         VStack(spacing: DSSpacing.xl) {
             BookDetailRelatedSection(related: .loaded(reference, section),
-                                     choices: RelatedCategoryChoices(matched: ["玄幻", "仙俠"], others: ["都市", "歷史"],
+                                     choices: RelatedCategoryChoices(matched: ["玄幻", "仙侠"], others: ["都市", "历史"],
                                                                      current: "玄幻"),
                                      onShowAll: { _ in }, onSelect: { _ in }, onRetry: {})
             BookDetailRelatedSection(related: .loaded(reference, section), layout: .wall,

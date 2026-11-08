@@ -21,7 +21,7 @@ struct BookOrigin: Identifiable, Codable, Sendable {
     var author: String = ""
 
     // `id` is a fresh UUID per instance and is intentionally excluded so cached
-    // origins (換源 results) round-trip without persisting a meaningless identity.
+    // origins (换源 results) round-trip without persisting a meaningless identity.
     private enum CodingKeys: String, CodingKey {
         case sourceId, sourceName, bookUrl, tocUrl, coverUrl, intro
         case lastChapter, wordCount, kind, runtimeVariables
@@ -95,10 +95,10 @@ final class SearchBook: Identifiable {
             ?? s.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    /// Heuristic "same book" test used for 換源, 換封面 and 尋找可用來源.
+    /// Heuristic "same book" test used for 换源, 换封面 and 寻找可用来源.
     ///
     /// Titles compare by `WorkMatchKey` (unified search 4d, maintainer 2026-10-14), so
-    /// 三體／三体／三體！ are one book. The folded title must be an **exact** match:
+    /// 三体／三体／三体！ are one book. The folded title must be an **exact** match:
     /// containment is deliberately *not* allowed, since a substring rule matches sequels and
     /// spin-offs (e.g. "斗罗大陆" vs "斗罗大陆3" / "斗罗大陆之笔"), which would offer the wrong
     /// book as an alternative source.
@@ -340,7 +340,7 @@ final class SearchBook: Identifiable {
             displayName = preparedOrigins[primaryIntroIndex]
                 .presentation.introTitleCandidate
         } else {
-            displayName = name.isEmpty ? "未知書名" : cleanedName
+            displayName = name.isEmpty ? "未知书名" : cleanedName
         }
 
         let displayIntro = primaryIntroIndex.map {
@@ -365,7 +365,7 @@ final class SearchBook: Identifiable {
 // 4. Publishes result-list snapshots through a bounded scene-aware cadence
 
 /// Where a search was started, recorded on its `search.firstResult` span so the 搜索 tab's
-/// numbers are not mixed with 換源's.
+/// numbers are not mixed with 换源's.
 enum SearchOrigin: String, Sendable {
     case searchTab
     case changeSource
@@ -374,10 +374,10 @@ enum SearchOrigin: String, Sendable {
 /// How one search tells its books apart.
 enum SearchMergeRule: Sendable {
     /// 搜索 (unified search 4c-1, maintainer's decision 1): `WorkMatchKey` titles, so
-    /// 三體／三体／三體！ are one row; a title merges only when both sides name compatible
+    /// 三体／三体／三体！ are one row; a title merges only when both sides name compatible
     /// authors (a result without one is its own row) and the content kind is the same.
     case work
-    /// 換源 and 尋找可用來源 (4d, maintainer 2026-10-14): the same `WorkMatchKey` titles, but
+    /// 换源 and 寻找可用来源 (4d, maintainer 2026-10-14): the same `WorkMatchKey` titles, but
     /// an empty author merges with any (`SearchBook.isLikelySameBook`) and kinds are not
     /// compared.
     case changeSource
@@ -414,7 +414,7 @@ class SearchAggregator: ObservableObject {
         /// Sources skipped this search because they are in a timeout cooldown.
         var skipped: Int = 0
         /// Of `completed`, the sources whose fetch failed and that are shown as no results
-        /// (Phase 0b), so a caller can tell 「沒有找到」 from a search no source answered.
+        /// (Phase 0b), so a caller can tell 「没有找到」 from a search no source answered.
         var failedAsEmpty: Int = 0
 
         var fraction: Double {
@@ -424,7 +424,7 @@ class SearchAggregator: ObservableObject {
     }
 
     /// Concurrency limit (max simultaneous requests) — lower reduces timeouts/failures.
-    /// User-configurable via `GlobalSettings.searchConcurrency` (網路設定 → 並發數);
+    /// User-configurable via `GlobalSettings.searchConcurrency` (网路设置 → 并发数);
     /// resolved per search so changes take effect on the next search.
     private var maxConcurrency: Int {
         NetworkSearchSettings.clampedConcurrency(GlobalSettings.shared.searchConcurrency)
@@ -493,7 +493,7 @@ class SearchAggregator: ObservableObject {
     private var allSources: [BookSource] = []
     private var completedSourceIds: Set<UUID> = []
     private var currentQuery = ""
-    /// The current search's rule: 搜索's work rule, or 換源's (set per search).
+    /// The current search's rule: 搜索's work rule, or 换源's (set per search).
     private var mergeRule = SearchMergeRule.work
     private var autoPausePolicy = SearchAutoPausePolicy(count: 0)
 
@@ -510,7 +510,7 @@ class SearchAggregator: ObservableObject {
     private var searchPage = 1
     private var pagedSourceIds: Set<UUID> = []
     private var exhaustedSourceIds: Set<UUID> = []
-    /// 搜索 pages on; 換源 and 尋找可用來源 never did and still stop at page 1.
+    /// 搜索 pages on; 换源 and 寻找可用来源 never did and still stop at page 1.
     private var pagesLaterPages = false
     /// Upper bound on rounds (maintainer, 2026-10-15: 10), so a misbehaving source that
     /// returns new books on every page cannot drive unbounded fan-outs.
@@ -972,7 +972,7 @@ class SearchAggregator: ObservableObject {
         // Count source hits (origins), not deduplicated titles. A single-title
         // search collapses every source into one `SearchBook`, so counting books
         // would stay at ~1 and the threshold would never be reached — that was
-        // why auto-pause appeared to do nothing ("自動暫停不生效").
+        // why auto-pause appeared to do nothing ("自动暂停不生效").
         for result in internalResults {
             let hits = result.origins.count
             if Self.matchScore(normalizedName: rowKey(result), query: normalizedQuery) == 3 {
@@ -995,7 +995,7 @@ class SearchAggregator: ObservableObject {
     /// Returns how many books were newly merged (new titles or new origins) —
     /// the paging loop uses 0 to mark a source as exhausted.
     @discardableResult
-    /// - Parameter generation: the search this batch belongs to; nil for 載入更多 pages,
+    /// - Parameter generation: the search this batch belongs to; nil for 载入更多 pages,
     ///   which never end a `search.firstResult` span.
     private func mergeBatch(
         _ books: [OnlineBook],
@@ -1143,7 +1143,7 @@ class SearchAggregator: ObservableObject {
     }
 
     /// The query as titles are compared: folded by `WorkMatchKey`, so a Simplified query
-    /// finds and ranks a Traditional title (搜索 since 4c-1, 換源 since 4d).
+    /// finds and ranks a Traditional title (搜索 since 4c-1, 换源 since 4d).
     private func queryKey(_ query: String) -> String {
         WorkMatchKey.title(LegadoSearchKeyword.matchingTitle(from: query))
     }

@@ -46,10 +46,10 @@ actor WebFetcher {
     /// A response comes back as the site sent it. This used to take every 403 and 503 —
     /// and any page with Cloudflare markers — for a Cloudflare challenge and open a
     /// full-screen verification page from wherever the request came from: a chapter, the
-    /// launch-time update, a 50,000-source 書源驗證 run, which then sat waiting for someone
+    /// launch-time update, a 50,000-source 书源验证 run, which then sat waiting for someone
     /// to solve it. Legado (both Legado-E and MD3) never opens a page on its own: the
     /// source's JS calls `java.startBrowserAwait`, or the reader opens the page from the
-    /// reading menu (開啟網頁).
+    /// reading menu (开启网页).
     ///
     /// - Parameter charset: the source's `charset` URL option. As in Legado's AnalyzeUrl it is
     ///   one value for both directions: it encodes the request body and decodes the response.

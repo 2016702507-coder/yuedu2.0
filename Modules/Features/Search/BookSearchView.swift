@@ -44,13 +44,13 @@ private struct SearchResultNavigationModifier<Destination: View>: ViewModifier {
 
 /// Everything the search page pushes through its one item-based destination.
 ///
-/// One destination, never one per kind. TestFlight build 5 gave 最近閱讀's reader a
+/// One destination, never one per kind. TestFlight build 5 gave 最近阅读's reader a
 /// second `navigationDestination(item:)` beside the results' own, and on iOS 17 the
 /// result's detail then lost its own reader push: the second time through, the manga
 /// reader would not open from the detail, or would not leave it on Back (iOS 17.5
 /// simulator; `DetailReaderBackSwipeUITests.testSearchTabMangaResultOpensEveryTime`).
 /// With this page still reading `DismissAction`, the same build froze on the first tap of
-/// a result instead (Technotes/iOS17ReaderNavigationWatchdog.md). 最近閱讀's reader is
+/// a result instead (Technotes/iOS17ReaderNavigationWatchdog.md). 最近阅读's reader is
 /// no longer pushed at all — see `recentReaderRoute`.
 private enum SearchPagePush: Hashable {
     /// A search result. Pushed this way on iOS 17 only; later systems push results by
@@ -79,10 +79,10 @@ private struct SearchPagePushDestination: View {
 /// `SearchAggregator`. The inherited store is forwarded explicitly to preserve
 /// the existing detail-view environment contract.
 ///
-/// A result opens 作品詳情 (unified library 5f-4c, decision 29: a work has one page wherever it
+/// A result opens 作品详情 (unified library 5f-4c, decision 29: a work has one page wherever it
 /// is opened from), made in `init` from the route's snapshot: SwiftUI may build the destination
 /// again as the page updates, so it reads only the snapshot and an indexed source lookup. Its
-/// version is drawn as the result's own page, with the work's known reading sources first in 換源.
+/// version is drawn as the result's own page, with the work's known reading sources first in 换源.
 private struct SearchResultDestination: View {
     let route: BookSearchResultRoute
     private let work: WorkDetailRoute?
@@ -99,14 +99,14 @@ private struct SearchResultDestination: View {
                 .environmentObject(bookStore)
         } else {
             ContentUnavailableView {
-                UnavailableLabel(localized("來源配置已被刪除"), systemImage: "books.vertical")
+                UnavailableLabel(localized("来源配置已被删除"), systemImage: "books.vertical")
             }
         }
     }
 }
 
-/// A work of the tab root's one list (unified search 4c-3): 作品詳情 of its lead, with every
-/// other member as a version and each book-source member's result for its page's 換源. Made
+/// A work of the tab root's one list (unified search 4c-3): 作品详情 of its lead, with every
+/// other member as a version and each book-source member's result for its page's 换源. Made
 /// in `init` from the selection frozen at the tap, as `SearchResultDestination` is.
 private struct UnifiedSearchDestination: View {
     private let parts: UnifiedSearchDestinationParts?
@@ -122,7 +122,7 @@ private struct UnifiedSearchDestination: View {
                 .environmentObject(bookStore)
         } else {
             ContentUnavailableView {
-                UnavailableLabel(localized("來源配置已被刪除"), systemImage: "books.vertical")
+                UnavailableLabel(localized("来源配置已被删除"), systemImage: "books.vertical")
             }
         }
     }
@@ -156,7 +156,7 @@ private struct IOS17SearchResults: View {
     /// The query submitted, while it is still the one in the field.
     var submittedQuery: String? = nil
     let onSelect: (UUID) -> Void
-    /// Pushes a work's 作品詳情 through the page's one item destination.
+    /// Pushes a work's 作品详情 through the page's one item destination.
     var openWork: (UnifiedSearchResultRoute) -> Void = { _ in }
     @Environment(\.colorScheme) private var colorScheme
     @Environment(FilledCoverIndex.self) private var filledCovers: FilledCoverIndex?
@@ -248,17 +248,17 @@ struct BookSearchView: View {
     @StateObject private var scopeStore = SearchSourceScopeStore.shared
     @ObservedObject private var sourceStore = BookSourceStore.shared
     @ObservedObject private var availability = PublicLibraryAvailability.shared
-    /// 聚合設定's 搜尋來源 (search 9d), for 青空文庫, matched as you type here.
+    /// 聚合设置's 搜寻来源 (search 9d), for 青空文库, matched as you type here.
     @ObservedObject private var aggregation = AggregationSettingsStore.shared
     // No `@Environment(\.dismiss)` here: iOS 17 replaces DismissAction over and over
     // while a result's detail is pushed above this page, and every replacement re-runs
     // this body (Technotes/iOS17ReaderNavigationWatchdog.md).
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    /// 搜索框是否處於輸入狀態：來源配置目錄只在「沒在打字」的空查詢下露面，
-    /// 一旦點進搜索框，就讓位給最近搜索。
+    /// 搜索框是否处于输入状态：来源配置目录只在「没在打字」的空查询下露面，
+    /// 一旦点进搜索框，就让位给最近搜索。
     @Environment(\.isSearching) private var isSearchFieldActive
-    /// The tab's stack, which 作品詳情 is pushed onto. A reference that never
+    /// The tab's stack, which 作品详情 is pushed onto. A reference that never
     /// changes (postmortem guardrail 13).
     @Environment(\.searchTabNavigation) private var tabNavigation
 
@@ -272,8 +272,8 @@ struct BookSearchView: View {
     /// What this page has pushed through its one item-based destination: a result on
     /// iOS 17.
     @State private var pushed: SearchPagePush?
-    /// A book opened from 最近閱讀, full screen over the search, as Apple Books opens a
-    /// book from its search; closing it comes back to the list as it was left. 最近閱讀
+    /// A book opened from 最近阅读, full screen over the search, as Apple Books opens a
+    /// book from its search; closing it comes back to the list as it was left. 最近阅读
     /// shows only while the search field is active, and pushed onto this stack the reader
     /// lost its hidden navigation bar: the active `UISearchController` puts back the bar
     /// it had collapsed as the push starts (`_navigationControllerWillShowViewController:`,
@@ -302,20 +302,20 @@ struct BookSearchView: View {
     }
 
     /// Only the tab's root searches the public libraries too: its stack carries the store's
-    /// pages and 作品詳情. Never in China.
+    /// pages and 作品详情. Never in China.
     private var offersPublicLibraries: Bool {
         isTabRoot && tabNavigation != nil && availability.isAvailable
     }
 
     /// One search for all (Phase 5 plan decision 17, as amended 2026-10-11; unified search
-    /// 4b, 4c-3): one list of works from the shelf, the saved libraries, 青空文庫 where the
+    /// 4b, 4c-3): one list of works from the shelf, the saved libraries, 青空文库 where the
     /// public libraries are offered, the sources and Open Library, as soon as there is a
-    /// query. Only the tab's root: its stack carries 作品詳情.
+    /// query. Only the tab's root: its stack carries 作品详情.
     private var showsCombinedResults: Bool {
         isAtTabRoot && !trimmedQuery.isEmpty
     }
 
-    /// The 搜索 tab's root, whose stack carries 作品詳情 and whose list is the works'.
+    /// The 搜索 tab's root, whose stack carries 作品详情 and whose list is the works'.
     private var isAtTabRoot: Bool {
         isTabRoot && tabNavigation != nil
     }
@@ -324,8 +324,8 @@ struct BookSearchView: View {
     private var sourcesNotice: String? {
         guard aggregator.results.isEmpty else { return nil }
         if aggregator.isSearching { return localized("搜索中…") }
-        if aggregator.isPaused { return localized("已暫停") }
-        if shouldShowEmptyResult { return String(format: localized("沒有找到「%@」"), submittedQuery) }
+        if aggregator.isPaused { return localized("已暂停") }
+        if shouldShowEmptyResult { return String(format: localized("没有找到「%@」"), submittedQuery) }
         return nil
     }
 
@@ -406,7 +406,7 @@ struct BookSearchView: View {
         .searchable(
             text: $query,
             placement: .navigationBarDrawer(displayMode: .always),
-            prompt: localized("輸入書名或作者")
+            prompt: localized("输入书名或作者")
         )
         .sheet(isPresented: $showsSourceScopeSheet) {
             SearchSourceScopeSheet(
@@ -425,7 +425,7 @@ struct BookSearchView: View {
             await RuleModuleLibrary.shared.loadIfNeeded()
         }
         .task(id: offersPublicLibraries) {
-            // 青空文庫's catalog may not have been read yet when 探索 was never opened.
+            // 青空文库's catalog may not have been read yet when 探索 was never opened.
             if offersPublicLibraries, AozoraCatalogStore.shared.catalog == nil {
                 await AozoraCatalogStore.shared.load()
             }
@@ -441,10 +441,10 @@ struct BookSearchView: View {
             }
         }
         .alert(
-            localized("搜索失敗"),
+            localized("搜索失败"),
             isPresented: Binding(get: { errorMsg != nil }, set: { if !$0 { errorMsg = nil } })
         ) {
-            Button(localized("確認")) { errorMsg = nil }
+            Button(localized("确认")) { errorMsg = nil }
         } message: {
             Text(errorMsg ?? "")
         }
@@ -464,17 +464,17 @@ struct BookSearchView: View {
     // scope row above carries the search on.
     private var pausedPlaceholder: some View {
         ContentUnavailableView {
-            UnavailableLabel(localized("已暫停"), systemImage: "pause.circle")
+            UnavailableLabel(localized("已暂停"), systemImage: "pause.circle")
         } description: {
-            Text(localized("點擊繼續搜索剩餘來源配置")).font(DSFont.unavailableDescription)
+            Text(localized("点击继续搜索剩余来源配置")).font(DSFont.unavailableDescription)
                 .foregroundStyle(DSColor.textSecondary)
         }
     }
 
     // MARK: Source Scope
 
-    /// The filter chips, as Emby's search has them (search 9c): 類型 at the tab's root, whose
-    /// list is grouped by kind, and the 來源配置 scope where there are sources; at the other
+    /// The filter chips, as Emby's search has them (search 9c): 类型 at the tab's root, whose
+    /// list is grouped by kind, and the 来源配置 scope where there are sources; at the other
     /// end, while a search runs or is paused, its progress ring — the one pause / resume
     /// control on the page. Manual companion to
     /// the network-settings auto-pause: tap to pause the in-flight search (battery,
@@ -516,10 +516,10 @@ struct BookSearchView: View {
     private var sourceScopeSummary: String {
         switch activeScope.mode {
         case .all:
-            return localized("全部來源配置")
+            return localized("全部来源配置")
         case .custom:
             return String(
-                format: localized("已選 %d 個來源配置"),
+                format: localized("已选 %d 个来源配置"),
                 activeScope.resolvedSources(from: enabledSources).count
             )
         }
@@ -527,8 +527,8 @@ struct BookSearchView: View {
 
     // MARK: Sources Directory
 
-    /// 搜索 tab 的根頁、空查詢、沒在打字：下半頁就是來源配置目錄。
-    /// 以前它只在 資源庫 那一頁，那一頁沒有入口之後，這塊是唯一能看到分組的地方。
+    /// 搜索 tab 的根页、空查询、没在打字：下半页就是来源配置目录。
+    /// 以前它只在 资源库 那一页，那一页没有入口之后，这块是唯一能看到分组的地方。
     private var showsSourcesDirectory: Bool {
         isAtTabRoot
             && trimmedQuery.isEmpty
@@ -538,23 +538,23 @@ struct BookSearchView: View {
             && !exploreSources.isEmpty
     }
 
-    /// 資源庫 的「來源配置」網格原樣搬過來：所有來源配置 + 各分組，紙面卡片、同一套點按行為。
+    /// 资源库 的「来源配置」网格原样搬过来：所有来源配置 + 各分组，纸面卡片、同一套点按行为。
     private var sourcesDirectory: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: DSSpacing.xl) {
                 LibrarySection(
-                    localized("來源配置"),
+                    localized("来源配置"),
                     isLazy: false
                 ) {
                     NavigationLink(value: ExploreNavigationRoute.sourceManager) {
                         LibrarySectionAccessoryLabel()
                     }
-                    .accessibilityLabel(localized("管理來源配置"))
+                    .accessibilityLabel(localized("管理来源配置"))
                     .accessibilityIdentifier("search.sources.manage")
                 } content: { layout in
                     NavigationLink(value: ExploreNavigationRoute.sources(group: nil)) {
                         ExploreEntryLabel(
-                            title: localized("所有來源配置"),
+                            title: localized("所有来源配置"),
                             artwork: nil,
                             layout: layout,
                             corner: .count(exploreSources.count),
@@ -562,8 +562,8 @@ struct BookSearchView: View {
                         )
                     }
                     .buttonStyle(ExploreTileButtonStyle())
-                    .accessibilityLabel(localized("所有來源配置"))
-                    .accessibilityValue(String(format: localized("%d 個來源配置"), exploreSources.count))
+                    .accessibilityLabel(localized("所有来源配置"))
+                    .accessibilityValue(String(format: localized("%d 个来源配置"), exploreSources.count))
                     .accessibilityIdentifier("search.sources.all")
 
                     ForEach(sourceGroups) { group in
@@ -578,7 +578,7 @@ struct BookSearchView: View {
                         }
                         .buttonStyle(ExploreTileButtonStyle())
                         .accessibilityLabel(group.name)
-                        .accessibilityValue(String(format: localized("%d 個來源配置"), group.count))
+                        .accessibilityValue(String(format: localized("%d 个来源配置"), group.count))
                         .accessibilityIdentifier("search.group.\(group.name)")
                     }
                 }
@@ -591,7 +591,7 @@ struct BookSearchView: View {
         .scrollDismissesKeyboard(.immediately)
     }
 
-    /// 目錄裡的來源：與 資源庫 同一套過濾（已啟用、可發現、有探索地址）。
+    /// 目录里的来源：与 资源库 同一套过滤（已启用、可发现、有探索地址）。
     private var exploreSources: [BookSource] {
         DiscoverViewModel.exploreSources(in: enabledSources)
     }
@@ -701,11 +701,11 @@ struct BookSearchView: View {
     private var emptyResultView: some View {
         ContentUnavailableView {
             UnavailableLabel(
-                String(format: localized("沒有找到「%@」"), submittedQuery),
+                String(format: localized("没有找到「%@」"), submittedQuery),
                 systemImage: "magnifyingglass"
             )
         } description: {
-            Text(localized("嘗試換個關鍵字，或切換來源配置")).font(DSFont.unavailableDescription)
+            Text(localized("尝试换个关键字，或切换来源配置")).font(DSFont.unavailableDescription)
                 .foregroundStyle(DSColor.textSecondary)
         }
     }
@@ -714,17 +714,17 @@ struct BookSearchView: View {
     private var hintView: some View {
         if enabledSources.isEmpty, !offersPublicLibraries {
             ContentUnavailableView {
-                UnavailableLabel(localized("尚未設置來源配置"), systemImage: "exclamationmark.triangle")
+                UnavailableLabel(localized("尚未设置来源配置"), systemImage: "exclamationmark.triangle")
             } description: {
-                Text(localized("請先在來源配置管理中新增並啟用來源配置")).font(DSFont.unavailableDescription)
+                Text(localized("请先在来源配置管理中新增并启用来源配置")).font(DSFont.unavailableDescription)
                     .foregroundStyle(DSColor.textSecondary)
             }
         } else {
             ContentUnavailableView {
                 UnavailableLabel(
                     needsSearchResubmission
-                        ? localized("搜索範圍已更新，請再次搜索")
-                        : localized("輸入書名或作者搜索"),
+                        ? localized("搜索范围已更新，请再次搜索")
+                        : localized("输入书名或作者搜索"),
                     systemImage: "text.magnifyingglass"
                 )
             }
@@ -750,8 +750,8 @@ struct BookSearchView: View {
         let sources = activeScope.resolvedSources(from: enabledSources)
         guard !sources.isEmpty else {
             errorMsg = activeScope.mode == .custom
-                ? localized("請至少選擇一個可用來源配置")
-                : localized("沒有可用的來源配置，請先啟用來源配置")
+                ? localized("请至少选择一个可用来源配置")
+                : localized("没有可用的来源配置，请先启用来源配置")
             return
         }
 
@@ -794,8 +794,8 @@ struct BookSearchView: View {
         submit()
     }
 
-    /// 最近閱讀: back into the book where it was left. Its reader moves it to the front of
-    /// 最近閱讀, as every open does.
+    /// 最近阅读: back into the book where it was left. Its reader moves it to the front of
+    /// 最近阅读, as every open does.
     private func openRecentBook(_ book: ReadingBook) {
         // An audiobook's player grows out of the now-playing bar, as Apple Books opens one.
         if NowPlayingHub.shared.openIfAudiobook(book, store: bookStore) { return }
@@ -806,8 +806,8 @@ struct BookSearchView: View {
 // MARK: - Aggregated Result Row
 
 /// One search result as Apple Books lists one in its search (`SearchBookListRow`): the
-/// cover, the title with the grey 有聲書 tag on audiobooks, the author, and the kind and
-/// source count in grey — 「小說 · 3 源」. Mirrors `IOS17SearchResultTableCell`, which draws
+/// cover, the title with the grey 有声书 tag on audiobooks, the author, and the kind and
+/// source count in grey — 「小说 · 3 源」. Mirrors `IOS17SearchResultTableCell`, which draws
 /// the same row in UIKit on iOS 17.
 struct AggregatedResultRow: View {
     let book: SearchBook

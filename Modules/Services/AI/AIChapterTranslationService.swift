@@ -1,7 +1,7 @@
 import Combine
 import Foundation
 
-/// Runs 整章翻譯 and holds the translations the reader lays out.
+/// Runs 整章翻译 and holds the translations the reader lays out.
 ///
 /// The reader asks for the chapter on screen; the service translates what that chapter is
 /// still missing — from the paragraph being read onwards, so the page in front of the reader

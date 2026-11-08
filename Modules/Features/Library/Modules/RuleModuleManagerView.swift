@@ -1,21 +1,21 @@
 import SwiftUI
 
-/// 官方模組 or 匯入的模組, each a page of its own on 模組.
+/// 官方模组 or 汇入的模组, each a page of its own on 模组.
 enum RuleModuleGroup: Hashable {
     case official, imported
 }
 
 extension EnvironmentValues {
-    /// 設定's one 新增模組 flow, so 模組, pushed from it, adds through it: its sheet and file
+    /// 设置's one 新增模组 flow, so 模组, pushed from it, adds through it: its sheet and file
     /// importer are presented from the root, never a second pair from the pushed page (SwiftUI
     /// presents only one of two file importers on a view).
     @Entry var ruleModuleAddFlow: RuleModuleAddFlow?
 }
 
-/// 模組 (M6, maintainer 2026-10-17: 「模組要做到截圖這樣」): where every module comes from — 官方模組,
-/// each subscribed repository, 匯入的模組. 新增模組 is its toolbar's, the one way to add a module
-/// since 資源庫 lost its own (maintainer, 2026-10-27): an address may hold a module or a repository.
-/// 首頁欄目引用, the home sections left pointing at a module no longer installed, was a row here
+/// 模组 (M6, maintainer 2026-10-17: 「模组要做到截图这样」): where every module comes from — 官方模组,
+/// each subscribed repository, 汇入的模组. 新增模组 is its toolbar's, the one way to add a module
+/// since 资源库 lost its own (maintainer, 2026-10-27): an address may hold a module or a repository.
+/// 首页栏目引用, the home sections left pointing at a module no longer installed, was a row here
 /// until the maintainer had it deleted the same day.
 struct RuleModuleManagerView: View {
     @ObservedObject var library: RuleModuleLibrary
@@ -37,8 +37,8 @@ struct RuleModuleManagerView: View {
         Form {
             Section {
                 NavigationLink(value: ExploreNavigationRoute.moduleGroup(.official)) {
-                    RuleModuleOriginRow(title: localized("官方模組"), systemImage: "puzzlepiece.extension.fill", isVerified: true,
-                                        subtitle: localized("隨閱讀一起提供的模組"), origin: localized("閱讀"),
+                    RuleModuleOriginRow(title: localized("官方模组"), systemImage: "puzzlepiece.extension.fill", isVerified: true,
+                                        subtitle: localized("随阅读一起提供的模组"), origin: localized("阅读"),
                                         count: AppOfficialModule.available(librariesAvailable: availability.isAvailable).count
                                             + library.official.count)
                 }
@@ -51,25 +51,25 @@ struct RuleModuleManagerView: View {
                                             count: repository.index?.modules.count)
                     }
                     .swipeActions {
-                        Button(localized("取消訂閱"), role: .destructive) { pendingUnsubscription = repository }
+                        Button(localized("取消订阅"), role: .destructive) { pendingUnsubscription = repository }
                     }
                     .accessibilityIdentifier("modules.repository.\(repository.id.absoluteString)")
                 }
 
                 NavigationLink(value: ExploreNavigationRoute.moduleGroup(.imported)) {
-                    RuleModuleOriginRow(title: localized("匯入的模組"), systemImage: "arrow.down.circle.fill",
-                                        subtitle: localized("你自己加入的模組"), origin: localized("匯入"),
+                    RuleModuleOriginRow(title: localized("汇入的模组"), systemImage: "arrow.down.circle.fill",
+                                        subtitle: localized("你自己加入的模组"), origin: localized("汇入"),
                                         count: library.imported.count + library.failures.count)
                 }
                 .accessibilityIdentifier("modules.imported")
             } footer: {
-                Text(localized("第三方模組由作者自行維護，閱讀不審核其內容。加入前請確認來源可信；有問題的模組可以在「回饋與改進」回報。"))
+                Text(localized("第三方模组由作者自行维护，阅读不审核其内容。加入前请确认来源可信；有问题的模组可以在「回馈与改进」回报。"))
                     .dsSectionFooter()
             }
             .interfaceSectionSurface()
         }
         .softScrollEdges()
-        .navigationTitle(localized("模組"))
+        .navigationTitle(localized("模组"))
         .toolbarTitleDisplayMode(.inline)
         .themedAppSurface(for: .settings)
         .hidesRootTabBar()
@@ -78,17 +78,17 @@ struct RuleModuleManagerView: View {
                 ToolbarItem(placement: .topBarTrailing) { addControl }
             }
         }
-        .confirmationDialog(pendingUnsubscription.map { String(format: localized("取消訂閱「%@」？"), $0.subscription.name) } ?? "",
+        .confirmationDialog(pendingUnsubscription.map { String(format: localized("取消订阅「%@」？"), $0.subscription.name) } ?? "",
                             isPresented: Binding(get: { pendingUnsubscription != nil }, set: { if !$0 { pendingUnsubscription = nil } }),
                             titleVisibility: .visible, presenting: pendingUnsubscription) { repository in
-            Button(localized("取消訂閱"), role: .destructive) { repositories.unsubscribe(repository.id) }
+            Button(localized("取消订阅"), role: .destructive) { repositories.unsubscribe(repository.id) }
             Button(localized("取消"), role: .cancel) {}
         } message: { _ in
-            Text(localized("已安裝的模組會留下。"))
+            Text(localized("已安装的模组会留下。"))
         }
-        .alert(localized("操作失敗"), isPresented: Binding(get: { repositories.message != nil },
+        .alert(localized("操作失败"), isPresented: Binding(get: { repositories.message != nil },
                                                           set: { if !$0 { repositories.message = nil } })) {
-            Button(localized("確定"), role: .cancel) {}
+            Button(localized("确定"), role: .cancel) {}
         } message: {
             Text(repositories.message ?? "")
         }
@@ -102,13 +102,13 @@ struct RuleModuleManagerView: View {
 
     private func subtitle(of repository: RuleModuleRepositoryModel.Repository) -> String {
         switch repository.state {
-        case .loading: localized("讀取中")
-        case .loaded(let index): String(format: localized("%d 個模組"), index.modules.count)
+        case .loading: localized("读取中")
+        case .loaded(let index): String(format: localized("%d 个模组"), index.modules.count)
         case .failed(let message): message
         }
     }
 
-    /// 新增模組's three ways in. A native menu from iOS 18; on iOS 17 a chooser, since the
+    /// 新增模组's three ways in. A native menu from iOS 18; on iOS 17 a chooser, since the
     /// sheet or file picker would be dropped while the menu dismisses
     /// (`Technotes/iOS17MenuModalPresentation.md`).
     @ViewBuilder
@@ -120,14 +120,14 @@ struct RuleModuleManagerView: View {
             } label: {
                 Image(systemName: "doc.badge.plus").accessibilityHidden(true)
             }
-            .accessibilityLabel(localized("新增模組"))
+            .accessibilityLabel(localized("新增模组"))
             .accessibilityIdentifier("modules.add")
             .sheet(isPresented: $showsAddChooser, onDismiss: {
                 addSequence.consumeAfterDismissal().map { addFlow?.begin($0) }
             }) {
                 AdaptiveSheetContainer(maxWidth: DSLayout.readableCompactWidth) {
                     DismissalSequencedActionChooser(
-                        title: localized("新增模組"),
+                        title: localized("新增模组"),
                         actions: RuleModuleAddRoute.allCases.map {
                             DismissalSequencedAction(route: $0, title: localized($0.titleKey), systemImage: $0.systemImage)
                         },
@@ -140,19 +140,19 @@ struct RuleModuleManagerView: View {
             } label: {
                 Image(systemName: "doc.badge.plus").accessibilityHidden(true)
             }
-            .accessibilityLabel(localized("新增模組"))
+            .accessibilityLabel(localized("新增模组"))
             .accessibilityIdentifier("modules.add")
         }
     }
 }
 
-/// One row of 模組: where modules come from, what it is, and how many it holds.
+/// One row of 模组: where modules come from, what it is, and how many it holds.
 struct RuleModuleOriginRow: View {
     let title: String
     let systemImage: String
     var isVerified = false
     let subtitle: String
-    /// 來源：…; nil for a row that is not a place modules come from.
+    /// 来源：…; nil for a row that is not a place modules come from.
     let origin: String?
     /// Shown trailing; nil while it is not known.
     let count: Int?
@@ -179,7 +179,7 @@ struct RuleModuleOriginRow: View {
                     .font(DSFont.subheadline)
                     .foregroundStyle(DSColor.textSecondary)
                 if let origin {
-                    Text(String(format: localized("來源：%@"), origin))
+                    Text(String(format: localized("来源：%@"), origin))
                         .font(DSFont.footnote)
                         .foregroundStyle(DSColor.textSecondary)
                         .lineLimit(1)
@@ -200,13 +200,13 @@ struct RuleModuleOriginRow: View {
 
     private var accessibilityValue: String {
         var parts = [subtitle]
-        if let origin { parts.append(String(format: localized("來源：%@"), origin)) }
-        if let count { parts.append(String(format: localized("%d 個"), count)) }
+        if let origin { parts.append(String(format: localized("来源：%@"), origin)) }
+        if let count { parts.append(String(format: localized("%d 个"), count)) }
         return parts.joined(separator: ", ")
     }
 }
 
-#Preview("模組") {
+#Preview("模组") {
     NavigationStack {
         RuleModuleManagerView(library: RuleModulePreviewData.officialLibrary())
             .environment(\.ruleModuleAddFlow, RuleModuleAddFlow())

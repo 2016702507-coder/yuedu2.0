@@ -15,9 +15,9 @@ final class FixedPageReaderState: ObservableObject {
     @Published var currentPage: Int = 0
     @Published var totalPages: Int = 0
     @Published var fixedPageReaderConfiguration: FixedPageReaderConfiguration = .recommendedDefault(for: .rtl)
-    /// A manga, so the settings sheet offers 漫畫預設模式 (feedback #37).
+    /// A manga, so the settings sheet offers 漫画预设模式 (feedback #37).
     @Published var isManga: Bool = false
-    /// The book has no reading mode of its own yet: it opened in 漫畫預設模式, and changing
+    /// The book has no reading mode of its own yet: it opened in 漫画预设模式, and changing
     /// that default here changes it too.
     @Published var followsMangaDefault: Bool = false
     @Published var isLoading: Bool = false
@@ -244,7 +244,7 @@ struct FixedPageReaderView: View {
                 .font(DSFont.body)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
-            Button(localized("重試")) { state.onReload?() }
+            Button(localized("重试")) { state.onReload?() }
                 .foregroundColor(DSColor.accent)
                 .font(DSFont.bodyBold)
         }
@@ -292,7 +292,7 @@ struct FixedPageReaderControlsOverlay: View {
                 .toolbar {
                     ToolbarItem(placement: .topBarLeading) {
                         Button(action: onClose) {
-                            Label(localized(isModal ? "關閉" : "返回"), systemImage: isModal ? "xmark" : "chevron.left")
+                            Label(localized(isModal ? "关闭" : "返回"), systemImage: isModal ? "xmark" : "chevron.left")
                                 .labelStyle(.iconOnly)
                         }
                     }
@@ -302,7 +302,7 @@ struct FixedPageReaderControlsOverlay: View {
                                 state.onStopAutoScroll?()
                                 state.showChapterList = true
                             } label: {
-                                Label(localized("目錄"), systemImage: "list.bullet")
+                                Label(localized("目录"), systemImage: "list.bullet")
                                     .labelStyle(.iconOnly)
                             }
                         }
@@ -312,7 +312,7 @@ struct FixedPageReaderControlsOverlay: View {
                             state.onStopAutoScroll?()
                             showSettings = true
                         } label: {
-                            Label(localized("閱讀設定"), systemImage: "slider.horizontal.3")
+                            Label(localized("阅读设置"), systemImage: "slider.horizontal.3")
                                 .labelStyle(.iconOnly)
                         }
                     }
@@ -359,7 +359,7 @@ struct FixedPageReaderControlsOverlay: View {
     }
 
     private var pageIndicatorText: String {
-        String(format: localized("第 %d / %d 頁"), state.currentPage + 1,
+        String(format: localized("第 %d / %d 页"), state.currentPage + 1,
                max(state.totalPages, state.currentPage + 1))
     }
 
@@ -389,7 +389,7 @@ struct FixedPageReaderControlsOverlay: View {
                 // one of a manga, so a freshly opened book read as finished.
                 .environment(\.layoutDirection, isRTL ? .rightToLeft : .leftToRight)
                 .tint(DSColor.textPrimary)
-                .accessibilityLabel(localized("閱讀進度"))
+                .accessibilityLabel(localized("阅读进度"))
                 .accessibilityValue(pageIndicatorText)
                 VStack(spacing: 0) {
                     Spacer(minLength: 0)
@@ -444,7 +444,7 @@ struct FixedPageReaderSettingsView: View {
         NavigationStack {
             Form {
                 Section {
-                    Picker(localized("閱讀模式"), selection: Binding(
+                    Picker(localized("阅读模式"), selection: Binding(
                         get: { configuration.mode },
                         set: { selectMode($0) }
                     )) {
@@ -455,7 +455,7 @@ struct FixedPageReaderSettingsView: View {
                 }
                 if state.isManga {
                     Section {
-                        Picker(localized("漫畫預設模式"), selection: Binding(
+                        Picker(localized("漫画预设模式"), selection: Binding(
                             get: { globalSettings.fixedPageMangaDefaultMode },
                             set: { mode in
                                 globalSettings.fixedPageMangaDefaultMode = mode
@@ -468,42 +468,42 @@ struct FixedPageReaderSettingsView: View {
                             }
                         }
                     } footer: {
-                        Text(localized("只套用到還沒自己選過閱讀模式的漫畫。"))
+                        Text(localized("只套用到还没自己选过阅读模式的漫画。"))
                             .dsSectionFooter()
                     }
                 }
                 Section {
                     if configuration.layout == .paged {
-                        Picker(localized("頁面顯示"), selection: binding(\.pageSpreadLayout)) {
+                        Picker(localized("页面显示"), selection: binding(\.pageSpreadLayout)) {
                             ForEach(FixedPageReaderConfiguration.PageSpreadLayout.allCases, id: \.rawValue) { layout in
                                 Text(spreadTitle(layout)).tag(layout)
                             }
                         }
-                        Toggle(localized("封面單頁偏移"), isOn: binding(\.pageOffset))
-                        Toggle(localized("自動切分雙頁大圖"), isOn: binding(\.splitWideImages))
+                        Toggle(localized("封面单页偏移"), isOn: binding(\.pageOffset))
+                        Toggle(localized("自动切分双页大图"), isOn: binding(\.splitWideImages))
                     } else {
-                        Toggle(localized("寬屏黑邊限制"), isOn: binding(\.pillarbox))
+                        Toggle(localized("宽屏黑边限制"), isOn: binding(\.pillarbox))
                     }
-                    Toggle(localized("自動裁切留白邊框"), isOn: binding(\.cropBorders))
-                    Toggle(localized("原文字選取與識別"), isOn: binding(\.isLiveTextEnabled))
+                    Toggle(localized("自动裁切留白边框"), isOn: binding(\.cropBorders))
+                    Toggle(localized("原文字选取与识别"), isOn: binding(\.isLiveTextEnabled))
                 }
                 Section {
-                    Toggle(localized("雙擊放大"), isOn: $globalSettings.fixedPageDoubleTapToZoom)
+                    Toggle(localized("双击放大"), isOn: $globalSettings.fixedPageDoubleTapToZoom)
                 } footer: {
-                    Text(localized("關閉後，點一下會立即翻頁或呼出選單；雙指縮放照常可用。所有書共用這個設定。"))
+                    Text(localized("关闭后，点一下会立即翻页或呼出选单；双指缩放照常可用。所有书共用这个设置。"))
                         .dsSectionFooter()
                 }
                 if configuration.layout == .continuousVerticalScroll {
                     Section {
-                        Toggle(localized("自動捲動"), isOn: $globalSettings.fixedPageAutoScrollButton)
+                        Toggle(localized("自动卷动"), isOn: $globalSettings.fixedPageAutoScrollButton)
                         if globalSettings.fixedPageAutoScrollButton {
-                            Picker(localized("按鈕位置"), selection: $globalSettings.fixedPageAutoScrollButtonPosition) {
-                                Text(localized("左側")).tag(FixedPageAutoScrollButtonPosition.left)
-                                Text(localized("右側")).tag(FixedPageAutoScrollButtonPosition.right)
+                            Picker(localized("按钮位置"), selection: $globalSettings.fixedPageAutoScrollButtonPosition) {
+                                Text(localized("左侧")).tag(FixedPageAutoScrollButtonPosition.left)
+                                Text(localized("右侧")).tag(FixedPageAutoScrollButtonPosition.right)
                             }
                         }
                     } footer: {
-                        Text(localized("開啟後，畫面角落會出現播放按鈕，點一下開始或暫停自動捲動。"))
+                        Text(localized("开启后，画面角落会出现播放按钮，点一下开始或暂停自动卷动。"))
                             .dsSectionFooter()
                     }
                 }
@@ -511,7 +511,7 @@ struct FixedPageReaderSettingsView: View {
                     Section {
                         if ReaderPremiumVisibilityPolicy(isProActive: subscriptionStore.isProActive).showsTouchZoneEditor {
                             Button(action: onOpenTouchZoneEditor) {
-                                Label(localized("翻頁區塊編輯"), systemImage: "hand.tap")
+                                Label(localized("翻页区块编辑"), systemImage: "hand.tap")
                             }
                         } else {
                             // Seen without Pro too, locked (2026-09-27): the paywall, not the editor.
@@ -519,7 +519,7 @@ struct FixedPageReaderSettingsView: View {
                                 requestPaywall(.touchZoneEditor)
                             } label: {
                                 HStack {
-                                    Label(localized("翻頁區塊編輯"), systemImage: "hand.tap")
+                                    Label(localized("翻页区块编辑"), systemImage: "hand.tap")
                                         .foregroundStyle(DSColor.textPrimary)
                                     Spacer(minLength: DSSpacing.md)
                                     Text(localized("需要 Pro"))
@@ -535,12 +535,12 @@ struct FixedPageReaderSettingsView: View {
                 }
             }
             .softScrollEdges()
-            .navigationTitle(localized("閱讀設定"))
+            .navigationTitle(localized("阅读设置"))
             .toolbarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button { dismiss() } label: {
-                        Label(localized("關閉"), systemImage: "xmark").labelStyle(.iconOnly)
+                        Label(localized("关闭"), systemImage: "xmark").labelStyle(.iconOnly)
                     }
                 }
             }
@@ -585,9 +585,9 @@ struct FixedPageReaderSettingsView: View {
 
     private func spreadTitle(_ layout: FixedPageReaderConfiguration.PageSpreadLayout) -> String {
         switch layout {
-        case .single: return localized("單頁")
-        case .double: return localized("雙頁")
-        case .auto: return localized("自動雙頁")
+        case .single: return localized("单页")
+        case .double: return localized("双页")
+        case .auto: return localized("自动双页")
         }
     }
 }
@@ -628,7 +628,7 @@ struct FixedPageChapterListView: View {
             }
             .background(PageBackgroundView(scope: .settings).ignoresSafeArea())
             .pageBackgroundToolbar(for: .settings)
-            .navigationTitle(localized("目錄"))
+            .navigationTitle(localized("目录"))
             .toolbarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -650,9 +650,9 @@ struct FixedPageChapterListView: View {
 
 #Preview("Controls overlay") {
     let state = FixedPageReaderState()
-    state.chapterTitle = "第 1 話"
+    state.chapterTitle = "第 1 话"
     state.chapterListItems = FixedPageChapterListItem.items(
-        from: [OnlineChapterRef(index: 0, title: "第 1 話", url: "")]
+        from: [OnlineChapterRef(index: 0, title: "第 1 话", url: "")]
     )
     state.totalPages = 24
     return NavigationStack {
@@ -665,13 +665,13 @@ struct FixedPageChapterListView: View {
 }
 
 #Preview("Settings") {
-    // Paged by default, so 翻頁區塊編輯 shows — locked unless Pro is active.
+    // Paged by default, so 翻页区块编辑 shows — locked unless Pro is active.
     FixedPageReaderSettingsView(state: FixedPageReaderState(), onOpenTouchZoneEditor: {})
         .environmentObject(SubscriptionStore.shared)
 }
 
 #Preview("Settings — manga") {
-    // A manga offers 漫畫預設模式 under its own reading mode.
+    // A manga offers 漫画预设模式 under its own reading mode.
     let state = FixedPageReaderState()
     state.isManga = true
     state.followsMangaDefault = true

@@ -1,7 +1,7 @@
 import Combine
 import Foundation
 
-/// Runs AI 整理書架 for the page: gathers what the shelf knows, asks the default service in
+/// Runs AI 整理书架 for the page: gathers what the shelf knows, asks the default service in
 /// batches, and holds the proposal while the reader reviews it. Leaving the page cancels
 /// the run; nothing is written to the shelf until `apply`.
 @MainActor
@@ -110,7 +110,7 @@ final class AIBookshelfOrganizerModel: ObservableObject {
     /// book's category and blurb come from the detail page the source already returned, when
     /// that page is still cached.
     ///
-    /// - Parameter records: the books to read, in their order; the whole shelf when nil. AI 推薦
+    /// - Parameter records: the books to read, in their order; the whole shelf when nil. AI 推荐
     ///   reads its 30 most recently read books through here.
     static func shelfBooks(store: BookStore, records: [ReadingBook]? = nil) async -> [AIBookshelfOrganizer.Book] {
         let records = records ?? store.books

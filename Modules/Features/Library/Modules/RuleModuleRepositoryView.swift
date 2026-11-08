@@ -2,7 +2,7 @@ import SwiftUI
 
 /// A subscribed repository's page (M6): its modules against the installed ones, the index read
 /// again as the page opens (maintainer, 2026-10-17: updates are checked then and applied only on
-/// 更新). One module installs or updates through the import sheet's preview; 選擇 installs
+/// 更新). One module installs or updates through the import sheet's preview; 选择 installs
 /// several at once, leaving an update that adds a site for its own preview.
 struct RuleModuleRepositoryView: View {
     let url: URL
@@ -39,10 +39,10 @@ struct RuleModuleRepositoryView: View {
             if let repository {
                 content(repository)
             } else {
-                ContentUnavailableView { UnavailableLabel(localized("找不到這個模組倉庫。"), systemImage: "shippingbox") }
+                ContentUnavailableView { UnavailableLabel(localized("找不到这个模组仓库。"), systemImage: "shippingbox") }
             }
         }
-        .navigationTitle(repository?.subscription.name ?? localized("模組倉庫"))
+        .navigationTitle(repository?.subscription.name ?? localized("模组仓库"))
         .toolbarTitleDisplayMode(.inline)
         .themedAppSurface(for: .settings)
         .hidesRootTabBar()
@@ -51,15 +51,15 @@ struct RuleModuleRepositoryView: View {
         .sheet(isPresented: $showsImport) {
             RuleModuleImportSheet(model: importer, title: importTitle)
         }
-        .confirmationDialog(String(format: localized("取消訂閱「%@」？"), repository?.subscription.name ?? ""),
+        .confirmationDialog(String(format: localized("取消订阅「%@」？"), repository?.subscription.name ?? ""),
                             isPresented: $confirmsUnsubscription, titleVisibility: .visible) {
-            Button(localized("取消訂閱"), role: .destructive) {
+            Button(localized("取消订阅"), role: .destructive) {
                 repositories.unsubscribe(url)
                 dismiss()
             }
             Button(localized("取消"), role: .cancel) {}
         } message: {
-            Text(localized("已安裝的模組會留下。"))
+            Text(localized("已安装的模组会留下。"))
         }
         .task {
             guard !hasLoaded else { return }
@@ -73,16 +73,16 @@ struct RuleModuleRepositoryView: View {
     private func content(_ repository: RuleModuleRepositoryModel.Repository) -> some View {
         switch repository.state {
         case .loading:
-            ProgressView(localized("讀取中"))
+            ProgressView(localized("读取中"))
         case .failed(let message):
             ContentUnavailableView {
-                UnavailableLabel(localized("載入失敗"), systemImage: "wifi.exclamationmark")
+                UnavailableLabel(localized("载入失败"), systemImage: "wifi.exclamationmark")
             } description: {
                 Text(message).font(DSFont.unavailableDescription)
             } actions: {
                 UnavailableActions {
-                    Button(localized("重試")) { Task { await repositories.reload(url) } }
-                    Button(localized("取消訂閱"), role: .destructive) { confirmsUnsubscription = true }
+                    Button(localized("重试")) { Task { await repositories.reload(url) } }
+                    Button(localized("取消订阅"), role: .destructive) { confirmsUnsubscription = true }
                 }
             }
         case .loaded(let index):
@@ -100,7 +100,7 @@ struct RuleModuleRepositoryView: View {
                     row(entry)
                 }
             } header: {
-                Text(localized("模組列表")).foregroundStyle(DSColor.textSecondary)
+                Text(localized("模组列表")).foregroundStyle(DSColor.textSecondary)
             } footer: {
                 if let outcome {
                     Text(summary(outcome)).dsSectionFooter()
@@ -116,11 +116,11 @@ struct RuleModuleRepositoryView: View {
                     Button(role: .destructive) {
                         confirmsUnsubscription = true
                     } label: {
-                        SettingsRowLabel(localized("取消訂閱"), systemImage: "minus.circle", role: .destructive)
+                        SettingsRowLabel(localized("取消订阅"), systemImage: "minus.circle", role: .destructive)
                     }
                     .accessibilityIdentifier("modules.repository.unsubscribe")
                 } header: {
-                    Text(localized("訂閱網址")).foregroundStyle(DSColor.textSecondary)
+                    Text(localized("订阅网址")).foregroundStyle(DSColor.textSecondary)
                 }
                 .interfaceSectionSurface()
             }
@@ -142,7 +142,7 @@ struct RuleModuleRepositoryView: View {
                 } label: {
                     label
                 }
-                .accessibilityHint(localized(status == .notInstalled ? "新增模組" : "更新模組"))
+                .accessibilityHint(localized(status == .notInstalled ? "新增模组" : "更新模组"))
             } else {
                 NavigationLink(value: ExploreNavigationRoute.module(id: entry.id)) { label }
             }
@@ -154,8 +154,8 @@ struct RuleModuleRepositoryView: View {
 
     private func statusText(_ status: RuleModuleRepositoryStatus) -> String? {
         switch status {
-        case .notInstalled: localized("模組狀態：安裝")
-        case .updateAvailable: localized("模組狀態：更新")
+        case .notInstalled: localized("模组状态：安装")
+        case .updateAvailable: localized("模组状态：更新")
         case .installed, .official: nil
         }
     }
@@ -167,14 +167,14 @@ struct RuleModuleRepositoryView: View {
                 Button {
                     if let entry = index.modules.first(where: { $0.id == item.id }) { offer(entry, isUpdate: true) }
                 } label: {
-                    outcomeLabel(item.title, localized("這次更新會向新的網站送出請求，點一下看過再更新。"))
+                    outcomeLabel(item.title, localized("这次更新会向新的网站送出请求，点一下看过再更新。"))
                 }
             }
             ForEach(outcome.failed, id: \.id) { item in
                 outcomeLabel(item.title, item.message ?? "")
             }
         } header: {
-            Text(localized("需要處理")).foregroundStyle(DSColor.textSecondary)
+            Text(localized("需要处理")).foregroundStyle(DSColor.textSecondary)
         }
         .interfaceSectionSurface()
     }
@@ -190,14 +190,14 @@ struct RuleModuleRepositoryView: View {
     }
 
     private func summary(_ outcome: RuleModuleRepositoryModel.BatchOutcome) -> String {
-        String(format: localized("已安裝 %1$d 個、更新 %2$d 個模組。"), outcome.installed.count, outcome.updated.count)
+        String(format: localized("已安装 %1$d 个、更新 %2$d 个模组。"), outcome.installed.count, outcome.updated.count)
     }
 
     @ToolbarContentBuilder
     private var toolbar: some ToolbarContent {
         if repository?.index != nil {
             ToolbarItem(placement: .topBarTrailing) {
-                Button(localized(isSelecting ? "完成" : "列表：選擇")) {
+                Button(localized(isSelecting ? "完成" : "列表：选择")) {
                     withAnimation(DSAnimation.standard) {
                         editMode = isSelecting ? .inactive : .active
                         if !isSelecting { selection.removeAll() }
@@ -225,7 +225,7 @@ struct RuleModuleRepositoryView: View {
                     if isInstalling {
                         ProgressView()
                     } else {
-                        Text(selection.isEmpty ? localized("安裝") : String(format: localized("安裝 %d 個"), selection.count))
+                        Text(selection.isEmpty ? localized("安装") : String(format: localized("安装 %d 个"), selection.count))
                     }
                 }
                 .disabled(selection.isEmpty || isInstalling)
@@ -236,7 +236,7 @@ struct RuleModuleRepositoryView: View {
 
     private func offer(_ entry: RuleModuleRepositoryIndex.Entry, isUpdate: Bool) {
         importer.reset()
-        importTitle = localized(isUpdate ? "更新模組" : "新增模組")
+        importTitle = localized(isUpdate ? "更新模组" : "新增模组")
         showsImport = true
         Task { await importer.offer(entry) }
     }
@@ -252,9 +252,9 @@ struct RuleModuleRepositoryView: View {
     }
 }
 
-#Preview("模組倉庫") {
+#Preview("模组仓库") {
     NavigationStack {
         RuleModuleRepositoryView(url: URL(string: "https://modules.example/index.json")!,
-                                 library: RuleModulePreviewData.library(["新書速報"]))
+                                 library: RuleModulePreviewData.library(["新书速报"]))
     }
 }

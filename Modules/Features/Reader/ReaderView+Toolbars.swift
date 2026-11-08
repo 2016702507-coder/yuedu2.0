@@ -26,12 +26,12 @@ extension ReaderView {
 
     // MARK: - Top chrome
 
-    /// The chrome colours 自定義 can override; see `ReaderChromePalette`.
+    /// The chrome colours 自定义 can override; see `ReaderChromePalette`.
     var modernPalette: ReaderChromePalette {
         ReaderChromePalette(theme: readerTheme, settings: settings)
     }
 
-    /// Three glass islands: 返回 (circle) · 書名 (capsule) · 封面 (circle), each in
+    /// Three glass islands: 返回 (circle) · 书名 (capsule) · 封面 (circle), each in
     /// its own placement.
     ///
     /// Each one needs its own placement. Putting all three in `.topBarLeading` and
@@ -41,11 +41,11 @@ extension ReaderView {
     /// with `Spacer()`s, even though that is how the bookshelf's multi-select bottom bar
     /// builds the same shape. That works in `.bottomBar`, which hands the group the full
     /// width; the navigation bar's `.principal` region sizes to its content, so the
-    /// spacers collapsed and took 書名 and 封面 with them — the device showed a bare
+    /// spacers collapsed and took 书名 and 封面 with them — the device showed a bare
     /// chevron floating mid-bar and nothing else. Verified twice on hardware. Do not
     /// merge these back into one group.
     ///
-    /// Separate placements are also what centres 書名: `.principal` is the only one
+    /// Separate placements are also what centres 书名: `.principal` is the only one
     /// that does, and a flexible `ToolbarSpacer` in the leading group only pushes to
     /// that group's own trailing edge. The catch is that a principal item is the
     /// bar's title view and never takes the glass by itself, so the title capsule
@@ -68,24 +68,24 @@ extension ReaderView {
         Button {
             closeReader()
         } label: {
-            Label(localized("退出閱讀"), systemImage: "chevron.left")
+            Label(localized("退出阅读"), systemImage: "chevron.left")
                 .labelStyle(.iconOnly)
                 .foregroundStyle(modernPalette.topIcon)
         }
         .accessibilityIdentifier("reader_back_button")
-        .accessibilityLabel(localized("退出閱讀"))
+        .accessibilityLabel(localized("退出阅读"))
     }
 
-    /// Every book changes source (maintainer 2026-10-26: 「書架導入的書長按書名膠囊為什麼不能直接
-    /// 換源」): a 來源配置's, a module's, a library's, an imported file. The book card's 換源 uses
+    /// Every book changes source (maintainer 2026-10-26: 「书架导入的书长按书名胶囊为什么不能直接
+    /// 换源」): a 来源配置's, a module's, a library's, an imported file. The book card's 换源 uses
     /// the same condition.
     var canChangeModernSource: Bool {
         book != nil
     }
 
-    /// 書名 over where it is read from, in one glass capsule never narrower than
+    /// 书名 over where it is read from, in one glass capsule never narrower than
     /// `readerModernTitleMinWidth`. A tap opens the book card the cover does; a long
-    /// press opens 換源, which the card also offers for anyone who does not know the
+    /// press opens 换源, which the card also offers for anyone who does not know the
     /// gesture.
     private var modernTitleButton: some View {
         Button {
@@ -110,11 +110,11 @@ extension ReaderView {
                 .filter { !$0.isEmpty }
                 .joined(separator: ", ")
         )
-        .accessibilityHint(localized("書本選單"))
+        .accessibilityHint(localized("书本选单"))
         .accessibilityIdentifier("reader_title_capsule")
         .accessibilityActions {
             if canChangeModernSource {
-                Button(localized("換源")) { showChangeSourceSheet = true }
+                Button(localized("换源")) { showChangeSourceSheet = true }
             }
         }
     }
@@ -129,8 +129,8 @@ extension ReaderView {
         // would draw its own circle and inset the artwork inside it, which is the
         // small-square-in-a-circle look this replaces.
         .buttonStyle(.plain)
-        .accessibilityLabel(localized("書本選單"))
-        // On the cover, not on 書名: a popover anchored to the bar's principal item ran
+        .accessibilityLabel(localized("书本选单"))
+        // On the cover, not on 书名: a popover anchored to the bar's principal item ran
         // off the trailing edge of the screen on iOS 27. Its width is what keeps the
         // two side margins equal; see `DSLayout.readerModernBookCardWidth`.
         .popover(isPresented: $showModernBookCard, arrowEdge: .bottom) {
@@ -140,7 +140,7 @@ extension ReaderView {
                 .presentationCompactAdaptation(.popover)
                 // The popover's own surface — corners and arrow included, which is
                 // why the card itself paints nothing. On iOS 26 this is the same
-                // glass the 現代 bottom bar wears, with 自定義's panelFill fading in
+                // glass the 现代 bottom bar wears, with 自定义's panelFill fading in
                 // as 透明度 drops; a flat `panelFill` is what it was before, and what
                 // it still is with 毛玻璃 off. A plain rectangle because the popover
                 // does the clipping.
@@ -219,14 +219,14 @@ extension ReaderView {
             author: modernBookAuthor,
             formatText: modernFormatText,
             progressText: modernChapterProgressText,
-            // Reversed: the list is built most-specific-first (下載 … 刷新) and reads
+            // Reversed: the list is built most-specific-first (下载 … 刷新) and reads
             // better the other way round.
-            // `visibleReaderSecondaryActions` then drops whatever 自定義 switched off.
+            // `visibleReaderSecondaryActions` then drops whatever 自定义 switched off.
             actions: settings.visibleReaderSecondaryActions(readerSecondaryActions.reversed()).map { action in
                 // Every one of these opens its own sheet, and iOS won't present a modal from
                 // a popover that is still up — nor from one that is still dismissing, which
                 // is why running the action in the same turn as `showModernBookCard = false`
-                // left 聽書 (then in the card) dead: the card slid back into the thumbnail and
+                // left 听书 (then in the card) dead: the card slid back into the thumbnail and
                 // no panel came up.
                 // Retain the route and let the popover's real dismissal run it.
                 ReaderSecondaryAction(id: action.id, icon: action.icon, label: action.label, isLocked: action.isLocked) {
@@ -249,7 +249,7 @@ extension ReaderView {
         )
     }
 
-    /// Opens whatever the 現代 book card was asked for, once the popover is actually gone.
+    /// Opens whatever the 现代 book card was asked for, once the popover is actually gone.
     func presentDeferredModernBookCardRoute() {
         guard let route = modernBookCardPresentation.consumeAfterDismissal() else { return }
         switch route {
@@ -277,15 +277,15 @@ extension ReaderView {
     }
 
     /// The 格式 chip. Online books resolve to `.html` internally, which is true but
-    /// meaningless to a reader, so they get 「線上」 instead of "HTML".
+    /// meaningless to a reader, so they get 「线上」 instead of "HTML".
     var modernFormatText: String {
         guard let book else { return "" }
         return book.displayFormatLabel
     }
 
-    /// "current chapter / total chapters" — the 進度 chip in the book card. Chapters,
-    /// not pages: pages shift as chapters load, chapter position doesn't. Counted in 目錄
-    /// entries, as 目錄 lists them: an EPUB's spine index counts files, not those entries.
+    /// "current chapter / total chapters" — the 进度 chip in the book card. Chapters,
+    /// not pages: pages shift as chapters load, chapter position doesn't. Counted in 目录
+    /// entries, as 目录 lists them: an EPUB's spine index counts files, not those entries.
     /// A position before the first entry (a cover) is 0.
     var modernChapterProgressText: String {
         guard !chapters.isEmpty else { return "" }
@@ -304,7 +304,7 @@ extension ReaderView {
         modernCoverImage = loadTOCStyleCoverImage(filename: coverPath)
     }
 
-    /// The book card's actions. 聽書 is not one of them — it is in the bottom bar — and
+    /// The book card's actions. 听书 is not one of them — it is in the bottom bar — and
     /// the AI ones are in 更多 (`readerMoreActions`).
     var readerSecondaryActions: [ReaderSecondaryAction] {
         var actions: [ReaderSecondaryAction] = []
@@ -314,7 +314,7 @@ extension ReaderView {
                 ReaderSecondaryAction(
                     id: .download,
                     icon: downloadButtonIcon,
-                    label: localized("下載"),
+                    label: localized("下载"),
                     action: { handleDownloadAction() }
                 )
             )
@@ -325,7 +325,7 @@ extension ReaderView {
                 ReaderSecondaryAction(
                     id: .changeSource,
                     icon: "arrow.left.and.right",
-                    label: localized("換源"),
+                    label: localized("换源"),
                     action: { showChangeSourceSheet = true }
                 )
             )
@@ -337,7 +337,7 @@ extension ReaderView {
                 ReaderSecondaryAction(
                     id: .sourceLogin,
                     icon: "person.crop.circle",
-                    label: localized("來源配置登入"),
+                    label: localized("来源配置登入"),
                     action: { sourceLoginTarget = source }
                 )
             )
@@ -348,7 +348,7 @@ extension ReaderView {
                 ReaderSecondaryAction(
                     id: .openWebPage,
                     icon: "globe",
-                    label: localized("開啟網頁"),
+                    label: localized("开启网页"),
                     action: { openCurrentChapterWebPage() }
                 )
             )
@@ -359,7 +359,7 @@ extension ReaderView {
                 ReaderSecondaryAction(
                     id: .sourceCustomButton,
                     icon: "hand.tap",
-                    label: localized("自訂按鈕"),
+                    label: localized("自订按钮"),
                     action: { runSourceCustomButton() }
                 )
             )
@@ -379,7 +379,7 @@ extension ReaderView {
         return actions
     }
 
-    /// AI 助手 and AI 翻譯, which 更多 in the bottom bar lists under 書籤.
+    /// AI 助手 and AI 翻译, which 更多 in the bottom bar lists under 书签.
     var readerMoreActions: [ReaderSecondaryAction] {
         // Shown whatever the AI settings are: hiding it when unconfigured would leave a
         // reader with no way to discover the feature exists. The panel itself explains what
@@ -395,13 +395,13 @@ extension ReaderView {
             )
         ]
 
-        // 整章翻譯 lays translations into reflowed text; a fixed-layout page has none.
+        // 整章翻译 lays translations into reflowed text; a fixed-layout page has none.
         if !isFixedLayoutEPUB {
             actions.append(
                 ReaderSecondaryAction(
                     id: .translation,
                     icon: "translate",
-                    label: localized("AI 翻譯"),
+                    label: localized("AI 翻译"),
                     isLocked: aiLocked,
                     action: { openTranslationSheet() }
                 )
@@ -417,7 +417,7 @@ extension ReaderView {
         return chapters[currentChapterIndex]
     }
 
-    /// 開啟網頁: the current chapter's page, with its source's headers and cookies
+    /// 开启网页: the current chapter's page, with its source's headers and cookies
     /// (`SourceWebPage.open`).
     func openCurrentChapterWebPage() {
         guard let book, let chapter = currentOnlineChapter else { return }
@@ -427,7 +427,7 @@ extension ReaderView {
         SourceWebPage.open(chapter.url, title: chapter.title, source: source)
     }
 
-    /// 複製正文網址 and 調試正文, a group of their own in 更多 (`ReaderSourceDebugActions`).
+    /// 复制正文网址 and 调试正文, a group of their own in 更多 (`ReaderSourceDebugActions`).
     var readerSourceDebugActions: [ReaderSecondaryAction] {
         let source = readerSource
         let chapterURL = currentOnlineChapter?.url
@@ -435,11 +435,11 @@ extension ReaderView {
             guard let source, let chapterURL else { return nil }
             switch id {
             case .copyChapterURL:
-                return ReaderSecondaryAction(id: id, icon: "link", label: localized("複製正文網址")) {
+                return ReaderSecondaryAction(id: id, icon: "link", label: localized("复制正文网址")) {
                     SourceWebPage.copy(chapterURL)
                 }
             case .debugContent:
-                return ReaderSecondaryAction(id: id, icon: "ladybug", label: localized("調試正文")) {
+                return ReaderSecondaryAction(id: id, icon: "ladybug", label: localized("调试正文")) {
                     contentDebugTarget = ReaderContentDebugTarget(source: source, chapterURL: chapterURL)
                 }
             default:
@@ -457,7 +457,7 @@ extension ReaderView {
         showAIAssistantPanel = true
     }
 
-    /// 整章翻譯's sheet, or the paywall without Pro.
+    /// 整章翻译's sheet, or the paywall without Pro.
     func openTranslationSheet() {
         guard readerPremiumVisibility.allowsAI else {
             paywallFeature = .aiReading
@@ -495,6 +495,8 @@ extension ReaderView {
         case .slide: return .slide
         case .cover: return .cover
         case .curl: return .curl
+        case .ripple: return .ripple
+        case .vertical: return .vertical
         case .none: return .fastFade
         }
     }
@@ -510,6 +512,12 @@ extension ReaderView {
         case .curl:
             settings.scrollMode = false
             settings.pageTurnStyle = .curl
+        case .ripple:
+            settings.scrollMode = false
+            settings.pageTurnStyle = .ripple
+        case .vertical:
+            settings.scrollMode = false
+            settings.pageTurnStyle = .vertical
         case .fastFade:
             settings.scrollMode = false
             settings.pageTurnStyle = .none
@@ -523,7 +531,7 @@ extension ReaderView {
             Button {
                 jumpBackToTTSChapter()
             } label: {
-                Label(localized("原進度"), systemImage: "arrow.uturn.backward")
+                Label(localized("原进度"), systemImage: "arrow.uturn.backward")
                     .font(DSFont.subheadline.weight(.semibold))
                     .lineLimit(1)
             }
@@ -536,7 +544,7 @@ extension ReaderView {
             Button {
                 startTTSFromPromptChapter()
             } label: {
-                Label(localized("從本章開始聽"), systemImage: "headphones")
+                Label(localized("从本章开始听"), systemImage: "headphones")
                     .font(DSFont.subheadline.weight(.semibold))
                     .lineLimit(1)
             }
@@ -569,10 +577,10 @@ extension ReaderView {
 
     var ttsJumpPromptMessage: String {
         guard let ttsChapterIndex, spineChapters.indices.contains(ttsChapterIndex) else {
-            return localized("你已移到其他章節，可以選擇回到正在朗讀的位置，或從目前章節重新開始。")
+            return localized("你已移到其他章节，可以选择回到正在朗读的位置，或从目前章节重新开始。")
         }
         return String(
-            format: localized("聽書仍在「%@」，可以選擇回去，或改從目前章節開始。"),
+            format: localized("听书仍在「%@」，可以选择回去，或改从目前章节开始。"),
             chapterTitle(forSpineIndex: ttsChapterIndex).converted(to: settings.textConversion)
         )
     }
@@ -582,7 +590,7 @@ extension ReaderView {
 /// The title capsule: a tap is the button's action, a long press is `onLongPress`.
 /// Primitive, so the two cannot both fire — a long-press gesture added to a plain
 /// button would still open the book card on the release that ends it. Same reason as
-/// 外觀's theme tiles.
+/// 外观's theme tiles.
 ///
 /// It draws its own Liquid Glass because a `.principal` toolbar item is the bar's
 /// title view and never gets the treatment on its own. Before iOS 26 there is no
@@ -625,7 +633,7 @@ private struct ReaderTitleCapsuleButtonBody: View {
             } else {
                 // iOS 17: the exclusive gesture above never ends in its tap here — on 17.5 a
                 // tap on the capsule reached the app and opened nothing. iOS 17 keeps the two
-                // stacked gestures 外觀's theme tiles use. Delete this branch once the
+                // stacked gestures 外观's theme tiles use. Delete this branch once the
                 // deployment target is iOS 18.
                 capsule
                     .onTapGesture { configuration.trigger() }

@@ -1,9 +1,9 @@
 import Foundation
 
 /// How hard a search's later pages may push the phone (search 9e, maintainer 2026-10-15:
-/// 「能請求多少就請求多少，但是根據手機性能請求」 — no freeze, no hot phone).
+/// 「能请求多少就请求多少，但是根据手机性能请求」 — no freeze, no hot phone).
 ///
-/// Page 1 always runs at the configured width (網路設定 → 並發數). The pages after it run
+/// Page 1 always runs at the configured width (网路设置 → 并发数). The pages after it run
 /// at half that width while the phone is warm (`.fair`) or in Low Power Mode, and wait while
 /// it is hot (`.serious`, `.critical`) until the system says it has cooled. Every iPhone that
 /// runs iOS 17 has six cores, so the processor count tells phones apart by nothing; the

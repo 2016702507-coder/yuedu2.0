@@ -1,28 +1,28 @@
 import Foundation
 
-// Unified library 5d-4: the custom pages, read once to become 首頁配置 (Phase 5 plan,
+// Unified library 5d-4: the custom pages, read once to become 首页配置 (Phase 5 plan,
 // decisions 12 and 22). Nothing writes `custom_explore_pages.json` any more; the file stays
 // where it is, for a build older than 5d-4. A page such a build adds afterwards does not
 // move in.
 
 /// One block of a custom explore page: a layout, the category it shows — several, for
-/// 多分類排行榜 — and the title over it.
+/// 多分类排行榜 — and the title over it.
 struct CustomExploreComponent: Codable, Hashable, Identifiable, Sendable {
     /// The layouts a block could take. `HomeSection.migrating` maps each onto the home's.
     enum Kind: String, Codable, CaseIterable, Identifiable, Sendable {
-        /// 推薦卡片: a row of covers, each with its title and intro.
+        /// 推荐卡片: a row of covers, each with its title and intro.
         case featuredCards
-        /// 排行榜: the top five as a list, 顯示全部 for the top ten.
+        /// 排行榜: the top five as a list, 显示全部 for the top ten.
         case ranking
-        /// 宮格: two rows of five covers.
+        /// 宫格: two rows of five covers.
         case grid
-        /// 左右滑動: covers alone, in a row that swipes sideways.
+        /// 左右滑动: covers alone, in a row that swipes sideways.
         case carousel
-        /// 網絡排行榜: one ranking in columns of four, paged sideways.
+        /// 网络排行榜: one ranking in columns of four, paged sideways.
         case pagedRanking
-        /// 多分類排行榜: rankings of one source behind tabs, each paged sideways.
+        /// 多分类排行榜: rankings of one source behind tabs, each paged sideways.
         case multiCategoryRanking
-        /// 錯位瀑布流: cards in staggered columns that kept loading as the page scrolled.
+        /// 错位瀑布流: cards in staggered columns that kept loading as the page scrolled.
         case waterfall
 
         var id: String { rawValue }
@@ -67,7 +67,7 @@ struct CustomExplorePage: Codable, Hashable, Identifiable, Sendable {
     }
 }
 
-/// `custom_explore_pages.json`, as the move into 首頁配置 finds it.
+/// `custom_explore_pages.json`, as the move into 首页配置 finds it.
 enum LegacyCustomExplorePages: Equatable, Sendable {
     /// No file: nothing to move.
     case absent
@@ -80,7 +80,7 @@ enum LegacyCustomExplorePages: Equatable, Sendable {
         do {
             return .pages(try JSONDecoder().decode([CustomExplorePage].self, from: Data(contentsOf: url)))
         } catch {
-            AppLogger.cache("⟐ custom explore pages could not be read; they move into 首頁配置 later", error: error)
+            AppLogger.cache("⟐ custom explore pages could not be read; they move into 首页配置 later", error: error)
             return .unreadable
         }
     }
@@ -92,12 +92,12 @@ extension LegacyCustomExplorePages {
     static let seededPageID = UUID(uuidString: "5D4C0000-0000-4000-8000-000000000001")!
     static let seededComponentID = UUID(uuidString: "5D4C0000-0000-4000-8000-000000000002")!
 
-    /// Writes one custom page, chosen as the old 首屏頁面, as a build before 5d-4 left them.
+    /// Writes one custom page, chosen as the old 首屏页面, as a build before 5d-4 left them.
     /// UI tests only, after `-reset-explore-home`.
     static func seedForTesting() {
-        let page = CustomExplorePage(id: seededPageID, name: "週末書單", components: [
-            CustomExploreComponent(id: seededComponentID, kind: .ranking, title: "熱門榜", categories: [
-                ExploreCategoryReference(sourceURL: "https://seed.test", title: "熱門", url: "/hot"),
+        let page = CustomExplorePage(id: seededPageID, name: "周末书单", components: [
+            CustomExploreComponent(id: seededComponentID, kind: .ranking, title: "热门榜", categories: [
+                ExploreCategoryReference(sourceURL: "https://seed.test", title: "热门", url: "/hot"),
             ]),
         ])
         let url = StorageLocations.applicationSupportRoot.appendingPathComponent("custom_explore_pages.json")

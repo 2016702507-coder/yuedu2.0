@@ -57,9 +57,9 @@ struct SourceLoginWebView: View {
                         Image(systemName: usesDesktopSite ? "desktopcomputer" : "iphone")
                     }
                     .toggleStyle(.button)
-                    .accessibilityLabel(localized("電腦版網頁"))
-                    .accessibilityValue(usesDesktopSite ? localized("開啟") : localized("狀態：關閉"))
-                    .accessibilityHint(localized("網站只給手機版下載頁時改用電腦版"))
+                    .accessibilityLabel(localized("电脑版网页"))
+                    .accessibilityValue(usesDesktopSite ? localized("开启") : localized("状态：关闭"))
+                    .accessibilityHint(localized("网站只给手机版下载页时改用电脑版"))
                     .disabled(isSyncing)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
@@ -68,7 +68,7 @@ struct SourceLoginWebView: View {
                     } label: {
                         Image(systemName: "arrow.clockwise")
                     }
-                    .accessibilityLabel(localized("網頁：重新整理"))
+                    .accessibilityLabel(localized("网页：重新整理"))
                     .disabled(isSyncing)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
@@ -90,7 +90,7 @@ struct SourceLoginWebView: View {
         }
     }
 
-    /// Same 「登入：源名稱」 title format as the form login sheet.
+    /// Same 「登入：源名称」 title format as the form login sheet.
     private var loginTitle: String {
         String(format: localized("登入：%@"), login.name)
     }

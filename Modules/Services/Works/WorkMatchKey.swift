@@ -5,7 +5,7 @@ import Foundation
 enum WorkMatchKey {
     /// NFKC (full width to half width), lowercase, Traditional → Simplified, katakana →
     /// hiragana, then without whitespace, punctuation and symbols (Unicode Z\*, P\*, S\*,
-    /// controls). Digits and the text inside brackets stay: 三體 ≠ 三體II, 斗罗大陆 ≠ 斗罗大陆3
+    /// controls). Digits and the text inside brackets stay: 三体 ≠ 三体II, 斗罗大陆 ≠ 斗罗大陆3
     /// (`SearchAggregator.isLikelySameBook` has the same reason). Nothing else is stripped
     /// until real data has been measured.
     static func title(_ raw: String) -> String {
@@ -58,7 +58,7 @@ enum WorkMatchKey {
         if best.count < keys.count {
             guard Set(best.map { books[$0].witness }).count >= 2, best.count * 3 >= keys.count * 2 else { return nil }
         }
-        // The name as most of them write it (刘慈欣 over 劉慈欣 when more write it so), and of
+        // The name as most of them write it (刘慈欣 over 刘慈欣 when more write it so), and of
         // those written as often the shortest: 「飞天鱼」 over 「飞天鱼 著」.
         let names = best.compactMap { books[$0].authors.lazy.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.first { !$0.isEmpty } }
         let counts = Dictionary(names.map { ($0, 1) }, uniquingKeysWith: +)

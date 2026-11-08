@@ -25,7 +25,7 @@ enum AIJSONFencing {
 /// — what else the book calls them.
 ///
 /// **`aliasCandidates` is the only place the AI and the TTS work meet.** The dialogue
-/// attribution heuristic cannot know that 張若塵, 若塵 and 塵哥 are one person, so without
+/// attribution heuristic cannot know that 张若尘, 若尘 and 尘哥 are one person, so without
 /// this it casts three voices for one character. Everything else here is for the reader.
 ///
 /// Source scope is persisted; only verified cards within the reading boundary supply safe aliases.
@@ -35,7 +35,7 @@ struct AICharacterProfile: Sendable, Equatable, Codable {
     let firstAppearance: String?
     let role: String?
     let relationships: [String]
-    /// Other names the book uses for this character — fed back to 多角色朗讀 so they share
+    /// Other names the book uses for this character — fed back to 多角色朗读 so they share
     /// one voice. Never includes `name` itself.
     let aliasCandidates: [String]
     let summary: String
@@ -66,16 +66,16 @@ struct AICharacterProfile: Sendable, Equatable, Codable {
     /// the system role would let a novel containing something shaped like an instruction
     /// rewrite the rules it is being read under.
     ///
-    /// The card is written in `language`, except the aliases: 多角色朗讀 matches them against
+    /// The card is written in `language`, except the aliases: 多角色朗读 matches them against
     /// the prose, so they stay exactly as the book writes them.
     static func task(language: AIAnswerLanguage) -> String {
         """
-        整理指定人物在本書中的檔案。可用工具 retrieve(query) 檢索本書片段（進度範圍 [0, 1.0]＝全書）。
-        規則：不要透露該人物的最終結局或生死；可以說明身分、人物關係、首次登場。只依據檢索到的片段，不要編造；沒有依據的欄位留空。
-        資訊足夠後 action=finish，並把**純 JSON**（不要加程式碼區塊標記）放進 answer：
+        整理指定人物在本书中的档案。可用工具 retrieve(query) 检索本书片段（进度范围 [0, 1.0]＝全书）。
+        规则：不要透露该人物的最终结局或生死；可以说明身分、人物关系、首次登场。只依据检索到的片段，不要编造；没有依据的栏位留空。
+        资讯足够后 action=finish，并把**纯 JSON**（不要加程式码区块标记）放进 answer：
         {"firstAppearance":string,"role":string,"relationships":[string],"aliasCandidates":[string],"summary":string}
-        - firstAppearance、role、relationships、summary 用\(language.promptName)寫；summary 是人物檔案（不含結局）。
-        - aliasCandidates：本書中可能指同一人的別稱（不含人物名本身），逐字照書中原文的寫法。
+        - firstAppearance、role、relationships、summary 用\(language.promptName)写；summary 是人物档案（不含结局）。
+        - aliasCandidates：本书中可能指同一人的别称（不含人物名本身），逐字照书中原文的写法。
         """
     }
 
@@ -137,7 +137,7 @@ struct AICharacterProfile: Sendable, Equatable, Codable {
     var allNames: [String] { [name] + aliasCandidates }
 }
 
-/// Folds a book's character cards into the alias table 多角色朗讀 casts voices against.
+/// Folds a book's character cards into the alias table 多角色朗读 casts voices against.
 ///
 /// The map is alias → canonical name, so `TTSSpeakerAnnotator` can resolve whatever the
 /// prose calls someone back to the character the user cast.

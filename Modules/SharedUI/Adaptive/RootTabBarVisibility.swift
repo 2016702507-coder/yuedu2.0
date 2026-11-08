@@ -8,7 +8,7 @@ import SwiftUI
 /// each one pushes *its own* tab's tab-bar visibility onto the one shared tab bar whenever
 /// its preferences change, selected or not (`BarAppearanceBridge.updateTabBarVisibility`,
 /// traced on the iOS 26.5 simulator). A screen that hid the tab bar only for its own tab
-/// therefore lost it to the next update of any other opened tab: with 探索 and 設定
+/// therefore lost it to the next update of any other opened tab: with 探索 and 设置
 /// opened earlier, the reader's 白天/深色 button changing `GlobalSettings` showed the tab
 /// bar over the reader until the reader's own bars next changed. Every tab now hides it
 /// while any screen asks (`ContentView` puts `RootTabBarHider` behind each tab), so the
@@ -46,7 +46,7 @@ extension EnvironmentValues {
 ///
 /// A background, not a `.toolbar(_:for: .tabBar)` on the tab's content: one on the
 /// content overrides the tab's own screens — `.automatic` there kept the tab bar over
-/// 書架's 選取 mode, which hides it for its own bottom toolbar (iOS 26.5 simulator). And
+/// 书架's 选取 mode, which hides it for its own bottom toolbar (iOS 26.5 simulator). And
 /// the `if` lives in here so the tab's content keeps its identity; swapping that would
 /// reset the tab's navigation stack.
 struct RootTabBarHider: View {
@@ -72,7 +72,7 @@ private struct RootTabBarHidingModifier: ViewModifier {
             // Hidden while it hides, and nothing otherwise: `.automatic` is not "no preference".
             // On a stack's root it overrode the `.hidden` of every page pushed over it, which
             // left the tab bar over 探索's readers on iOS 17 (FB-100, iOS 17.5 simulator), as it
-            // kept the bar over 書架's 選取 mode from a tab's content (`RootTabBarHider`). In a
+            // kept the bar over 书架's 选取 mode from a tab's content (`RootTabBarHider`). In a
             // background, as there, so `content` keeps its identity.
             .background {
                 if hidesTabBar {

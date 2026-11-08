@@ -1,7 +1,7 @@
 #if DEBUG
 import Foundation
 
-/// `-reader-translation-fixture`: a book with no stored 整章翻譯 setting opens side by side
+/// `-reader-translation-fixture`: a book with no stored 整章翻译 setting opens side by side
 /// with a canned English translation, so the translated layout can be looked at without an
 /// AI service. Debug builds only.
 enum ReaderTranslationFixture {

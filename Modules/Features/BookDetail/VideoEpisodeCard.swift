@@ -1,9 +1,9 @@
 import SwiftUI
 
-/// One episode in 選集, as VidHub's episode stills: a frame of the episode once it has been
+/// One episode in 选集, as VidHub's episode stills: a frame of the episode once it has been
 /// taken (`VideoEpisodeStills`), its number in that frame until then and when it cannot be;
 /// under it 第 N 集 — with the running time once the stream has said it — and the source's own
-/// name for the episode as its title. A white ring marks the episode 繼續播放 resumes.
+/// name for the episode as its title. A white ring marks the episode 继续播放 resumes.
 struct VideoEpisodeCard: View {
     let number: Int
     /// The source's name for the episode, when it says more than 第 N 集.
@@ -107,19 +107,19 @@ struct VideoEpisodeCard: View {
 
     private var caption: String {
         guard let minutes else { return String(format: localized("第 %d 集"), number) }
-        return String(format: localized("第 %d 集 · %d 分鐘"), number, minutes)
+        return String(format: localized("第 %d 集 · %d 分钟"), number, minutes)
     }
 
     private var accessibilityValue: String {
-        [isResume ? localized("繼續播放") : nil, minutes.map { String(format: localized("%d 分鐘"), $0) }]
+        [isResume ? localized("继续播放") : nil, minutes.map { String(format: localized("%d 分钟"), $0) }]
             .compactMap { $0 }
             .joined(separator: ", ")
     }
 }
 
-/// A run of 選集's episodes, as VidHub's 「1 · 30」 under its episode row.
+/// A run of 选集's episodes, as VidHub's 「1 · 30」 under its episode row.
 struct VideoEpisodeRange: Identifiable, Equatable {
-    /// The run's chapter indices, in the 線路's order.
+    /// The run's chapter indices, in the 线路's order.
     let episodes: [Int]
     let firstNumber: Int
     let lastNumber: Int
@@ -129,7 +129,7 @@ struct VideoEpisodeRange: Identifiable, Equatable {
     /// Episodes a run holds, as VidHub's.
     static let size = 30
 
-    /// The 線路's episodes in runs of `size`, each named by its first and last episode numbers.
+    /// The 线路's episodes in runs of `size`, each named by its first and last episode numbers.
     static func ranges(of episodes: [Int], number: (Int) -> Int) -> [VideoEpisodeRange] {
         stride(from: 0, to: episodes.count, by: size).map { start in
             let run = Array(episodes[start..<min(start + size, episodes.count)])
@@ -138,9 +138,9 @@ struct VideoEpisodeRange: Identifiable, Equatable {
     }
 }
 
-/// Under 選集's row: its runs of episodes, when there is more than one, each a capsule that
+/// Under 选集's row: its runs of episodes, when there is more than one, each a capsule that
 /// scrolls the row to the run's first episode, the one the row is in marked; and at the end
-/// an arrow to the 線路's last episode.
+/// an arrow to the 线路's last episode.
 struct VideoEpisodeRangeBar: View {
     let ranges: [VideoEpisodeRange]
     let selected: VideoEpisodeRange.ID?
@@ -175,7 +175,7 @@ struct VideoEpisodeRangeBar: View {
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .accessibilityLabel(localized("跳到最後一集"))
+            .accessibilityLabel(localized("跳到最后一集"))
         }
     }
 
@@ -202,7 +202,7 @@ struct VideoEpisodeRangeBar: View {
     }
 }
 
-/// An episode's running time as 選集 writes it: whole minutes, never 0 for an episode under one.
+/// An episode's running time as 选集 writes it: whole minutes, never 0 for an episode under one.
 enum VideoEpisodeRunningTime {
     static func minutes(_ duration: TimeInterval) -> Int {
         max(1, Int((duration / 60).rounded()))

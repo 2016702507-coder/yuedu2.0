@@ -2,13 +2,13 @@ import CoreTransferable
 import Foundation
 import UniformTypeIdentifiers
 
-/// The `.yuedustyle` archives handed to `ShareLink` for 匯出正則高亮 and the chapter
-/// title style — AirDrop, 訊息 and 儲存到「檔案」 all come out of the one share sheet —
-/// and the one 匯出閱讀設定 writes under a name of the user's.
+/// The `.yuedustyle` archives handed to `ShareLink` for 汇出正则高亮 and the chapter
+/// title style — AirDrop, 讯息 and 储存到「档案」 all come out of the one share sheet —
+/// and the one 汇出阅读设置 writes under a name of the user's.
 ///
 /// `ShareLink` rather than `.fileExporter` for the reason recorded in
 /// `Technotes/iOS17MenuModalPresentation.md`. These links stay as direct Form rows
-/// on pages pushed inside 閱讀設定. Moving them into a `Menu` would make the share
+/// on pages pushed inside 阅读设置. Moving them into a `Menu` would make the share
 /// sheet race that menu's dismissal on iOS 17; replacing them with `.fileExporter`
 /// would also add a document-picker presentation under the settings sheet.
 ///
@@ -36,7 +36,7 @@ struct ChapterTitleStyleExportPayload: Transferable {
     let style: ChapterTitleStyle
 
     init(style: ChapterTitleStyle) {
-        self.filename = ReaderStyleExportFilename.make(localized("章節標題樣式"))
+        self.filename = ReaderStyleExportFilename.make(localized("章节标题样式"))
         self.style = style
     }
 
@@ -61,7 +61,7 @@ struct RegexHighlightExportPayload: Transferable {
     let configuration: RegexHighlightConfiguration
 
     init(configuration: RegexHighlightConfiguration) {
-        self.filename = ReaderStyleExportFilename.make(localized("正則高亮"))
+        self.filename = ReaderStyleExportFilename.make(localized("正则高亮"))
         self.configuration = configuration
     }
 
@@ -81,7 +81,7 @@ struct RegexHighlightExportPayload: Transferable {
     }
 }
 
-/// 匯出閱讀設定's archive, written under the name the user typed into its alert. Not a
+/// 汇出阅读设置's archive, written under the name the user typed into its alert. Not a
 /// `ShareLink` payload like the two above: the name comes first, so the file is written
 /// once it is asked for and handed to `SystemShareSheet` (2026-09-29).
 enum ReaderSettingsExportFile {

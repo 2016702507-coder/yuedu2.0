@@ -62,7 +62,7 @@ final class LibrarySearch: SearchAnswering {
     }
 
     /// The libraries a search asks: the saved OPDS and Calibre connections (never WebDAV, which
-    /// has no search), then Gutenberg where it is offered; each only while 聚合設定's 搜尋來源
+    /// has no search), then Gutenberg where it is offered; each only while 聚合设置's 搜寻来源
     /// keeps it checked (`shown`, search 9d).
     static func libraries(catalogs: [OPDSCatalog], gutenberg: GutenbergProvider,
                           shown: (SourceInstanceKey) -> Bool = { _ in true },

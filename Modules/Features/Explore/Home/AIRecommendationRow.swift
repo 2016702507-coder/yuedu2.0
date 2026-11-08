@@ -1,14 +1,14 @@
 import SwiftUI
 
-/// AI 推薦's row on the Explore home (AI 推薦 plan 8c).
+/// AI 推荐's row on the Explore home (AI 推荐 plan 8c).
 ///
 /// It draws the stored list itself, through `AIRecommendationProvider.entries(from:)`, so a
-/// new list or an Open Library cover shows in place. Before the first list it offers 產生推薦;
-/// the app never asks the reader's AI service by itself (maintainer, 2026-10-15). 重新產生 is
+/// new list or an Open Library cover shows in place. Before the first list it offers 产生推荐;
+/// the app never asks the reader's AI service by itself (maintainer, 2026-10-15). 重新产生 is
 /// in a visible ••• beside the name, with the section's own edits (maintainer, by option).
 struct AIRecommendationRow: View {
     let section: HomeSection
-    /// Its name: the one the reader gave it, else 「AI 推薦」.
+    /// Its name: the one the reader gave it, else 「AI 推荐」.
     let title: String
     /// The section's edits; none in the editor's preview.
     var actions: HomeSectionActions?
@@ -25,7 +25,7 @@ struct AIRecommendationRow: View {
     @State private var moreSequence = DismissalSequencedPresentation<MoreAction>()
     @Environment(\.homeRowIsCarousel) private var isCarousel
     @Environment(\.colorSchemeContrast) private var contrast
-    /// The 頂部輪播圖's colour, its first cover's, once that cover has drawn.
+    /// The 顶部轮播图's colour, its first cover's, once that cover has drawn.
     @State private var bandCover: CoverTint.RGB?
 
     /// - Parameter service: the shared one; a preview passes its own, with its own store.
@@ -60,18 +60,18 @@ struct AIRecommendationRow: View {
         return Self.cards(for: list, store: shelf)
     }
 
-    /// The stored works as cards, each carrying its reason into 作品詳情 (AI 推薦 8e).
+    /// The stored works as cards, each carrying its reason into 作品详情 (AI 推荐 8e).
     static func cards(for list: AIRecommendationList, store: BookStore) -> [HomeCardContent] {
         let reasons = AIRecommendationProvider.reasons(from: list)
         return HomeRowContent(entries: AIRecommendationProvider.entries(from: list), store: store).cards
             .map { $0.recommended(because: reasons[$0.id]) }
     }
 
-    /// The line the reader wrote, then where the works came from and when (AI 推薦 plan: marked
-    /// 「AI 產生」), which the reader's line never replaces.
+    /// The line the reader wrote, then where the works came from and when (AI 推荐 plan: marked
+    /// 「AI 产生」), which the reader's line never replaces.
     private var subtitle: String? {
         let generated = allowsAI ? list.map {
-            String(format: localized("AI 產生 · %@ · %@"), $0.service, $0.generatedAt.formatted(date: .abbreviated, time: .omitted))
+            String(format: localized("AI 产生 · %@ · %@"), $0.service, $0.generatedAt.formatted(date: .abbreviated, time: .omitted))
         } : nil
         let lines = [section.subtitle.isEmpty ? nil : section.subtitle, generated].compactMap { $0 }
         return lines.isEmpty ? nil : lines.joined(separator: "\n")
@@ -87,8 +87,8 @@ struct AIRecommendationRow: View {
         canGenerate && allowsAI && list != nil && !service.state.isRunning
     }
 
-    /// As the 頂部輪播圖 it draws its band under the header and the list while the list shows
-    /// alone; a status (產生中, a failure) draws the row without it, so its text keeps the page's
+    /// As the 顶部轮播图 it draws its band under the header and the list while the list shows
+    /// alone; a status (产生中, a failure) draws the row without it, so its text keeps the page's
     /// colours.
     private var drawsBand: Bool {
         guard isCarousel, allowsAI, !cards.isEmpty, case .idle = service.state else { return false }
@@ -143,7 +143,7 @@ struct AIRecommendationRow: View {
     @ViewBuilder
     private var menuItems: some View {
         if canGenerate, allowsAI, list != nil {
-            Button(localized("重新產生"), systemImage: "arrow.clockwise", action: generate)
+            Button(localized("重新产生"), systemImage: "arrow.clockwise", action: generate)
                 .disabled(!canRegenerate)
         }
         if let actions {
@@ -151,7 +151,7 @@ struct AIRecommendationRow: View {
         }
     }
 
-    /// A native menu from iOS 18; on iOS 17 a chooser sheet, since 刪除's confirmation would be
+    /// A native menu from iOS 18; on iOS 17 a chooser sheet, since 删除's confirmation would be
     /// dropped while the menu dismisses (`Technotes/iOS17MenuModalPresentation.md`).
     @ViewBuilder
     private var moreControl: some View {
@@ -187,7 +187,7 @@ struct AIRecommendationRow: View {
     private var moreChoices: [DismissalSequencedAction<MoreAction>] {
         var choices: [DismissalSequencedAction<MoreAction>] = []
         if canGenerate, allowsAI, list != nil {
-            choices.append(DismissalSequencedAction(route: .regenerate, title: localized("重新產生"),
+            choices.append(DismissalSequencedAction(route: .regenerate, title: localized("重新产生"),
                                                     systemImage: "arrow.clockwise", isEnabled: canRegenerate))
         }
         guard actions != nil else { return choices }
@@ -200,13 +200,13 @@ struct AIRecommendationRow: View {
                     route: .layout(style), title: localized(style.titleKey),
                     systemImage: isSelected ? "checkmark" : style.symbol,
                     // The menu's check mark, said in words: the chooser's rows have no selected state.
-                    subtitle: isSelected ? [localized("呈現方式"), localized("使用中")].joined(separator: " · ") : localized("呈現方式"))
+                    subtitle: isSelected ? [localized("呈现方式"), localized("使用中")].joined(separator: " · ") : localized("呈现方式"))
             }
         }
         choices += [
-            DismissalSequencedAction(route: .hide, title: localized("動作：隱藏"), systemImage: "eye.slash"),
-            DismissalSequencedAction(route: .settings, title: localized("設定"), systemImage: "slider.horizontal.3"),
-            DismissalSequencedAction(route: .delete, title: localized("刪除"), systemImage: "trash", isDestructive: true),
+            DismissalSequencedAction(route: .hide, title: localized("动作：隐藏"), systemImage: "eye.slash"),
+            DismissalSequencedAction(route: .settings, title: localized("设置"), systemImage: "slider.horizontal.3"),
+            DismissalSequencedAction(route: .delete, title: localized("删除"), systemImage: "trash", isDestructive: true),
         ]
         return choices
     }
@@ -226,23 +226,23 @@ struct AIRecommendationRow: View {
     @ViewBuilder
     private var status: some View {
         if !allowsAI {
-            message(localized("需要尊享會員"), systemImage: "lock.fill") {
-                Button(localized("升級")) { showsPaywall = true }
+            message(localized("需要尊享会员"), systemImage: "lock.fill") {
+                Button(localized("升级")) { showsPaywall = true }
                     .buttonStyle(.onAccentProminent)
                     .accessibilityIdentifier("home.ai.upgrade")
             }
         } else {
             switch service.state {
             case .generating:
-                progress(localized("正在產生推薦…"))
+                progress(localized("正在产生推荐…"))
             case .resolving(let completed, let total):
-                progress(String(format: localized("正在查詢封面與簡介（%d/%d）"), completed, total))
+                progress(String(format: localized("正在查询封面与简介（%d/%d）"), completed, total))
             case .failed(let reason):
                 message(reason, systemImage: "exclamationmark.triangle") {
                     if case .failure = service.service() {
                         settingsLink
                     } else {
-                        Button(localized("重試"), action: generate)
+                        Button(localized("重试"), action: generate)
                             .buttonStyle(.bordered)
                             .disabled(!canGenerate)
                             .accessibilityIdentifier("home.ai.retry")
@@ -258,8 +258,8 @@ struct AIRecommendationRow: View {
     private var start: some View {
         switch service.service() {
         case .success:
-            message(localized("依你最近讀的 30 本書推薦作品；會把書名、作者和分類送到你設定的 AI 服務。"), systemImage: nil) {
-                Button(localized("產生推薦"), action: generate)
+            message(localized("依你最近读的 30 本书推荐作品；会把书名、作者和分类送到你设置的 AI 服务。"), systemImage: nil) {
+                Button(localized("产生推荐"), action: generate)
                     .buttonStyle(.onAccentProminent)
                     .disabled(!canGenerate)
                     .accessibilityIdentifier("home.ai.generate")
@@ -270,7 +270,7 @@ struct AIRecommendationRow: View {
     }
 
     private var settingsLink: some View {
-        NavigationLink(localized("AI 助手設定")) { AISettingsView(embedded: true) }
+        NavigationLink(localized("AI 助手设置")) { AISettingsView(embedded: true) }
             .buttonStyle(.bordered)
             .accessibilityIdentifier("home.ai.settings")
     }
@@ -303,17 +303,17 @@ struct AIRecommendationRow: View {
     }
 }
 
-#Preview("尚未產生") {
+#Preview("尚未产生") {
     NavigationStack {
         ScrollView {
-            AIRecommendationRow(section: HomeSection(layout: .row, binding: .aiRecommendations), title: localized("AI 推薦"),
+            AIRecommendationRow(section: HomeSection(layout: .row, binding: .aiRecommendations), title: localized("AI 推荐"),
                                 service: AIRecommendationRowPreview.service(list: nil), open: { _, _ in })
         }
     }
     .environmentObject(BookStore())
 }
 
-#Preview("已產生，五種版面") {
+#Preview("已产生，五种版面") {
     NavigationStack {
         ScrollView {
             VStack(spacing: DSSpacing.xxl) {
@@ -334,7 +334,7 @@ struct AIRecommendationRow: View {
 @MainActor
 enum AIRecommendationRowPreview {
     static let list = AIRecommendationList(
-        entries: [("球狀閃電", "劉慈欣"), ("銀河帝國：基地", "艾西莫夫"), ("沙丘", "法蘭克・赫伯特"), ("十二國記", "小野不由美")]
+        entries: [("球状闪电", "刘慈欣"), ("银河帝国：基地", "艾西莫夫"), ("沙丘", "法蘭克・赫伯特"), ("十二国记", "小野不由美")]
             .map { .init(work: .init(title: $0.0, author: $0.1, reason: "")) },
         generatedAt: Date(), service: "DeepSeek", model: "deepseek-chat")
 

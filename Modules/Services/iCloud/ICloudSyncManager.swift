@@ -76,22 +76,22 @@ enum ICloudSyncError: LocalizedError {
             case .available:
                 return nil
             case .noAccount:
-                return localized("此裝置尚未登入 iCloud")
+                return localized("此装置尚未登入 iCloud")
             case .restricted:
-                return localized("此裝置的 iCloud 使用受限")
+                return localized("此装置的 iCloud 使用受限")
             case .couldNotDetermine:
-                return localized("無法確認 iCloud 狀態，請稍後再試")
+                return localized("无法确认 iCloud 状态，请稍后再试")
             case .temporarilyUnavailable:
-                return localized("iCloud 暫時無法使用，請稍後再試")
+                return localized("iCloud 暂时无法使用，请稍后再试")
             @unknown default:
-                return localized("iCloud 無法使用")
+                return localized("iCloud 无法使用")
             }
         case .missingRemoteBackup:
-            return localized("iCloud 尚未找到可還原的備份")
+            return localized("iCloud 尚未找到可还原的备份")
         case .missingAsset(let name):
-            return String(format: localized("iCloud 備份檔案不完整：%@"), name)
+            return String(format: localized("iCloud 备份档案不完整：%@"), name)
         case .unreadableSyncData(let name):
-            return String(format: localized("iCloud 上的同步資料無法讀取：%@"), name)
+            return String(format: localized("iCloud 上的同步资料无法读取：%@"), name)
         }
     }
 }
@@ -149,7 +149,7 @@ final class ICloudSyncManager: ObservableObject {
     /// `reader_overlay_layout`: a build that predates the bar model still syncs that one,
     /// and would fail to decode a bar layout written into it.
     nonisolated private static let readerBarLayoutRecordID = "reader_bar_layout"
-    /// Fixed id of the one item in the 閱讀時螢幕常亮 record.
+    /// Fixed id of the one item in the 阅读时萤幕常亮 record.
     nonisolated private static let readerKeepsScreenAwakeRecordID = "reader_keeps_screen_awake"
     nonisolated private static let readerBackgroundPicturePrefix = "readerbg_"
     /// The pictures the reading setup shows are file records named `readerstyle_<asset ID>`.
@@ -175,7 +175,7 @@ final class ICloudSyncManager: ObservableObject {
     /// The saved reading backgrounds, as one merged blob; their pictures are file records
     /// named `readerbg_<hash of the file name>`.
     nonisolated private static let readerBackgroundsRecordName = "reader_backgrounds_v2"
-    /// The reading setup, one item per 排版生效範圍 row as last set on any device.
+    /// The reading setup, one item per 排版生效范围 row as last set on any device.
     nonisolated private static let readingSettingsRecordName = "reading_settings_v2"
     nonisolated private static let readerBarLayoutRecordName = "reader_bar_layout_v2"
     nonisolated private static let readerKeepsScreenAwakeRecordName = "reader_keeps_screen_awake_v2"
@@ -540,7 +540,7 @@ final class ICloudSyncManager: ObservableObject {
                 }
             )
             changedRemote = changedRemote || bubbleSelectionMerge.uploaded
-            // 3a. Card templates (本章說／作者說／神評論), per template like the bubble
+            // 3a. Card templates (本章说／作者说／神评论), per template like the bubble
             //     styles. Which one each kind wears rides the reading setup (3c).
             let localCardStyles = await onMain("sync.read.cardStyles") { GlobalSettings.shared.commentCardCustomStyles }
             let cardStyleMerge = try await mergeType(
@@ -589,7 +589,7 @@ final class ICloudSyncManager: ObservableObject {
             }
 
             try Task.checkCancellation()
-            // 3c. The reading setup: one item per 排版生效範圍 row, last-write-wins on
+            // 3c. The reading setup: one item per 排版生效范围 row, last-write-wins on
             //     when the row was set — so a font size set here and a line height set
             //     there both survive. After 3b, so a background it names is in the list.
             //     Each item is the snapshot taken when the row was set: switching themes
@@ -610,7 +610,7 @@ final class ICloudSyncManager: ObservableObject {
             changedRemote = changedRemote || readingSettingsMerge.uploaded
 
             try Task.checkCancellation()
-            // 3d. The pictures the reading setup shows — 正則高亮's frames, 對話氣泡's skins,
+            // 3d. The pictures the reading setup shows — 正则高亮's frames, 对话气泡's skins,
             //     a chapter title's art — follow as files, as the backgrounds' do in 3b. 3c
             //     carries only the settings, which name each picture by its ID in the style
             //     asset store, so a highlight pack imported on one device painted nothing on
@@ -681,7 +681,7 @@ final class ICloudSyncManager: ObservableObject {
             changedRemote = changedRemote || barLayoutMerge.uploaded
 
             try Task.checkCancellation()
-            // 4a. 閱讀時螢幕常亮 (singleton setting), shaped like the bar layout: one
+            // 4a. 阅读时萤幕常亮 (singleton setting), shaped like the bar layout: one
             //     always-present record whose clock advances only when a user flips the
             //     switch, and a synced value brings the winner's clock with it.
             let (localKeepsScreenAwake, keepsScreenAwakeClock) = await onMain("sync.read.keepsScreenAwake") {
@@ -1137,7 +1137,7 @@ final class ICloudSyncManager: ObservableObject {
     ///
     /// A local edit is stamped `now` unless the item's own clock already runs
     /// ahead. Stamping only that clock was wrong: a book's is `lastOpenedDate`,
-    /// which 換封面 / 改書名 / 改分組 never move, so the entry kept the timestamp
+    /// which 换封面 / 改书名 / 改分组 never move, so the entry kept the timestamp
     /// the last sync uploaded, `merge` saw `record.updatedAt >= localEntry
     /// .updatedAt` against the identical remote stamp, and the pre-edit cloud
     /// copy overwrote the edit on the next launch. Detection time is the honest
@@ -1210,7 +1210,7 @@ final class ICloudSyncManager: ObservableObject {
 
     nonisolated func backup() async throws {
         try await ensureAccountAvailable()
-        await setSync(true, message: localized("iCloud 備份中…"))
+        await setSync(true, message: localized("iCloud 备份中…"))
         defer { Task { @MainActor in self.isSyncing = false } }
 
         let files = ICloudSyncPayload.defaultFiles()
@@ -1231,7 +1231,7 @@ final class ICloudSyncManager: ObservableObject {
 
         await MainActor.run {
             lastSyncDate = date
-            statusMessage = localized("iCloud 備份成功")
+            statusMessage = localized("iCloud 备份成功")
         }
     }
 
@@ -1242,7 +1242,7 @@ final class ICloudSyncManager: ObservableObject {
     /// Permanently removes everything the sync keeps in the user's private CloudKit
     /// database — every merged blob, every book file and background picture, the
     /// manifest. This device's own data stays.
-    /// Used by 刪除 iCloud 上的資料 in iCloud 同步, which also turns 自動同步 off first;
+    /// Used by 删除 iCloud 上的资料 in iCloud 同步, which also turns 自动同步 off first;
     /// otherwise the next sync would upload it all again.
     ///
     /// Until 2026-09-29 nothing called this, and it missed the bubble styles, the
@@ -1250,7 +1250,7 @@ final class ICloudSyncManager: ObservableObject {
     nonisolated func deleteRemoteData() async throws {
         try await ensureAccountAvailable()
 
-        await setSync(true, message: localized("正在刪除 iCloud 同步資料…"))
+        await setSync(true, message: localized("正在删除 iCloud 同步资料…"))
         defer { Task { @MainActor in self.isSyncing = false } }
 
         // Book files and background pictures are records of their own, named after the
@@ -1294,7 +1294,7 @@ final class ICloudSyncManager: ObservableObject {
 
         await MainActor.run {
             lastSyncDate = nil
-            statusMessage = localized("已刪除 iCloud 上的同步資料")
+            statusMessage = localized("已删除 iCloud 上的同步资料")
         }
     }
 
@@ -1334,20 +1334,20 @@ final class ICloudSyncManager: ObservableObject {
     }
 
     func statusTitle(isAppSignedIn: Bool) -> String {
-        guard isAppSignedIn else { return localized("尚未開啟同步") }
+        guard isAppSignedIn else { return localized("尚未开启同步") }
         switch accountStatus {
         case .available:
-            return localized("iCloud 同步已開啟")
+            return localized("iCloud 同步已开启")
         case .noAccount:
-            return localized("請先登入 iCloud")
+            return localized("请先登入 iCloud")
         case .restricted:
             return localized("iCloud 受限")
         case .couldNotDetermine:
-            return localized("iCloud 狀態待確認")
+            return localized("iCloud 状态待确认")
         case .temporarilyUnavailable:
-            return localized("iCloud 暫時無法使用")
+            return localized("iCloud 暂时无法使用")
         @unknown default:
-            return localized("iCloud 狀態待確認")
+            return localized("iCloud 状态待确认")
         }
     }
 
@@ -1368,14 +1368,14 @@ final class ICloudSyncManager: ObservableObject {
             guard let remoteManifest else { return }
             await MainActor.run {
                 pendingConflict = ICloudSyncConflict(remote: remoteManifest, localLastSync: lastSyncDate)
-                statusMessage = localized("偵測到衝突，請選擇要使用哪個版本")
+                statusMessage = localized("侦测到冲突，请选择要使用哪个版本")
             }
         }
     }
 
     nonisolated private func performRestore(skipConflictCheck: Bool) async throws {
         try await ensureAccountAvailable()
-        await setSync(true, message: localized("iCloud 還原中…"))
+        await setSync(true, message: localized("iCloud 还原中…"))
         defer { Task { @MainActor in self.isSyncing = false } }
 
         guard let remoteManifest = try await fetchManifestIfExists() else {
@@ -1390,7 +1390,7 @@ final class ICloudSyncManager: ObservableObject {
             AppLogger.sync("restore: conflict — remote device differs and local data exists; deferring to user choice (nothing downloaded yet)", level: .notice)
             await MainActor.run {
                 pendingConflict = ICloudSyncConflict(remote: remoteManifest, localLastSync: localSync)
-                statusMessage = localized("偵測到衝突，請選擇要使用哪個版本")
+                statusMessage = localized("侦测到冲突，请选择要使用哪个版本")
             }
             return
         }
@@ -1409,7 +1409,7 @@ final class ICloudSyncManager: ObservableObject {
 
         await MainActor.run {
             lastSyncDate = Date()
-            statusMessage = localized("iCloud 還原成功")
+            statusMessage = localized("iCloud 还原成功")
         }
     }
 
@@ -1574,7 +1574,7 @@ final class ICloudSyncManager: ObservableObject {
     nonisolated private func uploadBookFiles() async throws -> Int {
         let payloads = await dynamicBookFilePayloads()
         guard !payloads.isEmpty else { return 0 }
-        await setSync(true, message: localized("正在同步書籍檔案…"))
+        await setSync(true, message: localized("正在同步书籍档案…"))
         var uploaded = 0
         for file in payloads {
             if try await uploadBookFileIfNeeded(file) {
@@ -1668,7 +1668,7 @@ final class ICloudSyncManager: ObservableObject {
 
     /// Of the pictures the reading setup shows, the ones this device sends — those its style
     /// asset store has — and the ones it fetches: the rest. A picture keeps its content
-    /// under its ID, as the settings know it; one replaced in 素材庫 (same ID, new picture)
+    /// under its ID, as the settings know it; one replaced in 素材库 (same ID, new picture)
     /// reaches only devices that do not have it yet.
     nonisolated static func readerStylePictureSync(
         referencedBy records: [ReadingSettingSyncRecord],

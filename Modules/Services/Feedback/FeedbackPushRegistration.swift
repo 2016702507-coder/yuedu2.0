@@ -3,13 +3,13 @@ import Foundation
 import UIKit
 import UserNotifications
 
-/// 回饋中心 push on this device: hands the APNs token to the Gateway, which files it under
+/// 回馈中心 push on this device: hands the APNs token to the Gateway, which files it under
 /// the inbox (`feedbackInboxes/{inbox}/pushDevices/{installId}`) for
 /// `onFeedbackThreadUpdated` (functions/src/feedbackPush.ts) to send to.
 ///
 /// Only an inbox that has reports registers. Every launch asks iOS for a token
 /// (`RSSNotificationManager.start`) and hands it here, but the token goes up only once this
-/// inbox is known to be in use — a report sent from this device, or 我的回饋 listing one
+/// inbox is known to be in use — a report sent from this device, or 我的回馈 listing one
 /// (an inbox shared over iCloud Keychain with a device that sent them) — and then only when
 /// the token, its APNs environment or the inbox changed since the last upload.
 @MainActor
@@ -35,7 +35,7 @@ final class FeedbackPushRegistration {
         uploadIfNeeded()
     }
 
-    /// A report went out, or 我的回饋 listed one. The first time, this is when the person is
+    /// A report went out, or 我的回馈 listed one. The first time, this is when the person is
     /// asked for notification permission (maintainer, 2026-10-19: after the first report) —
     /// unless they have answered already, which RSS's launch-time request usually means.
     func inboxInUse() {

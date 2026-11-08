@@ -85,13 +85,13 @@ private struct OnAccentProminentLabel<Content: View>: View {
     }
 }
 
-#Preview("強調色上的主要按鈕") {
+#Preview("强调色上的主要按钮") {
     VStack(spacing: DSSpacing.lg) {
         ForEach([Color(red: 0.96, green: 0.96, blue: 0.96), Color(red: 0.12, green: 0.16, blue: 0.35)], id: \.self) { accent in
             VStack(spacing: DSSpacing.sm) {
-                Button(localized("升級")) {}
+                Button(localized("升级")) {}
                     .buttonStyle(.onAccentProminent)
-                Button(localized("升級")) {}
+                Button(localized("升级")) {}
                     .buttonStyle(.onAccentProminent)
                     .disabled(true)
             }

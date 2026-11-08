@@ -55,7 +55,7 @@ struct ReaderPreferences: Codable, Equatable {
     var readerHeaderTopPadding: Double?
     var readerHeaderTextGap: Double?
     var readerHeaderFieldPositions: [String: String]?
-    /// Per-reading-background 文字顏色 (ReaderTheme raw value → RGB hex).
+    /// Per-reading-background 文字颜色 (ReaderTheme raw value → RGB hex).
     var readerTextColorOverrides: [String: UInt32]?
 
     @MainActor
@@ -102,7 +102,7 @@ struct ReaderPreferences: Codable, Equatable {
         updates.set(\.pageMarginV, pageMarginV, field: "pageMarginV")
         // Absent, as the header fields below: a profile from a build before the split, or one
         // the account gateway returned before it kept these fields (2026-10-20). Filling them
-        // from 上下邊距 overwrote the reader's own on every sign-in (feedback #25, #22).
+        // from 上下边距 overwrote the reader's own on every sign-in (feedback #25, #22).
         if let pageMarginTop {
             updates.set(\.pageMarginTop, pageMarginTop, field: "pageMarginTop")
         }

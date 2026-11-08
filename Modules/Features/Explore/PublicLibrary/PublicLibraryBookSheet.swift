@@ -15,7 +15,7 @@ private struct PublicLibrarySheetContextKey: EnvironmentKey {
 
 /// Where the store's covers are on screen, so each card opens out of its own cover and
 /// closes back into it, as Apple Books' cards do. A book can sit on two shelves (the
-/// 經典選讀 rows repeat 中文書籍), so covers are kept per shelf (`scope`) and a tap
+/// 经典选读 rows repeat 中文书籍), so covers are kept per shelf (`scope`) and a tap
 /// marks the shelf it came from.
 ///
 /// Each cover leaves a UIKit anchor behind itself and its frame is read from that view
@@ -80,7 +80,7 @@ extension EnvironmentValues {
 }
 
 extension View {
-    /// No stack wears it for now: 探索 and 搜索 push 作品詳情 instead (Phase 5 plan, decision 27
+    /// No stack wears it for now: 探索 and 搜索 push 作品详情 instead (Phase 5 plan, decision 27
     /// and its 搜索 follow-up). Kept as the maintainer asked.
     ///
     /// Shows the book carousel over this view — inside the tab, so the tab bar stays
@@ -801,10 +801,10 @@ private struct GutenbergBookDetailPage: View {
                         artworkHeight: sheet?.artworkHeight)
                 } content: {
                     VStack(spacing: DSSpacing.lg) {
-                        if model.isLoading { ProgressView(localized("正在載入書庫")) }
+                        if model.isLoading { ProgressView(localized("正在载入书库")) }
                         if let error = model.errorMessage, isSelected {
                             Text(error).foregroundStyle(DSColor.textSecondary)
-                            Button(localized("重試")) { Task { await model.load(force: true) } }
+                            Button(localized("重试")) { Task { await model.load(force: true) } }
                         }
                     }
                     .frame(maxWidth: .infinity)
@@ -815,12 +815,12 @@ private struct GutenbergBookDetailPage: View {
     }
 
     private var loadingAction: BookDetailAction {
-        BookDetailAction(title: localized("開始閱讀"), systemImage: "book",
+        BookDetailAction(title: localized("开始阅读"), systemImage: "book",
                          isBusy: model.isLoading, isEnabled: false, action: {})
     }
 }
 
-#Preview("書籍卡片輪播") {
+#Preview("书籍卡片轮播") {
     PublicLibraryBookSheet(selection: PublicLibraryBookSelection(
         books: PublicLibraryCollection.chinese.books.map(PublicLibraryBook.gutenberg),
         selectedID: PublicLibraryBook.gutenberg(PublicLibraryCollection.chinese.books[0]).id)!,

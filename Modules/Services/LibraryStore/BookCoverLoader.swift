@@ -8,7 +8,7 @@ import UIKit
 /// Covers are downsampled and force-decoded off the main thread before caching:
 /// CDN originals are frequently 1080×1440+, and handing those to a list cell as
 /// `UIImage(data:)` defers the full-size decode to first draw — on the main
-/// thread, mid-scroll — which is where the 發現頁 frame drops came from.
+/// thread, mid-scroll — which is where the 发现页 frame drops came from.
 ///
 /// Also used at add-to-shelf time to persist a cover to disk (`downloadAndSave`).
 enum BookCoverLoader {
@@ -22,7 +22,7 @@ enum BookCoverLoader {
     /// pipeline, shared with the covers saved on disk. A fully
     /// populated discover page holds several hundred covers; the budget is sized so
     /// scrolling back doesn't churn through evict → refetch → redecode. Concurrent
-    /// loads of one URL coalesce: on 發現頁 the same book (and cover) appears in
+    /// loads of one URL coalesce: on 发现页 the same book (and cover) appears in
     /// several sections, and prefetch races the cell-driven loads.
     private static var pipeline: CoverImagePipeline { .shared }
 
@@ -31,7 +31,7 @@ enum BookCoverLoader {
     /// footprint by ~5×.
     private static let maxCoverPixelSize = CoverPixelSize.standard.longEdge
 
-    /// 網路設定 › 封面並發數: at most this many covers downloading at once, anywhere in the
+    /// 网路设置 › 封面并发数: at most this many covers downloading at once, anywhere in the
     /// app; 0 — the default, and how it always was — sets no limit beyond URLSession's own.
     static let downloadLimitKey = "coverDownloadLimit"
     static var downloadLimit: Int { UserDefaults.standard.integer(forKey: downloadLimitKey) }
@@ -44,7 +44,7 @@ enum BookCoverLoader {
     /// CDNs. It is only sent when the base URL really is an http(s) URL: aggregate
     /// sources name themselves in `bookSourceUrl` (📚书山聚合 uses `书山聚合`), and
     /// byteimg answers that bogus Referer with 403 while accepting none or any real
-    /// URL — the 書山聚合 detail covers that never loaded. Deleting the Referer
+    /// URL — the 书山聚合 detail covers that never loaded. Deleting the Referer
     /// entirely aligns with Legado, but this helper also serves chapter images and
     /// audio, so that needs its own regression pass.
     static func headers(sourceBaseURL: String?, sourceHeaders: [String: String]) -> [String: String] {
@@ -173,7 +173,7 @@ enum BookCoverLoader {
     /// **blocking**, at the pipeline's largest size.
     ///
     /// Only for callers that need the artwork right now and are not a scrolling list:
-    /// Now Playing, the reader's 現代 chrome, the download Live Activity. The bookshelf
+    /// Now Playing, the reader's 现代 chrome, the download Live Activity. The bookshelf
     /// never calls this; it loads through `BookshelfCoverArtwork`, which reads memory
     /// in its body and leaves the disk to a task. Shares the pipeline's cache, decoder
     /// and invalidation, so what these callers get is exactly what the shelf shows.
@@ -210,7 +210,7 @@ enum BookCoverLoader {
 }
 
 /// The one way the app's own flows write or delete a saved cover: download
-/// (`downloadAndSave`), 相簿 / 封面搜索 picks and 重設封面 (`BookStore`).
+/// (`downloadAndSave`), 相簿 / 封面搜索 picks and 重设封面 (`BookStore`).
 ///
 /// A write creates the directory first, since 快取管理 or the system may have removed
 /// it since launch, and replaces the file atomically, so a decode running at the

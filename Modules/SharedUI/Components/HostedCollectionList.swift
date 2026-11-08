@@ -5,7 +5,7 @@ import UIKit
 //
 // SwiftUI `List` calls its `ForEach` closure for every element on every update — measured
 // twice per element with 3,000 book sources (see the note in `BookSourceRowViews.swift`).
-// That is fine for a few hundred rows and fatal for tens of thousands: opening 書源管理 with
+// That is fine for a few hundred rows and fatal for tens of thousands: opening 书源管理 with
 // 50,000 sources built 100,000 row values up front and grew the process by 5.3 GB in a
 // Debug simulator run (10,000 sources: +745 MB), and every checkbox tap, keystroke or
 // validation publication repeated the whole pass.
@@ -38,7 +38,7 @@ struct HostedCollectionList<Item: Hashable & Sendable, Row: View>: UIViewControl
     /// Items that keep the cell's system layout margins (a `List` row's default insets);
     /// every other row spans the full width and pads itself.
     var usesSystemMargins: (Item) -> Bool = { _ in false }
-    /// Items drawn on the 毛玻璃／分組卡片 surface across the full cell — what a `List`
+    /// Items drawn on the 毛玻璃／分组卡片 surface across the full cell — what a `List`
     /// section's `interfaceSectionSurface()` painted behind its rows.
     var drawsCellSurface: (Item) -> Bool = { _ in false }
     @ViewBuilder let row: (Item) -> Row
@@ -192,7 +192,7 @@ final class HostedCollectionListController<Item: Hashable & Sendable, Row: View>
             if animated {
                 dataSource.apply(snapshot, animatingDifferences: true)
                 // An animated apply only inserts, deletes and moves; a row that moved *and*
-                // changed (置頂 moves the row and adds its pin icon) keeps its old content.
+                // changed (置顶 moves the row and adds its pin icon) keeps its old content.
                 reconfigureVisibleRows()
             } else {
                 dataSource.applySnapshotUsingReloadData(snapshot)
@@ -264,7 +264,7 @@ private struct HostedListCellSurface: View {
         showsSeparator: { _ in true },
         drawsCellSurface: { $0 % 10 != 0 }
     ) { index in
-        Text(index % 10 == 0 ? "分組 \(index / 10)" : "來源配置 \(index)")
+        Text(index % 10 == 0 ? "分组 \(index / 10)" : "来源配置 \(index)")
             .font(index % 10 == 0 ? DSFont.headline : DSFont.body)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(DSSpacing.md)

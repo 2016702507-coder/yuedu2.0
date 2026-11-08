@@ -99,7 +99,7 @@ enum ReplaceRuleEngine {
     /// This is how the online reader applies rules at display time. It used to carry its
     /// own copy of this loop, which had drifted three ways: `$1` became the literal "1",
     /// `^`/`$` matched only the chapter's ends, and a rule whose replacement had the same
-    /// length as its match ("永夜"→"長夜") was discarded as "no change".
+    /// length as its match ("永夜"→"长夜") was discarded as "no change".
     /// - Returns: whether any rule matched.
     @discardableResult
     static func apply(

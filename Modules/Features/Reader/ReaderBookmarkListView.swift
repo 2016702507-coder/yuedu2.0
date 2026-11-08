@@ -1,12 +1,12 @@
 import SwiftUI
 
-/// 閱讀器「書籤／重點」清單（Apple Books 風格）。
-/// 由底部工具列的書籤按鈕開啟，列出書籤與標註（底線/螢光筆），依章節分組。
+/// 阅读器「书签／重点」清单（Apple Books 风格）。
+/// 由底部工具列的书签按钮开启，列出书签与标注（底线/萤光笔），依章节分组。
 ///
-/// 清單本體使用 SwiftUI `List` 搭配 `selection` 綁定（見 `BookmarkSelectionList`），
-/// 系統會自動支援 iOS 原生的兩指拖曳多選手勢。
-/// 本檔負責 sheet 外框：分頁、工具列（checklist↔checkmark 編輯切換、關閉）、
-/// 以及原生底部 toolbar 的「已選取 N 個」與刪除按鈕。
+/// 清单本体使用 SwiftUI `List` 搭配 `selection` 绑定（见 `BookmarkSelectionList`），
+/// 系统会自动支援 iOS 原生的两指拖曳多选手势。
+/// 本档负责 sheet 外框：分页、工具列（checklist↔checkmark 编辑切换、关闭）、
+/// 以及原生底部 toolbar 的「已选取 N 个」与删除按钮。
 struct ReaderBookmarkListView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     enum Segment: Hashable {
@@ -16,15 +16,15 @@ struct ReaderBookmarkListView: View {
 
     let bookTitle: String
     let bookmarks: [Bookmark]
-    /// 標註在所屬章節內的頁碼（1-based）；無法解析時回傳 nil。
+    /// 标注在所属章节内的页码（1-based）；无法解析时回传 nil。
     let pageNumber: (Bookmark) -> Int?
-    /// 章名用目前的目錄解析（含繁簡轉換），不是書籤存檔時的那一份。
+    /// 章名用目前的目录解析（含繁简转换），不是书签存档时的那一份。
     let chapterTitle: (Int) -> String
     let onSelect: (Bookmark) -> Void
-    /// 點章名：跳回這一章的開頭。
+    /// 点章名：跳回这一章的开头。
     let onSelectChapter: (Int) -> Void
     let onDelete: (Bookmark) -> Void
-    /// 見 `BookmarkSelectionList.indexesReadText`。
+    /// 见 `BookmarkSelectionList.indexesReadText`。
     var indexesReadText: (Bookmark) -> Bool = { _ in true }
 
     @Binding var isPresented: Bool
@@ -53,8 +53,8 @@ struct ReaderBookmarkListView: View {
         NavigationStack {
             VStack(spacing: 0) {
                 Picker("", selection: $segment) {
-                    Text(localized("書籤")).tag(Segment.bookmark)
-                    Text(localized("重點")).tag(Segment.highlight)
+                    Text(localized("书签")).tag(Segment.bookmark)
+                    Text(localized("重点")).tag(Segment.highlight)
                 }
                 .pickerStyle(.segmented)
                 .labelsHidden()
@@ -70,7 +70,7 @@ struct ReaderBookmarkListView: View {
                 ToolbarItem(placement: .topBarTrailing) { closeButton }
             }
             .toolbar {
-                // 原生底部 toolbar：已選取計數 + 刪除按鈕
+                // 原生底部 toolbar：已选取计数 + 删除按钮
                 ToolbarItemGroup(placement: .bottomBar) {
                     if isEditing {
                         Text(selectedCountText)
@@ -85,7 +85,7 @@ struct ReaderBookmarkListView: View {
                             Image(systemName: "trash")
                         }
                         .disabled(selection.isEmpty)
-                        .accessibilityLabel(localized("刪除"))
+                        .accessibilityLabel(localized("删除"))
                     }
                 }
             }
@@ -96,7 +96,7 @@ struct ReaderBookmarkListView: View {
                 selection.removeAll()
             }
             .onChange(of: editMode) {
-                // 退出編輯模式時清空選取
+                // 退出编辑模式时清空选取
                 if !editMode.isEditing {
                     selection.removeAll()
                 }
@@ -118,7 +118,7 @@ struct ReaderBookmarkListView: View {
         } label: {
             Image(systemName: isEditing ? "xmark" : "checklist")
         }
-        .accessibilityLabel(localized(isEditing ? "完成" : "編輯"))
+        .accessibilityLabel(localized(isEditing ? "完成" : "编辑"))
     }
 
     private var closeButton: some View {
@@ -149,7 +149,7 @@ struct ReaderBookmarkListView: View {
     // MARK: - Editing helpers
 
     private var selectedCountText: String {
-        let format = segment == .bookmark ? localized("已選取 %d 個書籤") : localized("已選取 %d 個重點")
+        let format = segment == .bookmark ? localized("已选取 %d 个书签") : localized("已选取 %d 个重点")
         return String(format: format, selection.count)
     }
 
@@ -161,12 +161,12 @@ struct ReaderBookmarkListView: View {
     }
 }
 
-/// 單一種類（書籤 或 重點）的清單內容 ＋ 空狀態，供閱讀器目錄面板的分頁與書籤面板共用。
-/// 不含外框（`NavigationStack`）、分頁切換與工具列——那些由容器負責。
+/// 单一种类（书签 或 重点）的清单内容 ＋ 空状态，供阅读器目录面板的分页与书签面板共用。
+/// 不含外框（`NavigationStack`）、分页切换与工具列——那些由容器负责。
 struct BookmarkListSection: View {
     let isBookmark: Bool
     let items: [Bookmark]
-    /// 標註在所屬章節內的頁碼（1-based）；無法解析時回傳 nil。
+    /// 标注在所属章节内的页码（1-based）；无法解析时回传 nil。
     let pageNumber: (Bookmark) -> Int?
     let chapterTitle: (Int) -> String
     let onSelect: (Bookmark) -> Void
@@ -180,15 +180,15 @@ struct BookmarkListSection: View {
         if items.isEmpty {
             if isBookmark {
                 ContentUnavailableView {
-                    UnavailableLabel(localized("沒有書籤"), systemImage: "bookmark")
+                    UnavailableLabel(localized("没有书签"), systemImage: "bookmark")
                 } description: {
-                    Text(localized("在想記住的那一頁向下滑動，或點一下右上角的書籤按鈕。")).font(DSFont.unavailableDescription).foregroundStyle(DSColor.textSecondary)
+                    Text(localized("在想记住的那一页向下滑动，或点一下右上角的书签按钮。")).font(DSFont.unavailableDescription).foregroundStyle(DSColor.textSecondary)
                 }
             } else {
                 ContentUnavailableView {
-                    UnavailableLabel(localized("沒有重點"), systemImage: "highlighter")
+                    UnavailableLabel(localized("没有重点"), systemImage: "highlighter")
                 } description: {
-                    Text(localized("在閱讀時選取文字，加入底線或螢光筆即可在此查看。")).font(DSFont.unavailableDescription).foregroundStyle(DSColor.textSecondary)
+                    Text(localized("在阅读时选取文字，加入底线或萤光笔即可在此查看。")).font(DSFont.unavailableDescription).foregroundStyle(DSColor.textSecondary)
                 }
             }
         } else {
@@ -197,15 +197,15 @@ struct BookmarkListSection: View {
                 selection: $selection,
                 chapterTitle: resolvedChapterTitle,
                 primaryText: { bm in
-                    // 章首那一頁的摘錄開頭就是排進版面的章名，而它正上方的分組標題
-                    // 已經寫著同一句；重複兩次等於這張卡片沒說出這一頁講什麼。
+                    // 章首那一页的摘录开头就是排进版面的章名，而它正上方的分组标题
+                    // 已经写著同一句；重复两次等于这张卡片没说出这一页讲什么。
                     let body = ReaderBookmarkExcerpt.body(
                         of: bm.excerpt,
                         chapterTitle: resolvedChapterTitle(
                             ReaderBookmarkChapterGroup(chapterIndex: bm.chapterIndex, items: [bm])
                         )
                     )
-                    // 只有插圖的那一頁沒有文字可摘。
+                    // 只有插图的那一页没有文字可摘。
                     return body.isEmpty ? bm.chapterTitle : body
                 },
                 icon: { bm in
@@ -229,8 +229,8 @@ struct BookmarkListSection: View {
         }
     }
 
-    /// 章名優先用目前的目錄；解析不出來（章節已被移除、離線書換源）就退回書籤
-    /// 存檔時的章名，總比一個空標題好。
+    /// 章名优先用目前的目录；解析不出来（章节已被移除、离线书换源）就退回书签
+    /// 存档时的章名，总比一个空标题好。
     private func resolvedChapterTitle(_ group: ReaderBookmarkChapterGroup) -> String {
         let resolved = chapterTitle(group.chapterIndex)
         return resolved.isEmpty ? (group.items.first?.chapterTitle ?? "") : resolved
@@ -248,34 +248,34 @@ struct BookmarkListSection: View {
     }
 }
 
-#Preview("有資料") {
+#Preview("有资料") {
     ReaderBookmarkListView(
-        bookTitle: "劍來",
+        bookTitle: "剑来",
         bookmarks: [
             Bookmark(
                 chapterIndex: 118,
-                chapterTitle: "第 119 章 觀劍大會",
+                chapterTitle: "第 119 章 观剑大会",
                 position: CoreTextReadingPosition(spineIndex: 118, charOffset: 0),
-                excerpt: "他能在「一表人才」之外特地強調一句「天賦上佳」，那便說明這個年輕人的天賦不是一般的好。",
+                excerpt: "他能在「一表人才」之外特地强调一句「天赋上佳」，那便说明这个年轻人的天赋不是一般的好。",
                 date: Date().addingTimeInterval(-60)
             ),
             Bookmark(
                 chapterIndex: 118,
-                chapterTitle: "第 119 章 觀劍大會",
+                chapterTitle: "第 119 章 观剑大会",
                 position: CoreTextReadingPosition(spineIndex: 118, charOffset: 1240),
-                excerpt: "陸歡得了許可，立刻便像一隻得了赦令的小貓，輕手輕腳地跨過門檻，小碎步溜到沈回身邊站好。",
+                excerpt: "陆欢得了许可，立刻便像一只得了赦令的小猫，轻手轻脚地跨过门槛，小碎步溜到沈回身边站好。",
                 date: Date().addingTimeInterval(-90)
             ),
             Bookmark(
                 chapterIndex: 119,
-                chapterTitle: "第 120 章 劍氣長城",
+                chapterTitle: "第 120 章 剑气长城",
                 position: CoreTextReadingPosition(spineIndex: 119, charOffset: 640),
-                excerpt: "城頭上的風，吹了千年。",
+                excerpt: "城头上的风，吹了千年。",
                 date: Calendar.current.date(byAdding: .day, value: -1, to: Date()) ?? Date()
             ),
         ],
         pageNumber: { _ in 3 },
-        chapterTitle: { index in index == 118 ? "第 119 章 觀劍大會" : "第 120 章 劍氣長城" },
+        chapterTitle: { index in index == 118 ? "第 119 章 观剑大会" : "第 120 章 剑气长城" },
         onSelect: { _ in },
         onSelectChapter: { _ in },
         onDelete: { _ in },
@@ -283,19 +283,19 @@ struct BookmarkListSection: View {
     )
 }
 
-#Preview("另一版轉換文字的書籤") {
+#Preview("另一版转换文字的书签") {
     let current = Bookmark(
         chapterIndex: 2, chapterTitle: "第三章",
         position: CoreTextReadingPosition(spineIndex: 2, charOffset: 0),
-        excerpt: "這一條對著目前的文字，點了會跳過去。", date: Date().addingTimeInterval(-60), textVersion: 2
+        excerpt: "这一条对著目前的文字，点了会跳过去。", date: Date().addingTimeInterval(-60), textVersion: 2
     )
     let older = Bookmark(
         chapterIndex: 2, chapterTitle: "第三章",
         position: CoreTextReadingPosition(spineIndex: 2, charOffset: 480),
-        excerpt: "這一條建立在上一版轉換的文字上。", date: Date().addingTimeInterval(-3600), textVersion: 1
+        excerpt: "这一条建立在上一版转换的文字上。", date: Date().addingTimeInterval(-3600), textVersion: 1
     )
     ReaderBookmarkListView(
-        bookTitle: "轉換書",
+        bookTitle: "转换书",
         bookmarks: [current, older],
         pageNumber: { _ in 3 },
         chapterTitle: { _ in "第三章" },
@@ -307,9 +307,9 @@ struct BookmarkListSection: View {
     )
 }
 
-#Preview("空狀態") {
+#Preview("空状态") {
     ReaderBookmarkListView(
-        bookTitle: "劍來",
+        bookTitle: "剑来",
         bookmarks: [],
         pageNumber: { _ in nil },
         chapterTitle: { _ in "" },

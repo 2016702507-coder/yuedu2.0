@@ -47,7 +47,7 @@ struct LoginFormGrid: View {
 
     /// The shared value binding: a stored value wins, then the source-declared default.
     /// The setter routes through `onValueChange` so hosts keep their own persistence
-    /// rules (book sources persist select changes immediately, TTS saves on 儲存).
+    /// rules (book sources persist select changes immediately, TTS saves on 储存).
     private func valueBinding(for field: LoginField) -> Binding<String> {
         Binding(
             get: { values[field.name] ?? field.defaultValue ?? "" },

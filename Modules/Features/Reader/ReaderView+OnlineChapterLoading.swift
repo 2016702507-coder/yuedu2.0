@@ -73,9 +73,9 @@ extension ReaderView {
     /// one. Once per reader session.
     ///
     /// The TOC cache is keyed by `(sourceId, url)` — it belongs to the source, not the book —
-    /// so it outlives the book: deleting a book and re-adding it from 發現頁 hands back the
-    /// same possibly-expired chapter URLs, which is why 移除下載 could leave a whole book
-    /// failing and only 換源 (a different `sourceId`, therefore a different key) fixed it.
+    /// so it outlives the book: deleting a book and re-adding it from 发现页 hands back the
+    /// same possibly-expired chapter URLs, which is why 移除下载 could leave a whole book
+    /// failing and only 换源 (a different `sourceId`, therefore a different key) fixed it.
     /// `refreshOnlineBookMetadata` already bypasses that cache unconditionally.
     ///
     /// Strictly one shot: if a freshly fetched TOC still fails, the failure is real and the
@@ -123,7 +123,7 @@ extension ReaderView {
 
     /// A cancelled fetch answered nothing, so the chapter is still wanted. Ask again rather
     /// than leaving the reader on a loading surface nothing will ever resolve — that was the
-    /// second way 載入中 became permanent, and unlike the placeholder one it left no trace.
+    /// second way 载入中 became permanent, and unlike the placeholder one it left no trace.
     ///
     /// This cannot loop: `ensureChapterReady` returns early while a request is in flight, and
     /// the only remaining canceller is a same-chapter priority upgrade, which installs its
@@ -174,7 +174,7 @@ extension ReaderView {
             // A chapter arriving is a data event: each chapter is independent and none
             // supersedes another. Feed the engine directly so it can never be cancelled
             // by the next chapter's refresh — that is what left the visible chapter
-            // stranded on its 載入中 placeholder when several chapters landed at once
+            // stranded on its 载入中 placeholder when several chapters landed at once
             // (opening a book loads N, N-1 and N+1 together). Fall back to a refresh only
             // when the engine had nothing pending and this is the chapter on screen.
             let renderer = epubRenderer
@@ -214,7 +214,7 @@ extension ReaderView {
     /// a chapter's arrival cancel its neighbour's mid-load — and `notifyChapterDataChanged`
     /// clears the old layout *before* rebuilding it, so the victim was left with no layout,
     /// no `onChapterReady`, and nothing that would ever ask again. The visible chapter then
-    /// sat on its 載入中 placeholder until the book was reopened or the chapter re-entered
+    /// sat on its 载入中 placeholder until the book was reopened or the chapter re-entered
     /// from another one. Opening an online book triggers this every time: N, N-1 and N+1
     /// land together and each used to submit its own refresh.
     ///
@@ -262,15 +262,15 @@ extension ReaderView {
         }
     }
 
-    /// 移除下載 deleted every cached chapter of this book while the reader is open. The load
+    /// 移除下载 deleted every cached chapter of this book while the reader is open. The load
     /// states still claim `.ready`, and against an empty cache that pair renders as
-    /// 資料不一致 — with nothing to clear it, because no state transitioned and no chapter
+    /// 资料不一致 — with nothing to clear it, because no state transitioned and no chapter
     /// was entered. Drop the states the files backed, then refetch what is on screen.
     func handleOnlineChapterCacheCleared() {
         AppLogger.cache("⟐ offline cache cleared, resetting chapter states", context: [
             "chapter": currentChapterIndex,
         ])
-        // 目錄 reads the cache again when it next opens, instead of first showing the old marks.
+        // 目录 reads the cache again when it next opens, instead of first showing the old marks.
         tocUncachedChapters = nil
         pendingChapterContentReplacements.formUnion(0..<(book?.onlineChapters?.count ?? 0))
         readerViewModel.resetAllChapterStates()
@@ -280,9 +280,9 @@ extension ReaderView {
         ensureChapterReady(chapterIndex: currentChapterIndex, priority: .jump)
     }
 
-    // MARK: - 目錄's cache marks
+    // MARK: - 目录's cache marks
 
-    /// The chapters 目錄 marks as needing the network (回饋 #88): the cache as read when it
+    /// The chapters 目录 marks as needing the network (回馈 #88): the cache as read when it
     /// opened, less what the offline download has finished since. The download publishes each
     /// batch through the store, so the marks follow it without the cache being read again.
     var tocUncachedChapterIndexes: Set<Int> {
@@ -309,7 +309,7 @@ extension ReaderView {
     /// Shown when the current chapter's fetch failed (`.failed` state, or
     /// ready-but-empty cache). Loading deliberately has NO overlay; only
     /// failures surface, with the reason and a MANUAL retry — no auto-retry,
-    /// because rate-limited sources (起點代理限流) would avalanche.
+    /// because rate-limited sources (起点代理限流) would avalanche.
     @ViewBuilder
     func chapterLoadFailureOverlay(message: String) -> some View {
         let repairSource = androidIdentityRepairCandidate(failureMessage: message)
@@ -318,7 +318,7 @@ extension ReaderView {
                 .font(.system(size: 34))
                 .foregroundStyle(DSColor.textSecondary)
                 .accessibilityHidden(true)
-            Text(localized("章節載入失敗"))
+            Text(localized("章节载入失败"))
                 .font(DSFont.body.weight(.semibold))
                 .foregroundStyle(DSColor.textPrimary)
             Text(localized(message))
@@ -328,21 +328,21 @@ extension ReaderView {
                 .multilineTextAlignment(.center)
             if let repairSource {
                 // The source asked for a device id and got none, and the toggle that
-                // fixes it lives in 書源編輯 → 基本 — unreachable from here. Offer it
+                // fixes it lives in 书源编辑 → 基本 — unreachable from here. Offer it
                 // where the failure is. See `AndroidIdentityRecovery`.
-                Text(localized("此來源配置要求裝置識別碼，目前沒有提供給它"))
+                Text(localized("此来源配置要求装置识别码，目前没有提供给它"))
                     .font(DSFont.caption)
                     .foregroundStyle(DSColor.textSecondary)
                     .multilineTextAlignment(.center)
                 Button {
                     enableAndroidIdentityAndRetry(source: repairSource)
                 } label: {
-                    Text(localized("提供裝置識別碼並重試"))
+                    Text(localized("提供装置识别码并重试"))
                         .font(DSFont.body.weight(.semibold))
                         .padding(.horizontal, DSSpacing.lg)
                 }
                 .buttonStyle(.onAccentProminent)
-                // 重試 steps back to secondary here: retrying without the device id
+                // 重试 steps back to secondary here: retrying without the device id
                 // repeats the request the source just refused.
                 retryChapterButton.buttonStyle(.bordered)
             } else {
@@ -366,14 +366,14 @@ extension ReaderView {
         Button {
             retryCurrentChapterLoad()
         } label: {
-            Text(localized("重試"))
+            Text(localized("重试"))
                 .font(DSFont.body.weight(.semibold))
                 .padding(.horizontal, DSSpacing.lg)
         }
     }
 
-    /// The book's source when 提供裝置識別碼 is the plausible repair for this
-    /// failure — the only case where the failure card offers more than 重試.
+    /// The book's source when 提供装置识别码 is the plausible repair for this
+    /// failure — the only case where the failure card offers more than 重试.
     func androidIdentityRepairCandidate(failureMessage: String) -> BookSource? {
         guard let book, book.isOnline,
               let source = AndroidIdentityRecovery.source(withId: book.bookSourceId),
@@ -383,7 +383,7 @@ extension ReaderView {
     }
 
     /// Turn the opt-in on for this source, then run the same surgical retry the
-    /// 重試 button does — the refused request's cached artifact has to go, or the
+    /// 重试 button does — the refused request's cached artifact has to go, or the
     /// retry would replay the error the source already stored.
     func enableAndroidIdentityAndRetry(source: BookSource) {
         AndroidIdentityRecovery.enable(source)
@@ -413,7 +413,7 @@ extension ReaderView {
     }
 
     /// `.ready` with nothing readable on disk means the load state and the cache disagree —
-    /// exactly what the manual 重試 button already resolves, which is why users found that
+    /// exactly what the manual 重试 button already resolves, which is why users found that
     /// "刷新一下就好了". Do that refetch for them, but only once per chapter: a chapter that
     /// reports the mismatch again after a full refetch is genuinely broken, and the failure
     /// overlay is the honest answer. Looping instead would restore the endless spinner this

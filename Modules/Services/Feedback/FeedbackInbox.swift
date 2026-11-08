@@ -1,7 +1,7 @@
 import Foundation
 import Security
 
-/// The key that owns this person's 回饋中心 threads.
+/// The key that owns this person's 回馈中心 threads.
 ///
 /// There is no sign-in: the key is 32 random bytes, base64url (43 characters), and knowing
 /// it is what lets a client read the inbox (firestore.rules, storage.rules). It lives in

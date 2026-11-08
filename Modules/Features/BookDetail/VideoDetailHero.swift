@@ -1,14 +1,14 @@
 import SwiftUI
 
 /// The top of a video's detail page, point for point as VidHub draws a series (maintainer,
-/// 2026-11-01: 「我叫你 1 比 1 pt 復刻」 against its 法網遊龍 page): the poster across the width
+/// 2026-11-01: 「我叫你 1 比 1 pt 复刻」 against its 法网游龙 page): the poster across the width
 /// at 2:3 from the top edge of the screen, fading at its foot into the colour the whole page is
 /// drawn in (`BookDetailScaffold.pageTint`, taken from that foot), with the title, a line of
 /// facts and the buttons over the faded part, and the intro under it.
 ///
 /// A wide window — an iPad, a phone on its side — keeps the poster across the width but only as
 /// tall as part of the window, the text in a bottom-leading column, as plezy, Infuse, VidHub and
-/// Swiftfin lay out their iPad pages (maintainer, 2026-11-01: 「你確定他們 ipad 版本橫屏是這樣嗎？」):
+/// Swiftfin lay out their iPad pages (maintainer, 2026-11-01: 「你确定他们 ipad 版本横屏是这样吗？」):
 /// a 2:3 box that wide would be taller than the window. A poster card stands above the title
 /// until there is artwork: a generated cover drawn across the width would print the title twice.
 struct VideoDetailHero<Cover: View, Actions: View, Intro: View>: View {
@@ -173,15 +173,15 @@ private struct VideoPosterBackdrop: View {
 
 #Preview("No artwork") {
     ScrollView {
-        VideoDetailHero(poster: nil, title: "示範短劇", facts: ["主演 示範演員", "共 80 集", "都市", "短劇"]) {
-            GeneratedBookCover(title: "示範短劇", author: nil)
+        VideoDetailHero(poster: nil, title: "示范短剧", facts: ["主演 示范演员", "共 80 集", "都市", "短剧"]) {
+            GeneratedBookCover(title: "示范短剧", author: nil)
         } actions: {
-            Button(localized("開始播放"), systemImage: "play.fill") {}
+            Button(localized("开始播放"), systemImage: "play.fill") {}
                 .buttonStyle(.borderedProminent)
                 .buttonBorderShape(.capsule)
                 .controlSize(.large)
         } intro: {
-            Text("示範簡介：一部示範用的短劇。")
+            Text("示范简介：一部示范用的短剧。")
                 .font(DSFont.caption)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }

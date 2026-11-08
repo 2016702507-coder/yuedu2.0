@@ -1,7 +1,7 @@
 import Foundation
 
 /// The one place a book-source category's first page is fetched for a home (Discovery Phase
-/// 7a-1): the home's category rows, its 分類卡片 and its 「最新」 rows all ask here.
+/// 7a-1): the home's category rows, its 分类卡片 and its 「最新」 rows all ask here.
 ///
 /// - **One request at a time per source.** A source's rules share one JS runtime, and
 ///   `BookSourceSession` does not serialize discover fetches (`SectionLoadPolicy.serialPerSource`),
@@ -10,7 +10,7 @@ import Foundation
 ///   share the request.
 /// - **Cookies primed once per source per sync**, before its first fetch, as the source's own
 ///   page primes once per load (`primeDiscoverCookiesIfNeeded` drops the site's token).
-/// - **Every page is saved** to `ForYouCandidateStore`, which 作品詳情's versions read with no
+/// - **Every page is saved** to `ForYouCandidateStore`, which 作品详情's versions read with no
 ///   request (7b-1).
 /// - **One request per category in the home's life**, until its pull to refresh: a page saved
 ///   since then answers a later ask (Discovery Phase 7a-5).

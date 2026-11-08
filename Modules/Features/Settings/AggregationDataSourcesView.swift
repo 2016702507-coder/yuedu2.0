@@ -1,6 +1,6 @@
 import SwiftUI
 
-// Search 9d: 聚合設定's 數據來源, as Emby's 聚合資料 lists its data sources — one row per purpose
+// Search 9d: 聚合设置's 数据来源, as Emby's 聚合资料 lists its data sources — one row per purpose
 // with how many of its places are checked, each opening the checklist of those places.
 
 /// The places a purpose can use, and how many it does: 「3/5」.
@@ -11,13 +11,13 @@ struct DataSourceCount: Equatable {
     var text: String { "\(checked)/\(total)" }
 
     /// VoiceOver hears it as words, not a fraction.
-    var spoken: String { String(format: localized("已勾選 %1$d 個，共 %2$d 個"), checked, total) }
+    var spoken: String { String(format: localized("已勾选 %1$d 个，共 %2$d 个"), checked, total) }
 }
 
-/// 搜尋來源's places: the saved OPDS and Calibre libraries, Gutenberg and 青空文庫 where offered
+/// 搜寻来源's places: the saved OPDS and Calibre libraries, Gutenberg and 青空文库 where offered
 /// (WebDAV has no search), then the installed modules that search (Open Library
-/// among them since OL3). 來源配置 are not listed: they keep their own switch and the search's
-/// 來源配置 chip.
+/// among them since OL3). 来源配置 are not listed: they keep their own switch and the search's
+/// 来源配置 chip.
 @MainActor
 enum SearchSourcePlaces {
     static func places(connections: [RemoteLibraryConnection], librariesAvailable: Bool,
@@ -36,7 +36,7 @@ enum SearchSourcePlaces {
     }
 }
 
-/// The 數據來源 section of 聚合設定.
+/// The 数据来源 section of 聚合设置.
 struct AggregationDataSourcesSection: View {
     @ObservedObject private var store = AggregationSettingsStore.shared
     @ObservedObject private var connections = RemoteLibraryConnectionStore.shared
@@ -63,11 +63,11 @@ struct AggregationDataSourcesSection: View {
 
     var body: some View {
         Section {
-            row(localized("搜尋來源"), count: searchCount, id: "aggregation.dataSources.search") { SearchSourcesView() }
-            row(localized("最新來源"), count: latestCount, id: "aggregation.dataSources.latest") { LatestSourcesView() }
-            row(localized("資料來源"), count: fillCount, id: "aggregation.dataSources.metadata") { MetadataFillSourcesView() }
+            row(localized("搜寻来源"), count: searchCount, id: "aggregation.dataSources.search") { SearchSourcesView() }
+            row(localized("最新来源"), count: latestCount, id: "aggregation.dataSources.latest") { LatestSourcesView() }
+            row(localized("资料来源"), count: fillCount, id: "aggregation.dataSources.metadata") { MetadataFillSourcesView() }
         } header: {
-            Text(localized("數據來源"))
+            Text(localized("数据来源"))
         }
         .interfaceSectionSurface()
         .task { await modules.loadIfNeeded() }
@@ -86,7 +86,7 @@ struct AggregationDataSourcesSection: View {
     }
 }
 
-/// 搜尋來源: the places a sent search asks, each checked or not.
+/// 搜寻来源: the places a sent search asks, each checked or not.
 struct SearchSourcesView: View {
     @ObservedObject private var store = AggregationSettingsStore.shared
     @ObservedObject private var connections = RemoteLibraryConnectionStore.shared
@@ -106,20 +106,20 @@ struct SearchSourcesView: View {
                     .accessibilityIdentifier("aggregation.search.\(place.key.type.rawValue).\(place.key.id)")
                 }
             } footer: {
-                Text(localized("按下搜尋時，關鍵字會送到勾選的地方；Open Library 找到的書只有資料。來源配置在搜索頁的「來源配置」選。"))
+                Text(localized("按下搜寻时，关键字会送到勾选的地方；Open Library 找到的书只有资料。来源配置在搜索页的「来源配置」选。"))
                     .dsSectionFooter()
             }
             .interfaceSectionSurface()
         }
         .softScrollEdges()
         .themedAppSurface(for: .settings)
-        .navigationTitle(localized("搜尋來源"))
+        .navigationTitle(localized("搜寻来源"))
         .toolbarTitleDisplayMode(.inline)
         .task { await modules.loadIfNeeded() }
     }
 }
 
-/// 最新來源: 顯示在最新 for every library, the same switches 最新's own options show.
+/// 最新来源: 显示在最新 for every library, the same switches 最新's own options show.
 struct LatestSourcesView: View {
     @ObservedObject private var store = AggregationSettingsStore.shared
     @ObservedObject private var connections = RemoteLibraryConnectionStore.shared
@@ -130,7 +130,7 @@ struct LatestSourcesView: View {
                                                  librariesAvailable: availability.isAvailable)
         List {
             if libraries.isEmpty {
-                ContentUnavailableView { UnavailableLabel(localized("沒有書庫"), systemImage: "building.columns") }
+                ContentUnavailableView { UnavailableLabel(localized("没有书库"), systemImage: "building.columns") }
                     .listRowBackground(Color.clear)
             } else {
                 Section {
@@ -142,7 +142,7 @@ struct LatestSourcesView: View {
                         .accessibilityIdentifier("aggregation.latest.\(library.key.type.rawValue).\(library.key.id)")
                     }
                 } footer: {
-                    Text(localized("每個首頁配置的最新都用這份設定。"))
+                    Text(localized("每个首页配置的最新都用这份设置。"))
                         .dsSectionFooter()
                 }
                 .interfaceSectionSurface()
@@ -150,21 +150,21 @@ struct LatestSourcesView: View {
         }
         .softScrollEdges()
         .themedAppSurface(for: .settings)
-        .navigationTitle(localized("最新來源"))
+        .navigationTitle(localized("最新来源"))
         .toolbarTitleDisplayMode(.inline)
     }
 }
 
-#Preview("數據來源") {
+#Preview("数据来源") {
     NavigationStack {
         List { AggregationDataSourcesSection() }
     }
 }
 
-#Preview("搜尋來源") {
+#Preview("搜寻来源") {
     NavigationStack { SearchSourcesView() }
 }
 
-#Preview("最新來源") {
+#Preview("最新来源") {
     NavigationStack { LatestSourcesView() }
 }

@@ -28,7 +28,7 @@ final class ReaderOpeningRestore {
     /// A page settled on screen. Returns whether it delivered the restore.
     @discardableResult
     func pageSettled(_ page: Int, pageIndex: (CoreTextReadingPosition) -> Int?) -> Bool {
-        // A 載入中 page has no index for the target, and the page shown before the restored
+        // A 载入中 page has no index for the target, and the page shown before the restored
         // chapter arrived has another: neither delivers it.
         guard let target,
               ReaderProgressRestoreResolver.resolvePage(

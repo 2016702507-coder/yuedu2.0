@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// 新手導覽 over the whole app (`OnboardingState`): an overlay rather than a full-screen
-/// cover, so a book opened into 閱讀 at the same launch still presents its reader, and the
+/// 新手导览 over the whole app (`OnboardingState`): an overlay rather than a full-screen
+/// cover, so a book opened into 阅读 at the same launch still presents its reader, and the
 /// tour is waiting when it closes.
 struct OnboardingPresentation: ViewModifier {
     let state: OnboardingState
@@ -18,7 +18,7 @@ struct OnboardingPresentation: ViewModifier {
             .overlay {
                 if state.isPresented {
                     OnboardingView(content: tourContent, finish: finish)
-                        // Both, as the root sets them: 繼續 is filled with the tint, and its
+                        // Both, as the root sets them: 继续 is filled with the tint, and its
                         // label (`DSColor.textOnAccent`) is chosen against the accent colour.
                         .tint(tint)
                         .accentColor(tint)
@@ -52,8 +52,8 @@ struct OnboardingPresentation: ViewModifier {
     }
 }
 
-/// The tour: 略過 at the top, the pages, and the dots and 繼續 at the bottom. The last page
-/// says 開始使用 and offers where to start.
+/// The tour: 略过 at the top, the pages, and the dots and 继续 at the bottom. The last page
+/// says 开始使用 and offers where to start.
 struct OnboardingView: View {
     let content: OnboardingContent
     let finish: (OnboardingStart?) -> Void
@@ -101,11 +101,11 @@ struct OnboardingView: View {
     private var topBar: some View {
         HStack {
             Spacer()
-            Button(localized("略過")) { finish(nil) }
+            Button(localized("略过")) { finish(nil) }
                 .font(DSFont.body)
                 .keyboardShortcut(.cancelAction)
                 .accessibilityIdentifier("onboarding.skip")
-                // The last page leaves by its own choices and 開始使用; the bar keeps its
+                // The last page leaves by its own choices and 开始使用; the bar keeps its
                 // height so the pages do not move.
                 .opacity(isLastPage ? 0 : 1)
                 .disabled(isLastPage)
@@ -123,7 +123,7 @@ struct OnboardingView: View {
                     pageView(item)
                         // A page that scrolls says so as it comes into view.
                         .scrollIndicatorsFlash(trigger: item == current)
-                        // VoiceOver reads the page in view; the dots and 繼續 turn the pages.
+                        // VoiceOver reads the page in view; the dots and 继续 turn the pages.
                         .accessibilityHidden(onlyWhen: item != current)
                         .containerRelativeFrame(.horizontal)
                 }
@@ -167,7 +167,7 @@ struct OnboardingView: View {
         VStack(spacing: DSSpacing.lg) {
             pageDots
             Button(action: advance) {
-                Text(localized(isLastPage ? "開始使用" : "繼續"))
+                Text(localized(isLastPage ? "开始使用" : "继续"))
                     .font(DSFont.headline)
                     // As wide as the column. The height is `.controlSize(.large)`'s: a height
                     // set here comes on top of the padding the system adds around the label.
@@ -195,8 +195,8 @@ struct OnboardingView: View {
             }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(localized("新手導覽"))
-        .accessibilityValue(String(format: localized("第 %d 頁（共 %d 頁）"), currentIndex + 1, pages.count))
+        .accessibilityLabel(localized("新手导览"))
+        .accessibilityValue(String(format: localized("第 %d 页（共 %d 页）"), currentIndex + 1, pages.count))
         .accessibilityAdjustableAction { direction in
             switch direction {
             case .increment:
@@ -244,7 +244,7 @@ private extension View {
     }
 }
 
-#Preview("新手導覽") {
+#Preview("新手导览") {
     OnboardingView(
         content: OnboardingContent(
             visibleTabs: RootTabItem.tabs,
@@ -256,7 +256,7 @@ private extension View {
     )
 }
 
-#Preview("新手導覽：閱讀Pro、無探索與起點") {
+#Preview("新手导览：阅读Pro、无探索与起点") {
     OnboardingView(
         content: OnboardingContent(
             visibleTabs: [.settings, .search],

@@ -17,7 +17,7 @@ struct OPDSFeedRoute: Hashable {
 }
 
 extension View {
-    /// The remote-library pages: a feed, a WebDAV folder and 作品詳情, which every list's book
+    /// The remote-library pages: a feed, a WebDAV folder and 作品详情, which every list's book
     /// opens. Registered once per stack.
     func remoteLibraryDestinations() -> some View {
         modifier(RemoteLibraryDestinations())
@@ -42,7 +42,7 @@ private struct RemoteLibraryDestinations: ViewModifier {
     }
 }
 
-/// A remote list's book row, opening 作品詳情. An entry that is not an item (an OPDS entry with
+/// A remote list's book row, opening 作品详情. An entry that is not an item (an OPDS entry with
 /// neither a format nor a feed, a file outside the connection's root) has nowhere to go and
 /// is shown as it is.
 struct RemoteLibraryWorkLink<Label: View>: View {
@@ -62,7 +62,7 @@ struct RemoteLibraryConnectionEditor: View {
     let kind: RemoteLibraryKind
     var connection: RemoteLibraryConnection?
     /// The page background of the screen that pushed it: the bookshelf's library list, or
-    /// 設定 → 遠端書庫.
+    /// 设置 → 远端书库.
     var surface: AppearancePageBackgroundScope = .bookshelf
     @Environment(\.dismiss) private var dismiss
     @ObservedObject private var catalogStore = RemoteLibraryConnectionStore.shared
@@ -95,48 +95,48 @@ struct RemoteLibraryConnectionEditor: View {
     var body: some View {
         Form {
             Section {
-                TextField(localized("伺服器名稱（選填）"), text: $name)
-                TextField(localized("伺服器網址"), text: $url)
+                TextField(localized("伺服器名称（选填）"), text: $name)
+                TextField(localized("伺服器网址"), text: $url)
                     .textInputAutocapitalization(.never).autocorrectionDisabled().keyboardType(.URL)
             } header: {
-                Text(localized("伺服器設定"))
+                Text(localized("伺服器设置"))
                     .foregroundStyle(DSColor.textSecondary)
             } footer: {
                 if kind == .calibre {
-                    Text(localized("輸入 Calibre 或 Calibre-Web 伺服器網址；完整 OPDS 網址也可使用。"))
+                    Text(localized("输入 Calibre 或 Calibre-Web 伺服器网址；完整 OPDS 网址也可使用。"))
                         .dsSectionFooter()
                 } else if kind == .webDAV {
-                    Text(localized("書庫連線獨立儲存，修改此處不會變更 WebDAV 同步設定。"))
+                    Text(localized("书库连线独立储存，修改此处不会变更 WebDAV 同步设置。"))
                         .dsSectionFooter()
                 }
             }
             .interfaceSectionSurface()
-            Section(localized("認證（選填）")) {
-                TextField(localized("使用者名稱"), text: $username)
+            Section(localized("认证（选填）")) {
+                TextField(localized("使用者名称"), text: $username)
                     .textInputAutocapitalization(.never).autocorrectionDisabled()
-                SecureField(localized("密碼"), text: $password)
+                SecureField(localized("密码"), text: $password)
             }
             .interfaceSectionSurface()
             if kind == .webDAV {
                 Section {
-                    Toggle(localized("在背景建立書籍索引"), isOn: $indexesBooks)
+                    Toggle(localized("在背景建立书籍索引"), isOn: $indexesBooks)
                 } footer: {
-                    Text(localized("只在連接 Wi-Fi 且 App 開著時進行。"))
+                    Text(localized("只在连接 Wi-Fi 且 App 开著时进行。"))
                         .dsSectionFooter()
                 }.interfaceSectionSurface()
             }
             if kind == .calibre {
                 Section {
-                    Toggle(localized("回傳至 Calibre 網頁閱讀器"), isOn: $syncProgress)
+                    Toggle(localized("回传至 Calibre 网页阅读器"), isOn: $syncProgress)
                 } footer: {
-                    Text(localized("使用 Calibre 內容伺服器帳號回傳 EPUB 位置，可在電腦的網頁閱讀器續讀。") + "\n\n" + localized("Calibre 桌面獨立閱讀器與 Calibre-Web 不支援此續讀方式。"))
+                    Text(localized("使用 Calibre 内容伺服器帐号回传 EPUB 位置，可在电脑的网页阅读器续读。") + "\n\n" + localized("Calibre 桌面独立阅读器与 Calibre-Web 不支援此续读方式。"))
                         .dsSectionFooter()
                 }.interfaceSectionSurface()
             }
             Section {
                 Button(action: testConnection) {
                     HStack {
-                        Text(localized("測試連線"))
+                        Text(localized("测试连线"))
                         Spacer()
                         if isTesting { ProgressView() }
                     }
@@ -147,13 +147,13 @@ struct RemoteLibraryConnectionEditor: View {
             .interfaceSectionSurface()
         }
         .softScrollEdges()
-        .navigationTitle(localized(connection == nil ? "新增伺服器" : "編輯伺服器"))
+        .navigationTitle(localized(connection == nil ? "新增伺服器" : "编辑伺服器"))
         .toolbarTitleDisplayMode(.inline)
         .themedAppSurface(for: surface)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button(action: save) {
-                    Label(localized("儲存"), systemImage: "checkmark").labelStyle(.iconOnly)
+                    Label(localized("储存"), systemImage: "checkmark").labelStyle(.iconOnly)
                 }
                 .disabled(normalizedURL == nil)
             }
@@ -193,7 +193,7 @@ struct RemoteLibraryConnectionEditor: View {
             do {
                 try await catalogStore.testConnection(url: url, kind: kind, username: user, password: secret)
                 try Task.checkCancellation()
-                testResult = localized("連線成功")
+                testResult = localized("连线成功")
             } catch {
                 guard !Task.isCancelled else { return }
                 testResult = error.localizedDescription
@@ -234,7 +234,7 @@ struct OPDSFeedView: View {
             if let loadError {
                 Section {
                     Label(loadError, systemImage: "exclamationmark.triangle").foregroundStyle(DSColor.textSecondary)
-                    Button(localized("重試")) {
+                    Button(localized("重试")) {
                         if failedWhileLoadingMore {
                             requestTask = Task { await loadMore() }
                         } else { submitSearch() }
@@ -250,7 +250,7 @@ struct OPDSFeedView: View {
                         requestTask = Task { await loadMore() }
                     } label: {
                         HStack {
-                            Text(localized("載入更多"))
+                            Text(localized("载入更多"))
                             Spacer()
                             if isLoadingMore { ProgressView() }
                         }
@@ -263,17 +263,17 @@ struct OPDSFeedView: View {
         .softScrollEdges()
         .overlay {
             if isLoading && entries.isEmpty && loadError == nil {
-                ProgressView(localized("正在載入書庫"))
+                ProgressView(localized("正在载入书库"))
             } else if !isLoading && entries.isEmpty && loadError == nil {
                 ContentUnavailableView {
-                    UnavailableLabel(localized("此目錄沒有內容"), systemImage: "books.vertical")
+                    UnavailableLabel(localized("此目录没有内容"), systemImage: "books.vertical")
                 }
             }
         }
         .navigationTitle(route.title)
         .toolbarTitleDisplayMode(.inline)
         .themedAppSurface(for: .bookshelf)
-        .searchable(text: $searchText, prompt: localized("搜尋此目錄"))
+        .searchable(text: $searchText, prompt: localized("搜寻此目录"))
         .onSubmit(of: .search, submitSearch)
         .submitScope()
         .onChange(of: searchText) { oldValue, newValue in
@@ -284,17 +284,17 @@ struct OPDSFeedView: View {
                 if let connection, PublicLibrary.connection(id: connection.id) == nil {
                     Menu {
                         if let url = URL(string: route.url) {
-                            NavigationLink(localized("管理遠端書庫")) {
+                            NavigationLink(localized("管理远端书库")) {
                                 RemoteLibraryManagementView(connectionID: connection.id, directoryURL: url)
                             }
                         }
                         NavigationLink {
                             RemoteLibraryConnectionEditor(kind: connection.kind, connection: connection)
                         } label: {
-                            Label(localized("編輯伺服器"), systemImage: "slider.horizontal.3")
+                            Label(localized("编辑伺服器"), systemImage: "slider.horizontal.3")
                         }
                     } label: {
-                        Label(localized("書庫操作"), systemImage: "ellipsis.circle").labelStyle(.iconOnly)
+                        Label(localized("书库操作"), systemImage: "ellipsis.circle").labelStyle(.iconOnly)
                     }
                 }
             }
@@ -346,7 +346,7 @@ struct OPDSFeedView: View {
                             Text(author).font(DSFont.caption).foregroundStyle(DSColor.textSecondary).lineLimit(1)
                         }
                         if entry.bestAcquisition == nil {
-                            Text(localized("此格式暫不支援閱讀")).font(DSFont.caption).foregroundStyle(DSColor.textSecondary)
+                            Text(localized("此格式暂不支援阅读")).font(DSFont.caption).foregroundStyle(DSColor.textSecondary)
                         }
                         if let status = shelfStatus(of: entry) {
                             Text(status.title).font(DSFont.caption).foregroundStyle(DSColor.textSecondary)
@@ -357,7 +357,7 @@ struct OPDSFeedView: View {
         }
     }
 
-    /// 已加入書架 or 已下載, from `CopyLookup` (unified library 2c).
+    /// 已加入书架 or 已下载, from `CopyLookup` (unified library 2c).
     private func shelfStatus(of entry: OPDSEntry) -> CopyLookup.Status? {
         let key = SourceRecord.derived(from: entry, connectionID: route.catalogID, connectionKind: connection?.kind ?? .opds).key
         return store.copyLookup(connections: catalogStore).status(for: key)
@@ -376,9 +376,9 @@ struct OPDSFeedView: View {
 extension RemoteLibraryKind {
     var libraryTitle: String {
         switch self {
-        case .opds: localized("OPDS 書庫")
-        case .webDAV: localized("WebDAV 書庫")
-        case .calibre: localized("Calibre 書庫")
+        case .opds: localized("OPDS 书库")
+        case .webDAV: localized("WebDAV 书库")
+        case .calibre: localized("Calibre 书库")
         }
     }
 }

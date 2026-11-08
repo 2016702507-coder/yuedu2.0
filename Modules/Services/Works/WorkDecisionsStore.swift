@@ -12,7 +12,7 @@ import Foundation
 /// - A file from a newer build is read decision by decision, skipping the kinds this build
 ///   does not know, and never written over: writing it back would drop them.
 ///
-/// Decisions about a deleted copy stay, inactive; only 重設作品資料 clears them (design §10.2).
+/// Decisions about a deleted copy stay, inactive; only 重设作品资料 clears them (design §10.2).
 final class WorkDecisionsStore: @unchecked Sendable {
     static let currentSchemaVersion = 1
 

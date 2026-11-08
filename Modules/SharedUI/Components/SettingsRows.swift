@@ -1,16 +1,16 @@
 import SwiftUI
 
-/// The rows settings screens are built from — 設定, 閱讀設定, 外觀主題, 主題自訂 — so every
+/// The rows settings screens are built from — 设置, 阅读设置, 外观主题, 主题自订 — so every
 /// row of every kind wears the same symbol at the same size, in the same colour, with its
 /// title on the same line. Each wraps a native control; these only fix the label.
 ///
 /// The symbol style is `IconConsistentLabelStyle`, the one `DSSettingsRow` has always used
-/// on 設定, so the pages it opens look like part of it.
+/// on 设置, so the pages it opens look like part of it.
 struct SettingsRowLabel: View {
     enum Role {
         /// A setting, a page, a toggle: the title reads as text.
         case standard
-        /// Does something when tapped — 匯出, 匯入, 重設: the title takes the tint.
+        /// Does something when tapped — 汇出, 汇入, 重设: the title takes the tint.
         case action
         /// Removes or overwrites something the user made.
         case destructive
@@ -58,8 +58,8 @@ struct SettingsValueLabel: View {
 }
 
 /// `LabeledContent(title, value:)` in the theme's text colours: the title as 主文字, the
-/// value as 次級文字. The plain initializer draws both in the system's own colours, which
-/// 外觀主題 › 文字顏色 cannot reach. Layout and VoiceOver are LabeledContent's own.
+/// value as 次级文字. The plain initializer draws both in the system's own colours, which
+/// 外观主题 › 文字颜色 cannot reach. Layout and VoiceOver are LabeledContent's own.
 struct ThemedLabeledContent: View {
     let title: String
     let value: String
@@ -81,8 +81,8 @@ struct ThemedLabeledContent: View {
 }
 
 /// The label of a `ContentUnavailableView` in the theme's text colours: the title as 主文字,
-/// the symbol as 次級文字 — what the view gives them itself, in the system's colours,
-/// which 外觀主題 › 文字顏色 cannot reach. The description goes in 次級文字 at the call site.
+/// the symbol as 次级文字 — what the view gives them itself, in the system's colours,
+/// which 外观主题 › 文字颜色 cannot reach. The description goes in 次级文字 at the call site.
 ///
 /// The title also takes the global font itself: the view sets its own system font on its
 /// label, over the app's (feedback #41). `DSFont.unavailableTitle` is the style it sets —
@@ -138,11 +138,11 @@ struct UnavailableSearchView: View {
     var body: some View {
         ContentUnavailableView {
             UnavailableLabel(
-                text.isEmpty ? localized("搜索無結果") : String(format: localized("沒有「%@」的結果"), text),
+                text.isEmpty ? localized("搜索无结果") : String(format: localized("没有「%@」的结果"), text),
                 systemImage: "magnifyingglass"
             )
         } description: {
-            Text(localized("請檢查拼字或嘗試新的搜尋。"))
+            Text(localized("请检查拼字或尝试新的搜寻。"))
                 .font(DSFont.unavailableDescription)
                 .foregroundStyle(DSColor.textSecondary)
         }
@@ -213,10 +213,10 @@ struct SettingsLockedRow: View {
     Form {
         Section {
             NavigationLink {} label: {
-                SettingsValueLabel(title: "排版生效範圍", systemImage: "paintpalette", value: "全部跟隨全域")
+                SettingsValueLabel(title: "排版生效范围", systemImage: "paintpalette", value: "全部跟随全域")
             }
             Toggle(isOn: .constant(true)) {
-                SettingsRowLabel("粗體", systemImage: "bold")
+                SettingsRowLabel("粗体", systemImage: "bold")
             }
             SettingsSliderRow(
                 title: "行距",
@@ -227,25 +227,25 @@ struct SettingsLockedRow: View {
                 step: 0.05
             )
             Button {} label: {
-                SettingsRowLabel("重設排版", systemImage: "arrow.counterclockwise", role: .action)
+                SettingsRowLabel("重设排版", systemImage: "arrow.counterclockwise", role: .action)
             }
-            SettingsLockedRow(title: "正則高亮", systemImage: "text.magnifyingglass") {}
+            SettingsLockedRow(title: "正则高亮", systemImage: "text.magnifyingglass") {}
         }
     }
 }
 
-#Preview("無內容") {
+#Preview("无内容") {
     ContentUnavailableView {
-        UnavailableLabel("此分組暫無意見回報", systemImage: "tray")
+        UnavailableLabel("此分组暂无意见回报", systemImage: "tray")
     } description: {
-        Text("說明文字").font(DSFont.unavailableDescription).foregroundStyle(DSColor.textSecondary)
+        Text("说明文字").font(DSFont.unavailableDescription).foregroundStyle(DSColor.textSecondary)
     } actions: {
         UnavailableActions {
-            Button("重試") {}
+            Button("重试") {}
         }
     }
 }
 
-#Preview("搜尋無結果") {
-    UnavailableSearchView(text: "三體")
+#Preview("搜寻无结果") {
+    UnavailableSearchView(text: "三体")
 }

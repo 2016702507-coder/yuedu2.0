@@ -5,17 +5,17 @@ import SwiftUI
 
 // MARK: - Auto Read Controller
 
-/// 自動閱讀 — a mode, not a transport.
+/// 自动阅读 — a mode, not a transport.
 ///
 /// Modelled on legado's `AutoPager` (`legado-E/.../page/AutoPager.kt`), which all
 /// three forks implement identically. Two things about it are easy to get wrong,
 /// and the previous version got both:
 ///
-/// 1. **It is not a page turn on a timer.** In 翻頁 mode the next page is laid over
+/// 1. **It is not a page turn on a timer.** In 翻页 mode the next page is laid over
 ///    the current one and revealed top-to-bottom by a moving clip line; the page
 ///    turn itself happens instantly, unanimated, when the reveal reaches the
-///    bottom. The reader's chosen 仿真／覆蓋／滑動 animation is deliberately
-///    bypassed. In 捲動 mode there is no reveal — the content scrolls
+///    bottom. The reader's chosen 仿真／覆盖／滑动 animation is deliberately
+///    bypassed. In 卷动 mode there is no reveal — the content scrolls
 ///    continuously.
 /// 2. **Speed is seconds per page, not a multiplier.** `viewportHeight /
 ///    secondsPerPage` is the velocity, and it is the same number in both modes.
@@ -53,7 +53,7 @@ final class AutoReadController: NSObject, ObservableObject {
     @Published private(set) var isPaused = false
     /// Survives leaving the reader.
     @Published private(set) var secondsPerPage: Double
-    /// How far the next page has been revealed, 0…1. Only meaningful in 翻頁 mode.
+    /// How far the next page has been revealed, 0…1. Only meaningful in 翻页 mode.
     ///
     /// Deliberately **not** `@Published`. It changes every frame, and publishing it
     /// would re-evaluate the whole reader body sixty times a second for a value
@@ -68,7 +68,7 @@ final class AutoReadController: NSObject, ObservableObject {
     /// Advance one page, unanimated. `false` means there was no next page, which
     /// ends the mode — legado's `fillPage(NEXT)` returning false.
     var onAdvancePage: (() -> Bool)?
-    /// 捲動 mode: move the content down by this fraction of one viewport.
+    /// 卷动 mode: move the content down by this fraction of one viewport.
     /// `false` means the end of the book.
     var onScrollByFraction: ((Double) -> Bool)?
     /// Asked every frame, because the reader can switch modes underneath us.
@@ -167,7 +167,7 @@ final class AutoReadController: NSObject, ObservableObject {
         String(format: "%.0fs", clampedSecondsPerPage(value))
     }
 
-    /// "約每 10 秒翻一頁"
+    /// "约每 10 秒翻一页"
     var intervalDescription: String {
         String(
             format: localized("AutoRead.Format.Interval"),

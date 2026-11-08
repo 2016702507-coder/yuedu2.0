@@ -1,10 +1,10 @@
 import SwiftUI
 
-// 作品詳情's series fan (Apple Books' series header, `Technotes/AppleBooksHomeLayouts-2026-10-25.md`;
+// 作品详情's series fan (Apple Books' series header, `Technotes/AppleBooksHomeLayouts-2026-10-25.md`;
 // maintainer, by option, 2026-10-26): the other volumes' covers fanned behind the page's own,
 // up to two on each side, the nearest in series order. The volumes are the series read on this
-// device (同系列), else the covers a list gave the item that stands for its series (趨勢's
-// `seriesCovers`). Real artwork only: a volume whose cover would be a 預設封面 or generated, or
+// device (同系列), else the covers a list gave the item that stands for its series (趋势's
+// `seriesCovers`). Real artwork only: a volume whose cover would be a 预设封面 or generated, or
 // whose artwork does not load, is skipped, and with none left the hero keeps its single cover.
 // The fan is decoration; the hero names the series once, by its series link or a list's series
 // name, or by its title for a list's item that is the whole series.
@@ -85,8 +85,8 @@ extension SeriesFan {
 }
 
 extension SeriesFan {
-    /// A list's item that stands for a series (趨勢's English series, under its first book) or
-    /// is one (趨勢's 華語 and 日本 works, which name no series): the other volumes' covers the
+    /// A list's item that stands for a series (趋势's English series, under its first book) or
+    /// is one (趋势's 华语 and 日本 works, which name no series): the other volumes' covers the
     /// list gave, after the page's own. Nil without them.
     init?(_ summary: WorkSummary, session: URLSession?) {
         guard !summary.seriesCovers.isEmpty else { return nil }
@@ -129,8 +129,8 @@ struct SeriesFanArtwork: Sendable {
 extension HomeCardContent.Cover {
     /// The volume's own artwork as `HomeCoverArtwork` draws it, at `pixels`: a shelf copy's
     /// saved, filled or catalog cover (`BookshelfCoverPlan.shelf`), a list's address or file.
-    /// Nil when it would draw a 預設封面, a generated cover or a placeholder, and for every
-    /// volume under 強制使用預設封面.
+    /// Nil when it would draw a 预设封面, a generated cover or a placeholder, and for every
+    /// volume under 强制使用预设封面.
     @MainActor
     func artworkSource(pixels: CoverPixelSize, filledCovers: FilledCoverIndex?, colorScheme: ColorScheme,
                        forcesDefaultCover: Bool = GlobalSettings.shared.useDefaultCoverForAllBooks) -> SeriesFanArtwork? {
@@ -261,17 +261,17 @@ extension SeriesFan {
 #Preview("系列扇形") {
     let sample = SeriesFan.preview
     NavigationStack {
-        BookDetailScaffold(title: "第 2 冊", compactAction: BookDetailAction(title: "開始閱讀", systemImage: "book", action: {})) {
+        BookDetailScaffold(title: "第 2 册", compactAction: BookDetailAction(title: "开始阅读", systemImage: "book", action: {})) {
             BookDetailHero(
                 artworkShape: .book,
-                cover: HomeCoverArtwork(cover: sample.own, title: "第 2 冊", author: "",
+                cover: HomeCoverArtwork(cover: sample.own, title: "第 2 册", author: "",
                                         size: CGSize(width: DSLayout.bookDetailCoverWidth, height: DSLayout.bookDetailCoverHeight)),
-                title: "第 2 冊",
-                author: "示範作者",
+                title: "第 2 册",
+                author: "示范作者",
                 meta: "",
-                primary: BookDetailAction(title: "開始閱讀", systemImage: "book", action: {}),
+                primary: BookDetailAction(title: "开始阅读", systemImage: "book", action: {}),
                 secondary: nil,
-                links: [BookDetailLink(id: "series", title: SeriesWorks.line(name: "示範系列", number: 2), action: {})],
+                links: [BookDetailLink(id: "series", title: SeriesWorks.line(name: "示范系列", number: 2), action: {})],
                 seriesFan: sample.fan
             )
         } content: {

@@ -2,7 +2,7 @@ import Combine
 import SwiftUI
 import UIKit
 
-/// 設定 → 回饋中心 → 診斷紀錄 (設定 → 診斷與回報 until 2026-10-15).
+/// 设置 → 回馈中心 → 诊断纪录 (设置 → 诊断与回报 until 2026-10-15).
 ///
 /// The device-readable window onto `DiagnosticLog`. Everything the app logs already
 /// went to `os_log`, which needs a Mac and Console.app — so in practice a user who
@@ -19,7 +19,7 @@ struct DiagnosticsView: View {
     @State private var categoryFilter: DiagnosticCategory?
     @State private var showClearConfirmation = false
     @State private var showCopiedAlert = false
-    /// Set by the 匯出目前篩選 menu row before iOS 18, where a `Menu` cannot own a
+    /// Set by the 汇出目前筛选 menu row before iOS 18, where a `Menu` cannot own a
     /// share sheet. See `MenuShareHandoff`.
     @State private var pendingShare: PendingShareExport<DiagnosticReportBundle>?
     /// Fixed once per visit. `filename()` stamps the current time, so recomputing it
@@ -38,7 +38,7 @@ struct DiagnosticsView: View {
             switch self {
             case .all:            return localized("全部")
             case .noticeAndUp:    return localized("提示以上")
-            case .reportableOnly: return localized("只看異常")
+            case .reportableOnly: return localized("只看异常")
             }
         }
 
@@ -74,7 +74,7 @@ struct DiagnosticsView: View {
         return model.entries.filter { DiagnosticLog.shared.isUnreported($0) }.count
     }
 
-    /// The whole session. What 匯出並回報 sends, and what silences the banner.
+    /// The whole session. What 汇出并回报 sends, and what silences the banner.
     private var exportBundle: DiagnosticReportBundle {
         DiagnosticReportBundle(
             filename: exportFilename,
@@ -108,14 +108,14 @@ struct DiagnosticsView: View {
                 }
 
                 ShareLink(item: exportBundle, preview: SharePreview(exportBundle.filename)) {
-                    Label(localized("匯出紀錄"), systemImage: "square.and.arrow.up")
+                    Label(localized("汇出纪录"), systemImage: "square.and.arrow.up")
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .contentShape(Rectangle())
                 }
-                .accessibilityLabel(localized("匯出紀錄"))
+                .accessibilityLabel(localized("汇出纪录"))
                 .accessibilityIdentifier("diagnostics_export_button")
             } footer: {
-                Text(localized("包含這次啟動的完整紀錄，不受下方篩選影響。"))
+                Text(localized("包含这次启动的完整纪录，不受下方筛选影响。"))
                     .dsSectionFooter()
             }
             .interfaceSectionSurface()
@@ -126,33 +126,33 @@ struct DiagnosticsView: View {
                         DiagnosticCrashSessionRow(session: session)
                     }
                 } header: {
-                    Text(localized("上次未正常結束"))
+                    Text(localized("上次未正常结束"))
                         .foregroundStyle(DSColor.textSecondary)
                 } footer: {
-                    Text(localized("App 在使用中結束，不是被系統回收。詳細內容下次啟動後才會送達。"))
+                    Text(localized("App 在使用中结束，不是被系统回收。详细内容下次启动后才会送达。"))
                         .dsSectionFooter()
                 }
                 .interfaceSectionSurface()
             }
 
             Section {
-                Picker(localized("嚴重程度"), selection: $severityFilter) {
+                Picker(localized("严重程度"), selection: $severityFilter) {
                     ForEach(SeverityFilter.allCases) { filter in
                         Text(filter.localizedName).tag(filter)
                     }
                 }
-                Picker(localized("分類"), selection: $categoryFilter) {
+                Picker(localized("分类"), selection: $categoryFilter) {
                     Text(localized("全部")).tag(DiagnosticCategory?.none)
                     ForEach(DiagnosticCategory.allCases, id: \.self) { category in
                         Text(category.localizedName).tag(DiagnosticCategory?.some(category))
                     }
                 }
-                Toggle(localized("記錄詳細追蹤"), isOn: $model.isVerboseEnabled)
+                Toggle(localized("记录详细追踪"), isOn: $model.isVerboseEnabled)
             } header: {
-                Text(localized("篩選"))
+                Text(localized("筛选"))
                     .foregroundStyle(DSColor.textSecondary)
             } footer: {
-                Text(localized("記下每一次翻頁與解析步驟。關閉時仍會記錄錯誤。"))
+                Text(localized("记下每一次翻页与解析步骤。关闭时仍会记录错误。"))
                     .dsSectionFooter()
             }
             .interfaceSectionSurface()
@@ -161,7 +161,7 @@ struct DiagnosticsView: View {
                 if model.isLoading {
                     HStack(spacing: DSSpacing.md) {
                         ProgressView()
-                        Text(localized("載入中…"))
+                        Text(localized("载入中…"))
                             .font(DSFont.subheadline)
                             .foregroundStyle(DSColor.textSecondary)
                     }
@@ -173,7 +173,7 @@ struct DiagnosticsView: View {
                     }
                 }
             } header: {
-                Text(localized("紀錄"))
+                Text(localized("纪录"))
                     .foregroundStyle(DSColor.textSecondary)
             }
             .interfaceSectionSurface()
@@ -182,9 +182,9 @@ struct DiagnosticsView: View {
         .searchable(
             text: $searchText,
             placement: .navigationBarDrawer(displayMode: .always),
-            prompt: localized("搜尋紀錄")
+            prompt: localized("搜寻纪录")
         )
-        .navigationTitle(localized("診斷紀錄"))
+        .navigationTitle(localized("诊断纪录"))
         .toolbarTitleDisplayMode(.inline)
         .themedAppSurface(for: .settings)
         .toolbar {
@@ -194,14 +194,14 @@ struct DiagnosticsView: View {
                         UIPasteboard.general.string = exportBundle.render()
                         showCopiedAlert = true
                     } label: {
-                        Label(localized("複製全部"), systemImage: "doc.on.doc")
+                        Label(localized("复制全部"), systemImage: "doc.on.doc")
                     }
                     MenuShareRow(
-                        label: localized("匯出目前篩選"),
+                        label: localized("汇出目前筛选"),
                         systemImage: "line.3.horizontal.decrease.circle",
                         makeExport: {
                             PendingShareExport(
-                                title: localized("匯出目前篩選"),
+                                title: localized("汇出目前筛选"),
                                 name: exportFilename,
                                 item: filteredExportBundle
                             )
@@ -231,41 +231,41 @@ struct DiagnosticsView: View {
                     Button(role: .destructive) {
                         showClearConfirmation = true
                     } label: {
-                        Label(localized("清除紀錄"), systemImage: "trash")
+                        Label(localized("清除纪录"), systemImage: "trash")
                     }
                 } label: {
                     Image(systemName: "ellipsis")
                         .accessibilityHidden(true)
                 }
-                .accessibilityLabel(localized("更多動作"))
+                .accessibilityLabel(localized("更多动作"))
             }
         }
         .confirmationDialog(
-            localized("清除所有診斷紀錄？"),
+            localized("清除所有诊断纪录？"),
             isPresented: $showClearConfirmation,
             titleVisibility: .visible
         ) {
             Button(localized("清除"), role: .destructive) { model.clear() }
             Button(localized("取消"), role: .cancel) {}
         } message: {
-            Text(localized("清除後無法復原。如果要回報問題，請先匯出。"))
+            Text(localized("清除后无法复原。如果要回报问题，请先汇出。"))
         }
         .sheet(item: $pendingShare) { ShareExportSheet(export: $0) }
-        .alert(localized("已複製"), isPresented: $showCopiedAlert) {
+        .alert(localized("已复制"), isPresented: $showCopiedAlert) {
             Button(localized("好"), role: .cancel) {}
         } message: {
-            Text(localized("診斷紀錄已複製到剪貼簿。"))
+            Text(localized("诊断纪录已复制到剪贴簿。"))
         }
         .task { model.loadIfNeeded() }
     }
 
     private var emptyState: some View {
         ContentUnavailableView {
-            UnavailableLabel(localized("沒有符合的紀錄"), systemImage: "text.magnifyingglass")
+            UnavailableLabel(localized("没有符合的纪录"), systemImage: "text.magnifyingglass")
         } description: {
             Text(model.entries.isEmpty
-                 ? localized("目前沒有任何診斷紀錄。繼續使用 app，有狀況時就會出現在這裡。")
-                 : localized("換一個篩選條件或搜尋字詞試試。")).font(DSFont.unavailableDescription).foregroundStyle(DSColor.textSecondary)
+                 ? localized("目前没有任何诊断纪录。继续使用 app，有状况时就会出现在这里。")
+                 : localized("换一个筛选条件或搜寻字词试试。")).font(DSFont.unavailableDescription).foregroundStyle(DSColor.textSecondary)
         }
     }
 }
@@ -294,19 +294,19 @@ final class DiagnosticsViewModel: ObservableObject {
 
         var title: String {
             switch self {
-            case .sent: localized("已傳送")
-            case .failed: localized("傳送失敗")
+            case .sent: localized("已传送")
+            case .failed: localized("传送失败")
             }
         }
 
         var message: String {
             switch self {
             case .sent(let receipt):
-                String(format: localized("回報編號：%@。把這個編號告訴開發者，就能找到你的紀錄。"), receipt.reportID)
+                String(format: localized("回报编号：%@。把这个编号告诉开发者，就能找到你的纪录。"), receipt.reportID)
             case .failed(let reason):
                 // Sending needs Google's servers, which some networks cannot reach; the
                 // file export does not, so it is offered as the way round.
-                String(format: localized("%@\n可以改用「匯出紀錄」把檔案分享給開發者。"), reason)
+                String(format: localized("%@\n可以改用「汇出纪录」把档案分享给开发者。"), reason)
             }
         }
     }

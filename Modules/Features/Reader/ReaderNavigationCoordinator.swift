@@ -459,7 +459,7 @@ final class ReaderNavigationCoordinator: ObservableObject {
         notifyReaderClosed()
     }
 
-    /// 換源 put another version of the work in the reader (`BookReaderView`). The card it opened
+    /// 换源 put another version of the work in the reader (`BookReaderView`). The card it opened
     /// from was the old version's and has left the shelf, so its geometry no longer resolves and
     /// closing centres the card (`ReaderTransitionSource.resolvedFrame`).
     func readerDidSwitchVersion(to bookID: UUID) {

@@ -8,7 +8,7 @@ import UIKit
 
 /// What a one-finger drag on the picture does, decided once from where it starts and which way it
 /// first moves: across seeks (Swiftfin), up and down on the left third sets the brightness and on
-/// the right third the volume (plezy's edge tracker), and up in the middle opens 選集 (plezy).
+/// the right third the volume (plezy's edge tracker), and up in the middle opens 选集 (plezy).
 enum VideoPanKind: Equatable, Sendable {
     case seek
     case brightness

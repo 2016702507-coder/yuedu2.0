@@ -1,7 +1,7 @@
 import Foundation
 
 /// A book-scoped action offered by the reader chrome — refresh the chapter, change
-/// source, download, 來源配置登入, AI 助手, 翻譯, 開啟網頁. Which ones apply depends on
+/// source, download, 来源配置登入, AI 助手, 翻译, 开启网页. Which ones apply depends on
 /// the book (a local EPUB gets no download), so `ReaderView` builds the lists once: the
 /// book card behind the cover thumbnail renders `readerSecondaryActions`, and 更多 in the
 /// bottom bar renders `readerMoreActions` (the AI ones).
@@ -17,10 +17,10 @@ struct ReaderSecondaryAction: Identifiable {
         /// `callBackJs` as `clickCustomButton`. Not a chrome customization item: it exists
         /// only for a source that asks for it.
         case sourceCustomButton
-        /// 來源配置登入, for a source that has a login. Not a chrome customization item
+        /// 来源配置登入, for a source that has a login. Not a chrome customization item
         /// either: like the source's own button, it is there only when the source asks.
         case sourceLogin
-        /// 複製正文網址 and 調試正文, in 更多 for an online chapter whose source is installed
+        /// 复制正文网址 and 调试正文, in 更多 for an online chapter whose source is installed
         /// (`ReaderSourceDebugActions`). Not chrome customization items: they come and go with
         /// the source.
         case copyChapterURL
@@ -30,7 +30,7 @@ struct ReaderSecondaryAction: Identifiable {
     let id: ID
     let icon: String
     let label: String
-    /// Needs Yuedu Pro the reader does not have (AI 助手, 翻譯): shown marked, and `action`
+    /// Needs Yuedu Pro the reader does not have (AI 助手, 翻译): shown marked, and `action`
     /// opens the paywall instead.
     let isLocked: Bool
     let action: () -> Void
@@ -44,18 +44,18 @@ struct ReaderSecondaryAction: Identifiable {
     }
 }
 
-/// What the 現代 book-card popover was asked to open.
+/// What the 现代 book-card popover was asked to open.
 ///
 /// Every one of these opens a sheet, and iOS drops a sheet requested while the popover
-/// it came from is still dismissing — 聽書, when the card still had it, was the visible
+/// it came from is still dismissing — 听书, when the card still had it, was the visible
 /// casualty: the card slid back into the cover thumbnail and no TTS panel ever appeared. So the tap records the route
 /// here and `ReaderView` opens it from the popover's real dismissal, never in the same
 /// turn as `showModernBookCard = false`.
 enum ReaderModernBookCardRoute: Hashable {
     case secondary(ReaderSecondaryAction.ID)
     case bookDetail
-    /// 搜尋書籍. Not a `ReaderSecondaryAction`: the card offers it for every book, so it
-    /// stays out of the list the book-scoped actions share and out of 自定義's show/hide
+    /// 搜寻书籍. Not a `ReaderSecondaryAction`: the card offers it for every book, so it
+    /// stays out of the list the book-scoped actions share and out of 自定义's show/hide
     /// roster.
     case search
 }
@@ -68,6 +68,10 @@ enum ReaderModernBookCardRoute: Hashable {
 /// `Technotes/iOS17MenuModalPresentation.md`.
 enum ReaderQuickPanelRoute: Hashable {
     case settings
-    /// A locked control in the panel (導入圖片背景 without Pro).
+    /// 更多设置 的一格：那一页的分区，以半屏卡呈现在书页之上。
+    case settingsSection(Set<ReaderSettingsSection>)
+    /// 听书: the reader's own TTS sheet.
+    case tts
+    /// A locked control in the panel (导入图片背景 without Pro).
     case paywall(PremiumFeature)
 }

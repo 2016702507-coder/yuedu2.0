@@ -1,7 +1,7 @@
 import Foundation
 import UniformTypeIdentifiers
 
-/// What a file picked by 匯入閱讀設定 turned out to contain, before anything is
+/// What a file picked by 汇入阅读设置 turned out to contain, before anything is
 /// written. Loading and applying are separate so replacing the reading setup can
 /// be confirmed with the user *after* the file parsed and *before* it lands.
 struct ReaderSettingsImportPlan {
@@ -33,13 +33,13 @@ enum ReaderSettingsImportError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .emptyFile:
-            return localized("這個檔案沒有可匯入的內容。")
+            return localized("这个档案没有可汇入的内容。")
         }
     }
 }
 
-/// The single route every 閱讀設定 import takes — the 匯入閱讀設定 button, the
-/// 正則高亮 ⋯ menu, and the older 匯入排版參數 file all land here.
+/// The single route every 阅读设置 import takes — the 汇入阅读设置 button, the
+/// 正则高亮 ⋯ menu, and the older 汇入排版参数 file all land here.
 ///
 /// Deliberately one entry point: layout parameters are parsed only by
 /// `ReaderLayoutPresetImporter`, styles only by `ReaderStylePackage`. A second
@@ -56,7 +56,7 @@ enum ReaderSettingsImportService {
     static let styleContentTypes: [UTType] = [.yueduReaderStyle, .json, .plainText, .data]
 
     /// Accepts every style file the app writes plus legado's `readConfig.json` /
-    /// `.zip`. A `.yuedustyle` holding only one half (章節標題樣式 or 正則高亮) is
+    /// `.zip`. A `.yuedustyle` holding only one half (章节标题样式 or 正则高亮) is
     /// accepted here too — the user picked it, and refusing a file we authored
     /// because it is "the wrong kind of ours" is not a useful failure.
     static func loadReaderSettings(from url: URL) async throws -> ReaderSettingsImportPlan {
@@ -71,7 +71,7 @@ enum ReaderSettingsImportService {
                 )
             }
             // Checked before the chapter-title probe: a Lottie document shares
-            // none of its keys, but both end up as a 章節標題樣式 and only one
+            // none of its keys, but both end up as a 章节标题样式 and only one
             // decoder can be right for a given file.
             // Checked first: a bubble script is a `{ name, script … }` document
             // whose `name` would otherwise satisfy the layout-preset decoder.
@@ -157,7 +157,7 @@ enum ReaderSettingsImportService {
     /// with `decodeIfPresent`, so **either** decoder accepts **any** JSON object
     /// and silently returns a full set of defaults. A bare `.json` therefore has
     /// to be told apart by the keys it carries, not by which decoder throws —
-    /// otherwise importing a 章節標題樣式 file quietly resets the type size to 18pt.
+    /// otherwise importing a 章节标题样式 file quietly resets the type size to 18pt.
     nonisolated static func looksLikeChapterTitleJSON(_ data: Data) -> Bool {
         guard let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
             return false
@@ -181,7 +181,7 @@ enum ReaderSettingsImportService {
 
     /// Writes the plan into the reader's current setup through the one reading-setup
     /// writer that theme switches use too. It lands like an edit, setting by setting:
-    /// on the worn theme for what 排版生效範圍 lets follow the theme, in 全域 for the rest.
+    /// on the worn theme for what 排版生效范围 lets follow the theme, in 全域 for the rest.
     @discardableResult
     static func apply(_ plan: ReaderSettingsImportPlan) throws -> ReaderSettingsImportSummary {
         guard !plan.isEmpty else { throw ReaderSettingsImportError.emptyFile }
@@ -197,8 +197,8 @@ enum ReaderSettingsImportService {
 }
 
 extension ReaderSettingsImportPlan {
-    /// The plan as a reading setup: what 取代目前設定 writes live, and what
-    /// 隨主題切換 stores on the imported theme. The one place a layout preset is
+    /// The plan as a reading setup: what 取代目前设置 writes live, and what
+    /// 随主题切换 stores on the imported theme. The one place a layout preset is
     /// translated into settings.
     var readingSettings: AppearanceThemeReadingSettings {
         var reading = AppearanceThemeReadingSettings()
@@ -239,11 +239,11 @@ enum ReaderOverlayLayoutPersistenceError: LocalizedError {
     case writeFailed
 
     var errorDescription: String? {
-        localized("無法儲存頁首頁尾設定")
+        localized("无法储存页首页尾设置")
     }
 }
 
-/// The cheap main-actor value read a 匯出閱讀設定 archive is built from — no
+/// The cheap main-actor value read a 汇出阅读设置 archive is built from — no
 /// encoding and no disk I/O here. `ReaderSettingsExportFile` does the work off it,
 /// where a failure can surface instead of being swallowed.
 struct ReaderSettingsExportInputs: Sendable {
@@ -267,7 +267,7 @@ enum ReaderSettingsExportSnapshot {
         let readerConfig = ReaderConfig.shared
         let style = readerConfig.chapterTitleStyle
         let snapshot = ReaderLayoutSnapshot(
-            name: localized("閱讀設定"),
+            name: localized("阅读设置"),
             fontSize: readerConfig.fontSize,
             isBold: readerConfig.readerFontBold,
             lineHeightMultiple: readerConfig.lineHeightMultiple,

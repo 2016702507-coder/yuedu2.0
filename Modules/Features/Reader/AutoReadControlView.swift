@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// 「設置自動閱讀 ∧」 — the running state, and the way to its controls.
+/// 「设置自动阅读 ∧」 — the running state, and the way to its controls.
 ///
 /// Its own layer at the bottom of the screen, deliberately *not* a field in the
 /// footer bar. It was one at first, which was wrong twice over: migration fills
@@ -14,7 +14,7 @@ import SwiftUI
 ///
 /// It wears the shared 界面效果 surface, like every other floating control in the
 /// reader: on iOS 26 that is the same Liquid Glass the bottom bar under it is made
-/// of, and it follows 毛玻璃／透明度／光暈 rather than a material of its own. It used
+/// of, and it follows 毛玻璃／透明度／光晕 rather than a material of its own. It used
 /// to hand-paint a dark `.ultraThinMaterial` — a second surface implementation
 /// that on iOS 26 rendered as the legacy blur, so the pill read as a dark slab
 /// floating over a glass toolbar.
@@ -27,7 +27,7 @@ struct AutoReadPill: View {
     var body: some View {
         Button(action: onTap) {
             HStack(spacing: DSSpacing.xs) {
-                Text(localized("設置自動閱讀"))
+                Text(localized("设置自动阅读"))
                 Image(systemName: "chevron.up")
                     .font(DSFont.caption)
                     .accessibilityHidden(true)
@@ -37,15 +37,15 @@ struct AutoReadPill: View {
             .padding(.horizontal, DSSpacing.lg)
             .frame(minHeight: DSLayout.minimumTapTarget)
             // The hairline that used to sit here defined the edge of a flat fill;
-            // glass draws its own, and 光暈 comes with the surface.
+            // glass draws its own, and 光晕 comes with the surface.
             .floatingSurface(in: Capsule(), fill: fill)
             // Kept: `floatingSurface` layers on top of the caller's shadow rather
-            // than replacing it, so the pill still has depth at 光暈 0.
+            // than replacing it, so the pill still has depth at 光晕 0.
             .shadow(color: DSColor.coverHeroShadow, radius: 10, y: 4)
             .contentShape(Capsule())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(localized("設置自動閱讀"))
+        .accessibilityLabel(localized("设置自动阅读"))
         .accessibilityValue(AutoReadController.secondsText(secondsPerPage))
     }
 }
@@ -60,7 +60,7 @@ struct AutoReadPill: View {
 ///
 /// No play/pause: auto-read is a mode. It collapses back to the pill on a tap
 /// anywhere on the page — legado's `AutoReadDialog` dismisses on an outside tap
-/// the same way — and 退出自動閱讀 is what ends the mode itself.
+/// the same way — and 退出自动阅读 is what ends the mode itself.
 struct AutoReadControlPanel: View {
     @ObservedObject var autoReader: AutoReadController
     let fill: Color
@@ -108,13 +108,13 @@ struct AutoReadControlPanel: View {
         .accessibilityLabel(localized("收起"))
     }
 
-    /// 「翻頁速度  10s」 over a 1–120 slider, the same readout and range legado's
+    /// 「翻页速度  10s」 over a 1–120 slider, the same readout and range legado's
     /// `dialog_auto_read.xml` uses. Bigger is slower: the number is how long one
     /// page takes, so it needs no mental arithmetic to read.
     private var speedRow: some View {
         VStack(spacing: DSSpacing.xs) {
             HStack {
-                Text(localized("翻頁速度"))
+                Text(localized("翻页速度"))
                 Spacer()
                 Text(autoReader.secondsText)
                     .monospacedDigit()
@@ -135,21 +135,21 @@ struct AutoReadControlPanel: View {
                 step: 1
             )
             .tint(accent)
-            .accessibilityLabel(localized("翻頁速度"))
+            .accessibilityLabel(localized("翻页速度"))
             .accessibilityValue(autoReader.intervalDescription)
         }
     }
 
-    /// 目錄 / 主選單 / 退出 / 設置 — legado's row and its order
-    /// (`dialog_auto_read.xml`), 主選單 included this time. Leaving it out made the
+    /// 目录 / 主选单 / 退出 / 设置 — legado's row and its order
+    /// (`dialog_auto_read.xml`), 主选单 included this time. Leaving it out made the
     /// panel a dead end: with the mode's own chrome the only thing on screen, the
     /// reading menu was reachable only by collapsing this and tapping again.
     private var actionRow: some View {
         HStack(spacing: 0) {
-            action(icon: "list.bullet", title: localized("目錄"), action: onOpenTOC)
-            action(icon: "ellipsis.circle", title: localized("主選單"), action: onOpenReadingMenu)
-            action(icon: "stop.circle", title: localized("退出自動閱讀"), action: onClose)
-            action(icon: "textformat.size", title: localized("設置"), action: onOpenSettings)
+            action(icon: "list.bullet", title: localized("目录"), action: onOpenTOC)
+            action(icon: "ellipsis.circle", title: localized("主选单"), action: onOpenReadingMenu)
+            action(icon: "stop.circle", title: localized("退出自动阅读"), action: onClose)
+            action(icon: "textformat.size", title: localized("设置"), action: onOpenSettings)
         }
     }
 
@@ -173,7 +173,7 @@ struct AutoReadControlPanel: View {
     }
 }
 
-#Preview("自動閱讀控制") {
+#Preview("自动阅读控制") {
     ZStack {
         Color(uiColor: ReaderTheme.sepia.uiBackgroundColor).ignoresSafeArea()
         VStack(spacing: DSSpacing.xl) {

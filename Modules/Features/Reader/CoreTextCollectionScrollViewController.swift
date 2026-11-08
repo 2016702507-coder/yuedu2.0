@@ -32,7 +32,7 @@ final class CoreTextCollectionScrollViewController: UIViewController, @MainActor
     var onUserScrollBegan: (() -> Void)?
     var onInternalLinkTap: ((String) -> Void)?
     /// The reader scrolled past the segment on screen into a chapter of another writing mode
-    /// (`CoreTextScrollEngine.segmentBoundary`). The reader goes there the way 目錄 does.
+    /// (`CoreTextScrollEngine.segmentBoundary`). The reader goes there the way 目录 does.
     var onSegmentBoundary: ((Int) -> Void)?
     private(set) var lastAppliedRefreshTransactionID: UInt64 = 0
 
@@ -297,9 +297,9 @@ final class CoreTextCollectionScrollViewController: UIViewController, @MainActor
         collectionView.showsVerticalScrollIndicator = false
         collectionView.showsHorizontalScrollIndicator = false
         collectionView.contentInsetAdjustmentBehavior = .never
-        // 上下滑動 is the only reading mode whose canvas is a real scroll view, so iOS
+        // 上下滑动 is the only reading mode whose canvas is a real scroll view, so iOS
         // 26 paints its scroll-edge effect over the top of the page — an opaque band
-        // under the toolbar that 翻頁 never gets, because a paged canvas is not a
+        // under the toolbar that 翻页 never gets, because a paged canvas is not a
         // scroll view. The reader owns every pixel of its surface; the two modes have
         // to read the same, with the text running under the glass controls.
         #if compiler(>=6.2)
@@ -383,7 +383,7 @@ final class CoreTextCollectionScrollViewController: UIViewController, @MainActor
             || (action == #selector(underlineSelection(_:)) && !selectionTouchesTranslation)
     }
 
-    /// Whether the selection covers any of 整章翻譯's translated text.
+    /// Whether the selection covers any of 整章翻译's translated text.
     private var selectionTouchesTranslation: Bool {
         guard let chapter = selectionChapter, let range = currentSelectionRange else { return false }
         return engine.isTranslation(chapter: chapter, range: range)
@@ -414,7 +414,7 @@ final class CoreTextCollectionScrollViewController: UIViewController, @MainActor
             )
         }
         let underlineAction = UIAction(
-            title: localized("下劃線"),
+            title: localized("下划线"),
             image: UIImage(systemName: "underline"),
             handler: { [weak self] _ in
                 self?.requestUnderline(style: .underline, color: .yellow)
@@ -436,23 +436,23 @@ final class CoreTextCollectionScrollViewController: UIViewController, @MainActor
 
         var actions = suggestedActions
         actions.append(UIAction(
-            title: localized("替換"),
+            title: localized("替换"),
             image: UIImage(systemName: "eraser"),
             handler: { [weak self] _ in
                 self?.requestReplaceRule()
             }
         ))
         actions.append(UIAction(
-            title: localized("重點"),
+            title: localized("重点"),
             image: UIImage(systemName: "highlighter"),
             handler: { [weak self] _ in
                 self?.presentEmphasisEditMenu()
             }
         ))
-        // 同分頁模式：沒訂閱時換鎖頭，實際分流在 ReaderView。
+        // 同分页模式：没订阅时换锁头，实际分流在 ReaderView。
         let canEditNote = premium.allowsParagraphNoteEditing
         actions.append(UIAction(
-            title: localized(selectionHasNote ? "編輯筆記" : "筆記"),
+            title: localized(selectionHasNote ? "编辑笔记" : "笔记"),
             image: UIImage(systemName: canEditNote ? "note.text" : "lock.fill"),
             handler: { [weak self] _ in
                 self?.requestNoteEdit()
@@ -479,7 +479,7 @@ final class CoreTextCollectionScrollViewController: UIViewController, @MainActor
     }
 
     private var pendingAISelection: CoreTextAISelectionRequest?
-    /// Where 重點's colour menu opens once the selection menu it replaces has gone.
+    /// Where 重点's colour menu opens once the selection menu it replaces has gone.
     private var pendingEmphasisSourcePoint: CGPoint?
     private var isEditMenuVisible = false
 
@@ -534,9 +534,9 @@ final class CoreTextCollectionScrollViewController: UIViewController, @MainActor
 
     private func emphasisColorName(for color: AnnotationColor) -> String {
         switch color {
-        case .yellow: return localized("黃色")
-        case .green: return localized("綠色")
-        case .blue: return localized("藍色")
+        case .yellow: return localized("黄色")
+        case .green: return localized("绿色")
+        case .blue: return localized("蓝色")
         case .pink: return localized("粉色")
         case .orange: return localized("橙色")
         }
@@ -592,7 +592,7 @@ final class CoreTextCollectionScrollViewController: UIViewController, @MainActor
         clearSelection()
     }
 
-    // MARK: - 筆記
+    // MARK: - 笔记
 
     private func annotationCoveringSelection() -> CoreTextTextAnnotation? {
         guard let chapter = selectionChapter,
@@ -606,8 +606,8 @@ final class CoreTextCollectionScrollViewController: UIViewController, @MainActor
         )
     }
 
-    /// 選字選單的「筆記」。已有標註就編輯它的筆記；純選取則把選取範圍送出去，
-    /// 由閱讀器補上預設標註後再開編輯頁。
+    /// 选字选单的「笔记」。已有标注就编辑它的笔记；纯选取则把选取范围送出去，
+    /// 由阅读器补上预设标注后再开编辑页。
     private func requestNoteEdit() {
         if let annotation = annotationCoveringSelection() {
             postNoteEditRequest(for: annotation)
@@ -808,7 +808,7 @@ final class CoreTextCollectionScrollViewController: UIViewController, @MainActor
     }
 
     func setTextAnnotations(_ stored: [CoreTextTextAnnotation]) {
-        // Drawn and hit-tested in chunk text, which 整章翻譯 may have spliced translations into.
+        // Drawn and hit-tested in chunk text, which 整章翻译 may have spliced translations into.
         let annotations = engine.displayed(stored)
         textAnnotations = annotations
         // Refresh visible cells
@@ -893,7 +893,7 @@ final class CoreTextCollectionScrollViewController: UIViewController, @MainActor
         requestReslice(to: CoreTextReadingPosition(spineIndex: chapter, charOffset: charOffset), completion: completion)
     }
 
-    /// Keeps the whole position, including a place inside a translation (整章翻譯).
+    /// Keeps the whole position, including a place inside a translation (整章翻译).
     private func requestReslice(
         to position: CoreTextReadingPosition,
         completion: ((Bool) -> Void)?
@@ -960,7 +960,7 @@ final class CoreTextCollectionScrollViewController: UIViewController, @MainActor
     private var contentInset: UIEdgeInsets {
         switch scrollAxis {
         case .vertical:
-            // Only the 上下邊距. The header/footer bands are gone from the frame,
+            // Only the 上下边距. The header/footer bands are gone from the frame,
             // not padded around inside it — padding does not clip, and text that
             // scrolled into a padded region drew straight over the bars.
             return UIEdgeInsets(
@@ -998,13 +998,13 @@ final class CoreTextCollectionScrollViewController: UIViewController, @MainActor
     /// backdrop image is padded to. Deliberately the full viewport, not the inset content
     /// box: paged mode paints that backdrop across the entire page including its margins
     /// (`CoreTextPageView.drawContent`), and the padding exists to match it.
-    /// What one "page" is worth in 捲動 mode: the visible band between the bars,
+    /// What one "page" is worth in 卷动 mode: the visible band between the bars,
     /// which is what the reader actually sees move.
     var autoScrollViewportHeight: CGFloat {
         collectionView.bounds.height
     }
 
-    /// 自動閱讀 in 捲動 mode: legado's `ContentTextView.scroll(-scrollOffset)`.
+    /// 自动阅读 in 卷动 mode: legado's `ContentTextView.scroll(-scrollOffset)`.
     ///
     /// Goes through `setScrollOffset` like everything else — six call sites once
     /// wrote `contentOffset` with their own clamping and two of them disagreed,
@@ -1421,7 +1421,7 @@ final class CoreTextCollectionScrollViewController: UIViewController, @MainActor
 
         let point = gesture.location(in: collectionView)
 
-        // 筆記圓圈畫在正文之上，落在它上面的點擊就是要開筆記，先於連結／圖片處理。
+        // 笔记圆圈画在正文之上，落在它上面的点击就是要开笔记，先于连结／图片处理。
         if let (cell, _, localPoint) = hitTestChunk(at: point),
            let annotationID = cell.noteMarkerAnnotationID(atLocalPoint: localPoint),
            let annotation = textAnnotations.first(where: { $0.id == annotationID }) {
@@ -1702,7 +1702,7 @@ final class CoreTextCollectionScrollViewController: UIViewController, @MainActor
     private enum ScrollOffsetSource: String {
         case restore
         case ttsFollow
-        /// 自動閱讀's continuous scroll. Sixty writes a second, so it is the one
+        /// 自动阅读's continuous scroll. Sixty writes a second, so it is the one
         /// source that does not trace — see `setScrollOffset`.
         case autoRead
     }
@@ -1982,8 +1982,8 @@ final class CoreTextCollectionScrollViewController: UIViewController, @MainActor
         return frame.minY + chapterGap(for: row)
     }
 
-    /// 捲動 mode has no pages, so one visible band between the bars counts as one —
-    /// the same "page" 自動閱讀 advances by (`autoScrollViewportHeight`). Which of
+    /// 卷动 mode has no pages, so one visible band between the bars counts as one —
+    /// the same "page" 自动阅读 advances by (`autoScrollViewportHeight`). Which of
     /// those pages of `spine` the top of the band is on, and how many the chapter
     /// spans. Estimated geometry (text not laid out yet) counts as it stands, so
     /// the total can settle while reading. Vertical axis only: nil for
@@ -2275,8 +2275,8 @@ extension CoreTextCollectionScrollViewController: UICollectionViewDataSource, UI
     /// Scrolling forward to the segment's end opens the next segment at its first chapter's start;
     /// scrolling backward to its start opens the previous one at its last chapter's end. No threshold
     /// and no button (maintainer, 2026-11-02). Only the reader's own drag, or the deceleration it
-    /// started, crosses, once per gesture: layout, insertion, restore, TTS follow and 自動閱讀 move the
-    /// offset without crossing, so 自動閱讀 stops at the segment's end as at the book's.
+    /// started, crosses, once per gesture: layout, insertion, restore, TTS follow and 自动阅读 move the
+    /// offset without crossing, so 自动阅读 stops at the segment's end as at the book's.
     private func crossSegmentIfAtEdge(_ scrollView: UIScrollView) {
         guard scrollView.isDragging || scrollView.isDecelerating,
               !hasCrossedSegmentThisGesture,

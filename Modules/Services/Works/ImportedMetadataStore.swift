@@ -30,7 +30,7 @@ final class ImportedMetadataStore: @unchecked Sendable {
     let announcedWrites = PassthroughSubject<UUID, Never>()
 
     /// Every copy whose sidecar was just written, the filler's writes too, sent on the main
-    /// queue after the write: what a page showing the copy reads again (作品詳情's 簡介).
+    /// queue after the write: what a page showing the copy reads again (作品详情's 简介).
     let writes = PassthroughSubject<UUID, Never>()
 
     /// Merges into the copy's sidecar: identifiers are unioned, and a value replaces an earlier

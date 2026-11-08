@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// 設定 → 網路設定 → 資料來源 (Phase 6h): the places 自動補齊書籍資料 asks, as Emby's
-/// 中繼資料下載器 (maintainer, 2026-10-15) — each checked or not, dragged into priority order.
+/// 设置 → 网路设置 → 资料来源 (Phase 6h): the places 自动补齐书籍资料 asks, as Emby's
+/// 中继资料下载器 (maintainer, 2026-10-15) — each checked or not, dragged into priority order.
 /// Every change is saved at once, and the filler starts again with it (`MetadataFillCoordinator`).
 struct MetadataFillSourcesView: View {
     @ObservedObject private var orderStore: MetadataFillOrderStore
@@ -30,7 +30,7 @@ struct MetadataFillSourcesView: View {
                 }
                 .onMove { from, to in order.entries.move(fromOffsets: from, toOffset: to) }
             } footer: {
-                Text(localized("排在前面的先補，只補還空著的欄位；取消勾選不會刪掉已經補上的資料。"))
+                Text(localized("排在前面的先补，只补还空著的栏位；取消勾选不会删掉已经补上的资料。"))
                     .dsSectionFooter()
             }
             .interfaceSectionSurface()
@@ -39,7 +39,7 @@ struct MetadataFillSourcesView: View {
         .environment(\.editMode, .constant(.active))
         .softScrollEdges()
         .themedAppSurface(for: .settings)
-        .navigationTitle(localized("資料來源"))
+        .navigationTitle(localized("资料来源"))
         .toolbarTitleDisplayMode(.inline)
         .task { await modules.loadIfNeeded() }
         .onChange(of: moduleIDs) { _, ids in order = orderStore.order(modules: ids) }
@@ -51,7 +51,7 @@ struct MetadataFillSourcesView: View {
 
     private func name(of place: MetadataFillPlace) -> String {
         switch place {
-        case .bookSources: localized("來源配置")
+        case .bookSources: localized("来源配置")
         case .module(let id): modules.installed(id: id)?.module.title ?? id
         }
     }
@@ -64,9 +64,9 @@ struct MetadataFillSourcesView: View {
     }
 }
 
-#Preview("資料來源") {
+#Preview("资料来源") {
     NavigationStack {
         MetadataFillSourcesView(orderStore: MetadataFillOrderStore(defaults: UserDefaults(suiteName: "preview.metadataFill")!),
-                                modules: RuleModulePreviewData.library(["每週新書", "書評精選"]))
+                                modules: RuleModulePreviewData.library(["每周新书", "书评精选"]))
     }
 }

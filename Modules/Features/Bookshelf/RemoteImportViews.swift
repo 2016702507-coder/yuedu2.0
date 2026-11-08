@@ -43,7 +43,7 @@ struct WebDAVDirectoryView: View {
                 Section {
                     Label(loadError, systemImage: "exclamationmark.triangle")
                         .foregroundStyle(DSColor.textSecondary)
-                    Button(localized("重試")) { Task { await load() } }
+                    Button(localized("重试")) { Task { await load() } }
                 }
                 .interfaceSectionSurface()
             }
@@ -55,31 +55,31 @@ struct WebDAVDirectoryView: View {
         .softScrollEdges()
         .overlay {
             if isLoading && entries.isEmpty && loadError == nil {
-                ProgressView(localized("正在載入書庫"))
+                ProgressView(localized("正在载入书库"))
             } else if !isLoading && visibleEntries.isEmpty && loadError == nil {
                 ContentUnavailableView {
-                    UnavailableLabel(localized(searchText.isEmpty ? "此資料夾沒有內容" : "沒有搜尋結果"), systemImage: "folder")
+                    UnavailableLabel(localized(searchText.isEmpty ? "此资料夹没有内容" : "没有搜寻结果"), systemImage: "folder")
                 }
             }
         }
         .navigationTitle(route.title)
         .toolbarTitleDisplayMode(.inline)
         .themedAppSurface(for: .bookshelf)
-        .searchable(text: $searchText, prompt: localized("搜尋目前資料夾"))
+        .searchable(text: $searchText, prompt: localized("搜寻目前资料夹"))
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 if let connection {
                     Menu {
-                        NavigationLink(localized("管理遠端書庫")) {
+                        NavigationLink(localized("管理远端书库")) {
                             RemoteLibraryManagementView(connectionID: connection.id, directoryURL: route.url)
                         }
                         NavigationLink {
                             RemoteLibraryConnectionEditor(kind: .webDAV, connection: connection)
                         } label: {
-                            Label(localized("編輯伺服器"), systemImage: "slider.horizontal.3")
+                            Label(localized("编辑伺服器"), systemImage: "slider.horizontal.3")
                         }
                     } label: {
-                        Label(localized("書庫操作"), systemImage: "ellipsis.circle").labelStyle(.iconOnly)
+                        Label(localized("书库操作"), systemImage: "ellipsis.circle").labelStyle(.iconOnly)
                     }
                 }
             }
@@ -115,7 +115,7 @@ struct WebDAVDirectoryView: View {
                                 .font(DSFont.caption).foregroundStyle(DSColor.textSecondary)
                         }
                         if !entry.isImportableBook {
-                            Text(localized("此格式暫不支援閱讀"))
+                            Text(localized("此格式暂不支援阅读"))
                                 .font(DSFont.caption).foregroundStyle(DSColor.textSecondary)
                         }
                         if let status = shelfStatus(of: entry) {
@@ -131,7 +131,7 @@ struct WebDAVDirectoryView: View {
         await model.load()
     }
 
-    /// 已加入書架 or 已下載, from `CopyLookup` (unified library 2c). The key is the path below
+    /// 已加入书架 or 已下载, from `CopyLookup` (unified library 2c). The key is the path below
     /// the connection's root, as 1a derives it for the copy.
     private func shelfStatus(of entry: WebDAVBrowseClient.Entry) -> CopyLookup.Status? {
         guard let root, let record = SourceRecord.derived(from: entry, connectionID: route.connectionID, root: root) else { return nil }

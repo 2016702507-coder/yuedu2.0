@@ -54,14 +54,14 @@ struct AozoraWork: Codable, Hashable, Identifiable, Sendable {
 }
 
 extension AozoraWork {
-    /// Who wrote the work, as 作品詳情's hero names them: its 著者, or its first credit when it
+    /// Who wrote the work, as 作品详情's hero names them: its 著者, or its first credit when it
     /// names none.
     var authorCredits: [Credit] {
         let writers = credits.filter { $0.role == "著者" }
         return writers.isEmpty ? Array(credits.prefix(1)) : writers
     }
 
-    /// Everyone else the work credits (翻訳者, 編者, 校訂者…), in 作品詳情's 作品資訊.
+    /// Everyone else the work credits (翻訳者, 编者, 校订者…), in 作品详情's 作品资讯.
     var otherCredits: [Credit] {
         let authors = authorCredits
         return credits.filter { !authors.contains($0) }
@@ -118,7 +118,7 @@ struct AozoraCatalogIndex: Sendable {
 
     func works(forPerson id: String) -> [AozoraWork] { personWorks[id] ?? [] }
 
-    /// The work's 分類 as 依分類 groups them, in its order; 「其他」 is no 分類 and is left out.
+    /// The work's 分类 as 依分类 groups them, in its order; 「其他」 is no 分类 and is left out.
     func classificationGroups(of work: AozoraWork) -> [AozoraIndexGroup] {
         let keys = Set(Self.classifications(work.ndc))
         return classificationGroups.filter { $0.id != "other" && keys.contains($0.id) }
@@ -162,7 +162,7 @@ struct AozoraCatalogIndex: Sendable {
     }
 
     private static func groups(_ entries: [(String, String)], order: [String]) -> [AozoraIndexGroup] {
-        let titles = ["latin": "拉丁字母", "other": "其他", "913": "小説・物語", "911": "詩歌", "914": "評論・エッセイ", "91x": "其他日本文學", "9xx": "其他文學"]
+        let titles = ["latin": "拉丁字母", "other": "其他", "913": "小説・物語", "911": "诗歌", "914": "評論・エッセイ", "91x": "其他日本文学", "9xx": "其他文学"]
         var grouped: [String: [String]] = [:]
         for (id, group) in entries { grouped[group, default: []].append(id) }
         return order.compactMap { key in

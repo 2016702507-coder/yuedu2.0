@@ -30,7 +30,7 @@ final class BookSourceDeepLinkHandler: ObservableObject {
     @Published private(set) var phase: Phase = .idle
 
     /// Holds the confirmation list and its import options. A deep link can arrive while
-    /// 書源管理 is nowhere on screen, so this route owns its own coordinator rather than
+    /// 书源管理 is nowhere on screen, so this route owns its own coordinator rather than
     /// reaching for that screen's.
     let coordinator = BookSourceImportCoordinator()
 
@@ -85,7 +85,7 @@ final class BookSourceDeepLinkHandler: ObservableObject {
         do {
             let (data, _) = try await URLSession.shared.data(from: sourceURL)
             guard !data.isEmpty else {
-                phase = .failed(message: localized("無法讀取來源配置資料"))
+                phase = .failed(message: localized("无法读取来源配置资料"))
                 return
             }
             let ext = sourceURL.pathExtension.isEmpty ? "json" : sourceURL.pathExtension

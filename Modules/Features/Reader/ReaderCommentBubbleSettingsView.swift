@@ -1,12 +1,12 @@
 import SwiftUI
 import UIKit
 
-/// 氣泡設定: what the reader draws for a source's review marks — the 段評 count bubble and
-/// the 本章說 / 作者說 / 神評論 cards, each on its own page with its own styles.
+/// 气泡设置: what the reader draws for a source's review marks — the 段评 count bubble and
+/// the 本章说 / 作者说 / 神评论 cards, each on its own page with its own styles.
 struct ReaderCommentBubbleSettingsView: View {
     @Bindable private var settings = GlobalSettings.shared
-    /// Hands a 匯入樣式 to whoever owns the first-level document picker
-    /// (`ReaderSettingsView.requestStyleImporter`); nil hides 匯入.
+    /// Hands a 汇入样式 to whoever owns the first-level document picker
+    /// (`ReaderSettingsView.requestStyleImporter`); nil hides 汇入.
     var onOpenImporter: ((ReaderStyleImportRoute) -> Void)?
 
     var body: some View {
@@ -18,7 +18,7 @@ struct ReaderCommentBubbleSettingsView: View {
                     })
                 } label: {
                     SettingsValueLabel(
-                        title: localized("段評氣泡"),
+                        title: localized("段评气泡"),
                         systemImage: ReadingSettingsScopeItem.commentBubble.systemImage,
                         value: bubbleValue
                     )
@@ -38,31 +38,31 @@ struct ReaderCommentBubbleSettingsView: View {
                     }
                 }
             } footer: {
-                Text(localized("內建「玻璃」的本章說與神評論字級固定、作者說隨閱讀字級縮放；自訂模板跟隨閱讀字體與字級。"))
+                Text(localized("内建「玻璃」的本章说与神评论字级固定、作者说随阅读字级缩放；自订模板跟随阅读字体与字级。"))
                     .dsSectionFooter()
             }
             .interfaceSectionSurface()
         }
         .softScrollEdges()
-        .navigationTitle(localized("氣泡設定"))
+        .navigationTitle(localized("气泡设置"))
         .toolbarTitleDisplayMode(.inline)
         .themedAppSurface(for: .settings)
     }
 
     private var bubbleValue: String {
-        guard !settings.commentBubbleFollowsSourceSVG else { return localized("來源樣式") }
+        guard !settings.commentBubbleFollowsSourceSVG else { return localized("来源样式") }
         switch settings.commentBubblePresetMode {
         case .builtin, .square:
             return localized(settings.commentBubblePresetMode.titleKey)
         case .custom:
             let name = settings.commentBubbleCustomStyleName.trimmingCharacters(in: .whitespacesAndNewlines)
-            return name.isEmpty ? localized("自訂 SVG") : name
+            return name.isEmpty ? localized("自订 SVG") : name
         }
     }
 
     private func cardValue(_ kind: ReaderCommentCardKind) -> String {
         switch settings.wornCommentCardTemplate(for: kind) {
-        case nil: return localized("來源樣式")
+        case nil: return localized("来源样式")
         case .builtin: return localized("玻璃")
         case .custom(let style): return style.name
         }

@@ -1,13 +1,13 @@
 import SwiftUI
 
-/// 全書搜尋's sheet: the searches made in this book, the search running now, and its hits
+/// 全书搜寻's sheet: the searches made in this book, the search running now, and its hits
 /// by chapter. The search itself belongs to `ReaderBookSearchSession`, which the reader keeps,
 /// so the last results are still here when the sheet opens again.
 struct ReaderBookSearchView: View {
     @Bindable var session: ReaderBookSearchSession
-    /// The selection's words when 搜尋 came from the text menu; searched as soon as it opens.
+    /// The selection's words when 搜寻 came from the text menu; searched as soon as it opens.
     let initialQuery: String
-    /// Whether 替換規則 change this book's text, so turning them off can find anything.
+    /// Whether 替换规则 change this book's text, so turning them off can find anything.
     let offersReplaceRules: Bool
     let onSearch: (String) -> Void
     /// The sheet opened without words of its own: the reader refreshes stale results.
@@ -44,7 +44,7 @@ struct ReaderBookSearchView: View {
             content
                 .background(PageBackgroundView(scope: .settings).ignoresSafeArea())
                 .pageBackgroundToolbar(for: .settings)
-                .navigationTitle(localized("搜尋書籍"))
+                .navigationTitle(localized("搜寻书籍"))
                 .toolbarTitleDisplayMode(.inline)
                 .toolbar { toolbarContent }
         }
@@ -79,7 +79,7 @@ struct ReaderBookSearchView: View {
                 failure(error)
             case .finished where session.hits.isEmpty:
                 ContentUnavailableView {
-                    UnavailableLabel(localized("無搜尋結果"), systemImage: "doc.text.magnifyingglass")
+                    UnavailableLabel(localized("无搜寻结果"), systemImage: "doc.text.magnifyingglass")
                 } description: {
                     Text(noResultsDescription).font(DSFont.unavailableDescription).foregroundStyle(DSColor.textSecondary)
                 }
@@ -93,9 +93,9 @@ struct ReaderBookSearchView: View {
     private var recentSearches: some View {
         if history.queries.isEmpty {
             ContentUnavailableView {
-                UnavailableLabel(localized("搜尋書籍"), systemImage: "magnifyingglass")
+                UnavailableLabel(localized("搜寻书籍"), systemImage: "magnifyingglass")
             } description: {
-                Text(localized("輸入關鍵字搜尋整本書。")).font(DSFont.unavailableDescription).foregroundStyle(DSColor.textSecondary)
+                Text(localized("输入关键字搜寻整本书。")).font(DSFont.unavailableDescription).foregroundStyle(DSColor.textSecondary)
             }
         } else {
             List {
@@ -160,18 +160,18 @@ struct ReaderBookSearchView: View {
                 value: Double(session.searchedChapterCount),
                 total: Double(max(session.totalChapterCount, 1))
             ) {
-                Text(localized("正在搜尋…"))
+                Text(localized("正在搜寻…"))
                     .font(DSFont.subheadline)
                     .foregroundStyle(DSColor.textPrimary)
             } currentValueLabel: {
-                Text(String(format: localized("已搜尋 %d／%d 章"),
+                Text(String(format: localized("已搜寻 %d／%d 章"),
                             session.searchedChapterCount, session.totalChapterCount))
                     .font(DSFont.caption)
                     .foregroundStyle(DSColor.textSecondary)
                     .monospacedDigit()
             }
         } else {
-            Text(String(format: localized("共 %d 個結果"), session.hits.count))
+            Text(String(format: localized("共 %d 个结果"), session.hits.count))
                 .font(DSFont.subheadline)
                 .foregroundStyle(DSColor.textPrimary)
                 .monospacedDigit()
@@ -195,14 +195,14 @@ struct ReaderBookSearchView: View {
         let title: String, message: String
         switch error {
         case .invalidPattern:
-            title = localized("正規表示式有誤")
-            message = localized("檢查表示式的寫法後再試一次。")
+            title = localized("正规表示式有误")
+            message = localized("检查表示式的写法后再试一次。")
         case .timedOut:
-            title = localized("搜尋已停止")
-            message = localized("這個正規表示式運算太久，換個寫法再試一次。")
+            title = localized("搜寻已停止")
+            message = localized("这个正规表示式运算太久，换个写法再试一次。")
         case .unsupported:
-            title = localized("無法搜尋")
-            message = localized("這本書沒有可以搜尋的文字。")
+            title = localized("无法搜寻")
+            message = localized("这本书没有可以搜寻的文字。")
         }
         return ContentUnavailableView {
             UnavailableLabel(title, systemImage: "exclamationmark.magnifyingglass")
@@ -219,21 +219,21 @@ struct ReaderBookSearchView: View {
             Button(action: onClose) {
                 Image(systemName: "xmark")
             }
-            .accessibilityLabel(localized("關閉"))
+            .accessibilityLabel(localized("关闭"))
         }
         ToolbarItemGroup(placement: .topBarTrailing) {
             if session.phase == .searching {
                 Button(localized("停止")) { session.stop() }
             }
             Menu {
-                Toggle(localized("正則表達式"), isOn: $session.options.isRegex)
+                Toggle(localized("正则表达式"), isOn: $session.options.isRegex)
                 if offersReplaceRules {
-                    Toggle(localized("套用替換規則"), isOn: $session.options.appliesReplaceRules)
+                    Toggle(localized("套用替换规则"), isOn: $session.options.appliesReplaceRules)
                 }
             } label: {
                 Image(systemName: "line.3.horizontal.decrease.circle")
             }
-            .accessibilityLabel(localized("搜尋選項"))
+            .accessibilityLabel(localized("搜寻选项"))
         }
     }
 
@@ -241,7 +241,7 @@ struct ReaderBookSearchView: View {
 
     private var unsearchedNote: String? {
         let count = session.notDownloadedChapterCount
-        return count > 0 ? String(format: localized("有 %d 章尚未下載，未搜尋。"), count) : nil
+        return count > 0 ? String(format: localized("有 %d 章尚未下载，未搜寻。"), count) : nil
     }
 
     /// What the count leaves out: chapters not on the device, and hits past the limit.
@@ -249,13 +249,13 @@ struct ReaderBookSearchView: View {
         var parts: [String] = []
         if let unsearchedNote { parts.append(unsearchedNote) }
         if session.reachedHitLimit {
-            parts.append(String(format: localized("只列出前 %d 個結果。"), ReaderBookSearchSession.hitLimit))
+            parts.append(String(format: localized("只列出前 %d 个结果。"), ReaderBookSearchSession.hitLimit))
         }
         return parts.isEmpty ? nil : parts.joined(separator: " ")
     }
 
     private var noResultsDescription: String {
-        [localized("換個關鍵字再試一次。"), unsearchedNote].compactMap { $0 }.joined(separator: "\n")
+        [localized("换个关键字再试一次。"), unsearchedNote].compactMap { $0 }.joined(separator: "\n")
     }
 
     private func attributedSnippet(_ snippet: ReaderBookSearchSnippet) -> AttributedString {
@@ -290,11 +290,11 @@ struct ReaderBookSearchView: View {
 
 #Preview("Results") {
     let session = ReaderBookSearchSession()
-    let chapters = ["風起了，風停了，天色漸暗。", "沒有那個字。", "又起風了，吹過山崗。"]
+    let chapters = ["风起了，风停了，天色渐暗。", "没有那个字。", "又起风了，吹过山岗。"]
     return ReaderBookSearchView(
         session: session,
         historyKey: "preview_reader_search_history",
-        initialQuery: "風",
+        initialQuery: "风",
         offersReplaceRules: false,
         onSearch: { query in
             session.search(

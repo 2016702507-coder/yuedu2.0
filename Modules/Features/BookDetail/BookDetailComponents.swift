@@ -13,7 +13,7 @@ struct BookDetailAction {
     var systemImage: String
     var isBusy = false
     var isEnabled = true
-    /// Where reading resumes, in grey after the title: 「第 12 章」 or 「已讀 32%」
+    /// Where reading resumes, in grey after the title: 「第 12 章」 or 「已读 32%」
     /// (`BookDetailResume`). Read by VoiceOver as the button's value.
     var detail: String? = nil
     var action: () -> Void
@@ -292,7 +292,7 @@ struct BookDetailCardHeader<Actions: View>: View {
                     // Looked up on tap: the card sets `close` when it appears, after this
                     // header's first body.
                     Button { chrome.close() } label: {
-                        BookDetailCardIcon(title: localized("關閉"), systemImage: "xmark")
+                        BookDetailCardIcon(title: localized("关闭"), systemImage: "xmark")
                     }
                     .accessibilityIdentifier("publicLibrary.closeSheet")
                 }
@@ -339,7 +339,7 @@ private struct BookDetailCardButtonGroup<Buttons: View>: View {
 }
 
 /// The bar's glass capsule on iOS 26 behind a group of buttons, tinted with a card's colour
-/// or clear over a page (a video's 加入書架 / 選集 / 換源); older systems have no glass, so
+/// or clear over a page (a video's 加入书架 / 选集 / 换源); older systems have no glass, so
 /// the tint lies over `.regularMaterial`. The `#if compiler` guard mirrors
 /// `FrostedGlassBackground`.
 struct CardButtonGlass: ViewModifier {
@@ -435,7 +435,7 @@ struct BookDetailHero<Cover: View>: View {
     let author: String
     let meta: String
     let primary: BookDetailAction
-    /// None when the page has no second thing to do (作品詳情 of a book-source result).
+    /// None when the page has no second thing to do (作品详情 of a book-source result).
     let secondary: BookDetailAction?
     var authorActions: [BookDetailAuthorAction] = []
     var artworkHeight: CGFloat? = nil
@@ -532,7 +532,7 @@ struct BookDetailHero<Cover: View>: View {
                 .accessibilityAddTraits(.isHeader)
                 .sourceGesture(
                     tap: sourceGestures?.tapName, longPress: sourceGestures?.longPressName,
-                    longPressName: localized("長按書名")
+                    longPressName: localized("长按书名")
                 )
             if let gestures = sourceGestures, authorActions.isEmpty {
                 Text(author)
@@ -541,7 +541,7 @@ struct BookDetailHero<Cover: View>: View {
                     .lineLimit(1)
                     .sourceGesture(
                         tap: gestures.tapAuthor, longPress: gestures.longPressAuthor,
-                        longPressName: localized("長按作者")
+                        longPressName: localized("长按作者")
                     )
             } else if authorActions.isEmpty {
                 Text(author)
@@ -579,7 +579,7 @@ struct BookDetailHero<Cover: View>: View {
                             .sourceGesture(
                                 tap: { gestures.tapLabel(label) },
                                 longPress: { gestures.longPressLabel(label) },
-                                longPressName: localized("長按標籤")
+                                longPressName: localized("长按标签")
                             )
                     }
                 }
@@ -695,7 +695,7 @@ struct BookDetailHero<Cover: View>: View {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .accessibilityHint(link.hint ?? localized("顯示這個分類的作品"))
+                .accessibilityHint(link.hint ?? localized("显示这个分类的作品"))
                 .accessibilityIdentifier("detail.link.\(link.id)")
             }
         }
@@ -815,7 +815,7 @@ private struct BookDetailActionLabel: View {
 }
 
 /// A detail page's primary action as 方案 A draws it: its words alone, no icon, and where
-/// reading resumes in grey after them — 「繼續閱讀　第 12 章」. The resume point goes first
+/// reading resumes in grey after them — 「继续阅读　第 12 章」. The resume point goes first
 /// when both do not fit; the title then truncates. Busy, a spinner takes the icon's place.
 private struct BookDetailCalmActionLabel: View {
     let action: BookDetailAction
@@ -869,7 +869,7 @@ private struct BookDetailActionIcon: View {
     }
 }
 
-// MARK: - 作品資訊
+// MARK: - 作品资讯
 
 /// One column of the information strip.
 struct BookDetailInfoItem: Identifiable {
@@ -879,11 +879,11 @@ struct BookDetailInfoItem: Identifiable {
     /// A second line under the value. Shown in the accent colour when the item acts.
     var detail: String?
     var action: (() -> Void)?
-    /// A choice made in place, from the item's own menu: 作品詳情's version and format.
+    /// A choice made in place, from the item's own menu: 作品详情's version and format.
     var choice: BookDetailInfoChoice?
     var accessibilityHint: String?
     var accessibilityInputLabels: [String] = []
-    /// A detail line that is news, not a verb (「搜尋來源配置中…」): VoiceOver reads it after
+    /// A detail line that is news, not a verb (「搜寻来源配置中…」): VoiceOver reads it after
     /// the value.
     var spokenDetail: String?
 
@@ -891,18 +891,18 @@ struct BookDetailInfoItem: Identifiable {
 
     var spokenValue: String { [value, spokenDetail].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: "，") }
 
-    /// The current source, opening 換源. 來源 is what the item is, the source name its
-    /// value, switching what activating it does; the visible 「換源」 stays reachable
+    /// The current source, opening 换源. 来源 is what the item is, the source name its
+    /// value, switching what activating it does; the visible 「换源」 stays reachable
     /// to Voice Control through the input labels.
     static func source(name: String, action: @escaping () -> Void) -> BookDetailInfoItem {
         BookDetailInfoItem(
             id: "source",
-            label: localized("來源"),
+            label: localized("来源"),
             value: name,
-            detail: localized("換源"),
+            detail: localized("换源"),
             action: action,
-            accessibilityHint: localized("點兩下切換來源配置"),
-            accessibilityInputLabels: [localized("換源")]
+            accessibilityHint: localized("点两下切换来源配置"),
+            accessibilityInputLabels: [localized("换源")]
         )
     }
 }
@@ -916,11 +916,11 @@ struct BookDetailInfoChoice {
 
     let options: [Option]
     let selection: Binding<String>
-    /// One more thing the menu does, under the options (來源's 重試 or 繼續搜索).
+    /// One more thing the menu does, under the options (来源's 重试 or 继续搜索).
     var extra: (title: String, action: () -> Void)? = nil
 }
 
-/// 作品資訊: the copy's facts as Apple Books lists a book's Information — a titled section
+/// 作品资讯: the copy's facts as Apple Books lists a book's Information — a titled section
 /// at the foot of the page, one label and value per row, hairlines between. It replaced the
 /// strip of columns under the hero (Editorial Minimalism, 2026-10-12), which gave chapter
 /// counts and source names the weight of the work itself.
@@ -930,7 +930,7 @@ struct BookDetailInfoSection: View {
     var body: some View {
         if !items.isEmpty {
             VStack(alignment: .leading, spacing: DSSpacing.sm) {
-                BookDetailSectionHeader(title: localized("作品資訊"))
+                BookDetailSectionHeader(title: localized("作品资讯"))
                 VStack(spacing: 0) {
                     ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
                         if index > 0 { Divider() }
@@ -1033,7 +1033,7 @@ struct BookDetailSectionHeader<Accessory: View>: View {
     let title: String
     var actionTitle: String?
     var action: (() -> Void)?
-    /// Beside the title: 同題材's category menu.
+    /// Beside the title: 同题材's category menu.
     @ViewBuilder var accessory: () -> Accessory
 
     var body: some View {
@@ -1071,7 +1071,7 @@ extension BookDetailSectionHeader where Accessory == EmptyView {
 
 // MARK: - Description
 
-/// 「推薦理由」 (AI 推薦 8e): why the reader's AI service suggested the work, marked AI 產生.
+/// 「推荐理由」 (AI 推荐 8e): why the reader's AI service suggested the work, marked AI 产生.
 /// The reason is the model's own text, drawn as it is: never looked up as a string key or read
 /// as Markdown.
 struct BookDetailRecommendationSection: View {
@@ -1079,8 +1079,8 @@ struct BookDetailRecommendationSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: DSSpacing.sm) {
-            BookDetailSectionHeader(title: localized("推薦理由")) {
-                Text(localized("AI 產生"))
+            BookDetailSectionHeader(title: localized("推荐理由")) {
+                Text(localized("AI 产生"))
                     .font(DSFont.caption)
                     .foregroundStyle(DSColor.textSecondary)
                     .padding(.horizontal, DSSpacing.sm)
@@ -1106,7 +1106,7 @@ struct BookDetailRecommendationSection: View {
 /// (guardrail 6) rules out for source-controlled text inside this scroll view on iOS 17.
 struct BookDetailIntroSection: View {
     /// A section of its own, or under a video's play button as Infuse and VidHub show a
-    /// series' overview: no 簡介 header, two small lines that open when tapped, in the
+    /// series' overview: no 简介 header, two small lines that open when tapped, in the
     /// hero's margins.
     enum Placement {
         case section
@@ -1123,7 +1123,7 @@ struct BookDetailIntroSection: View {
     /// `<md>`, `<useweb>`) are read. Any other text, such as the reader's own or a library's,
     /// is shown as it is (decision 33).
     var readsSourceFormats = true
-    /// Whether `text` says there is no description in the reader's language (沒有繁體中文簡介):
+    /// Whether `text` says there is no description in the reader's language (没有繁体中文简介):
     /// secondary, as the card draws it.
     var isUnavailable = false
     var placement = Placement.section
@@ -1169,7 +1169,7 @@ struct BookDetailIntroSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: DSSpacing.sm) {
             if placement == .section {
-                BookDetailSectionHeader(title: localized("簡介"))
+                BookDetailSectionHeader(title: localized("简介"))
             }
             if placement == .hero, !isRich, mayOverflow {
                 // The lines themselves open, with no 更多 under them; a web intro takes its
@@ -1180,14 +1180,14 @@ struct BookDetailIntroSection: View {
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .accessibilityHint(isExpanded ? localized("收合") : localized("簡介：更多"))
+                .accessibilityHint(isExpanded ? localized("收合") : localized("简介：更多"))
             } else {
                 introBody
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
             if mayOverflow, placement == .section || isRich {
                 Button(action: toggle) {
-                    Text(isExpanded ? localized("收合") : localized("簡介：更多"))
+                    Text(isExpanded ? localized("收合") : localized("简介：更多"))
                         .font(DSFont.subheadline.weight(.semibold))
                         .foregroundStyle(DSColor.accent)
                         .frame(minHeight: DSLayout.minimumTapTarget)
@@ -1336,7 +1336,7 @@ struct BookDetailChapterRow: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityValue(isLocked ? localized("付費章節") : "")
+        .accessibilityValue(isLocked ? localized("付费章节") : "")
     }
 }
 
@@ -1350,7 +1350,7 @@ struct BookDetailChapterSection<Row: View>: View {
     let latestChapter: String
     let onRetry: () -> Void
     let onShowAll: () -> Void
-    /// Said with no chapter to list; 「目錄為空」 by default.
+    /// Said with no chapter to list; 「目录为空」 by default.
     var emptyText: String?
     @ViewBuilder let row: (_ offset: Int, _ chapter: OnlineChapterRef) -> Row
 
@@ -1370,7 +1370,7 @@ struct BookDetailChapterSection<Row: View>: View {
                     .font(DSFont.footnote)
                     .foregroundStyle(DSColor.textSecondary)
                     .lineLimit(1)
-                    .accessibilityLabel(localized("最新章節"))
+                    .accessibilityLabel(localized("最新章节"))
                     .accessibilityValue(latestChapter)
             }
             content
@@ -1381,7 +1381,7 @@ struct BookDetailChapterSection<Row: View>: View {
     @ViewBuilder
     private var content: some View {
         if isLoading && chapters.isEmpty {
-            ProgressView(localized("載入目錄…"))
+            ProgressView(localized("载入目录…"))
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, DSSpacing.xl)
         } else if let errorMessage, chapters.isEmpty {
@@ -1390,14 +1390,14 @@ struct BookDetailChapterSection<Row: View>: View {
                     .font(DSFont.footnote)
                     .foregroundStyle(DSColor.textSecondary)
                     .multilineTextAlignment(.center)
-                Button(localized("重試"), action: onRetry)
+                Button(localized("重试"), action: onRetry)
                     .buttonStyle(.bordered)
                     .tint(DSColor.accent)
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, DSSpacing.lg)
         } else if chapters.isEmpty {
-            Text(emptyText ?? localized("目錄為空"))
+            Text(emptyText ?? localized("目录为空"))
                 .font(DSFont.subheadline)
                 .foregroundStyle(DSColor.textSecondary)
                 .frame(maxWidth: .infinity)
@@ -1443,14 +1443,14 @@ struct BookDetailChapterListSheet: View {
         .scrollContentBackground(.hidden)
         .background(PageBackgroundView(scope: .global).ignoresSafeArea())
         .pageBackgroundToolbar(for: .global)
-        .navigationTitle(localized("目錄"))
+        .navigationTitle(localized("目录"))
         .toolbarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 Button {
                     dismiss()
                 } label: {
-                    Label(localized("關閉"), systemImage: "xmark")
+                    Label(localized("关闭"), systemImage: "xmark")
                         .labelStyle(.iconOnly)
                 }
             }
@@ -1476,46 +1476,46 @@ extension View {
         onConfirm: @escaping () -> Void
     ) -> some View {
         confirmationDialog(
-            localized("要把這本書移出書架嗎？"),
+            localized("要把这本书移出书架吗？"),
             isPresented: isPresented,
             titleVisibility: .visible
         ) {
-            Button(localized("移除書架"), role: .destructive, action: onConfirm)
+            Button(localized("移除书架"), role: .destructive, action: onConfirm)
             Button(localized("取消"), role: .cancel) {}
         } message: {
-            Text(localized("這本書的閱讀進度和快取會一起刪除。"))
+            Text(localized("这本书的阅读进度和快取会一起删除。"))
         }
     }
 }
 
-#Preview("詳情頁元件") {
+#Preview("详情页元件") {
     NavigationStack {
         BookDetailScaffold(
-            title: "斗羅大陸",
-            compactAction: BookDetailAction(title: "立即閱讀", systemImage: "book.fill", action: {})
+            title: "斗罗大陆",
+            compactAction: BookDetailAction(title: "立即阅读", systemImage: "book.fill", action: {})
         ) {
             BookDetailHero(
                 artworkShape: .book,
-                cover: BookCoverImage(coverURL: "", title: "斗羅大陸", author: "唐家三少"),
-                title: "斗羅大陸",
+                cover: BookCoverImage(coverURL: "", title: "斗罗大陆", author: "唐家三少"),
+                title: "斗罗大陆",
                 author: "唐家三少",
                 meta: "",
-                primary: BookDetailAction(title: "繼續閱讀", systemImage: "book.fill", detail: "第 12 章", action: {}),
-                secondary: BookDetailAction(title: "移除書架", systemImage: "checkmark", action: {}),
-                links: ["玄幻", "東方玄幻", "熱血", "穿越", "系統流", "爽文"].map { BookDetailLink(id: $0, title: $0, action: {}) }
+                primary: BookDetailAction(title: "继续阅读", systemImage: "book.fill", detail: "第 12 章", action: {}),
+                secondary: BookDetailAction(title: "移除书架", systemImage: "checkmark", action: {}),
+                links: ["玄幻", "东方玄幻", "热血", "穿越", "系统流", "爽文"].map { BookDetailLink(id: $0, title: $0, action: {}) }
             )
         } content: {
             BookDetailIntroSection(
-                text: "唐門外門弟子唐三，因偷學內門絕學為唐門所不容，跳崖明志卻來到了另一個世界——斗羅大陸。這裡沒有魔法，沒有鬥氣，沒有武術，卻有神奇的武魂。",
+                text: "唐门外门弟子唐三，因偷学内门绝学为唐门所不容，跳崖明志却来到了另一个世界——斗罗大陆。这里没有魔法，没有斗气，没有武术，却有神奇的武魂。",
                 isExpanded: .constant(false)
             )
             BookDetailInfoSection(items: [
-                BookDetailInfoItem(id: "wordCount", label: "字數", value: "298萬字"),
-                BookDetailInfoItem(id: "chapters", label: "章節", value: "1,450"),
+                BookDetailInfoItem(id: "wordCount", label: "字数", value: "298万字"),
+                BookDetailInfoItem(id: "chapters", label: "章节", value: "1,450"),
                 BookDetailInfoItem(id: "format", label: "格式", value: "EPUB", choice: BookDetailInfoChoice(
                     options: [.init(id: "epub", title: "EPUB"), .init(id: "pdf", title: "PDF")],
                     selection: .constant("epub"))),
-                .source(name: "示範來源配置") {},
+                .source(name: "示范来源配置") {},
             ])
         }
     }
@@ -1524,19 +1524,19 @@ extension View {
 #Preview("詳情頁・書源接手點擊") {
     NavigationStack {
         BookDetailScaffold(
-            title: "沒錢修什麼仙",
-            compactAction: BookDetailAction(title: "立即閱讀", systemImage: "book.fill", action: {})
+            title: "没钱修什么仙",
+            compactAction: BookDetailAction(title: "立即阅读", systemImage: "book.fill", action: {})
         ) {
             BookDetailHero(
                 artworkShape: .book,
-                cover: BookCoverImage(coverURL: "", title: "沒錢修什麼仙", author: "熊狼狗"),
-                title: "沒錢修什麼仙",
+                cover: BookCoverImage(coverURL: "", title: "没钱修什么仙", author: "熊狼狗"),
+                title: "没钱修什么仙",
                 author: "熊狼狗",
-                meta: "仙俠 · 修真文明",
-                primary: BookDetailAction(title: "立即閱讀", systemImage: "book.fill", action: {}),
-                secondary: BookDetailAction(title: "加入書架", systemImage: "plus", action: {}),
+                meta: "仙侠 · 修真文明",
+                primary: BookDetailAction(title: "立即阅读", systemImage: "book.fill", action: {}),
+                secondary: BookDetailAction(title: "加入书架", systemImage: "plus", action: {}),
                 sourceGestures: BookDetailSourceGestures(
-                    labels: ["仙俠", "修真文明"],
+                    labels: ["仙侠", "修真文明"],
                     tapName: {}, longPressName: {}, tapAuthor: {}, longPressAuthor: {},
                     tapLabel: { _ in }, longPressLabel: { _ in }
                 )
@@ -1547,11 +1547,11 @@ extension View {
     }
 }
 
-/// 作品詳情 with no version to read: its 目錄 says so (maintainer, 2026-10-22).
+/// 作品详情 with no version to read: its 目录 says so (maintainer, 2026-10-22).
 #Preview("詳情頁・目錄・沒有可閱讀的來源") {
     BookDetailChapterSection(
-        title: localized("目錄"), chapters: [], isLoading: false, errorMessage: nil, latestChapter: "",
-        onRetry: {}, onShowAll: {}, emptyText: localized("目前沒有可閱讀的來源")
+        title: localized("目录"), chapters: [], isLoading: false, errorMessage: nil, latestChapter: "",
+        onRetry: {}, onShowAll: {}, emptyText: localized("目前没有可阅读的来源")
     ) { _, _ in EmptyView() }
 }
 
@@ -1560,20 +1560,20 @@ extension View {
 #Preview("詳情頁・最少資料") {
     NavigationStack {
         BookDetailScaffold(
-            title: "無名之書",
-            compactAction: BookDetailAction(title: "開始閱讀", systemImage: "book", action: {})
+            title: "无名之书",
+            compactAction: BookDetailAction(title: "开始阅读", systemImage: "book", action: {})
         ) {
             BookDetailHero(
                 artworkShape: .book,
-                cover: GeneratedBookCover(title: "無名之書", author: "佚名"),
-                title: "無名之書",
+                cover: GeneratedBookCover(title: "无名之书", author: "佚名"),
+                title: "无名之书",
                 author: "佚名",
                 meta: "",
-                primary: BookDetailAction(title: "開始閱讀", systemImage: "book", action: {}),
-                secondary: BookDetailAction(title: "加入書架", systemImage: "plus", action: {})
+                primary: BookDetailAction(title: "开始阅读", systemImage: "book", action: {}),
+                secondary: BookDetailAction(title: "加入书架", systemImage: "plus", action: {})
             )
         } content: {
-            BookDetailInfoSection(items: [.source(name: "示範來源配置") {}])
+            BookDetailInfoSection(items: [.source(name: "示范来源配置") {}])
         }
     }
 }
@@ -1584,8 +1584,8 @@ extension View {
     ScrollView {
         BookDetailIntroSection(
             text: """
-            <usehtml><h4 style="margin:0 0 10px;font-size:20px;line-height:36px;border-left:4px solid #e33;padding-left:8px">作品簡介</h4>\
-            <p style="margin:0;line-height:30px">標籤：系統+穿越+爽文+癲+單女主+序列收容+克系+群像+輕鬆+日常+腦洞+無敵流+種田+經營+搞笑+熱血</p></usehtml>
+            <usehtml><h4 style="margin:0 0 10px;font-size:20px;line-height:36px;border-left:4px solid #e33;padding-left:8px">作品简介</h4>\
+            <p style="margin:0;line-height:30px">标签：系统+穿越+爽文+癫+单女主+序列收容+克系+群像+轻松+日常+脑洞+无敌流+种田+经营+搞笑+热血</p></usehtml>
             """,
             isExpanded: $isExpanded
         )

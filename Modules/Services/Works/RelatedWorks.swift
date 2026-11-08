@@ -1,11 +1,11 @@
 import Foundation
 
-/// Unified library 5c-4: what Explore's 「相關」 row shows (design §13.3: 同作者、同系列, and
+/// Unified library 5c-4: what Explore's 「相关」 row shows (design §13.3: 同作者、同系列, and
 /// the same work from another source once the work index exists; open decision 5).
 ///
-/// Seeded by the copy opened most recently — 繼續閱讀's first card — so the row is about one
-/// book (maintainer, 2026-10-11: one seed, not every 繼續閱讀 copy). It never repeats a copy
-/// 繼續閱讀 shows. In order of evidence:
+/// Seeded by the copy opened most recently — 继续阅读's first card — so the row is about one
+/// book (maintainer, 2026-10-11: one seed, not every 继续阅读 copy). It never repeats a copy
+/// 继续阅读 shows. In order of evidence:
 /// 1. the seed's own work in another place (a WebDAV file of the book being read, another
 ///    copy of it), each member that is not the seed's own source item;
 /// 2. other works of the seed's series;
@@ -16,7 +16,7 @@ import Foundation
 enum RelatedWorks {
     /// - Parameters:
     ///   - seed: the copy opened most recently (`SourceItemKey.copy`).
-    ///   - continueReading: every copy 繼續閱讀 shows, the seed among them; none is picked.
+    ///   - continueReading: every copy 继续阅读 shows, the seed among them; none is picked.
     ///   - shown: the nodes a card may stand for: shelf copies, and files a connection indexed.
     ///     A reading record off the shelf is in the index and is left out here.
     static func pick(in index: WorkIndex, seed: SourceItemKey, continueReading: Set<SourceItemKey>,
@@ -40,7 +40,7 @@ enum RelatedWorks {
         let seedEntry = entryAt[seed].map { index.entries[$0] }
         // The file the seed was downloaded from is the book being read, not a related one.
         let seedSource = seedEntry?.record.key
-        // 繼續閱讀's other copies are left out as whole works, as the seed is.
+        // 继续阅读's other copies are left out as whole works, as the seed is.
         let excludedWorks = Set(excluded.compactMap { workOf[$0] })
 
         var picked: [SourceItemKey] = []

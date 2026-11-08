@@ -7,7 +7,7 @@ import Foundation
 /// (often with network requests) just to produce the category list, and that list
 /// is stable for a given (source rule, discover runtime variables) pair. The key is
 /// an MD5 over bookSourceUrl + exploreUrl + the discover-relevant runtime-variable
-/// JSON, so editing the source's rule or switching a 發現頁 filter naturally maps to
+/// JSON, so editing the source's rule or switching a 发现页 filter naturally maps to
 /// a different entry — no explicit invalidation needed. Pull-to-refresh and the
 /// toolbar refresh button bypass the cache and overwrite it (`forceRefresh`).
 final class DiscoverKindsCache: Sendable {

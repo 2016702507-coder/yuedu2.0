@@ -1,17 +1,17 @@
 import Foundation
 
-/// 作品詳情's 目錄 (maintainer, 2026-10-13): the chapters of the copy a version is read from,
+/// 作品详情's 目录 (maintainer, 2026-10-13): the chapters of the copy a version is read from,
 /// read as soon as the page opens, by the reader's own paths: an EPUB through the session its
 /// reader opens (a library's in ranges, as reading does), a TXT through the index its reader
 /// publishes. A chapter's `index` is where a reading position points: an EPUB's spine item, a
 /// TXT's chapter.
 ///
-/// Reading the chapters never opens the copy: it stays off the shelf, out of 繼續閱讀, and
-/// unasked about by 「加入書架？」, which asks only about a copy that was read.
+/// Reading the chapters never opens the copy: it stays off the shelf, out of 继续阅读, and
+/// unasked about by 「加入书架？」, which asks only about a copy that was read.
 @MainActor
 enum WorkTableOfContents {
     /// Whether the copy's reader opens at a chapter: an EPUB's, a TXT's, a module's book's. A
-    /// PDF, a Markdown file, a comic and an audiobook have no chapters to list here; a 來源配置's
+    /// PDF, a Markdown file, a comic and an audiobook have no chapters to list here; a 来源配置's
     /// book lists its own on its own page.
     static func lists(_ book: ReadingBook) -> Bool {
         switch book.resolvedPipelineKind {

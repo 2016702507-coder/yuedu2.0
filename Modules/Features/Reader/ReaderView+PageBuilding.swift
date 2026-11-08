@@ -39,7 +39,7 @@ extension ReaderView {
         )
     }
 
-    /// 整章翻譯's translations for this book, handed to the renderer before any chapter of
+    /// 整章翻译's translations for this book, handed to the renderer before any chapter of
     /// it is built, so both engines lay out the same translated documents.
     func attachTranslationSource() {
         guard epubRenderer.translationSource == nil else { return }
@@ -85,7 +85,7 @@ extension ReaderView {
         case .paged:
             // The bars are structural: whatever height they occupy is taken out of
             // the text area, in both modes, from one calculation. This replaced the
-            // hand-tuned 內容保留 sliders — a bar's height is known, so reserving the
+            // hand-tuned 内容保留 sliders — a bar's height is known, so reserving the
             // right amount is arithmetic rather than a number the reader had to guess.
             let pagedInsets = readerBarContentInsets
             surface = .paged(
@@ -208,7 +208,7 @@ extension ReaderView {
                     self.isRestoringPosition = false
                     guard self.book?.id == book.id else { return }
                     self.bookOpenFailure = BookOpenFailure(error: error)
-                    // 「無法開啟書籍」 has its own buttons; a toolbar raised while the book was
+                    // 「无法开启书籍」 has its own buttons; a toolbar raised while the book was
                     // still opening would cover them with placeholder progress.
                     self.setReaderChromeVisible(false)
                 }
@@ -341,7 +341,7 @@ extension ReaderView {
         ensureChapterReady(chapterIndex: initialChapter)
         if initialChapter != 0 {
             // Nobody is looking at chapter 0 yet: at `.immediate` it raced the saved chapter
-            // for the source's bridge and, winning the toss, made a 段評 book's open wait one
+            // for the source's bridge and, winning the toss, made a 段评 book's open wait one
             // extra chapter fetch (~2.7s measured 2026-10-06).
             ensureChapterReady(chapterIndex: 0, priority: .prefetch)
         }
@@ -357,7 +357,7 @@ extension ReaderView {
         isLoadingPipeline = true
         txtIndexReady = false
         showTXTIndexFailure = false
-        // 重試 on 「無法開啟書籍」 comes through here, back to the opening state.
+        // 重试 on 「无法开启书籍」 comes through here, back to the opening state.
         bookOpenFailure = nil
         isRestoringPosition = true
         refreshInitialRestoreState()

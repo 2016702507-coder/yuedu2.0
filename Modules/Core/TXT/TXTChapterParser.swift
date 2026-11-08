@@ -176,7 +176,7 @@ enum TXTChapterParser {
         return splitIntoMappedBlockIndexes(mappedTextFile, blockBytes: 12 * 1024, bookTitle: bookTitle)
     }
 
-    /// Chapters above this size get split into "標題(1)(2)…" pieces (Legado
+    /// Chapters above this size get split into "标题(1)(2)…" pieces (Legado
     /// splitLongChapter idea, threshold matches its 100KB): a regex mis-split or
     /// a genuinely huge chapter otherwise dominates progress granularity, TTS
     /// chapter units, and single-chapter layout cost.
@@ -324,8 +324,8 @@ enum TXTChapterParser {
     private static let specialTitlePattern: NSRegularExpression? = {
         let titles = [
             "序章", "序言", "序幕", "前言", "引子", "引言", "楔子",
-            "尾聲", "尾声", "終章", "终章", "後記", "后记",
-            "番外", "後序", "后序", "結語", "结语",
+            "尾声", "尾声", "终章", "终章", "后记", "后记",
+            "番外", "后序", "后序", "结语", "结语",
             "Prologue", "Epilogue", "Preface", "Introduction",
         ]
         let pattern = "^\\s*(" + titles.joined(separator: "|") + ")[^\\n]*$"
@@ -443,8 +443,8 @@ enum TXTChapterParser {
     /// CP932, EUC-JP, and EUC-KR books.
     private static let specialTitleStartCharacters = [
         "P", "p", "E", "e", "I", "i",
-        "序", "楔", "前", "引", "尾", "終", "终",
-        "後", "后", "番", "結", "结",
+        "序", "楔", "前", "引", "尾", "终", "终",
+        "后", "后", "番", "结", "结",
     ]
 
     private struct EncodedTitleStartMatcher {

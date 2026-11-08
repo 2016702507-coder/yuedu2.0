@@ -3,7 +3,7 @@ import Foundation
 
 /// Holds each book's AI-verified speaker roster.
 ///
-/// This is the single alias table every speaker lookup goes through — 多角色朗讀 casting,
+/// This is the single alias table every speaker lookup goes through — 多角色朗读 casting,
 /// the cast screen's list, and the character-card screen all read it. Keeping one table means
 /// a name the model ruled out cannot come back through a different screen.
 @MainActor

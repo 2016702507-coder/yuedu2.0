@@ -1,7 +1,7 @@
 import SwiftUI
 import UIKit
 
-/// The bottom bar's 閱讀進度 slider: a `UISlider` whose scrub lasts exactly as long as a finger
+/// The bottom bar's 阅读进度 slider: a `UISlider` whose scrub lasts exactly as long as a finger
 /// tracks it, and whose VoiceOver adjustment moves a chapter.
 ///
 /// A SwiftUI `Slider` cannot do this: it reports every `valueChanged` that arrives with no finger
@@ -99,7 +99,7 @@ struct ReaderProgressSlider: UIViewRepresentable {
             onIncrement: { progress = min(1, progress + 0.25) },
             onDecrement: { progress = max(0, progress - 0.25) }
         )
-        .accessibilityLabel(localized("閱讀進度"))
+        .accessibilityLabel(localized("阅读进度"))
     }
     .padding(DSSpacing.lg)
 }

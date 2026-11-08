@@ -4,9 +4,9 @@ import UIKit
 // MARK: - Cover style
 
 /// Cover styling the bookshelf shares between its list rows, its grid cells,
-/// 書籍資訊's preview and the open-book transition.
+/// 书籍资讯's preview and the open-book transition.
 enum BookshelfCoverStyle {
-    /// 外觀主題 → 介面 → 預設封面 → 封面圓角. Read unobserved: `HomeView` observes
+    /// 外观主题 → 介面 → 预设封面 → 封面圆角. Read unobserved: `HomeView` observes
     /// `GlobalSettings`, so a change there rebuilds every row with the new value.
     @MainActor
     static var cornerRadius: CGFloat {
@@ -14,12 +14,12 @@ enum BookshelfCoverStyle {
     }
 
     /// What a card shows. Always something: the book's own cover, the user's
-    /// 預設封面, one generated from the title, or, for the moment a saved cover takes
+    /// 预设封面, one generated from the title, or, for the moment a saved cover takes
     /// to decode off the main thread, a neutral placeholder.
     ///
     /// Fills the frame the caller gives it; `displaySize` is that frame, and picks
     /// the decode size. The row, the grid cell and the transition snapshot all resolve
-    /// through `BookshelfCoverPlan.shelf`, so 強制使用預設封面 cannot end up honored in
+    /// through `BookshelfCoverPlan.shelf`, so 强制使用预设封面 cannot end up honored in
     /// one of them and ignored in another — a mismatch there shows as the cover
     /// swapping mid-animation. Each used to inline its own grey title card, which is
     /// how a local TXT with no artwork kept the old placeholder after the generated
@@ -42,7 +42,7 @@ enum BookshelfCoverStyle {
 
     /// The cover a shelf card draws for `book`, as one bitmap, for a surface that takes a
     /// picture rather than a view: the now-playing bar. Resolved as the card resolves it
-    /// (`BookshelfCoverPlan.shelf`): the book's own cover, a catalog cover, the 預設封面, then
+    /// (`BookshelfCoverPlan.shelf`): the book's own cover, a catalog cover, the 预设封面, then
     /// the generated one, laid out at `size` so its lettering is the shelf row's. Nil only when
     /// a load was superseded or cancelled.
     @MainActor
@@ -63,7 +63,7 @@ enum BookshelfCoverStyle {
             case .superseded, .cancelled: return nil
             }
         }
-        // `BookCoverImage`'s chain for a catalog book: its remote cover, then the 預設封面
+        // `BookCoverImage`'s chain for a catalog book: its remote cover, then the 预设封面
         // seeded by the book's id — the plan's `defaultCover` — then the generated one.
         if plan.catalogFallback != nil, let coverURL = book.coverUrl,
            let cover = await BookCoverImage.fetchCover(
@@ -111,7 +111,7 @@ enum BookshelfCoverStyle {
             return nil
         case .catalog(let catalog):
             // What `BookCoverImage` reported drawing; before its first report, what it
-            // would draw from memory: the catalog cover, the 預設封面, or the generated cover.
+            // would draw from memory: the catalog cover, the 预设封面, or the generated cover.
             if let catalogImage { return catalogImage }
             if let cover = book.coverUrl.flatMap({
                 BookCoverLoader.cachedImage(for: $0, session: BookCoverLoader.remoteSession(for: book))
@@ -143,7 +143,7 @@ enum BookshelfCoverStyle {
         if pipeline.cachedImage(for: request) == nil {
             // One bounded decode of the file just tapped, ahead of queued shelf
             // loads. Nobody awaits it: it finishes and publishes, so the reader's
-            // 現代 chrome and Now Playing find it in memory as well.
+            // 现代 chrome and Now Playing find it in memory as well.
             Task.detached(priority: .userInitiated) {
                 _ = await pipeline.image(for: request, priority: .veryHigh)
             }
@@ -153,7 +153,7 @@ enum BookshelfCoverStyle {
 
     private enum CachedArtwork {
         case bitmap(UIImage, CoverImageSource)
-        /// A saved cover or 預設封面 not decoded yet: the card shows the placeholder.
+        /// A saved cover or 预设封面 not decoded yet: the card shows the placeholder.
         case pending
         case catalog(BookshelfCoverPlan.CatalogFallback)
         case generated
@@ -250,21 +250,21 @@ extension EnvironmentValues {
 /// alone: no file is opened to decide it. The shelf's order, unchanged:
 ///
 /// 1. The book's own saved cover (`coverImagePath`, downloaded or user-picked),
-///    unless 強制使用預設封面 is on.
+///    unless 强制使用预设封面 is on.
 /// 2. When there is none, or it turns out missing or unusable: a remote-library
 ///    book's catalog cover, drawn by `BookCoverImage` with the catalog's session.
 /// 3. For a book with neither, the cover the filler gave it (unified library 3a-2,
 ///    `FilledCoverIndex`), in the own cover's slot.
-/// 4. Otherwise the user's 預設封面 for this book.
+/// 4. Otherwise the user's 预设封面 for this book.
 /// 5. Otherwise `GeneratedBookCover`.
 ///
 /// A step that has to be read from disk is only known to be unavailable once its
 /// load finishes. Until then the slot shows a placeholder instead of skipping
-/// ahead: starting the catalog download, or settling on the 預設封面, for a file
+/// ahead: starting the catalog download, or settling on the 预设封面, for a file
 /// that is merely not decoded yet would be wrong.
 struct BookshelfCoverPlan: Equatable {
     /// Draw `BookCoverImage` once the saved cover is known to be absent. It brings
-    /// its own placeholder chain (預設封面 by `defaultCoverSeed`, then generated).
+    /// its own placeholder chain (预设封面 by `defaultCoverSeed`, then generated).
     struct CatalogFallback: Hashable {
         var defaultCoverSeed: String?
     }
@@ -290,7 +290,7 @@ struct BookshelfCoverPlan: Equatable {
         let ownCover: CoverImageSource? = savedCover.map { .bookCover(filename: $0) }
             ?? (hasCatalogCover ? nil : filledCover.map { .indexedCover(path: $0) })
         return BookshelfCoverPlan(
-            // 強制使用預設封面: the book's own artwork is never drawn, even when the
+            // 强制使用预设封面: the book's own artwork is never drawn, even when the
             // library is empty; that case falls through to the generated cover, as
             // Legado's built-in default cover does.
             ownCover: forcesDefaultCover ? nil : ownCover,
@@ -304,7 +304,7 @@ struct BookshelfCoverPlan: Equatable {
         )
     }
 
-    /// 書籍資訊's preview: the saved cover as it is, even with 強制使用預設封面 on,
+    /// 书籍资讯's preview: the saved cover as it is, even with 强制使用预设封面 on,
     /// because it is the cover being edited; otherwise `BookCoverImage` for the
     /// book's own address.
     static func bookInfo(for book: ReadingBook, filledCover: String? = nil) -> BookshelfCoverPlan {
@@ -559,10 +559,10 @@ private struct CoverSlotState: Equatable {
     var phase: Phase = .pending
 }
 
-#Preview("書架封面 – 無封面／生成封面") {
+#Preview("书架封面 – 无封面／生成封面") {
     HStack(spacing: DSSpacing.lg) {
         BookshelfCoverStyle.artwork(
-            for: ReadingBook(title: "宿命之環", author: "愛潛水的烏賊", contentFilename: "x.txt"),
+            for: ReadingBook(title: "宿命之环", author: "爱潜水的乌贼", contentFilename: "x.txt"),
             colorScheme: .light,
             displaySize: CGSize(width: 45, height: 65)
         )
@@ -570,7 +570,7 @@ private struct CoverSlotState: Equatable {
         .clipShape(RoundedRectangle(cornerRadius: DSRadius.sm))
 
         BookshelfCoverStyle.artwork(
-            for: ReadingBook(title: "劍燭大荒", author: "青山鶴", contentFilename: "y.txt"),
+            for: ReadingBook(title: "剑烛大荒", author: "青山鹤", contentFilename: "y.txt"),
             colorScheme: .light,
             displaySize: CGSize(width: 110, height: 165)
         )

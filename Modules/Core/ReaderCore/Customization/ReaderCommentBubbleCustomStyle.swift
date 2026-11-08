@@ -101,7 +101,7 @@ struct BubblePackageFile: Codable {
         }
         let resolvedName = (name?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
             ? (dirName?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true
-                ? "自訂 SVG"
+                ? "自订 SVG"
                 : dirName!)
             : name!
         return ReaderCommentBubbleCustomStyle(

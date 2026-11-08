@@ -39,7 +39,7 @@ enum TXTMetadataProbe {
         let explicitTitle = firstCapture(
             in: sample,
             patterns: [
-                #"(?im)^\s*(?:書名|书名|作品名|作品名稱|作品名称|Title)\s*[：:﹕]\s*(.{1,80}?)\s*$"#
+                #"(?im)^\s*(?:书名|书名|作品名|作品名称|作品名称|Title)\s*[：:﹕]\s*(.{1,80}?)\s*$"#
             ],
             maximumLength: 80
         )
@@ -75,13 +75,13 @@ enum TXTMetadataProbe {
     // MARK: - The header before the first chapter
 
     private static let introLabel = try? NSRegularExpression(
-        pattern: #"^\s*【?(?:文案|简介|簡介|内容简介|內容簡介|作品简介|作品簡介|内容介绍|內容介紹|小说简介|小說簡介|书籍简介|書籍簡介|故事简介|故事簡介)】?\s*(?:[：:﹕]\s*(.*))?$"#
+        pattern: #"^\s*【?(?:文案|简介|简介|内容简介|内容简介|作品简介|作品简介|内容介绍|内容介绍|小说简介|小说简介|书籍简介|书籍简介|故事简介|故事简介)】?\s*(?:[：:﹕]\s*(.*))?$"#
     )
     private static let tagLabel = try? NSRegularExpression(
-        pattern: #"^\s*【?(?:标签|標籤|作品标签|作品標籤|类型|類型|分类|分類|题材|題材)】?\s*[：:﹕]\s*(.+)$"#
+        pattern: #"^\s*【?(?:标签|标签|作品标签|作品标签|类型|类型|分类|分类|题材|题材)】?\s*[：:﹕]\s*(.+)$"#
     )
     private static let otherLabel = try? NSRegularExpression(
-        pattern: #"^\s*(?:书名|書名|作者|著者|主角|配角|状态|狀態|字数|字數|出版社|ISBN)\s*[：:﹕]"#, options: [.caseInsensitive]
+        pattern: #"^\s*(?:书名|书名|作者|著者|主角|配角|状态|状态|字数|字数|出版社|ISBN)\s*[：:﹕]"#, options: [.caseInsensitive]
     )
 
     /// The first group of `regex` on `line`, "" when it matched without one; nil when it did not.
@@ -131,7 +131,7 @@ enum TXTMetadataProbe {
     }
 
     private static let chapterHeading = try? NSRegularExpression(
-        pattern: #"^\s*(?:第[0-9０-９零〇一二三四五六七八九十百千万萬两兩]+[章节節回卷集部篇]|序章|序言|楔子|引子|前言|番外|尾声|尾聲|后记|後記|Chapter\s*\d+)"#,
+        pattern: #"^\s*(?:第[0-9０-９零〇一二三四五六七八九十百千万万两两]+[章节节回卷集部篇]|序章|序言|楔子|引子|前言|番外|尾声|尾声|后记|后记|Chapter\s*\d+)"#,
         options: [.caseInsensitive]
     )
 
@@ -143,7 +143,7 @@ enum TXTMetadataProbe {
         guard !text.isEmpty else { return false }
         if text.count >= 3, text.allSatisfy({ "=-*~_─━—·.".contains($0) }) { return true }
         let lowered = text.lowercased()
-        return ["http", "www.", ".com", ".net", ".org", "下载", "下載", "本站", "尽在", "盡在", "txt小说", "txt小說"]
+        return ["http", "www.", ".com", ".net", ".org", "下载", "下载", "本站", "尽在", "尽在", "txt小说", "txt小说"]
             .contains { lowered.contains($0) }
     }
 
@@ -155,7 +155,7 @@ enum TXTMetadataProbe {
 
     // MARK: - The file's name
 
-    private static let editionWords = "精校|全本|完结|完結|完本|校对|校對|全集|txt|出书版|出書版|实体|實體|修订|修訂|无错|無錯|插图|插圖|全文|连载|連載|精排|典藏"
+    private static let editionWords = "精校|全本|完结|完结|完本|校对|校对|全集|txt|出书版|出书版|实体|实体|修订|修订|无错|无错|插图|插图|全文|连载|连载|精排|典藏"
 
     /// A downloaded file's name as a title and, when it names one, an author: brackets and
     /// edition words (精校版、全本、完结) dropped.

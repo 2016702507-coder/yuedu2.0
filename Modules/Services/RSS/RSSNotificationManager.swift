@@ -127,17 +127,17 @@ final class RSSNotificationManager: Sendable {
     private func registerCategories() {
         let openAction = UNNotificationAction(
             identifier: Constants.openActionIdentifier,
-            title: localized("動作：開啟"),
+            title: localized("动作：开启"),
             options: [.foreground]
         )
         let markReadAction = UNNotificationAction(
             identifier: Constants.markReadActionIdentifier,
-            title: localized("標為已讀"),
+            title: localized("标为已读"),
             options: []
         )
         let markStarredAction = UNNotificationAction(
             identifier: Constants.markStarredActionIdentifier,
-            title: localized("加星號"),
+            title: localized("加星号"),
             options: []
         )
         let category = UNNotificationCategory(
@@ -216,7 +216,7 @@ final class RSSAppNotificationDelegate: NSObject, UIApplicationDelegate, UNUserN
         ReaderOrientationController.shared.supportedMask(for: window?.traitCollection.userInterfaceIdiom ?? .phone)
     }
 
-    // MARK: - Remote notifications (回饋中心)
+    // MARK: - Remote notifications (回馈中心)
 
     // These two arrive only because Info.plist turns `FirebaseAppDelegateProxyEnabled` off.
     // With it on, FirebaseAuth (started at launch by `FirebaseAuthManager`) has
@@ -242,7 +242,7 @@ final class RSSAppNotificationDelegate: NSObject, UIApplicationDelegate, UNUserN
         withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
     ) {
         if notification.request.content.userInfo[FeedbackNotificationPresenter.threadKey] is String {
-            // An open 我的回饋 or conversation shows the news now, not at its next poll.
+            // An open 我的回馈 or conversation shows the news now, not at its next poll.
             Task { @MainActor in FeedbackService.shared.refreshOpenStreams() }
         }
         completionHandler([.list, .banner, .badge, .sound])

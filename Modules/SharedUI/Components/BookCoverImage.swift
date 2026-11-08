@@ -1,9 +1,9 @@
 import SwiftUI
 
 /// Remote book cover with the headers source CDNs need, falling back to the
-/// user's 預設封面 library and then to `GeneratedBookCover` when there's no cover
+/// user's 预设封面 library and then to `GeneratedBookCover` when there's no cover
 /// (or it fails to load). While it loads, the slot is a grey skeleton (maintainer,
-/// 2026-10-27: 「要加載封面都可以改成骨架屏佔位」), not a cover that would read as
+/// 2026-10-27: 「要加载封面都可以改成骨架屏占位」), not a cover that would read as
 /// this book's and then change.
 ///
 /// Fills whatever frame the caller gives it (`scaledToFill`, clipped). Apply the
@@ -28,21 +28,21 @@ struct BookCoverImage: View {
     var sourceID: UUID?
     var session: URLSession?
     /// Stable key identifying the book, when this slot may fall back to the
-    /// user's 預設封面 library. `nil` goes straight to `GeneratedBookCover` — only
-    /// the surfaces 預設封面 covers (書架, and 探索 when enabled) pass a seed.
+    /// user's 预设封面 library. `nil` goes straight to `GeneratedBookCover` — only
+    /// the surfaces 预设封面 covers (书架, and 探索 when enabled) pass a seed.
     var defaultCoverSeed: String?
 
     /// The cover this slot fetched, with the cache key it was fetched for. Held by
     /// the slot, not just the pipeline's memory, so a slot whose view lives on while
     /// its task runs again (it reappears) does not read an eviction as "no cover" and
     /// blank its bitmap until a refetch lands. It does not outlive the view: a lazy
-    /// stack discards rows scrolled far away (seen on iOS 27 with the 發現頁's sections
+    /// stack discards rows scrolled far away (seen on iOS 27 with the 发现页's sections
     /// and 查看全部's rows), and those come back to whatever the pipeline still has.
     @State private var loaded: HeldRemoteCover?
     /// The cache key whose fetch came back with nothing: the slot shows its fallback, not
     /// the skeleton. A cancelled fetch is not a failure.
     @State private var failedKey: String?
-    /// The 預設封面 this slot falls back to, once decoded off the main thread.
+    /// The 预设封面 this slot falls back to, once decoded off the main thread.
     @State private var loadedDefaultCover: LoadedDefaultCover?
     @Environment(\.colorScheme) private var colorScheme
 
@@ -77,7 +77,7 @@ struct BookCoverImage: View {
     /// another address never shows the previous one's cover.
     private var image: UIImage? { loaded?.image(for: cacheKey) }
 
-    /// Fetching the cover: an address, not forced to the 預設封面, nothing fetched for it yet and
+    /// Fetching the cover: an address, not forced to the 预设封面, nothing fetched for it yet and
     /// no failure. An empty address goes straight to the fallback.
     private var isLoading: Bool {
         !forcesDefaultCover && !coverURL.isEmpty && image == nil && failedKey != cacheKey
@@ -120,13 +120,13 @@ struct BookCoverImage: View {
         let image: UIImage
     }
 
-    /// 強制使用預設封面: the book's own artwork is ignored everywhere it is drawn,
+    /// 强制使用预设封面: the book's own artwork is ignored everywhere it is drawn,
     /// exactly like Legado's `useDefaultCover` short-circuit in `BookCover.load`.
     private var forcesDefaultCover: Bool {
         GlobalSettings.shared.useDefaultCoverForAllBooks
     }
 
-    /// The 預設封面 this slot falls back to, if any. Forcing applies to every book,
+    /// The 预设封面 this slot falls back to, if any. Forcing applies to every book,
     /// so it also supplies a seed to slots that opted out of the library. Pure: which
     /// file, not its pixels.
     private var defaultCoverRequest: CoverImageRequest? {
@@ -165,7 +165,7 @@ struct BookCoverImage: View {
         }
         // Memory let go of its copy; this slot did not. Nothing to fetch.
         if loaded?.image(for: key) != nil { return }
-        // The 預設封面 is the fallback when the network cover fails, decoded first so a
+        // The 预设封面 is the fallback when the network cover fails, decoded first so a
         // failure lands on it, not on the generated cover. The skeleton shows meanwhile.
         await loadDefaultCover()
         guard !Task.isCancelled else { return }
@@ -178,7 +178,7 @@ struct BookCoverImage: View {
 
     /// The cover at `coverURL`, from memory or fetched with the headers its CDN needs: the
     /// source's base URL and header rule when `sourceID` names one (looked up only now), else
-    /// those given. Nil when it fails, or when the task is cancelled. 作品詳情's series fan
+    /// those given. Nil when it fails, or when the task is cancelled. 作品详情's series fan
     /// loads its volumes' covers through this too, before it draws any of them.
     static func fetchCover(coverURL: String, sourceBaseURL: String?, sourceHeaders: [String: String],
                            sourceID: UUID?, session: URLSession?) async -> UIImage? {
@@ -194,7 +194,7 @@ struct BookCoverImage: View {
         return await BookCoverLoader.loadImage(urlString: coverURL, headers: headers, session: session)
     }
 
-    /// Decodes this slot's 預設封面 off the main thread when memory does not have
+    /// Decodes this slot's 预设封面 off the main thread when memory does not have
     /// it, and holds it while the slot is alive.
     private func loadDefaultCover() async {
         guard let request = defaultCoverRequest else { return }
@@ -287,7 +287,7 @@ extension ContentKind {
     /// The word a list puts beside such a title, and VoiceOver reads with it; nil for books.
     var mediaTag: String? {
         switch self {
-        case .audio: localized("有聲書")
+        case .audio: localized("有声书")
         case .video: localized("影片")
         case .text, .comic: nil
         }
@@ -296,10 +296,10 @@ extension ContentKind {
 
 #Preview {
     HStack(spacing: 16) {
-        BookCoverImage(coverURL: "", title: "劍燭大荒", author: "青山鶴")
+        BookCoverImage(coverURL: "", title: "剑烛大荒", author: "青山鹤")
             .frame(width: 104, height: 138)
             .clipShape(RoundedRectangle(cornerRadius: DSRadius.lg))
-        GeneratedBookCover(title: "宿命之環", author: "愛潛水的烏賊")
+        GeneratedBookCover(title: "宿命之环", author: "爱潜水的乌贼")
             .frame(width: 104, height: 138)
             .clipShape(RoundedRectangle(cornerRadius: DSRadius.lg))
     }

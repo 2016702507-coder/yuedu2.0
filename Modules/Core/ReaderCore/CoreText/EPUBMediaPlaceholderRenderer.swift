@@ -167,7 +167,7 @@ enum EPUBMediaPlaceholderRenderer {
             triangle.fill()
 
             let title = embed.title?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
-                ? embed.title! : localized("內嵌網頁")
+                ? embed.title! : localized("内嵌网页")
             let host = embed.host
             draw(
                 host.isEmpty ? title : title + " · " + host,

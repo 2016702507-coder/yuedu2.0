@@ -116,6 +116,12 @@ enum ReaderPagingStyle: Hashable, Codable {
         case .slide: self = .slide
         case .cover: self = .cover
         case .curl: self = .curl
+        // 波纹 has no legado counterpart; it stays a named custom style so anything
+        // asking "which UIKit transition is this" gets nil instead of a wrong answer.
+        case .ripple: self = .custom("ripple")
+        // 上下翻页同样没有 legado 对应值：UIKit 只会「滑」不会「整屏上下走」，
+        // 所以也留在 named custom 里，别让它被当成 slide。
+        case .vertical: self = .custom("vertical")
         case .none: self = .none
         }
     }

@@ -2,7 +2,7 @@ import CryptoKit
 import Foundation
 
 /// One book-source category's first page as the home last fetched it (Discovery Phase 7a-1).
-/// The name is from 為你推薦, deleted 2026-10-27; the cache stayed for 作品詳情's versions.
+/// The name is from 为你推荐, deleted 2026-10-27; the cache stayed for 作品详情's versions.
 struct ForYouCandidates: Codable, Sendable {
     /// The most kept per category: a first page, never more.
     static let limit = 40
@@ -22,7 +22,7 @@ struct ForYouCandidates: Codable, Sendable {
 
 /// The candidate cache: one file per category under `Caches/ForYou`, regenerable, so it is
 /// not backed up. Written by `DiscoverFirstPages` on every first page it fetches, read by it
-/// for the home's later asks and by 作品詳情's versions (`savedBooks`). An actor, so writes are
+/// for the home's later asks and by 作品详情's versions (`savedBooks`). An actor, so writes are
 /// atomic and in order.
 actor ForYouCandidateStore {
     static let shared = ForYouCandidateStore(
@@ -82,7 +82,7 @@ actor ForYouCandidateStore {
     }
 
     /// Every saved category's books whose source is in `sources` (its URL → its id now), for
-    /// 作品詳情's versions (7b-1): what the reader's sources listed, read with no request.
+    /// 作品详情's versions (7b-1): what the reader's sources listed, read with no request.
     /// Ordered by source, then category, so a source's first book is always the same one.
     func savedBooks(sources: [String: UUID]) -> [OnlineBook] {
         let files: [URL]

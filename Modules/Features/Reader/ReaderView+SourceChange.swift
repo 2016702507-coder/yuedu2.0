@@ -8,9 +8,9 @@ extension ReaderView {
     var changeSourceSheetContent: AnyView {
         AnyView(NavigationStack {
             List {
-                // Where the book is read from now — a 來源配置, a module, a library, an imported
+                // Where the book is read from now — a 来源配置, a module, a library, an imported
                 // file — always visible with a checkmark (the lists below leave it out).
-                Section(localized("目前來源")) {
+                Section(localized("目前来源")) {
                     HStack {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(currentOriginName)
@@ -36,11 +36,11 @@ extension ReaderView {
                 }
                 .interfaceSectionSurface()
 
-                // The versions kept beside the book: what it was read from before 換源, and
+                // The versions kept beside the book: what it was read from before 换源, and
                 // the copies merged into it. Each switches back with its own file and place.
                 let kept = store.keptVersions(of: bookId)
                 if !kept.isEmpty {
-                    Section(localized("已知的閱讀來源")) {
+                    Section(localized("已知的阅读来源")) {
                         ForEach(kept, id: \.id) { version in
                             Button { switchToVersion(version.id) } label: { changeSourceVersionRow(version) }
                                 .disabled(readerViewModel.isSwitchingSource)
@@ -49,10 +49,10 @@ extension ReaderView {
                     .interfaceSectionSurface()
                 }
 
-                // The work in the saved libraries, 青空文庫 / Gutenberg and the modules: each a
+                // The work in the saved libraries, 青空文库 / Gutenberg and the modules: each a
                 // version like any other, its copy taken on the tap.
                 if !versionFinder.found.isEmpty || versionFinder.isSearching {
-                    Section(localized("書庫與模組")) {
+                    Section(localized("书库与模组")) {
                         ForEach(versionFinder.found) { version in
                             Button { switchToLibraryVersion(version.route) } label: { changeSourceLibraryRow(version) }
                                 .disabled(readerViewModel.isSwitchingSource)
@@ -60,7 +60,7 @@ extension ReaderView {
                         if versionFinder.isSearching {
                             HStack(spacing: 8) {
                                 ProgressView()
-                                Text(localized("正在搜尋…"))
+                                Text(localized("正在搜寻…"))
                                     .font(DSFont.footnote)
                                     .foregroundStyle(DSColor.textSecondary)
                             }
@@ -69,7 +69,7 @@ extension ReaderView {
                     .interfaceSectionSurface()
                 }
 
-                // 其他可切換的書源。Results stream in one source at a time, so show them
+                // 其他可切换的书源。Results stream in one source at a time, so show them
                 // as soon as the first match arrives instead of blocking on the full
                 // fan-out (459 sources can take minutes).
                 Section {
@@ -83,7 +83,7 @@ extension ReaderView {
                         if changeSourceLoading {
                             HStack(spacing: 8) {
                                 ProgressView()
-                                Text(localized("正在搜尋更多來源配置…"))
+                                Text(localized("正在搜寻更多来源配置…"))
                                     .font(DSFont.footnote)
                                     .foregroundStyle(DSColor.textSecondary)
                             }
@@ -91,15 +91,15 @@ extension ReaderView {
                     } else if changeSourceLoading {
                         HStack(spacing: 8) {
                             ProgressView()
-                            Text(localized("正在搜尋其他來源配置…"))
+                            Text(localized("正在搜寻其他来源配置…"))
                                 .foregroundStyle(DSColor.textSecondary)
                         }
                     } else {
-                        Text(localized("暫無其他來源配置"))
+                        Text(localized("暂无其他来源配置"))
                             .foregroundStyle(DSColor.textSecondary)
                     }
                 } header: {
-                    Text(localized("其他來源配置"))
+                    Text(localized("其他来源配置"))
                         .foregroundStyle(DSColor.textSecondary)
                 } footer: {
                     if let err = changeSourceError {
@@ -113,7 +113,7 @@ extension ReaderView {
             .scrollContentBackground(.hidden)
             .background(PageBackgroundView(scope: .settings).ignoresSafeArea())
             .pageBackgroundToolbar(for: .settings)
-            .navigationTitle(localized("換源"))
+            .navigationTitle(localized("换源"))
             .toolbarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItemGroup(placement: .navigationBarLeading) {
@@ -124,7 +124,7 @@ extension ReaderView {
                         Image(systemName: "arrow.clockwise")
                     }
                     .disabled(changeSourceLoading)
-                    .accessibilityLabel(localized("重新搜尋"))
+                    .accessibilityLabel(localized("重新搜寻"))
 
                     // Legado-style variable editors: sources' JS reads these
                     // back (`source.getVariable()` / book variables) on fetch. Legado offers
@@ -136,12 +136,12 @@ extension ReaderView {
                             Button {
                                 showSourceVariableEditor = true
                             } label: {
-                                Label(localized("設置源變量"), systemImage: "curlybraces")
+                                Label(localized("设置源变量"), systemImage: "curlybraces")
                             }
                             Button {
                                 showBookVariableEditor = true
                             } label: {
-                                Label(localized("設置書籍變量"), systemImage: "character.book.closed")
+                                Label(localized("设置书籍变量"), systemImage: "character.book.closed")
                             }
                         } label: {
                             Image(systemName: "ellipsis.circle")
@@ -158,7 +158,7 @@ extension ReaderView {
                     // view itself gives the toolbar item a new identity, and toolbar items
                     // that change identity flicker or drop out entirely.
                     let isSwitching = readerViewModel.isSwitchingSource
-                    Button(localized(isSwitching ? "取消" : "關閉")) {
+                    Button(localized(isSwitching ? "取消" : "关闭")) {
                         if isSwitching {
                             readerViewModel.cancelPendingSourceSwitch()
                         } else {
@@ -182,7 +182,7 @@ extension ReaderView {
         })
     }
 
-    /// The source the book is currently reading from (for 設置源變量 in-reader).
+    /// The source the book is currently reading from (for 设置源变量 in-reader).
     var currentChangeSourceBookSource: BookSource? {
         guard let sourceId = book?.bookSourceId else { return nil }
         return BookSourceStore.shared.source(id: sourceId)
@@ -212,13 +212,13 @@ extension ReaderView {
                 // unchanged while the TOC downloaded, which reads as "nothing happened".
                 HStack(spacing: 6) {
                     ProgressView()
-                    Text(localized("正在載入目錄…"))
+                    Text(localized("正在载入目录…"))
                         .font(DSFont.caption)
                         .foregroundStyle(DSColor.textSecondary)
                 }
             } else if changeSourceFailedKeys.contains(originKey)
                 || changeSourceFailedKeys.contains(ChangeSourceCache.urlKey(origin.bookUrl)) {
-                Text(localized("載入失敗"))
+                Text(localized("载入失败"))
                     .font(DSFont.caption2)
                     .foregroundColor(.red)
                     .padding(.horizontal, 6)
@@ -228,7 +228,7 @@ extension ReaderView {
                 Image(systemName: "chevron.right")
                     .font(DSFont.caption)
                     .foregroundStyle(DSColor.textSecondary)
-                    .accessibilityHidden(true)   // 純裝飾，否則旁白念出 "chevron.right"
+                    .accessibilityHidden(true)   // 纯装饰，否则旁白念出 "chevron.right"
             }
         }
         .accessibilityElement(children: .combine)
@@ -236,7 +236,7 @@ extension ReaderView {
 
     /// Where the book is read from now, as the title capsule names it.
     var currentOriginName: String {
-        book.map(BookOriginName.of) ?? localized("未知來源配置")
+        book.map(BookOriginName.of) ?? localized("未知来源配置")
     }
 
     /// A kept version: where it is read from, and how far it was read.
@@ -255,7 +255,7 @@ extension ReaderView {
             if readerViewModel.changeSourcePendingVersion == .copy(version.id) {
                 HStack(spacing: 6) {
                     ProgressView()
-                    Text(localized("正在載入目錄…"))
+                    Text(localized("正在载入目录…"))
                         .font(DSFont.caption)
                         .foregroundStyle(DSColor.textSecondary)
                 }
@@ -285,7 +285,7 @@ extension ReaderView {
             if readerViewModel.changeSourcePendingVersion == version.route.nodeKey {
                 HStack(spacing: 6) {
                     ProgressView()
-                    Text(localized("正在載入目錄…"))
+                    Text(localized("正在载入目录…"))
                         .font(DSFont.caption)
                         .foregroundStyle(DSColor.textSecondary)
                 }
@@ -321,14 +321,14 @@ extension ReaderView {
             } catch is CancellationError {
                 // Cancelled before anything was written: the book still reads from here.
             } catch {
-                AppLogger.error("換源: switching to another version failed", error: error,
+                AppLogger.error("换源: switching to another version failed", error: error,
                                 context: ["book": bookId.uuidString, "version": versionID.uuidString])
                 readerViewModel.reportChangeSourceError(error.localizedDescription)
             }
         }
     }
 
-    /// Switches to the work in a library or a module: its copy is taken as 開始閱讀 takes it
+    /// Switches to the work in a library or a module: its copy is taken as 开始阅读 takes it
     /// (`VersionReadingCopy`) — downloaded, or its chapters listed — and becomes the shelf book.
     func switchToLibraryVersion(_ version: WorkDetailRoute) {
         let spine = changeSourceReadingSpine
@@ -348,7 +348,7 @@ extension ReaderView {
                 // Cancelled before the commit: the book still reads from here. A copy already
                 // taken stays off the shelf, read again by the next switch to it.
             } catch {
-                AppLogger.error("換源: switching to a library version failed", error: error,
+                AppLogger.error("换源: switching to a library version failed", error: error,
                                 context: ["book": bookId.uuidString, "version": version.record.key.item])
                 readerViewModel.reportChangeSourceError(error.localizedDescription)
             }
@@ -367,7 +367,7 @@ extension ReaderView {
         } else {
             // A reader shown outside `BookReaderView` has no reader to hand over to; the shelf
             // already reads from the copy, which opens next time.
-            AppLogger.info("換源: version switched with no reader to hand over to", context: ["version": versionID.uuidString])
+            AppLogger.info("换源: version switched with no reader to hand over to", context: ["version": versionID.uuidString])
         }
     }
 
@@ -375,8 +375,8 @@ extension ReaderView {
     /// reloads; on failure flags the origin (persisted) and keeps the sheet open so
     /// the user can try another.
     ///
-    /// A book read from anywhere but a 來源配置 — an imported file, a library, a module — is not
-    /// rebound: the work's 來源配置 copy reads from the origin, and the shelf switches to it as
+    /// A book read from anywhere but a 来源配置 — an imported file, a library, a module — is not
+    /// rebound: the work's 来源配置 copy reads from the origin, and the shelf switches to it as
     /// to any other version (`switchToSourceVersion`).
     ///
     /// Reading position: the raw chapter index means different things in different
@@ -407,7 +407,7 @@ extension ReaderView {
                 }
                 try Task.checkCancellation()
                 // Rebinds the source and carries the place on screen over to the new list
-                // (`OnlineBookSourceSwitch`, shared with the detail page and 加入書架), and
+                // (`OnlineBookSourceSwitch`, shared with the detail page and 加入书架), and
                 // persists it before loadContent so any restore path that re-reads the
                 // position store already sees the mapped chapter.
                 let mappedPosition = try await SourcePerfTrace.spanAsync(
@@ -422,7 +422,7 @@ extension ReaderView {
                 }
                 try Task.checkCancellation()
                 // It just worked; a stale flag from an earlier attempt would otherwise keep
-                // this row badged 載入失敗 in every future session.
+                // this row badged 载入失败 in every future session.
                 readerViewModel.clearOriginFailure(
                     bookId: bookId, sourceId: origin.sourceId, bookUrl: origin.bookUrl)
 
@@ -447,12 +447,12 @@ extension ReaderView {
     }
 
     /// Reopens the book on the chapter list now in `store`, at `position` in that list. The
-    /// engine pages the list it was opened with, so a list that changed under it — 換源, or a
+    /// engine pages the list it was opened with, so a list that changed under it — 换源, or a
     /// refresh that moved chapters (`followChapterRenumbering`) — takes a reopen, not a patch.
     func reopenOnStoredChapterList(at position: CoreTextReadingPosition?) {
         // The new chapter list is already live in `store`, so every cache lookup from here on
         // asks about *its* chapters. The load states still describe the old list's, and a
-        // stale `.ready` there is read as "ready but nothing on disk" — the 資料不一致 overlay
+        // stale `.ready` there is read as "ready but nothing on disk" — the 资料不一致 overlay
         // users hit on every source switch. They belong to the list we just left; drop them.
         readerViewModel.resetAllChapterStates()
         chapterConsistencyRecoveryAttempts.removeAll()
@@ -498,7 +498,7 @@ extension ReaderView {
         Task { await dependencies.readingPositionStore.save(moved, for: bookId.uuidString) }
     }
 
-    /// 換源 to a 來源配置 for a book read from elsewhere: the work's 來源配置 copy — the one kept
+    /// 换源 to a 来源配置 for a book read from elsewhere: the work's 来源配置 copy — the one kept
     /// beside the book, rebound to this origin, or a new one off the shelf — becomes the shelf
     /// book (`ShelfVersionSwitch.sourceCopy`).
     private func switchToSourceVersion(_ origin: BookOrigin) {
@@ -600,7 +600,7 @@ extension ReaderView {
     }
 
     func applyChapterSliderProgress(_ value: Double) {
-        // Scroll mode: round to nearest chapter and go there the way 目錄 does, through the scroll
+        // Scroll mode: round to nearest chapter and go there the way 目录 does, through the scroll
         // host, which holds the position and enters the chapter's segment. Reslicing the engine
         // directly left the host restoring its old position, and could lay a chapter out in
         // another segment's mode.
@@ -812,7 +812,7 @@ extension ReaderView {
     }
 
     func handleListeningAction() {
-        // 聽書 from the bar or the book card puts the menu away, leaving the page and
+        // 听书 from the bar or the book card puts the menu away, leaving the page and
         // the narration capsule.
         setReaderChromeVisible(false)
         let chapterIndex = currentChapterIndex
@@ -913,7 +913,7 @@ extension ReaderView {
     ///
     /// Scroll mode relied on a side effect for this: the paged-mode restore used to lay out
     /// the chapter the book opened on, and narration found its text there. The scroll-mode
-    /// restore no longer touches the paged engine, so 聽書 found nothing and did nothing.
+    /// restore no longer touches the paged engine, so 听书 found nothing and did nothing.
     /// The layout task's completion is the readiness signal — no polling, no delay — and a
     /// newer start, a pause or a stop (each clears `ttsStartLayoutRequest`) wins over a
     /// layout still in flight.
@@ -944,14 +944,14 @@ extension ReaderView {
         }
     }
 
-    /// 聽書's chapter list picks a 目錄 entry: narration starts in its spine item, at the entry's
+    /// 听书's chapter list picks a 目录 entry: narration starts in its spine item, at the entry's
     /// anchor where that item is laid out (`tocPosition`), else at the item's start.
     func startTTSChapter(atTOCEntry entry: BookChapter) {
         let position = tocPosition(for: entry, engine: epubRenderer.engine)
         startTTSChapter(position.spineIndex, syncReader: true, startCharOffset: position.charOffset)
     }
 
-    /// 聽書's 下一章: enabled exactly when `startAdjacentTTSChapter(delta: 1)` has a chapter to start.
+    /// 听书's 下一章: enabled exactly when `startAdjacentTTSChapter(delta: 1)` has a chapter to start.
     var ttsHasNextChapter: Bool {
         Self.narratableChapter(
             from: ttsChapterIndex ?? currentChapterIndex,
@@ -1004,7 +1004,7 @@ extension ReaderView {
             // (it is laid out first), so this is a chapter still empty after its own
             // layout pass, or an online chapter whose content has not arrived.
             AppLogger.anomaly(
-                localized("聽書取不到章節文字而停止"),
+                localized("听书取不到章节文字而停止"),
                 category: .tts,
                 detail: [
                     "chapter=\(chapterIndex)",
@@ -1052,7 +1052,7 @@ extension ReaderView {
             prepareNextTTSChapter(after: chapterIndex)
             step("prepare")
             // Resolved here, not in the engine: only the reader knows which book is open,
-            // and the cast is per book. Empty when 多角色朗讀 is off, which is also what
+            // and the cast is per book. Empty when 多角色朗读 is off, which is also what
             // tells the engines not to split the chapter at quote boundaries at all.
             ttsCoordinator.roleVoices = activeTTSRoleVoices()
             ttsCoordinator.roleAliases = activeTTSRoleAliases()
@@ -1225,12 +1225,12 @@ extension ReaderView {
         guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             // Content cached and layout built, yet still no text: this chapter is genuinely
             // unreadable (empty body, parse failure), so waiting longer cannot help.
-            // Reported, not narrated. This is the line behind 「朗讀每次都斷在章末」:
+            // Reported, not narrated. This is the line behind 「朗读每次都断在章末」:
             // the content was cached and the layout pass ran, and there is still no
             // text, so narration stops at a chapter boundary. It reached `NSLog` only
             // until now, which is why no exported log ever explained the stop.
             AppLogger.anomaly(
-                localized("朗讀在章節結束處取不到下一章文字"),
+                localized("朗读在章节结束处取不到下一章文字"),
                 category: .tts,
                 detail: [
                     "chapter=\(target)",
@@ -1342,7 +1342,7 @@ extension ReaderView {
     }
 
     /// Characters heard in the chapter currently being read, in the order they first
-    /// speak, for the 多角色朗讀 cast screen.
+    /// speak, for the 多角色朗读 cast screen.
     ///
     /// Read from the same narration text playback uses, through the same annotator, so the
     /// names offered are exactly the ones the engine will attribute — a name that shows up
@@ -1350,10 +1350,10 @@ extension ReaderView {
     /// alias → canonical name for the open book, from its AI character cards.
     ///
     /// Empty until the reader builds cards, and narration is fully usable without them — the
-    /// difference is that 張若塵, 若塵 and 塵哥 stop being three characters with three voices.
+    /// difference is that 张若尘, 若尘 and 尘哥 stop being three characters with three voices.
     func activeTTSRoleAliases() -> [String: String] {
         guard GlobalSettings.shared.ttsMultiRoleEnabled else { return [:] }
-        // The AI-verified roster first: it is the only thing here that can tell 試探 (an
+        // The AI-verified roster first: it is the only thing here that can tell 试探 (an
         // adverb the heuristic mistook for a name) from a person, and it also folds a
         // character's nicknames onto one name. Character cards add whatever aliases they
         // found on top.
@@ -1393,7 +1393,7 @@ extension ReaderView {
         return ordered
     }
 
-    /// The 多角色朗讀 cast for the book being read, or empty when the feature is off.
+    /// The 多角色朗读 cast for the book being read, or empty when the feature is off.
     ///
     /// Empty is not merely "no voices": the engines read it as "single voice", and skip
     /// splitting the chapter at every quote. That split is what makes multi-role cost

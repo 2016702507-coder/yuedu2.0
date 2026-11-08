@@ -2,7 +2,7 @@ import SwiftUI
 
 // MARK: - Grid selection style
 
-/// How a shelf-grid cover shows where it stands while 選取 is on, after Apple Books'
+/// How a shelf-grid cover shows where it stands while 选取 is on, after Apple Books'
 /// library in edit mode: a cover left out of the selection dims to
 /// `DSLayout.bookshelfUnselectedCoverOpacity` under an empty ring; a selected one stays
 /// at full strength, lifts, and carries a check.
@@ -33,7 +33,7 @@ enum BookshelfGridSelectionStyle {
 
 // MARK: - Selection mark
 
-/// The circle in a grid cover's corner while 選取 is on, drawn as Apple Books draws it:
+/// The circle in a grid cover's corner while 选取 is on, drawn as Apple Books draws it:
 /// an empty white ring, or a black disc with a white ring and check once selected.
 ///
 /// Decorative: the cell tells VoiceOver the same thing through its `.isSelected` trait.
@@ -64,7 +64,7 @@ struct BookshelfSelectionMark: View {
 }
 
 #if DEBUG
-#Preview("選取標記") {
+#Preview("选取标记") {
     // A white cover, where the ring leans on its halo, then the generated-cover colours.
     let covers = [DSColor.background] + DSColor.coverGradients.map { $0[0] }
     HStack(spacing: DSSpacing.sm) {

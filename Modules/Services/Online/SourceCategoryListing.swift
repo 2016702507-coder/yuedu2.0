@@ -1,8 +1,8 @@
 import Combine
 import Foundation
 
-/// Unified library 5d-5: a book source's discover categories as 選擇內容來源 lists them
-/// (Phase 5 plan, decision 23), grouped as 發現頁設定 groups them
+/// Unified library 5d-5: a book source's discover categories as 选择内容来源 lists them
+/// (Phase 5 plan, decision 23), grouped as 发现页设置 groups them
 /// (`DiscoverViewModel.categoryGroups`), with the source's own filters.
 ///
 /// It reads the source's explore rule through `BookSourceFetcher.discoverItems`, the one path
@@ -12,7 +12,7 @@ import Foundation
 /// The filters are the section's (decision 23): a choice here is read by the explore rule in
 /// place of the source's stored value (`LegadoSourceBridge.withVariableOverlay`) and is never
 /// stored, so the source's own discover page and every other section keep theirs. Unlike
-/// `DiscoverViewModel.selectFilter` it writes nothing: no shared variable, no per-類型 memory.
+/// `DiscoverViewModel.selectFilter` it writes nothing: no shared variable, no per-类型 memory.
 @MainActor
 final class SourceCategoryListing: ObservableObject {
     enum State: Equatable {
@@ -68,7 +68,7 @@ final class SourceCategoryListing: ObservableObject {
             return
         }
         guard !Task.isCancelled, current == generation else { return }
-        groups = DiscoverViewModel.categoryGroups(from: items, defaultTitle: localized("分類"))
+        groups = DiscoverViewModel.categoryGroups(from: items, defaultTitle: localized("分类"))
         filters = DiscoverViewModel.extractFilters(from: items)
         SourcePerfTrace.record("home.picker.categories",
                                "items=\(items.count) groups=\(groups.count) filters=\(filters.count) overlay=\(overlay.count)",

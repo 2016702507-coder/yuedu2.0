@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// 回饋中心 › 我的回饋: every report this inbox sent, filtered by status group, newest
+/// 回馈中心 › 我的回馈: every report this inbox sent, filtered by status group, newest
 /// first by default. The groups are the tabs of the page's own tab bar — the app's tab bar
 /// steps aside for it — and the sort control is its last tab.
 struct FeedbackListView: View {
@@ -51,11 +51,11 @@ struct FeedbackListView: View {
 
     var body: some View {
         tabs
-            .navigationTitle(localized("我的回饋"))
+            .navigationTitle(localized("我的回馈"))
             .toolbarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button(localized("全部已讀")) { markAllRead() }
+                    Button(localized("全部已读")) { markAllRead() }
                         .disabled(!hasUnread)
                 }
             }
@@ -70,7 +70,7 @@ struct FeedbackListView: View {
                 Text(String(format: localized("目前：%@"), sortOrder.title))
             }
             .alert(
-                localized("無法標記為已讀"),
+                localized("无法标记为已读"),
                 isPresented: Binding(get: { markAllError != nil }, set: { if !$0 { markAllError = nil } })
             ) {
                 Button(localized("好"), role: .cancel) {}
@@ -109,12 +109,12 @@ struct FeedbackListView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             case .failed(let message):
                 ContentUnavailableView {
-                    UnavailableLabel(localized("無法載入回饋"), systemImage: "wifi.exclamationmark")
+                    UnavailableLabel(localized("无法载入回馈"), systemImage: "wifi.exclamationmark")
                 } description: {
                     Text(message).font(DSFont.unavailableDescription).foregroundStyle(DSColor.textSecondary)
                 } actions: {
                     UnavailableActions {
-                        Button(localized("重試")) {
+                        Button(localized("重试")) {
                             loadState = .loading
                             reloadToken += 1
                         }
@@ -124,7 +124,7 @@ struct FeedbackListView: View {
                 let visible = threads(in: group)
                 if visible.isEmpty {
                     ContentUnavailableView {
-                        UnavailableLabel(localized("此分組暫無意見回報"), systemImage: group.systemImage)
+                        UnavailableLabel(localized("此分组暂无意见回报"), systemImage: group.systemImage)
                     }
                 } else {
                     List {
@@ -213,7 +213,7 @@ struct FeedbackThreadRow: View {
         }
         .padding(.vertical, DSSpacing.xs)
         .accessibilityElement(children: .combine)
-        .accessibilityValue(thread.isUnread ? localized("有新回覆") : "")
+        .accessibilityValue(thread.isUnread ? localized("有新回复") : "")
     }
 }
 

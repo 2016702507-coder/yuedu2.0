@@ -75,7 +75,7 @@ struct ChapterCacheRepository: Sendable {
     }
 
     /// Which of `refs` have a cached body that is still theirs: the whole-list form of
-    /// `isChapterCached(bookId:chapterIndex:expectedSourceURL:expectedTOCTitle:)`, for 目錄's
+    /// `isChapterCached(bookId:chapterIndex:expectedSourceURL:expectedTOCTitle:)`, for 目录's
     /// marks. One directory listing finds the bodies (`<index>.txt`, only ever written with
     /// content), and only those have their metadata compared — a refresh that moves a chapter
     /// leaves its file at the old index (`OfflineChapterStore.reconcileBook`,

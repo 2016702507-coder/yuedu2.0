@@ -93,11 +93,11 @@ struct ReviewCardContent: Equatable, Sendable {
             return ReviewCardContent(
                 kind: kind,
                 title: kind.localizedTitle,
-                count: String(format: localized("%d 條評論"), 128),
+                count: String(format: localized("%d 条评论"), 128),
                 number: "128",
                 comments: [
-                    Comment(user: localized("範例書友甲"), likes: "57", content: localized("範例評論：這章的轉折完全沒想到，作者太會了。")),
-                    Comment(user: localized("範例書友乙"), likes: "12", content: localized("範例評論：追更到這裡，終於等到主角出場。")),
+                    Comment(user: localized("范例书友甲"), likes: "57", content: localized("范例评论：这章的转折完全没想到，作者太会了。")),
+                    Comment(user: localized("范例书友乙"), likes: "12", content: localized("范例评论：追更到这里，终于等到主角出场。")),
                 ]
             )
         case .authorSay:
@@ -107,7 +107,7 @@ struct ReviewCardContent: Equatable, Sendable {
                 count: "",
                 number: "",
                 comments: [
-                    Comment(user: "", likes: "", content: localized("範例作者說：今天兩更，感謝大家的月票與推薦，我們明天見。")),
+                    Comment(user: "", likes: "", content: localized("范例作者说：今天两更，感谢大家的月票与推荐，我们明天见。")),
                 ]
             )
         case .hotComment:
@@ -117,7 +117,7 @@ struct ReviewCardContent: Equatable, Sendable {
                 count: "",
                 number: "",
                 comments: [
-                    Comment(user: localized("範例書友甲"), likes: "306", content: localized("範例神評論：這一句我反覆看了三遍。")),
+                    Comment(user: localized("范例书友甲"), likes: "306", content: localized("范例神评论：这一句我反复看了三遍。")),
                 ]
             )
         }
@@ -127,11 +127,11 @@ struct ReviewCardContent: Equatable, Sendable {
 
     /// The headings sources draw, longest first so 神评论 is not read as 神评.
     private static let headings: [(String, ReaderCommentCardKind)] = [
-        ("本章说", .chapterSay), ("本章說", .chapterSay), ("本章讨论", .chapterSay), ("本章討論", .chapterSay),
-        ("作者的话", .authorSay), ("作者的話", .authorSay), ("作者说", .authorSay), ("作者說", .authorSay),
-        ("作家的话", .authorSay), ("作家的話", .authorSay), ("作家说", .authorSay), ("作家說", .authorSay),
-        ("神评论", .hotComment), ("神評論", .hotComment), ("神评", .hotComment), ("神評", .hotComment),
-        ("热评", .hotComment), ("熱評", .hotComment),
+        ("本章说", .chapterSay), ("本章说", .chapterSay), ("本章讨论", .chapterSay), ("本章讨论", .chapterSay),
+        ("作者的话", .authorSay), ("作者的话", .authorSay), ("作者说", .authorSay), ("作者说", .authorSay),
+        ("作家的话", .authorSay), ("作家的话", .authorSay), ("作家说", .authorSay), ("作家说", .authorSay),
+        ("神评论", .hotComment), ("神评论", .hotComment), ("神评", .hotComment), ("神评", .hotComment),
+        ("热评", .hotComment), ("热评", .hotComment),
     ]
 
     /// A heading is a short run that is the keyword, give or take a little decoration — not a
@@ -146,7 +146,7 @@ struct ReviewCardContent: Equatable, Sendable {
     /// `String.range(of:options: .regularExpression)` matches it against 一 / 十 / 〇 as well
     /// (`NSRegularExpression` does not), and read 「还只是这一批」 as a count.
     private static func countDigits(in text: String) -> String? {
-        guard let range = text.range(of: #"[0-9][0-9,.]*\s*[万萬kKwW]?"#, options: .regularExpression) else { return nil }
+        guard let range = text.range(of: #"[0-9][0-9,.]*\s*[万万kKwW]?"#, options: .regularExpression) else { return nil }
         let digits = String(text[range]).trimmingCharacters(in: .whitespaces)
         // A count run is the number with its words — `12条评论 〉` — not a sentence.
         let rest = text.replacingCharacters(in: range, with: "")
@@ -263,13 +263,13 @@ struct ReviewCardContent: Equatable, Sendable {
         return name.isEmpty ? nil : name
     }
 
-    private static let likeMarks = #"[♡♥❤️👍赞讚点贊]"#
+    private static let likeMarks = #"[♡♥❤️👍赞赞点赞]"#
 
     private static func isLikeCount(_ text: String) -> Bool {
         let stripped = text.trimmingCharacters(in: .whitespacesAndNewlines)
             .replacingOccurrences(of: likeMarks, with: "", options: .regularExpression)
             .trimmingCharacters(in: .whitespaces)
-        return !stripped.isEmpty && stripped.range(of: #"^[0-9][0-9,.]*\s*[万萬kKwW]?$"#, options: .regularExpression) != nil
+        return !stripped.isEmpty && stripped.range(of: #"^[0-9][0-9,.]*\s*[万万kKwW]?$"#, options: .regularExpression) != nil
     }
 
     /// A like count that says so (`👍 4138`): beside a heading it is the comment's likes, not the
@@ -279,7 +279,7 @@ struct ReviewCardContent: Equatable, Sendable {
     }
 
     private static func likeDigits(_ text: String) -> String {
-        guard let range = text.range(of: #"[0-9][0-9,.]*\s*[万萬kKwW]?"#, options: .regularExpression) else { return "" }
+        guard let range = text.range(of: #"[0-9][0-9,.]*\s*[万万kKwW]?"#, options: .regularExpression) else { return "" }
         return String(text[range]).trimmingCharacters(in: .whitespaces)
     }
 

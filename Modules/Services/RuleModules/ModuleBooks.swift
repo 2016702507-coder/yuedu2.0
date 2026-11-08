@@ -22,7 +22,7 @@ struct ModuleBook: Hashable, Sendable {
 enum ModuleBookError: LocalizedError, Equatable {
     /// The module was removed, or this storefront does not have it.
     case moduleMissing(String)
-    /// The module is installed but turned off (停用) on the 模組 page.
+    /// The module is installed but turned off (停用) on the 模组 page.
     case moduleDisabled(String)
     /// The module has no `reading` rules: its books are data only.
     case notReadable(String)
@@ -31,10 +31,10 @@ enum ModuleBookError: LocalizedError, Equatable {
 
     var errorDescription: String? {
         switch self {
-        case .moduleMissing: localized("找不到這本書的模組")
-        case .moduleDisabled: localized("這本書的模組已停用，在「模組」頁啟用後才能閱讀")
-        case .notReadable: localized("這個模組的書無法閱讀")
-        case .noChapters: localized("目錄是空的")
+        case .moduleMissing: localized("找不到这本书的模组")
+        case .moduleDisabled: localized("这本书的模组已停用，在「模组」页启用后才能阅读")
+        case .notReadable: localized("这个模组的书无法阅读")
+        case .noChapters: localized("目录是空的")
         }
     }
 }
@@ -78,7 +78,7 @@ struct ModuleBookReader: Sendable {
 }
 
 /// Adding a module's book to the shelf, or reading it without: one use case, as
-/// `AozoraLibraryDownloadService` is for 青空文庫. A book read without 加入書架 stays off the
+/// `AozoraLibraryDownloadService` is for 青空文库. A book read without 加入书架 stays off the
 /// shelf (maintainer, 2026-10-13) and is read again from the same copy.
 @MainActor
 final class ModuleBookShelf {

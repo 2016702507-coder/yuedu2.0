@@ -1,9 +1,9 @@
 import SwiftUI
 
-/// 整章翻譯 in the reader: what to translate, and laying chapters out again as their
+/// 整章翻译 in the reader: what to translate, and laying chapters out again as their
 /// translations arrive.
 extension ReaderView {
-    /// What the reader lays out: the book's 整章翻譯 setting, or nothing without Pro. The
+    /// What the reader lays out: the book's 整章翻译 setting, or nothing without Pro. The
     /// setting itself is kept for when Pro returns (`ReaderPremiumVisibilityPolicy.allowsAI`).
     var effectiveReaderTranslation: ReaderTranslationPresentation {
         readerPremiumVisibility.allowsAI ? readerTranslation : .off

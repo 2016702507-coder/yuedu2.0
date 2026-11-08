@@ -1,20 +1,20 @@
 import SwiftUI
 
-/// 段落筆記的編輯頁。
+/// 段落笔记的编辑页。
 ///
-/// 導覽列走原生 chrome（inline 標題＋trailing 的刪除／完成），內容區依序是
-/// 時間、被標註的原文引用、輸入區——開啟即聚焦，鍵盤直接彈出。
+/// 导览列走原生 chrome（inline 标题＋trailing 的删除／完成），内容区依序是
+/// 时间、被标注的原文引用、输入区——开启即聚焦，键盘直接弹出。
 ///
-/// `isEditable == false` 是「Pro 過期但這段本來就有筆記」的情況：內容照樣讀得到，
-/// 只是不能改，底下換成一條續訂入口。
+/// `isEditable == false` 是「Pro 过期但这段本来就有笔记」的情况：内容照样读得到，
+/// 只是不能改，底下换成一条续订入口。
 struct ReaderNoteEditorView: View {
-    /// 被標註的原文。
+    /// 被标注的原文。
     let excerpt: String
-    /// 這條筆記的時間（新筆記為當下）。
+    /// 这条笔记的时间（新笔记为当下）。
     let date: Date
-    /// 已有筆記時才顯示刪除鈕。
+    /// 已有笔记时才显示删除钮。
     let showsDelete: Bool
-    /// Pro 生效時才可編輯。
+    /// Pro 生效时才可编辑。
     let isEditable: Bool
     let onSave: (String) -> Void
     let onDelete: () -> Void
@@ -76,7 +76,7 @@ struct ReaderNoteEditorView: View {
             .padding(.top, DSSpacing.md)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             .background(DSColor.background.ignoresSafeArea())
-            .navigationTitle(localized("筆記"))
+            .navigationTitle(localized("笔记"))
             .toolbarTitleDisplayMode(.inline)
             .toolbar { toolbarContent }
         }
@@ -96,7 +96,7 @@ struct ReaderNoteEditorView: View {
                     } label: {
                         Image(systemName: "trash")
                     }
-                    .accessibilityLabel(localized("刪除筆記"))
+                    .accessibilityLabel(localized("删除笔记"))
                 }
 
                 Button {
@@ -107,19 +107,19 @@ struct ReaderNoteEditorView: View {
                 .accessibilityLabel(localized("完成"))
             }
         } else {
-            // 唯讀時沒有東西可存，所以是「關閉」而不是「完成」，放 leading。
+            // 唯读时没有东西可存，所以是「关闭」而不是「完成」，放 leading。
             ToolbarItem(placement: .topBarLeading) {
                 Button {
                     onClose()
                 } label: {
                     Image(systemName: "xmark")
                 }
-                .accessibilityLabel(localized("關閉"))
+                .accessibilityLabel(localized("关闭"))
             }
         }
     }
 
-    // MARK: - 唯讀（Pro 過期）
+    // MARK: - 唯读（Pro 过期）
 
     private var readOnlyNote: some View {
         VStack(alignment: .leading, spacing: DSSpacing.lg) {
@@ -133,7 +133,7 @@ struct ReaderNoteEditorView: View {
             Button {
                 onUpgrade()
             } label: {
-                Label(localized("訂閱 Pro 繼續編輯筆記"), systemImage: "lock.fill")
+                Label(localized("订阅 Pro 继续编辑笔记"), systemImage: "lock.fill")
                     .font(DSFont.subheadline)
                     .frame(maxWidth: .infinity, minHeight: DSLayout.minimumTapTarget)
             }
@@ -146,9 +146,9 @@ struct ReaderNoteEditorView: View {
 
     // MARK: - 原文引用
 
-    /// 灰線用 `overlay` 掛在文字上，不是並排放進 HStack：`Capsule` 沒有固有高度，
-    /// 並排時會被撐到整個可用高度（輸入區有多高它就有多長）。掛成 overlay 之後
-    /// 它的尺寸就等於這段引用文字的實際高度。
+    /// 灰线用 `overlay` 挂在文字上，不是并排放进 HStack：`Capsule` 没有固有高度，
+    /// 并排时会被撑到整个可用高度（输入区有多高它就有多长）。挂成 overlay 之后
+    /// 它的尺寸就等于这段引用文字的实际高度。
     private var excerptQuote: some View {
         Text(excerpt)
             .font(DSFont.subheadline)
@@ -163,24 +163,24 @@ struct ReaderNoteEditorView: View {
                     .accessibilityHidden(true)
             }
             .accessibilityElement(children: .combine)
-            .accessibilityLabel(localized("標註的原文"))
+            .accessibilityLabel(localized("标注的原文"))
             .accessibilityValue(excerpt)
     }
 
-    // MARK: - 輸入區
+    // MARK: - 输入区
 
-    /// 用 `TextEditor` 而不是多行 `TextField`：輸入區要佔滿剩下的整個版面，
-    /// 點空白處也要能回到鍵盤——`TextField` 的可點區只有文字本身那幾行高。
+    /// 用 `TextEditor` 而不是多行 `TextField`：输入区要占满剩下的整个版面，
+    /// 点空白处也要能回到键盘——`TextField` 的可点区只有文字本身那几行高。
     private var editor: some View {
         TextEditor(text: $text)
             .font(DSFont.body)
             .scrollContentBackground(.hidden)
             .focused($isFocused)
-            // TextEditor 內建有一圈文字容器內距，扣掉後左緣才和上面的引用文字對齊。
+            // TextEditor 内建有一圈文字容器内距，扣掉后左缘才和上面的引用文字对齐。
             .padding(.leading, -DSSpacing.xs)
             .overlay(alignment: .topLeading) {
                 if text.isEmpty {
-                    Text(localized("新增筆記…"))
+                    Text(localized("新增笔记…"))
                         .font(DSFont.body)
                         .foregroundStyle(DSColor.textSecondary)
                         .padding(.top, DSSpacing.sm)
@@ -189,15 +189,15 @@ struct ReaderNoteEditorView: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            .accessibilityLabel(localized("筆記內容"))
+            .accessibilityLabel(localized("笔记内容"))
     }
 }
 
-#Preview("新筆記") {
+#Preview("新笔记") {
     Color.clear
         .sheet(isPresented: .constant(true)) {
             ReaderNoteEditorView(
-                excerpt: "那現在到底是什麼狀況？我的腦中忽然變得一片混亂。如果能再重看一次《滅活法》，我就能更確定了。",
+                excerpt: "那现在到底是什么状况？我的脑中忽然变得一片混乱。如果能再重看一次《灭活法》，我就能更确定了。",
                 note: "",
                 date: Date(),
                 showsDelete: false,
@@ -210,12 +210,12 @@ struct ReaderNoteEditorView: View {
         }
 }
 
-#Preview("已有筆記") {
+#Preview("已有笔记") {
     Color.clear
         .sheet(isPresented: .constant(true)) {
             ReaderNoteEditorView(
-                excerpt: "那現在到底是什麼狀況？我的腦中忽然變得一片混亂。",
-                note: "這裡的伏筆對應第三章的實驗記錄。",
+                excerpt: "那现在到底是什么状况？我的脑中忽然变得一片混乱。",
+                note: "这里的伏笔对应第三章的实验记录。",
                 date: Date(),
                 showsDelete: true,
                 isEditable: true,
@@ -227,12 +227,12 @@ struct ReaderNoteEditorView: View {
         }
 }
 
-#Preview("Pro 過期唯讀") {
+#Preview("Pro 过期唯读") {
     Color.clear
         .sheet(isPresented: .constant(true)) {
             ReaderNoteEditorView(
-                excerpt: "那現在到底是什麼狀況？我的腦中忽然變得一片混亂。",
-                note: "這裡的伏筆對應第三章的實驗記錄。",
+                excerpt: "那现在到底是什么状况？我的脑中忽然变得一片混乱。",
+                note: "这里的伏笔对应第三章的实验记录。",
                 date: Date(),
                 showsDelete: false,
                 isEditable: false,

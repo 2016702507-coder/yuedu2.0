@@ -4,9 +4,9 @@ import Foundation
 
 /// Unified library Phase 3b: the reader's own book sources as a metadata provider. A local or
 /// remote-library copy whose description or categories are empty is searched for by title in
-/// the enabled sources, through the same fan-out 換源 and 封面搜索 use
+/// the enabled sources, through the same fan-out 换源 and 封面搜索 use
 /// (`BookOriginSearchService`); a result whose title and author both match (level B) gives
-/// them. Maintainer, 2026-10-14: 來源配置查到的資料「也自動補空欄位」.
+/// them. Maintainer, 2026-10-14: 来源配置查到的资料「也自动补空栏位」.
 ///
 /// Only search results are read, never a detail page: they already carry `intro` and `kind`,
 /// and a detail fetch would write the detail cache for a book nobody opened.
@@ -185,7 +185,7 @@ final class BookSourceFillProvider: MetadataFillProvider {
     }
 
     /// The enabled sources whose search rule reads a description or categories, at most
-    /// `sourcesPerCopy`, at the reader's 搜索並發數; stops once `isEnough`.
+    /// `sourcesPerCopy`, at the reader's 搜索并发数; stops once `isEnough`.
     static let live: Searching = { title, author, isEnough in
         let sources = eligibleSources()
         var found = Search(origins: [], answered: 0, queried: sources.count)

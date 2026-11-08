@@ -2,7 +2,7 @@ import Combine
 import SwiftUI
 
 /// Whether the source library has been read and holds any sources. Alive from launch, so a
-/// source imported from 設定 before the reader visits 探索 is already counted.
+/// source imported from 设置 before the reader visits 探索 is already counted.
 @MainActor
 final class ExploreTabModel: ObservableObject {
     static let shared = ExploreTabModel()
@@ -14,7 +14,7 @@ final class ExploreTabModel: ObservableObject {
 
     /// Built in `App.init`, before the library is read (it is read off the main thread now):
     /// everything that depends on whether sources exist waits for `whenLoaded`. Treating the
-    /// placeholder as "no sources" would show 公有書庫 to a user with 50 000 sources.
+    /// placeholder as "no sources" would show 公有书库 to a user with 50 000 sources.
     init(sources: BookSourceStore = .shared, defaults: UserDefaults = .standard) {
         sources.whenLoaded { [weak self] library in
             self?.start(library: library, sources: sources, defaults: defaults)

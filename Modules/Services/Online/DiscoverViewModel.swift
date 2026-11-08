@@ -4,7 +4,7 @@ import SwiftUI
 
 // MARK: - Discover Card Item
 
-/// A single tappable entry on the 書源發現 (book-source discover) screen, derived
+/// A single tappable entry on the 书源发现 (book-source discover) screen, derived
 /// from a `ModernParserBridge.DiscoverItem`. Items are either *actions* (login /
 /// open-in-browser) or *categories* (load a book list via `discoverBooks`).
 struct DiscoverCardItem: Identifiable {
@@ -33,9 +33,9 @@ struct DiscoverFilter: Identifiable {
     var selected: String
 }
 
-// MARK: - 發現頁設定
+// MARK: - 发现页设置
 
-/// A source's categories as 發現頁設定 lists them, under the group label the source
+/// A source's categories as 发现页设置 lists them, under the group label the source
 /// emits before them (a non-fetchable title item, as Legado's explore page shows one).
 struct DiscoverCategoryGroup: Identifiable {
     let id: String
@@ -58,7 +58,7 @@ struct DiscoverCategoryGroup: Identifiable {
 // MARK: - Discover Showcase Section
 
 /// How a showcase section renders its books. `featured` = horizontal cover
-/// carousel (推薦/精選); `ranked` = numbered vertical list (榜單/排行).
+/// carousel (推荐/精选); `ranked` = numbered vertical list (榜单/排行).
 enum DiscoverSectionStyle {
     case featured
     case ranked
@@ -89,7 +89,7 @@ struct DiscoverBookDisplay: Identifiable {
     var id: UUID { book.id }
 }
 
-/// One ranked/featured block on the redesigned 發現 showcase. Each section maps
+/// One ranked/featured block on the redesigned 发现 showcase. Each section maps
 /// directly to one of the *book source's own* explore categories — the source
 /// owns the feed; we only present it faithfully.
 struct DiscoverShowcaseSection: Identifiable {
@@ -130,12 +130,12 @@ final class DiscoverViewModel: ObservableObject {
     /// label separators. The showcase maps only fetchable/action entries.
     @Published var rawItems: [ModernParserBridge.DiscoverItem] = []
 
-    /// Showcase sections for the redesigned 發現 page (one per source category).
+    /// Showcase sections for the redesigned 发现 page (one per source category).
     @Published var sections: [DiscoverShowcaseSection] = []
 
     @Published var isLoadingItems = false
     /// Why the source's categories could not be read: its explore rule threw. Shown in place
-    /// of 「暫無發現內容」, which would claim the source has none.
+    /// of 「暂无发现内容」, which would claim the source has none.
     @Published private(set) var exploreError: String?
 
     /// Serial loading queue for showcase sections (see `loadSection`).
@@ -146,7 +146,7 @@ final class DiscoverViewModel: ObservableObject {
     /// on every reload. Empty for sources that don't emit `select` items.
     @Published var filters: [DiscoverFilter] = []
 
-    /// The categories the reader picked to see (發現頁設定), or `nil` when none is picked
+    /// The categories the reader picked to see (发现页设置), or `nil` when none is picked
     /// and the page shows every one. Once some are picked the page shows those alone, so
     /// a category the source adds later stays off. Stored per source address
     /// (`categorySelectionKey(sourceURL:)`); a choice stored under the source's old id holds.
@@ -207,8 +207,8 @@ final class DiscoverViewModel: ObservableObject {
         sources.filter(isExploreSource)
     }
 
-    /// Whether 探索 lists `source` — also what 來源配置管理 counts as 支持發現 (FB-123: it
-    /// counted disabled sources, and never matched 資源庫).
+    /// Whether 探索 lists `source` — also what 来源配置管理 counts as 支持发现 (FB-123: it
+    /// counted disabled sources, and never matched 资源库).
     nonisolated static func isExploreSource(_ source: BookSource) -> Bool {
         // Presence of any non-blank character, not a trim: `exploreUrl` is often kilobytes of
         // JS, and the management list asks this of every source on every library edit.
@@ -251,9 +251,9 @@ final class DiscoverViewModel: ObservableObject {
         if items.isEmpty, hasExploreSource { reload() }
     }
 
-    // MARK: - 發現頁設定
+    // MARK: - 发现页设置
 
-    /// 發現頁設定's list: the categories the source returned, each once, under the group
+    /// 发现页设置's list: the categories the source returned, each once, under the group
     /// labels the source emits between them; `defaultTitle` heads those before any label.
     func categoryGroups(defaultTitle: String) -> [DiscoverCategoryGroup] {
         Self.categoryGroups(from: rawItems, defaultTitle: defaultTitle)
@@ -266,7 +266,7 @@ final class DiscoverViewModel: ObservableObject {
         shownCategoryKeys?.contains(item.stableKey) ?? true
     }
 
-    /// Whether the reader picked `item` in 發現頁設定.
+    /// Whether the reader picked `item` in 发现页设置.
     func isCategorySelected(_ item: DiscoverCardItem) -> Bool {
         shownCategoryKeys?.contains(item.stableKey) ?? false
     }
@@ -323,7 +323,7 @@ final class DiscoverViewModel: ObservableObject {
             defaults.set(keys.sorted(), forKey: key)
         } else {
             defaults.removeObject(forKey: key)
-            // 全部顯示 clears the old pick too, or the next visit would read it again.
+            // 全部显示 clears the old pick too, or the next visit would read it again.
             legacyCategorySelectionKey.map(defaults.removeObject(forKey:))
         }
     }
@@ -406,7 +406,7 @@ final class DiscoverViewModel: ObservableObject {
         )
         runningQuickActionID = nil
         if let error = outcome.errorMessage {
-            presentToast(String(format: localized("%@：%@"), localized("來源配置腳本錯誤"), error))
+            presentToast(String(format: localized("%@：%@"), localized("来源配置脚本错误"), error))
         }
         if outcome.refreshesExplore {
             reload(forceRefresh: true)
@@ -496,7 +496,7 @@ final class DiscoverViewModel: ObservableObject {
         isLoadingItems = true
         let cacheKey = discoverKindsCacheKey(for: source)
         loadItemsTask = Task { [weak self] in
-            // Some sources' 榜單/分類 read a site cookie inline (起点 _csrfToken) that's only set by
+            // Some sources' 榜单/分类 read a site cookie inline (起点 _csrfToken) that's only set by
             // browsing the site — without it every section loads 0 books and 发现页 looks empty.
             // Prime it before the sections start fetching books. No-op when not needed / already set.
             await BookSourceFetcher.shared.primeDiscoverCookies(in: source)
@@ -605,7 +605,7 @@ final class DiscoverViewModel: ObservableObject {
     /// Legado source says "configure me first" — 同人小说网's `/explore/init`
     /// answers `[{"title":"请先于【源变量】处填写共享Token","url":""}]` until a token
     /// is stored. `mapItem` correctly drops such items as non-navigable, so
-    /// without surfacing them here the 發現頁 just looks broken.
+    /// without surfacing them here the 发现页 just looks broken.
     ///
     /// When the source's rule JS produced nothing at all, fall through to what its
     /// API actually answered: the same source replies `{"error":"无效JWT…"}` once a
@@ -614,7 +614,7 @@ final class DiscoverViewModel: ObservableObject {
     var sourceNotice: String? {
         guard items.isEmpty else { return nil }
         if let exploreError {
-            return String(format: localized("%@：%@"), localized("來源配置腳本錯誤"), exploreError)
+            return String(format: localized("%@：%@"), localized("来源配置脚本错误"), exploreError)
         }
         if !rawItems.isEmpty {
             let labels = rawItems.compactMap { item -> String? in
@@ -629,10 +629,10 @@ final class DiscoverViewModel: ObservableObject {
         guard let sourceUrl = selectedSource?.bookSourceUrl,
               let failure = SourceAPIErrorLog.shared.last(for: sourceUrl)
         else { return nil }
-        return "\(localized("來源配置伺服器回應失敗"))\n\(failure.displayText)"
+        return "\(localized("来源配置伺服器回应失败"))\n\(failure.displayText)"
     }
 
-    /// The selected source when the empty 發現頁 is explained by it asking for a
+    /// The selected source when the empty 发现页 is explained by it asking for a
     /// device id it was never given — the one failure the reader can repair from
     /// here. See `AndroidIdentityRecovery`.
     var androidIdentityRepairSource: BookSource? {
@@ -642,7 +642,7 @@ final class DiscoverViewModel: ObservableObject {
         return source
     }
 
-    /// Turn 提供裝置識別碼 on for the selected source and load 發現 again.
+    /// Turn 提供装置识别码 on for the selected source and load 发现 again.
     ///
     /// `refreshSources()` before the reload is required, not cosmetic:
     /// `exploreSources` is a snapshot taken before the edit, and reloading against
@@ -661,7 +661,7 @@ final class DiscoverViewModel: ObservableObject {
         // parsed *dictionary* made a bare-string variable invisible — 同人小说网 stores
         // its share Token as a plain JWT, `currentVariableDict` returns `[:]` for it,
         // and the key came out identical before and after the user pasted the token.
-        // The 發現頁 then kept serving the 「请先于【源变量】处填写共享Token」 list it had
+        // The 发现页 then kept serving the 「请先于【源变量】处填写共享Token」 list it had
         // cached while there was no token. Canonical JSON stays the fingerprint for
         // object variables so key order can't cause spurious misses.
         let variableDict = currentVariableDict(for: source)
@@ -678,7 +678,7 @@ final class DiscoverViewModel: ObservableObject {
     // MARK: - Showcase sections
 
     /// Turn the source's fetchable explore categories into showcase sections, leaving out
-    /// those turned off in 發現頁設定. A category that already has a section keeps it,
+    /// those turned off in 发现页设置. A category that already has a section keeps it,
     /// books and all, so turning another one on or off loads nothing again; a reload
     /// maps fresh items, so it starts every section anew.
     private func buildSections(from items: [DiscoverCardItem]) {
@@ -702,7 +702,7 @@ final class DiscoverViewModel: ObservableObject {
     /// at once (LazyVStack renders multiple sections on first paint) can clobber
     /// that shared state. Sequential loading keeps each fetch deterministic.
     ///
-    /// 發現頁顯示設定's 預加載數量 queues that many of the categories after it too, so they are
+    /// 发现页显示设置's 预加载数量 queues that many of the categories after it too, so they are
     /// ready by the time they scroll into view. Still one at a time, so a larger number
     /// means a longer queue, never more requests at once. Preloading takes only
     /// categories never tried: a failed one waits for its own retry button.
@@ -737,7 +737,7 @@ final class DiscoverViewModel: ObservableObject {
             sectionQueue.removeAll()
             return
         }
-        // Entries whose category was turned off in 發現頁設定 are dropped all at once.
+        // Entries whose category was turned off in 发现页设置 are dropped all at once.
         // This used to recurse once per dropped entry, each frame holding a copy of the
         // source, and a long queue overflowed the main thread's stack (Crashlytics 8f67787a).
         let shown = Set(sections.map(\.id))
@@ -823,7 +823,7 @@ final class DiscoverViewModel: ObservableObject {
 
     /// The covers a section draws before the reader swipes it: a chart column's rows, or a
     /// shelf's first eight — an iPhone's first screen of three or four and the next few —
-    /// and never more than 橫滑展示數 lets the shelf draw. Covers further along, a wide
+    /// and never more than 横滑展示数 lets the shelf draw. Covers further along, a wide
     /// iPad's included, load from their own slots when they come into view.
     nonisolated static func firstScreenCoverCount(for style: DiscoverSectionStyle) -> Int {
         switch style {
@@ -882,7 +882,7 @@ final class DiscoverViewModel: ObservableObject {
 
     /// Section render style derived from the source's category title. The book
     /// source owns the categories; this only chooses a faithful presentation.
-    /// A category whose title holds any of 發現頁顯示設定's chart keywords is a numbered chart;
+    /// A category whose title holds any of 发现页显示设置's chart keywords is a numbered chart;
     /// every other one is a shelf of covers.
     nonisolated static func sectionStyle(for title: String) -> DiscoverSectionStyle {
         sectionStyle(for: title, rankedKeywords: ExploreSettings.rankedKeywords)

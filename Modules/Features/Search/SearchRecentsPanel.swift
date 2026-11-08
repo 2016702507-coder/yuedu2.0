@@ -4,7 +4,7 @@ import UIKit
 // MARK: - Idle content
 
 /// What the 搜索 page shows when it has no search to show: while its field is active
-/// and empty, 最近搜索 and 最近閱讀 — Apple Books shows Recently Searched and Recently
+/// and empty, 最近搜索 and 最近阅读 — Apple Books shows Recently Searched and Recently
 /// Viewed when its field is tapped — and otherwise, or with neither to list, the page's
 /// own hint.
 ///
@@ -61,7 +61,7 @@ struct SearchIdleContent<Hint: View>: View {
 
 // MARK: - Lists
 
-/// 最近搜索 and 最近閱讀 laid out as Apple Books' search lays out Recently Searched and
+/// 最近搜索 and 最近阅读 laid out as Apple Books' search lays out Recently Searched and
 /// Recently Viewed: each under a bold serif title with 清除 beside it and a rule under
 /// both; a past search is a magnifying glass and its words, a book is a search-list row.
 /// A tap runs the search again, or opens a shelf book where it was left; a book read
@@ -105,8 +105,8 @@ private struct SearchRecentsList: View {
 
             if !books.isEmpty {
                 SearchRecentsHeader(
-                    title: localized("最近閱讀"),
-                    clearAccessibilityLabel: localized("清除最近閱讀"),
+                    title: localized("最近阅读"),
+                    clearAccessibilityLabel: localized("清除最近阅读"),
                     onClear: onClearBooks
                 )
                 .searchRecentsRow()
@@ -234,9 +234,9 @@ private extension View {
     }
 }
 
-#Preview("最近搜索與最近閱讀") {
+#Preview("最近搜索与最近阅读") {
     SearchRecentsList(
-        queries: ["紅樓夢", "三體"],
+        queries: ["红楼梦", "三体"],
         books: [],
         onSearch: { _ in },
         onClearQueries: {},

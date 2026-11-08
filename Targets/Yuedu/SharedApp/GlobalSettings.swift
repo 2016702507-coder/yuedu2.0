@@ -45,6 +45,12 @@ enum PageTurnStyle: String, CaseIterable {
     case slide = "滑動"
     case cover = "覆蓋翻頁"
     case curl = "仿真翻書"
+    /// 波纹翻页：波前从手指按下的位置向外扩散，扫过之处换成下一页。
+    /// 新增的 case，旧的持久化值不受影响 —— 存储的是 rawValue。
+    case ripple = "波紋翻頁"
+    /// 上下翻页：整页跟着手指上下平移，两页首尾相接，不折、不擦、不带波纹。
+    /// 与「上下滚动」（scrollMode）不同：这一种仍然是一屏一页，松手吸附。
+    case vertical = "上下翻頁"
     case none = "無動畫"
 }
 

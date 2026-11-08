@@ -1,19 +1,19 @@
 import SwiftUI
 import UIKit
 
-/// 外觀主題 › 顏色與字體: the theme's interface colours and the global font, grouped as
-/// the reference the user handed over (2026-09-29) — 強調色, 文字顏色, 背景, 全局字體.
+/// 外观主题 › 颜色与字体: the theme's interface colours and the global font, grouped as
+/// the reference the user handed over (2026-09-29) — 强调色, 文字颜色, 背景, 全局字体.
 ///
 /// Each setting reaches one role, the one Apple's HIG gives it (redesigned 2026-09-29):
-/// 強調色 what can be tapped or is selected, the three text levels iOS's label /
+/// 强调色 what can be tapped or is selected, the three text levels iOS's label /
 /// secondaryLabel / tertiaryLabel, 背景 the page and the surfaces stacked on it, the
 /// font every interface text style. What the reader paints — its text, toolbars and
-/// dialogue highlight — is set in 閱讀設定 and 閱讀界面; the theme's own values for
+/// dialogue highlight — is set in 阅读设置 and 阅读界面; the theme's own values for
 /// those stay its defaults there and are no longer edited here.
 ///
 /// Light rows edit the theme picked for light, dark rows the theme picked for dark:
-/// the same theme unless 單獨設定深色主題 is on. A built-in theme's edits are kept
-/// apart (`appearanceBuiltInThemeColors`) and 重置為默認 puts them back.
+/// the same theme unless 单独设置深色主题 is on. A built-in theme's edits are kept
+/// apart (`appearanceBuiltInThemeColors`) and 重置为默认 puts them back.
 struct AppearanceColorsAndFontView: View {
     @Bindable private var settings = GlobalSettings.shared
     @ObservedObject private var subscriptionStore = SubscriptionStore.shared
@@ -37,7 +37,7 @@ struct AppearanceColorsAndFontView: View {
         }
         .softScrollEdges()
         .scrollContentBackground(.hidden)
-        .navigationTitle(localized("顏色與字體"))
+        .navigationTitle(localized("颜色与字体"))
         .toolbarTitleDisplayMode(.inline)
         .themedAppSurface(for: .settings)
         .sheet(item: $paywallFeature) { _ in
@@ -54,20 +54,20 @@ struct AppearanceColorsAndFontView: View {
             ColorPicker(selection: hexColor(light, \.accentHex), supportsOpacity: false) {
                 rowTitle("亮色模式")
             }
-            .accessibilityLabel(modeLabel(section: "強調色", mode: "亮色模式"))
+            .accessibilityLabel(modeLabel(section: "强调色", mode: "亮色模式"))
             // The dark accent is part of the dark palette: it has its own value only
-            // once 自動深色配色 is off, under 背景.
+            // once 自动深色配色 is off, under 背景.
             if dark.wrappedValue.dark != nil {
                 ColorPicker(selection: darkHexColor(dark, \.accentHex), supportsOpacity: false) {
                     rowTitle("深色模式")
                 }
-                .accessibilityLabel(modeLabel(section: "強調色", mode: "深色模式"))
+                .accessibilityLabel(modeLabel(section: "强调色", mode: "深色模式"))
             }
         } header: {
-            Text(localized("強調色"))
+            Text(localized("强调色"))
                 .foregroundStyle(DSColor.textSecondary)
         } footer: {
-            Text(localized("只用在能點或已選中的東西：按鈕、連結、開關、滑桿、選中狀態、Tab 選中圖示和設定列的圖示。"))
+            Text(localized("只用在能点或已选中的东西：按钮、连结、开关、滑杆、选中状态、Tab 选中图示和设置列的图示。"))
                 .dsSectionFooter()
         }
         .interfaceSectionSurface()
@@ -88,19 +88,19 @@ struct AppearanceColorsAndFontView: View {
                 }
             }
         } header: {
-            Text(localized("文字顏色"))
+            Text(localized("文字颜色"))
                 .foregroundStyle(DSColor.textSecondary)
         } footer: {
-            Text(localized("主文字用在標題和列名稱，次級文字用在數值、副標和說明，弱文字用在停用和提示文字。閱讀正文的顏色在閱讀設定裡設。"))
+            Text(localized("主文字用在标题和列名称，次级文字用在数值、副标和说明，弱文字用在停用和提示文字。阅读正文的颜色在阅读设置里设。"))
                 .dsSectionFooter()
         }
         .interfaceSectionSurface()
     }
 
-    /// What was 配色 until 2026-09-29. Its 文字, 工具列 and 對話高亮 only ever reached
-    /// the reader (while 閱讀主題 follows the theme) and went to 閱讀設定 / 閱讀界面 at
-    /// the user's call, leaving the background. 自動深色配色 stays here and still
-    /// governs the whole dark palette, the dark 強調色 row included.
+    /// What was 配色 until 2026-09-29. Its 文字, 工具列 and 对话高亮 only ever reached
+    /// the reader (while 阅读主题 follows the theme) and went to 阅读设置 / 阅读界面 at
+    /// the user's call, leaving the background. 自动深色配色 stays here and still
+    /// governs the whole dark palette, the dark 强调色 row included.
     private var backgroundSection: some View {
         let light = colorsBinding(for: lightTheme)
         let dark = colorsBinding(for: darkTheme)
@@ -110,7 +110,7 @@ struct AppearanceColorsAndFontView: View {
             }
             .accessibilityLabel(modeLabel(section: "背景", mode: "亮色模式"))
             Toggle(isOn: automaticDarkBinding(dark)) {
-                rowTitle("自動深色配色")
+                rowTitle("自动深色配色")
             }
             if dark.wrappedValue.dark != nil {
                 ColorPicker(selection: darkHexColor(dark, \.backgroundHex), supportsOpacity: false) {
@@ -123,8 +123,8 @@ struct AppearanceColorsAndFontView: View {
                 .foregroundStyle(DSColor.textSecondary)
         } footer: {
             Text(dark.wrappedValue.dark == nil
-                ? localized("頁面、卡片和面板的底色；閱讀主題選「跟隨外觀主題」時，閱讀頁也用它。關閉「自動深色配色」後，強調色和背景都能另外指定深色。")
-                : localized("頁面、卡片和面板的底色；閱讀主題選「跟隨外觀主題」時，閱讀頁也用它。"))
+                ? localized("页面、卡片和面板的底色；阅读主题选「跟随外观主题」时，阅读页也用它。关闭「自动深色配色」后，强调色和背景都能另外指定深色。")
+                : localized("页面、卡片和面板的底色；阅读主题选「跟随外观主题」时，阅读页也用它。"))
                 .dsSectionFooter()
         }
         .interfaceSectionSurface()
@@ -139,22 +139,22 @@ struct AppearanceColorsAndFontView: View {
                     Text(settings.globalFontDisplayName)
                         .foregroundStyle(DSColor.textSecondary)
                 } label: {
-                    rowTitle("字體")
+                    rowTitle("字体")
                 }
             }
         } header: {
-            Text(localized("全局字體"))
+            Text(localized("全局字体"))
                 .foregroundStyle(DSColor.textSecondary)
         } footer: {
-            Text(localized("介面所有文字都用這個字體，並跟著系統字級縮放；閱讀正文的字體在閱讀設定裡設。打開「粗體文字」時，沒有粗體的字體會暫時改用系統字體。"))
+            Text(localized("介面所有文字都用这个字体，并跟著系统字级缩放；阅读正文的字体在阅读设置里设。打开「粗体文字」时，没有粗体的字体会暂时改用系统字体。"))
                 .dsSectionFooter()
         }
         .interfaceSectionSurface()
     }
 
-    /// 強調色 and 背景 each have a 亮色模式 and a 深色模式 row, named as the reference the
+    /// 强调色 and 背景 each have a 亮色模式 and a 深色模式 row, named as the reference the
     /// user handed over does (2026-09-29). Spoken alone, the two 亮色模式 would be the
-    /// same row to VoiceOver, so each says whose it is — the way 頁首頁尾's colour rows do.
+    /// same row to VoiceOver, so each says whose it is — the way 页首页尾's colour rows do.
     private func modeLabel(section: String, mode: String) -> String {
         localized(section) + localized("，") + localized(mode)
     }
@@ -209,7 +209,7 @@ struct AppearanceColorsAndFontView: View {
             set: { value in
                 var copy = theme.wrappedValue
                 copy[keyPath: keyPath] = UIColor(value).rgbHex ?? copy[keyPath: keyPath]
-                // 默認 keeps the system's backgrounds until 背景 itself is changed.
+                // 默认 keeps the system's backgrounds until 背景 itself is changed.
                 if keyPath == \AppearanceCustomTheme.backgroundHex {
                     copy.hasEditedBackground = true
                 }
@@ -219,7 +219,7 @@ struct AppearanceColorsAndFontView: View {
     }
 
     /// On the optional dark palette. Only reachable while it exists (the rows are hidden
-    /// under 自動深色配色), so a missing palette reads as the derived value and writes
+    /// under 自动深色配色), so a missing palette reads as the derived value and writes
     /// seed one.
     private func darkHexColor(
         _ theme: Binding<AppearanceCustomTheme>,
@@ -309,7 +309,7 @@ private enum TextLevel: CaseIterable, Identifiable {
     func titleKey(dark: Bool) -> String {
         switch self {
         case .primary: return dark ? "深色主文字" : "亮色主文字"
-        case .secondary: return dark ? "深色次級文字" : "亮色次級文字"
+        case .secondary: return dark ? "深色次级文字" : "亮色次级文字"
         case .tertiary: return dark ? "深色弱文字" : "亮色弱文字"
         }
     }
@@ -343,14 +343,14 @@ private enum TextLevel: CaseIterable, Identifiable {
 }
 
 extension GlobalSettings {
-    /// The global font by the name 顏色與字體 shows it under: an imported font's own
-    /// name, else 系統字體.
+    /// The global font by the name 颜色与字体 shows it under: an imported font's own
+    /// name, else 系统字体.
     var globalFontDisplayName: String {
         guard let selected = resolvedGlobalFontPostScript else {
-            return localized("系統字體")
+            return localized("系统字体")
         }
         return userFonts.first { $0.postScriptName == selected }?.displayName
-            ?? localized("系統字體")
+            ?? localized("系统字体")
     }
 }
 

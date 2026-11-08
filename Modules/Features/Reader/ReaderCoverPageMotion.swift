@@ -132,6 +132,13 @@ struct PageViewControllerPagingAdapterDescriptor: Equatable {
     let usesCoverOverlay: Bool
     let usesInstantPan: Bool
     let isDoubleSided: Bool
+    /// 波纹 turns run on the same screen-space snapshot overlay as 覆盖, but blended by a
+    /// Metal pass instead of moved by a transform. Kept separate so the 覆盖 overlay
+    /// (image views plus a shadow) is never built for it.
+    private(set) var usesRippleOverlay = false
+    /// 上下翻页走的是同一套屏幕空间浮层（同一套进度时钟、同一个 pan），
+    /// 只是浮层里换成两张垂直平移的快照，方向判据也换成 y。
+    private(set) var usesVerticalOverlay = false
     /// Whether a two-page spread under this style turns around the centre spine, as a
     /// book does: UIKit holds both pages (`.mid`) and lifts one at a time, the back of
     /// each being the page that follows it. True for 仿真 whether or not a spread is
@@ -167,6 +174,23 @@ struct PageViewControllerPagingAdapterDescriptor: Equatable {
             disablesBuiltInSwipe = true
             usesCoverOverlay = true
             usesInstantPan = false
+        case .ripple:
+            // Its own pan drives progress, so UIKit's slide must stay off — otherwise
+            // both would move a page at once.
+            transitionStyle = .scroll
+            disablesBuiltInSwipe = true
+            usesCoverOverlay = false
+            usesInstantPan = false
+            usesRippleOverlay = true
+        case .vertical:
+            // Same reasoning as 波纹: our pan owns the vertical drag, so UIKit's
+            // slide must not also move the page.
+            transitionStyle = .scroll
+            disablesBuiltInSwipe = true
+            usesCoverOverlay = false
+            usesInstantPan = false
+            usesRippleOverlay = true
+            usesVerticalOverlay = true
         case .none:
             transitionStyle = .scroll
             disablesBuiltInSwipe = true
@@ -178,7 +202,7 @@ struct PageViewControllerPagingAdapterDescriptor: Equatable {
     /// The strip between a spread's two pages. None around a mid spine: UIKit gives each
     /// page exactly half the view, and a page laid out narrower than that would be drawn
     /// stretched (`CoreTextPageView` scales its frame to its bounds). Each page's own
-    /// 左右邊距 frames the spine instead — on iPhone Duo, the fold (maintainer, 2026-10-27).
+    /// 左右边距 frames the spine instead — on iPhone Duo, the fold (maintainer, 2026-10-27).
     var spreadGutter: CGFloat {
         spreadTurnsAroundMidSpine ? 0 : DSLayout.readerSpreadGutter
     }

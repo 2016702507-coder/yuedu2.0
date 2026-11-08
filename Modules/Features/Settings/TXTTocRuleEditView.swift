@@ -47,7 +47,7 @@ struct TXTTocRuleEditView: View {
     private var draft: TXTTocRule {
         var rule = original
         let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        rule.name = TXTTocRuleDefaults.storedName(trimmedName.isEmpty ? localized("未命名規則") : trimmedName,
+        rule.name = TXTTocRuleDefaults.storedName(trimmedName.isEmpty ? localized("未命名规则") : trimmedName,
                                                   for: original.id)
         rule.chapterRule = chapterRule
         rule.volumeRule = volumeRule
@@ -71,15 +71,15 @@ struct TXTTocRuleEditView: View {
         NavigationStack {
             Form {
                 Section {
-                    TextField(localized("名稱"), text: $name)
-                    Toggle(localized("啟用"), isOn: $enabled)
+                    TextField(localized("名称"), text: $name)
+                    Toggle(localized("启用"), isOn: $enabled)
                 }
                 .interfaceSectionSurface()
 
                 Section {
-                    regexField(localized("章節正則"), text: $chapterRule)
+                    regexField(localized("章节正则"), text: $chapterRule)
                 } header: {
-                    Text(localized("章節正則")).foregroundStyle(DSColor.textSecondary)
+                    Text(localized("章节正则")).foregroundStyle(DSColor.textSecondary)
                 } footer: {
                     if case .invalidRegex(.chapter, _)? = compileError {
                         errorFooter
@@ -90,31 +90,31 @@ struct TXTTocRuleEditView: View {
                 .interfaceSectionSurface()
 
                 Section {
-                    regexField(localized("選填"), text: $volumeRule)
+                    regexField(localized("选填"), text: $volumeRule)
                 } header: {
-                    Text(localized("分卷正則")).foregroundStyle(DSColor.textSecondary)
+                    Text(localized("分卷正则")).foregroundStyle(DSColor.textSecondary)
                 } footer: {
                     if case .invalidRegex(.volume, _)? = compileError {
                         errorFooter
                     } else {
-                        Text(localized("分卷標題只在緊接著章節標題時才成為一章。"))
+                        Text(localized("分卷标题只在紧接著章节标题时才成为一章。"))
                             .dsSectionFooter()
                     }
                 }
                 .interfaceSectionSurface()
 
                 Section {
-                    TextField(localized("範例文字"), text: $example, axis: .vertical)
+                    TextField(localized("范例文字"), text: $example, axis: .vertical)
                         .lineLimit(3...8)
                 } header: {
-                    Text(localized("範例")).foregroundStyle(DSColor.textSecondary)
+                    Text(localized("范例")).foregroundStyle(DSColor.textSecondary)
                 }
                 .interfaceSectionSurface()
 
                 previewSection
             }
             .softScrollEdges()
-            .navigationTitle(localized(original.chapterRule.isEmpty ? "新增分章規則" : "編輯分章規則"))
+            .navigationTitle(localized(original.chapterRule.isEmpty ? "新增分章规则" : "编辑分章规则"))
             .toolbarTitleDisplayMode(.inline)
             .themedAppSurface(for: .settings)
             .toolbar {
@@ -129,7 +129,7 @@ struct TXTTocRuleEditView: View {
                     } label: {
                         Image(systemName: "checkmark")
                     }
-                    .accessibilityLabel(localized("儲存"))
+                    .accessibilityLabel(localized("储存"))
                     .disabled(compileError != nil)
                 }
             }
@@ -157,8 +157,8 @@ struct TXTTocRuleEditView: View {
     @ViewBuilder
     private var previewSection: some View {
         Section {
-            Picker(localized("預覽內容"), selection: $previewSource) {
-                Text(localized("範例文字")).tag(PreviewSource.example)
+            Picker(localized("预览内容"), selection: $previewSource) {
+                Text(localized("范例文字")).tag(PreviewSource.example)
                 ForEach(books) { book in
                     Text(book.title).tag(PreviewSource.book(book.id))
                 }
@@ -166,11 +166,11 @@ struct TXTTocRuleEditView: View {
             if isPreviewing {
                 ProgressView()
                     .frame(maxWidth: .infinity)
-                    .accessibilityLabel(localized("正在預覽"))
+                    .accessibilityLabel(localized("正在预览"))
             } else if let failure = preview.failure {
                 Text(failure).foregroundStyle(DSColor.textSecondary)
             } else if preview.titles.isEmpty {
-                Text(localized("沒有找到章節")).foregroundStyle(DSColor.textSecondary)
+                Text(localized("没有找到章节")).foregroundStyle(DSColor.textSecondary)
             } else {
                 ForEach(Array(preview.titles.prefix(Self.previewLimit).enumerated()), id: \.offset) { _, title in
                     Text(title)
@@ -179,7 +179,7 @@ struct TXTTocRuleEditView: View {
                 }
             }
         } header: {
-            Text(localized("預覽")).foregroundStyle(DSColor.textSecondary)
+            Text(localized("预览")).foregroundStyle(DSColor.textSecondary)
         } footer: {
             if !isPreviewing, preview.failure == nil, !preview.titles.isEmpty {
                 Text(previewCountText).dsSectionFooter()
@@ -191,7 +191,7 @@ struct TXTTocRuleEditView: View {
     private var previewCountText: String {
         let count = preview.titles.count
         if count > Self.previewLimit {
-            return String(format: localized("找到 %d 章，顯示前 %d 章。"), count, Self.previewLimit)
+            return String(format: localized("找到 %d 章，显示前 %d 章。"), count, Self.previewLimit)
         }
         return String(format: localized("找到 %d 章。"), count)
     }
@@ -209,10 +209,10 @@ struct TXTTocRuleEditView: View {
         do {
             _ = try rule.compiled()
         } catch let error as TXTTocRuleError {
-            preview = PreviewResult(failure: localized(error == .emptyChapterRule ? "輸入章節正則後顯示預覽" : "正則有誤，無法預覽"))
+            preview = PreviewResult(failure: localized(error == .emptyChapterRule ? "输入章节正则后显示预览" : "正则有误，无法预览"))
             return
         } catch {
-            preview = PreviewResult(failure: localized("正則有誤，無法預覽"))
+            preview = PreviewResult(failure: localized("正则有误，无法预览"))
             return
         }
         isPreviewing = true
@@ -253,7 +253,7 @@ struct TXTTocRuleEditView: View {
             preview = PreviewResult(titles: value.titles)
         case .failure(let error):
             AppLogger.error("TXT chapter rule preview could not read the book", error: error)
-            preview = PreviewResult(failure: localized("無法讀取這本書"))
+            preview = PreviewResult(failure: localized("无法读取这本书"))
         }
     }
 }

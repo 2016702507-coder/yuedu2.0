@@ -1,33 +1,33 @@
 import SwiftUI
 
-/// 章節分組的書籤／重點清單：每章一個 `Section`，章名可點（跳回本章開頭），
-/// 底下是這章的卡片，每張卡片跳回它自己那一頁。
+/// 章节分组的书签／重点清单：每章一个 `Section`，章名可点（跳回本章开头），
+/// 底下是这章的卡片，每张卡片跳回它自己那一页。
 ///
-/// 用 `List` 搭配 `selection` 綁定，系統就會自帶 iOS 原生的兩指拖曳多選手勢；
-/// 卡片外觀走 `listRowBackground`，不是自己疊一層 `ScrollView`，所以滑動刪除、
-/// 編輯模式、VoiceOver 的清單語意都還在。
+/// 用 `List` 搭配 `selection` 绑定，系统就会自带 iOS 原生的两指拖曳多选手势；
+/// 卡片外观走 `listRowBackground`，不是自己叠一层 `ScrollView`，所以滑动删除、
+/// 编辑模式、VoiceOver 的清单语意都还在。
 struct BookmarkSelectionList: View {
     var groups: [ReaderBookmarkChapterGroup]
     @Binding var selection: Set<UUID>
-    /// 章名用目前的目錄解析，不是書籤存檔時的那份——換源或目錄更新後才不會顯示舊章名。
+    /// 章名用目前的目录解析，不是书签存档时的那份——换源或目录更新后才不会显示旧章名。
     var chapterTitle: (ReaderBookmarkChapterGroup) -> String
     var primaryText: (Bookmark) -> String
     var icon: (Bookmark) -> String
     var dateText: (Bookmark) -> String
     var pageText: (Bookmark) -> String?
-    /// 這條標註的筆記；沒有筆記回傳 nil。
+    /// 这条标注的笔记；没有笔记回传 nil。
     var noteText: (Bookmark) -> String? = { _ in nil }
     var onSelect: (Bookmark) -> Void
     var onSelectChapter: (ReaderBookmarkChapterGroup) -> Void
     var onDelete: (Bookmark) -> Void
-    /// 這條書籤的位置是不是對著這台裝置讀的文字（`ConvertedTextVersions`）。轉換書換了
-    /// 轉換版本後，另一版的書籤照列、變灰、不能跳，編輯模式照樣能選取刪除。
+    /// 这条书签的位置是不是对著这台装置读的文字（`ConvertedTextVersions`）。转换书换了
+    /// 转换版本后，另一版的书签照列、变灰、不能跳，编辑模式照样能选取删除。
     var indexesReadText: (Bookmark) -> Bool = { _ in true }
 
     @Environment(\.editMode) private var editMode
 
-    /// 多選期間整張清單只做一件事：選取。卡片與章名的跳轉在這時候收起來，
-    /// 否則勾選第三張卡片的手指會把 sheet 關掉、跳走。
+    /// 多选期间整张清单只做一件事：选取。卡片与章名的跳转在这时候收起来，
+    /// 否则勾选第三张卡片的手指会把 sheet 关掉、跳走。
     private var isEditing: Bool { editMode?.wrappedValue.isEditing ?? false }
 
     var body: some View {
@@ -60,7 +60,7 @@ struct BookmarkSelectionList: View {
                             Button(role: .destructive) {
                                 onDelete(bm)
                             } label: {
-                                Label(localized("刪除"), systemImage: "trash")
+                                Label(localized("删除"), systemImage: "trash")
                             }
                         }
                     }
@@ -91,7 +91,7 @@ struct BookmarkSelectionList: View {
                 Button { onSelectChapter(group) } label: { title }
                     .buttonStyle(.plain)
                     .accessibilityAddTraits(.isHeader)
-                    .accessibilityHint(localized("點兩下跳至本章開頭"))
+                    .accessibilityHint(localized("点两下跳至本章开头"))
             }
         }
         .textCase(nil)
@@ -105,8 +105,8 @@ struct BookmarkSelectionList: View {
 
 // MARK: - Row
 
-/// 一張書籤卡片：圖示＋時間＋頁碼一行，底下是摘錄。右上角「⋯」放刪除，
-/// 和滑動刪除是同一個動作的兩個入口（手勢不好發現，選單好發現）。
+/// 一张书签卡片：图示＋时间＋页码一行，底下是摘录。右上角「⋯」放删除，
+/// 和滑动删除是同一个动作的两个入口（手势不好发现，选单好发现）。
 private struct BookmarkCardRow: View {
     let icon: String
     let primary: String
@@ -120,7 +120,7 @@ private struct BookmarkCardRow: View {
 
     private var metaText: String {
         guard let page, !page.isEmpty else { return date }
-        return "\(date) · \(String(format: localized("第 %@ 頁"), page))"
+        return "\(date) · \(String(format: localized("第 %@ 页"), page))"
     }
 
     private var content: some View {
@@ -141,7 +141,7 @@ private struct BookmarkCardRow: View {
                 .multilineTextAlignment(.leading)
 
             if !indexesReadText {
-                Text(localized("建立在這本書另一版的轉換文字上，無法跳轉"))
+                Text(localized("建立在这本书另一版的转换文字上，无法跳转"))
                     .font(DSFont.footnote)
                     .foregroundStyle(DSColor.textSecondary)
             }
@@ -151,7 +151,7 @@ private struct BookmarkCardRow: View {
                     .font(DSFont.footnote)
                     .foregroundStyle(DSColor.textSecondary)
                     .lineLimit(2)
-                    .accessibilityLabel(String(format: localized("筆記：%@"), note))
+                    .accessibilityLabel(String(format: localized("笔记：%@"), note))
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -163,14 +163,14 @@ private struct BookmarkCardRow: View {
             if isEditing {
                 content
             } else if !indexesReadText {
-                // Nothing to jump to: read as one element, with no 「點兩下跳至此頁」.
+                // Nothing to jump to: read as one element, with no 「点两下跳至此页」.
                 content.accessibilityElement(children: .combine)
                 moreMenu
             } else {
                 Button(action: onSelect) { content }
                     .buttonStyle(.borderless)
                     .accessibilityLabel("\(primary)，\(metaText)")
-                    .accessibilityHint(localized("點兩下跳至此頁"))
+                    .accessibilityHint(localized("点两下跳至此页"))
 
                 moreMenu
             }
@@ -183,7 +183,7 @@ private struct BookmarkCardRow: View {
     private var moreMenu: some View {
         Menu {
             Button(role: .destructive, action: onDelete) {
-                Label(localized("刪除"), systemImage: "trash")
+                Label(localized("删除"), systemImage: "trash")
             }
         } label: {
             Image(systemName: "ellipsis")

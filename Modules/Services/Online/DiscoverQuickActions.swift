@@ -3,7 +3,7 @@ import Foundation
 // MARK: - A source's explore controls
 
 /// One of a source's explore entries that is a control rather than a category — legado-E
-/// and MD3's `button`, `text` and `toggle` explore kinds. 發現頁設定 lists them under
+/// and MD3's `button`, `text` and `toggle` explore kinds. 发现页设置 lists them under
 /// 快捷操作. Each reads and writes the source's explore `infoMap` under its title, and a
 /// tap or an edit runs the kind's `action` script.
 struct DiscoverQuickAction: Identifiable {
@@ -49,7 +49,7 @@ struct DiscoverQuickAction: Identifiable {
         valueTrails = raw.style?["layout_justifySelf"] == "right"
     }
 
-    /// A display name written out in the source: `'名稱'`, 3 to 19 characters with the
+    /// A display name written out in the source: `'名称'`, 3 to 19 characters with the
     /// quotes, as Legado reads one. Any other `viewName` is a script.
     var literalDisplayName: String? {
         guard let viewName, (3...19).contains(viewName.count),

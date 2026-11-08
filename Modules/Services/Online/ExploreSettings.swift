@@ -3,22 +3,22 @@ import Foundation
 /// The 探索 page's stored choices: plain `UserDefaults` keys, read with `@AppStorage`.
 /// How a section looks is the section's own (unified library 5d); nothing here is global.
 enum ExploreSettings {
-    /// The old roots' 公有書庫／來源配置 choice, kept because the home reads it once for its
+    /// The old roots' 公有书库／来源配置 choice, kept because the home reads it once for its
     /// default sections.
     static let modeKey = "explore.mode"
-    /// The home's 範圍: 全部, or one source shown in place (`ExploreScope`).
+    /// The home's 范围: 全部, or one source shown in place (`ExploreScope`).
     static let scopeKey = "explore.scope"
-    /// The deleted 首屏頁面 choice: `source:<url>` or `page:<uuid>`. Read only by
+    /// The deleted 首屏页面 choice: `source:<url>` or `page:<uuid>`. Read only by
     /// `migrateLegacyLanding` and, for a page, `HomePageStore`.
     static let legacyLandingKey = "explore.landing"
-    /// The old 探索 root's 格狀 and 每列欄數, now 資源庫's (Phase 5 plan, decision 31): the same
+    /// The old 探索 root's 格状 and 每列栏数, now 资源库's (Phase 5 plan, decision 31): the same
     /// keys, so a reader's choice from before 5d-1b still holds.
     static let showsGridKey = "explore.showsGrid"
     static let gridColumnCountKey = "explore.gridColumnCount"
 
     // MARK: A source's discover page (Phase 5 plan, decision 31)
 
-    // 5d-1b deleted these with 探索設定; decision 31 brings them back as the discover page's
+    // 5d-1b deleted these with 探索设置; decision 31 brings them back as the discover page's
     // display settings, global for now, under the same keys so a reader's old choices hold.
 
     static let sourcePageLayoutKey = "explore.sourcePageLayout"
@@ -31,7 +31,7 @@ enum ExploreSettings {
     /// set 探索 matched before the list could be edited. A title matches a keyword
     /// whatever its letter case, so `top` also covers `TOP` and `Top`.
     static let defaultRankedKeywords = [
-        "榜", "排行", "畅销", "暢銷", "热销", "熱銷", "热门", "熱門", "完本", "完结", "完結", "top",
+        "榜", "排行", "畅销", "畅销", "热销", "热销", "热门", "热门", "完本", "完结", "完结", "top",
     ]
 
     /// Books in each chart column: four, as before the setting.
@@ -43,7 +43,7 @@ enum ExploreSettings {
     /// Categories queued after the one coming into view; 0, as before, queues none.
     static let preloadCountOptions = [0, 1, 2, 3, 5]
     static let defaultPreloadCount = 0
-    /// 封面並發數 (`BookCoverLoader.downloadLimitKey`), in 網路設定; 0, as before, sets no limit.
+    /// 封面并发数 (`BookCoverLoader.downloadLimitKey`), in 网路设置; 0, as before, sets no limit.
     static let coverDownloadLimitOptions = [2, 4, 6, 8, 0]
 
     static var rankedKeywords: [String] {
@@ -74,9 +74,9 @@ enum ExploreSettings {
         UserDefaults.standard.object(forKey: preloadCountKey) as? Int ?? defaultPreloadCount
     }
 
-    /// A saved 首屏頁面 source becomes the home's 範圍, once (Phase 5 plan, settled decision 13):
-    /// only when the reader has not picked a 範圍 and the source still exists. A custom page is
-    /// left for `HomePageStore`, which selects its 首頁配置 when the pages move in (5d-4);
+    /// A saved 首屏页面 source becomes the home's 范围, once (Phase 5 plan, settled decision 13):
+    /// only when the reader has not picked a 范围 and the source still exists. A custom page is
+    /// left for `HomePageStore`, which selects its 首页配置 when the pages move in (5d-4);
     /// anything else is dropped.
     static func migrateLegacyLanding(sourceURLs: Set<String>, defaults: UserDefaults = .standard) {
         guard let landing = defaults.string(forKey: legacyLandingKey) else { return }
@@ -113,7 +113,7 @@ enum ExploreMode: String, CaseIterable, Sendable {
     }
 }
 
-/// The home's 範圍 (design §13.3): 全部 shows the sections; one source shows its own page in
+/// The home's 范围 (design §13.3): 全部 shows the sections; one source shows its own page in
 /// place. Stored as a string; one this build cannot read is 全部.
 enum ExploreScope: Hashable, Sendable {
     case all
@@ -150,7 +150,7 @@ enum ExploreSourcePageLayout: String, CaseIterable, Identifiable {
     var titleKey: String {
         switch self {
         case .list: "列表"
-        case .magazine: "雜誌"
+        case .magazine: "杂志"
         }
     }
 

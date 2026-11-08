@@ -1,10 +1,10 @@
 import SwiftUI
 import UIKit
 
-/// A tapped 回饋中心 notification (`onFeedbackThreadUpdated`, payload key `feedbackThread`):
+/// A tapped 回馈中心 notification (`onFeedbackThreadUpdated`, payload key `feedbackThread`):
 /// the conversation it is about, over whatever is on screen.
 ///
-/// Presented from the top view controller rather than pushed into 設定 › 回饋中心: the tap can
+/// Presented from the top view controller rather than pushed into 设置 › 回馈中心: the tap can
 /// arrive while the reader or another sheet covers the app, and a root sheet cannot show
 /// over them (`RuleModuleLinkPresenter` does the same for module links).
 @MainActor
@@ -44,7 +44,7 @@ private struct FeedbackNotificationThreadSheet: View {
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
                         Button { dismiss() } label: { Image(systemName: "xmark") }
-                            .accessibilityLabel(localized("關閉"))
+                            .accessibilityLabel(localized("关闭"))
                     }
                 }
         }
@@ -56,11 +56,11 @@ private struct FeedbackNotificationThreadSheet: View {
         id: "preview",
         number: 25743,
         kind: .bug,
-        title: "海報牆資源顯示有問題",
+        title: "海报墙资源显示有问题",
         status: .done,
         createdAt: Date(),
         updatedAt: Date(),
-        lastMessagePreview: "已修好，下一版上線",
+        lastMessagePreview: "已修好，下一版上线",
         lastMessageAuthor: .developer,
         lastReplyAt: Date(),
         userLastReadAt: nil

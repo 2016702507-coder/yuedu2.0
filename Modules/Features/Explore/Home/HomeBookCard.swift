@@ -4,7 +4,7 @@ import SwiftUI
 // The maintainer's brief (settled decision 11): 70% Apple Books' finish (a large 2:3 cover,
 // the title in two lines, the author in one, no card chrome), 30% Emby's density (one more
 // small line for the copy's status or how far it is read, and a progress bar along a
-// 繼續閱讀 cover).
+// 继续阅读 cover).
 //
 // Not `PublicLibraryBookCard`: that card draws generated covers only and was measured frame
 // by frame against Apple Books' store, and the home draws every source's covers.
@@ -13,7 +13,7 @@ import SwiftUI
 /// and the shelf as it is now.
 struct HomeCardContent: Identifiable {
     enum Cover {
-        /// A shelf copy, drawn as the shelf draws it (預設封面, 強制使用預設封面).
+        /// A shelf copy, drawn as the shelf draws it (预设封面, 强制使用预设封面).
         case shelf(ReadingBook)
         case reference(CoverReference?, session: URLSession?)
         /// A blank cover while the row loads.
@@ -25,21 +25,21 @@ struct HomeCardContent: Identifiable {
     private(set) var author: String
     /// The source's plain-text blurb, for the layouts with room for it; none for a shelf copy.
     let blurb: String?
-    /// The source's own category, for 精選 (decision 37); none for a shelf copy.
+    /// The source's own category, for 精选 (decision 37); none for a shelf copy.
     let category: String?
-    /// The series a 趨勢 item stands for, under the author on every card; none for a shelf copy.
+    /// The series a 趋势 item stands for, under the author on every card; none for a shelf copy.
     let series: String?
     let cover: Cover
-    /// The Emby line: 已加入書架, 已下載, or a shelf copy's 新增 or how far it is read.
+    /// The Emby line: 已加入书架, 已下载, or a shelf copy's 新增 or how far it is read.
     let detail: String?
-    /// Book, comic or audiobook, for 精簡閱讀卡片's 書籍・已讀 42% line.
+    /// Book, comic or audiobook, for 精简阅读卡片's 书籍・已读 42% line.
     let kind: ContentKind
     /// How far a shelf copy is read, for the bar along its cover; nil when unread or finished.
     let progress: Double?
     let accessibilityLabel: String
     private(set) var accessibilityValue: String
     let opening: ItemOpening
-    /// 作品詳情's route, the item frozen as the row had it; none for a placeholder.
+    /// 作品详情's route, the item frozen as the row had it; none for a placeholder.
     private(set) var route: WorkDetailRoute?
 
     /// - Parameters:
@@ -48,7 +48,7 @@ struct HomeCardContent: Identifiable {
     ///     no status.
     ///   - shelfBooks: the shelf records of this row's `.copy` items, read live so progress
     ///     is current.
-    ///   - display: 中繼資料語言偏好推薦 on the source's text (2026-10-25); the route keeps it as
+    ///   - display: 中继资料语言偏好推荐 on the source's text (2026-10-25); the route keeps it as
     ///     sent. Not on a shelf copy, whose metadata is the reader's.
     @MainActor
     init?(_ entry: CollectionEntry, status: (SourceItemKey) -> CopyLookup.Status?,
@@ -90,7 +90,7 @@ struct HomeCardContent: Identifiable {
 
     /// The card in a series' row (同系列): its number in place of the author the series
     /// shares, on screen and to VoiceOver. A volume with no number keeps its author.
-    /// The card of an AI pick: its 作品詳情 shows why it was suggested (AI 推薦 8e).
+    /// The card of an AI pick: its 作品详情 shows why it was suggested (AI 推荐 8e).
     func recommended(because reason: String?) -> HomeCardContent {
         guard let reason else { return self }
         var card = self
@@ -133,7 +133,7 @@ struct HomeCardContent: Identifiable {
         route = nil
     }
 
-    /// A book in 呈現方式's previews (`HomeLayoutSample`): its bundled cover, its title and author
+    /// A book in 呈现方式's previews (`HomeLayoutSample`): its bundled cover, its title and author
     /// as its edition has them, and nothing to open (a preview is not touched).
     init(sample title: String, author: String, kind: ContentKind, cover: CoverReference?) {
         id = SourceItemKey(instance: SourceInstanceKey(type: .library, id: "layoutSample"), item: title)
@@ -173,7 +173,7 @@ struct HomeCardContent: Identifiable {
     }
 
     /// The shelf copy the card shows, whose ••• acts on it (5d-3c).
-    /// What VoiceOver reads after 精選's title: the card's whole text, as on screen, so the
+    /// What VoiceOver reads after 精选's title: the card's whole text, as on screen, so the
     /// category and the blurb too; a line the card does not draw is not read.
     var featuredAccessibilityValue: String {
         [category, accessibilityValue, blurb].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: ", ")
@@ -183,12 +183,12 @@ struct HomeCardContent: Identifiable {
         if case .shelf(let book) = cover { book } else { nil }
     }
 
-    /// 精簡閱讀卡片's line: the kind, the series, then the Emby line, as Apple Books' 書籍・12%.
+    /// 精简阅读卡片's line: the kind, the series, then the Emby line, as Apple Books' 书籍・12%.
     var kindAndDetail: String {
         let kindName = switch kind {
-        case .text: localized("書籍")
-        case .comic: localized("漫畫")
-        case .audio: localized("有聲書")
+        case .text: localized("书籍")
+        case .comic: localized("漫画")
+        case .audio: localized("有声书")
         case .video: localized("影片")
         }
         return [kindName, series, detail].compactMap { $0 }.joined(separator: "・")
@@ -215,7 +215,7 @@ struct HomeBookCard: View {
     let content: HomeCardContent
     let coverWidth: CGFloat
     /// Keeps two title lines and the status line even when the text is shorter, so cards
-    /// stacked in 多行橫向輪播 and 固定封面網格 line up row by row.
+    /// stacked in 多行横向轮播 and 固定封面网格 line up row by row.
     var reservesTextSpace = false
 
     private var coverSize: CGSize {
@@ -270,7 +270,7 @@ struct HomeBookCard: View {
 
 }
 
-/// How far a shelf copy is read, along its cover or under 大型閱讀卡片's text. Hidden from
+/// How far a shelf copy is read, along its cover or under 大型阅读卡片's text. Hidden from
 /// VoiceOver: the card's label already says it.
 struct HomeProgressBar: View {
     let progress: Double
@@ -327,7 +327,7 @@ struct HomeCardCover: View {
 }
 
 /// The artwork alone, filling whatever frame it is given, for a hero that frames, clips and
-/// blurs it itself (作品詳情). `size` is the size it is mostly drawn at, which the shelf's
+/// blurs it itself (作品详情). `size` is the size it is mostly drawn at, which the shelf's
 /// artwork and the cover pipeline size their images for.
 struct HomeCoverArtwork: View {
     let cover: HomeCardContent.Cover

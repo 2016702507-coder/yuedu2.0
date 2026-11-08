@@ -1,9 +1,9 @@
 import Combine
 import Foundation
 
-/// 作者其他作品 on 作品詳情 (Editorial Minimalism, 2026-10-12): other works by the author of the
+/// 作者其他作品 on 作品详情 (Editorial Minimalism, 2026-10-12): other works by the author of the
 /// version shown, from where that version's data says they are. Each source answers from its
-/// own record of authors, never a guess: 青空文庫 from its catalogue's credits, Gutenberg from
+/// own record of authors, never a guess: 青空文库 from its catalogue's credits, Gutenberg from
 /// the author's own feed, the shelf from the work index's author keys. A book source has no
 /// author record; its page searches the source when the author is tapped instead.
 enum AuthorWorksRequest: Hashable {
@@ -42,7 +42,7 @@ enum AuthorWorks {
     /// How many works the section shows.
     static let limit = 12
 
-    /// The person whose other works 青空文庫's section lists.
+    /// The person whose other works 青空文库's section lists.
     static func aozoraPerson(of work: AozoraWork, in index: AozoraCatalogIndex) -> AozoraPerson? {
         let credit = work.credits.first { $0.role == "著者" } ?? work.credits.first
         return credit.flatMap { index.personsByID[$0.person] }
@@ -108,7 +108,7 @@ extension RelatedWorks {
     }
 }
 
-/// One 作品詳情's 作者其他作品, loaded once per version shown.
+/// One 作品详情's 作者其他作品, loaded once per version shown.
 @MainActor
 final class AuthorWorksModel: ObservableObject {
     enum State: Equatable {

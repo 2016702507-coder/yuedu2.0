@@ -1,13 +1,13 @@
 import Foundation
 
 /// An installed module as a source (Phase 6d): its entries are its locations, and each can be
-/// a row on the Explore home. Its items are data only: 作品詳情 shows what the list gave and
-/// offers 尋找可用來源, as for an Open Library result.
+/// a row on the Explore home. Its items are data only: 作品详情 shows what the list gave and
+/// offers 寻找可用来源, as for an Open Library result.
 @MainActor
 final class ModuleProvider: CollectionBrowsing, HomeSectionProviding {
     let module: RuleModule
     private let client: RuleModuleClient
-    /// The reader's 中繼資料語言偏好推薦, for a parameter that follows it.
+    /// The reader's 中继资料语言偏好推荐, for a parameter that follows it.
     private let language: @MainActor () -> String
 
     init(module: RuleModule, client: RuleModuleClient = RuleModuleClient(),
@@ -70,8 +70,8 @@ final class ModuleProvider: CollectionBrowsing, HomeSectionProviding {
 
     /// An update may change a list's rules under the same section: the version makes its row
     /// load again (`HomeModel.sync`).
-    /// Its version, and what each parameter that follows 中繼資料語言偏好推薦 reads now: a new
-    /// language loads the row again, in its own 地區.
+    /// Its version, and what each parameter that follows 中继资料语言偏好推荐 reads now: a new
+    /// language loads the row again, in its own 地区.
     func inputsKey(for section: HomeSection) -> String? {
         guard case .module(_, let entryID) = section.binding, let entry = entry(entryID) else { return module.version }
         let followed = entry.params.filter { $0.followsLanguage == true }
@@ -81,7 +81,7 @@ final class ModuleProvider: CollectionBrowsing, HomeSectionProviding {
 
     /// The list's own title, in the app's language: a section the defaults made has none, and
     /// the home names no source (Phase 5 plan, decision 19). A card of a layout of lists adds the
-    /// options its own values pick (今日熱門 · 日本): two cards of one list differ by them alone.
+    /// options its own values pick (今日热门 · 日本): two cards of one list differ by them alone.
     func rowName(for section: HomeSection) -> String {
         guard case .module(_, let entryID) = section.binding, let entry = entry(entryID),
               let title = entry.title?.trimmingCharacters(in: .whitespacesAndNewlines), !title.isEmpty else {
@@ -269,11 +269,11 @@ extension RuleModule.Entry {
     }
 
     /// The item's tags as metadata: the `tags` rule's values (else its `kind`'s, split as a
-    /// 來源配置's categories are), without the entry's `excludeTags`, at most 5. A tag rule's
+    /// 来源配置's categories are), without the entry's `excludeTags`, at most 5. A tag rule's
     /// value is one tag: AniList's "Slice of Life" is not split.
     ///
     /// A tag that is the item's own author, publisher or series names it, not its genre
-    /// (Bangumi tags 山田鐘人 and 小学館).
+    /// (Bangumi tags 山田钟人 and 小学馆).
     nonisolated func tags(of item: RuleListItem) -> [String] {
         let named = [item.author, item.publisher ?? "", item.series ?? ""]
             .flatMap { $0.components(separatedBy: CharacterSet(charactersIn: ",，、/／;；\n")) }
@@ -295,7 +295,7 @@ extension RuleModule.Entry {
 }
 
 extension RuleModule.Entry {
-    /// `title` with the options `parameters` pick by name (今日熱門 · 日本): what tells two cards of
+    /// `title` with the options `parameters` pick by name (今日热门 · 日本): what tells two cards of
     /// one list apart, in a layout of lists and in its form.
     func cardName(_ title: String, parameters: [String: String]) -> String {
         let picked = editableParams.compactMap { param -> String? in

@@ -3,11 +3,11 @@ import CryptoKit
 import ImageIO
 import UIKit
 
-/// The photo the reader picks for a 首頁配置 (maintainer, 2026-10-22, after Rex's 管理配置): one
-/// square JPEG per configuration. 預設 can have one too.
+/// The photo the reader picks for a 首页配置 (maintainer, 2026-10-22, after Rex's 管理配置): one
+/// square JPEG per configuration. 预设 can have one too.
 typealias HomeConfigurationPhotos = HomePhotoFolder<HomeConfigurationID>
 
-/// The photo the reader picks for a 大圖卡片 card (maintainer, 2026-10-27: 「分類卡的圖片可以自定義」),
+/// The photo the reader picks for a 大图卡片 card (maintainer, 2026-10-27: 「分类卡的图片可以自定义」),
 /// in place of the face designed from its name (`HomeCategoryArt`): one per card, the card's shape.
 typealias HomeListCardPhotos = HomePhotoFolder<HomeListCardPhotoID>
 
@@ -88,7 +88,7 @@ final class HomePhotoFolder<ID: RawRepresentable & Hashable & Sendable>: Observa
         }
     }
 
-    /// `old`'s photo kept as `new`'s, when what it belongs to is named anew (a card's 地區).
+    /// `old`'s photo kept as `new`'s, when what it belongs to is named anew (a card's 地区).
     func movePhoto(from old: ID, to new: ID) {
         guard old != new else { return }
         loadIfNeeded()
@@ -127,7 +127,7 @@ final class HomePhotoFolder<ID: RawRepresentable & Hashable & Sendable>: Observa
     }
 
     private func fileURL(for id: ID) -> URL {
-        // 預設's `default`, a 空白 kept from before 2026-10-23, a UUID, or a card's
+        // 预设's `default`, a 空白 kept from before 2026-10-23, a UUID, or a card's
         // `HomeListCardPhotoID`: nothing a file name cannot hold.
         directory.appendingPathComponent(id.rawValue).appendingPathExtension("jpg")
     }
@@ -163,9 +163,9 @@ final class HomePhotoFolder<ID: RawRepresentable & Hashable & Sendable>: Observa
     }
 }
 
-/// A 大圖卡片 card's photo: the section it is in and the list it shows (its binding and
+/// A 大图卡片 card's photo: the section it is in and the list it shows (its binding and
 /// parameters, not its place), so it stays with the card when the cards are reordered. A card
-/// that gives several lists (精選書單, the 書架's groups) gives each of them its photo.
+/// that gives several lists (精选书单, the 书架's groups) gives each of them its photo.
 struct HomeListCardPhotoID: RawRepresentable, Hashable, Sendable {
     let rawValue: String
 
@@ -176,7 +176,7 @@ struct HomeListCardPhotoID: RawRepresentable, Hashable, Sendable {
         self.init(section: section.id, binding: card.binding, parameters: card.parameters)
     }
 
-    /// Every card's photo on the home, in every 首頁配置: each card a section keeps, those this
+    /// Every card's photo on the home, in every 首页配置: each card a section keeps, those this
     /// build cannot draw too, in whatever layout it is in now, so a section turned to a layout
     /// of books has its photos when it is turned back.
     static func all(in home: HomeConfigurations) -> Set<Self> {
@@ -198,7 +198,7 @@ struct HomeListCardPhotoID: RawRepresentable, Hashable, Sendable {
         do {
             data = try encoder.encode(HomeListCard(binding: binding, parameters: parameters))
         } catch {
-            AppLogger.cache("⟐ 大圖卡片 photo id could not be made", error: error, context: ["section": section.uuidString])
+            AppLogger.cache("⟐ 大图卡片 photo id could not be made", error: error, context: ["section": section.uuidString])
             return nil
         }
         let digest = SHA256.hash(data: data).prefix(8).map { String(format: "%02x", $0) }.joined()

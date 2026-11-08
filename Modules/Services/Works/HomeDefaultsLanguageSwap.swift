@@ -1,24 +1,24 @@
 import Foundation
 
-/// 預設 follows 中繼資料語言偏好推薦 (maintainer, 2026-10-27: a changed language left 預設 with the
-/// last language's lists until they made a 首頁配置 from 預設配置). The official modules' lists the
+/// 预设 follows 中继资料语言偏好推荐 (maintainer, 2026-10-27: a changed language left 预设 with the
+/// last language's lists until they made a 首页配置 from 预设配置). The official modules' lists the
 /// defaults give one language (`HomePageDefaults.officialModuleLists`) give way to the next
-/// language's; nothing else on 預設 changes.
+/// language's; nothing else on 预设 changes.
 ///
 /// - A list goes while it is as some defaults made it: a layout the defaults gave it (today's,
 ///   the band, or that of 2026-10-13 to 2026-10-25), no title, subtitle or parameters, shown. The
-///   band, the 頂部輪播圖, goes hidden too, and the band that comes in is hidden as it was:
-///   關閉輪播圖 is the reader's choice for the 輪播圖, not for the list on it.
-/// - A list the reader changed or hid stays, as does every other section, a 輪播圖 they chose
-///   (選擇輪播數據) among them.
+///   band, the 顶部轮播图, goes hidden too, and the band that comes in is hidden as it was:
+///   关闭轮播图 is the reader's choice for the 轮播图, not for the list on it.
+/// - A list the reader changed or hid stays, as does every other section, a 轮播图 they chose
+///   (选择轮播数据) among them.
 /// - The new language's lists go where the first that went was. When none went, they go where
 ///   the defaults put them, unless the reader took every one of the last language's lists off:
 ///   then there is nothing they replace. One the page has already is not added again.
 /// - The first list that comes in with covers takes the band, unless a band stays. なろう has
-///   none, so Japanese has no 輪播圖, as its defaults have none.
+///   none, so Japanese has no 轮播图, as its defaults have none.
 ///
-/// `HomePageStore` runs it on 預設 only, when the language is not the one 預設's lists are for
-/// (`HomeConfigurations.defaultsLanguages`): the reader's own 首頁配置 are theirs.
+/// `HomePageStore` runs it on 预设 only, when the language is not the one 预设's lists are for
+/// (`HomeConfigurations.defaultsLanguages`): the reader's own 首页配置 are theirs.
 enum HomeDefaultsLanguageSwap {
     struct Outcome: Equatable {
         var sections: [HomeSection]
@@ -71,7 +71,7 @@ enum HomeDefaultsLanguageSwap {
         return Outcome(sections: swapped, removed: sections.count - kept.count, added: incoming.count)
     }
 
-    /// Whose lists a 預設 saved before 2026-10-27 holds, which it did not say: each language with
+    /// Whose lists a 预设 saved before 2026-10-27 holds, which it did not say: each language with
     /// lists that it has any of, in the order its sections have them.
     static func languages(of sections: [HomeSection], publicLibrariesAvailable: Bool) -> [String] {
         let lists = HomePageDefaults.listLanguages.map { language in
@@ -88,7 +88,7 @@ enum HomeDefaultsLanguageSwap {
     }
 
     /// The layouts the defaults have given each of `languages`' lists: its own, the band, and
-    /// that of 2026-10-13 to 2026-10-25 (`HomeDefaultsRhythmMigration` left a 預設 it did not
+    /// that of 2026-10-13 to 2026-10-25 (`HomeDefaultsRhythmMigration` left a 预设 it did not
     /// recognise with them).
     private static func madeLayouts(languages: [String],
                                     context: HomePageDefaults.Context) -> [HomeSectionBinding: Set<HomeSectionLayout>] {
@@ -103,8 +103,8 @@ enum HomeDefaultsLanguageSwap {
         return layouts
     }
 
-    /// Where the defaults put the lists: after the sections they put before them (繼續閱讀 and
-    /// 系列下一本, and 最新 where 來源配置 come first), else first.
+    /// Where the defaults put the lists: after the sections they put before them (继续阅读 and
+    /// 系列下一本, and 最新 where 来源配置 come first), else first.
     private static func defaultsPlace(in sections: [HomeSection], context: HomePageDefaults.Context) -> Int {
         let before = Set(HomePageDefaults.page(for: context).sections
             .prefix { if case .module = $0.binding { false } else { true } }

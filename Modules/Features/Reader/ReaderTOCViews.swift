@@ -86,7 +86,7 @@ private struct VerticalTOCText: View {
     }
 }
 
-/// 目錄's mark on a chapter that is not cached yet (回饋 #88): reading it needs the network.
+/// 目录's mark on a chapter that is not cached yet (回馈 #88): reading it needs the network.
 /// The title keeps its full contrast; the row itself tells VoiceOver (`accessibilityValue`).
 private struct TOCUncachedMark: View {
     var body: some View {
@@ -157,7 +157,7 @@ private struct VerticalTOCColumn: View {
             )
         }
         .buttonStyle(.plain)
-        .accessibilityValue(isUncached ? localized("未下載") : "")
+        .accessibilityValue(isUncached ? localized("未下载") : "")
     }
 }
 
@@ -214,11 +214,11 @@ private struct VerticalTOCView: View {
     }
 }
 
-/// 閱讀器目錄面板。
+/// 阅读器目录面板。
 ///
-/// 只有目錄——書籤與重點在 `ReaderBookmarkListView`。原本三者共用一個分段控制，
-/// 但目錄本來就由工具列的目錄鈕進入、書籤由書籤鈕進入，分段控制只是把兩個入口
-/// 再混回同一個畫面；拆開後目錄頂端讓給原生搜尋列，一直顯示。
+/// 只有目录——书签与重点在 `ReaderBookmarkListView`。原本三者共用一个分段控制，
+/// 但目录本来就由工具列的目录钮进入、书签由书签钮进入，分段控制只是把两个入口
+/// 再混回同一个画面；拆开后目录顶端让给原生搜寻列，一直显示。
 struct ReaderTOCView: View {
     let chapters: [BookChapter]
     let bookTitle: String
@@ -266,13 +266,13 @@ struct ReaderTOCView: View {
                         .accessibilityLabel(localized("完成"))
                     }
                 }
-                // 兩種版面都固定顯示搜尋列。目錄一打開就捲到目前章節，`.automatic`
-                // 的搜尋列跟著捲動收起來，要拉回最頂端才找得到（回饋 #46）；直排的
-                // 水平欄位本來就沒有垂直捲動能把它拉出來。
+                // 两种版面都固定显示搜寻列。目录一打开就卷到目前章节，`.automatic`
+                // 的搜寻列跟著卷动收起来，要拉回最顶端才找得到（回馈 #46）；直排的
+                // 水平栏位本来就没有垂直卷动能把它拉出来。
                 .searchable(
                     text: $searchText,
                     placement: .navigationBarDrawer(displayMode: .always),
-                    prompt: localized("搜索章節")
+                    prompt: localized("搜索章节")
                 )
                 .background(PageBackgroundView(scope: .settings).ignoresSafeArea())
                 .pageBackgroundToolbar(for: .settings)
@@ -316,7 +316,7 @@ struct ReaderTOCView: View {
     }
 
     private var pageCountText: some View {
-        Text(String(format: localized("第 %d 頁（共 %d 頁）"), currentPage + 1, totalPages))
+        Text(String(format: localized("第 %d 页（共 %d 页）"), currentPage + 1, totalPages))
             .font(DSFont.fixed(size: 14))
             .foregroundStyle(DSColor.textPrimary)
             .frame(maxWidth: .infinity, alignment: .center)
@@ -365,8 +365,8 @@ struct ReaderTOCView: View {
                 guard !isSearching,
                       chapters.contains(where: { $0.index == currentIndex }) else { return }
                 // No animation: the list opens on the current chapter, it does not travel
-                // there each time the sheet comes up. Straight from onAppear, as 有聲書 and
-                // the fixed-page reader's 目錄 do; the 0.1 s wait this replaced had no reason
+                // there each time the sheet comes up. Straight from onAppear, as 有声书 and
+                // the fixed-page reader's 目录 do; the 0.1 s wait this replaced had no reason
                 // on record.
                 proxy.scrollTo(currentIndex, anchor: .center)
             }
@@ -394,7 +394,7 @@ struct ReaderTOCView: View {
                         .foregroundStyle(DSColor.textPrimary)
                         .lineLimit(2)
 
-                    // The source's 更新時間, verbatim; a row without one takes no extra line.
+                    // The source's 更新时间, verbatim; a row without one takes no extra line.
                     if let updateTime = chapter.updateTime {
                         Text(updateTime)
                             .font(DSFont.fixed(size: 12))
@@ -427,7 +427,7 @@ struct ReaderTOCView: View {
             }
         }
         .buttonStyle(.plain)
-        .accessibilityValue(uncachedChapterIndexes.contains(chapter.index) ? localized("未下載") : "")
+        .accessibilityValue(uncachedChapterIndexes.contains(chapter.index) ? localized("未下载") : "")
         .listRowBackground(Color.clear)
         .listRowInsets(EdgeInsets())
         .listRowSeparator(.hidden, edges: chapter.id == filteredChapters.first?.id ? .top : [])
@@ -437,14 +437,14 @@ struct ReaderTOCView: View {
     }
 }
 
-#Preview("目錄") {
+#Preview("目录") {
     ReaderTOCView(
         chapters: [
             BookChapter(index: 0, title: "第一章 序幕", content: ""),
-            BookChapter(index: 1, title: "第二章 啟程", content: ""),
-            BookChapter(index: 2, title: "第三章 抉擇", content: ""),
+            BookChapter(index: 1, title: "第二章 启程", content: ""),
+            BookChapter(index: 2, title: "第三章 抉择", content: ""),
         ],
-        bookTitle: "範例書名",
+        bookTitle: "范例书名",
         currentPage: 1,
         totalPages: 240,
         tocLayoutMode: .horizontalList,
@@ -461,13 +461,13 @@ struct ReaderTOCView: View {
 #Preview("目錄・線上書更新時間") {
     ReaderTOCView(
         chapters: [
-            BookChapter(index: 0, title: "第一卷 風起", content: ""),
+            BookChapter(index: 0, title: "第一卷 风起", content: ""),
             BookChapter(index: 1, title: "第一章 序幕", content: "", updateTime: "第一卷 | 2026-10-01 08:00"),
-            BookChapter(index: 2, title: "第二章 啟程：一個長到要換行才放得下的章節標題", content: "",
+            BookChapter(index: 2, title: "第二章 启程：一个长到要换行才放得下的章节标题", content: "",
                         updateTime: "第一卷 | 2026-10-02 08:00"),
-            BookChapter(index: 3, title: "第三章 抉擇", content: ""),
+            BookChapter(index: 3, title: "第三章 抉择", content: ""),
         ],
-        bookTitle: "範例書名",
+        bookTitle: "范例书名",
         currentPage: 0,
         totalPages: 0,
         tocLayoutMode: .horizontalList,
@@ -485,11 +485,11 @@ struct ReaderTOCView: View {
     ReaderTOCView(
         chapters: [
             BookChapter(index: 0, title: "第一章 序幕", content: ""),
-            BookChapter(index: 1, title: "第二章 啟程", content: ""),
-            BookChapter(index: 2, title: "第三章 抉擇", content: ""),
-            BookChapter(index: 3, title: "第四章 歸途", content: ""),
+            BookChapter(index: 1, title: "第二章 启程", content: ""),
+            BookChapter(index: 2, title: "第三章 抉择", content: ""),
+            BookChapter(index: 3, title: "第四章 归途", content: ""),
         ],
-        bookTitle: "範例書名",
+        bookTitle: "范例书名",
         currentPage: 0,
         totalPages: 0,
         tocLayoutMode: .verticalRTLColumns,

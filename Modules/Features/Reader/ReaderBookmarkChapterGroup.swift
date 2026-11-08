@@ -1,17 +1,17 @@
 import Foundation
 
-/// 書籤清單的一章：章節標題一條，底下是這章的書籤，依書中順序排列。
+/// 书签清单的一章：章节标题一条，底下是这章的书签，依书中顺序排列。
 ///
-/// 一頁一個書籤之後，一章可以有很多條，平舖成一列會讓同一個章名重複十幾次。
-/// 分組讓章名只出現一次，並且成為「跳回本章開頭」的入口——章內每一條書籤
-/// 各自跳回自己那一頁。
+/// 一页一个书签之后，一章可以有很多条，平舖成一列会让同一个章名重复十几次。
+/// 分组让章名只出现一次，并且成为「跳回本章开头」的入口——章内每一条书签
+/// 各自跳回自己那一页。
 struct ReaderBookmarkChapterGroup: Identifiable, Equatable {
     let chapterIndex: Int
     let items: [Bookmark]
 
     var id: Int { chapterIndex }
 
-    /// 依章節分組。章與章之間、章內各條之間都照書中位置排序，和閱讀順序一致。
+    /// 依章节分组。章与章之间、章内各条之间都照书中位置排序，和阅读顺序一致。
     static func group(_ bookmarks: [Bookmark]) -> [ReaderBookmarkChapterGroup] {
         Dictionary(grouping: bookmarks.sortedByStablePosition(), by: \.chapterIndex)
             .map { ReaderBookmarkChapterGroup(chapterIndex: $0.key, items: $0.value) }

@@ -1,10 +1,10 @@
 import SwiftUI
 import UIKit
 
-/// Content of the popover 現代 hangs off the cover thumbnail in its toolbar: the book's
+/// Content of the popover 现代 hangs off the cover thumbnail in its toolbar: the book's
 /// identity on top (tap it to open the detail page) and the actions underneath —
-/// 搜尋書籍 plus the book-scoped `ReaderView.readerSecondaryActions` list
-/// (刷新 / 換源 / 下載 / 來源配置登入 …).
+/// 搜寻书籍 plus the book-scoped `ReaderView.readerSecondaryActions` list
+/// (刷新 / 换源 / 下载 / 来源配置登入 …).
 ///
 /// Two levels, not one slab: the identity sits on its own inset surface and the actions
 /// sit directly on the card. The card was a single flat rectangle before, with the whole
@@ -12,7 +12,7 @@ import UIKit
 ///
 /// The popover supplies the shape, the arrow and the shadow; the surface comes from
 /// 界面效果 through `presentationBackground` at the call site, so on iOS 26 the card
-/// is the same Liquid Glass as the 現代 bottom bar below it and 自定義's `panelFill`
+/// is the same Liquid Glass as the 现代 bottom bar below it and 自定义's `panelFill`
 /// is what shows through as 透明度 drops. The card itself paints no fill — an opaque
 /// background here would sit on top of that surface and hide it, which is what made
 /// the card read as a flat slab over a glass toolbar. The inset behind the identity is
@@ -32,8 +32,8 @@ struct ReaderModernBookCard: View {
     /// taking a fixed width. See `DSLayout.readerModernBookCardWidth(viewportWidth:)`.
     let availableWidth: CGFloat
 
-    /// 搜尋書籍 — always the first cell of the action grid. Book-scoped actions come and
-    /// go with the book and 自定義's roster; whole-book search applies to every book, so
+    /// 搜寻书籍 — always the first cell of the action grid. Book-scoped actions come and
+    /// go with the book and 自定义's roster; whole-book search applies to every book, so
     /// it is its own entry rather than a `ReaderSecondaryAction`.
     let onOpenSearch: () -> Void
 
@@ -60,7 +60,7 @@ struct ReaderModernBookCard: View {
             .buttonStyle(.plain)
             .accessibilityIdentifier("reader_book_card_details")
             .accessibilityLabel(author.isEmpty ? bookTitle : "\(bookTitle), \(author)")
-            .accessibilityHint(localized("提示：作品詳情"))
+            .accessibilityHint(localized("提示：作品详情"))
         } else {
             identityContent
                 .accessibilityElement(children: .combine)
@@ -82,11 +82,11 @@ struct ReaderModernBookCard: View {
                         .lineLimit(1)
                 }
                 // Stacked, not side by side. Two capsules sharing one line had to fit
-                // 格式 and 進度 into half the column each, and truncated both of their
+                // 格式 and 进度 into half the column each, and truncated both of their
                 // labels — 「For… EPUB」 next to 「Progr… 1 / 1…」.
                 VStack(alignment: .leading, spacing: DSSpacing.xs) {
                     chip(icon: "doc", title: localized("格式"), value: formatText)
-                    chip(icon: "chart.bar", title: localized("進度"), value: progressText)
+                    chip(icon: "chart.bar", title: localized("进度"), value: progressText)
                 }
                 .padding(.top, 2)
             }
@@ -136,14 +136,14 @@ struct ReaderModernBookCard: View {
 
     // MARK: - Actions
 
-    /// One cell of the action block. 搜尋 is not a `ReaderSecondaryAction` — it has no
-    /// book-scoped state and no entry in 自定義's icon roster — so the two sources are
+    /// One cell of the action block. 搜寻 is not a `ReaderSecondaryAction` — it has no
+    /// book-scoped state and no entry in 自定义's icon roster — so the two sources are
     /// flattened into this before layout rather than branched inside it.
     private struct ActionCell: Identifiable {
         let id: String
         let label: String
         let isLocked: Bool
-        /// The 自定義 entry whose imported icon replaces `fallbackIcon`, when there is one.
+        /// The 自定义 entry whose imported icon replaces `fallbackIcon`, when there is one.
         let item: ReaderChromeActionItem?
         let fallbackIcon: String
         let action: () -> Void
@@ -255,7 +255,7 @@ struct ReaderModernBookCard: View {
 
     /// An imported icon is drawn in its own colours — it is artwork the reader
     /// chose, not a symbol to tint. `fallback` is the live symbol `ReaderView`
-    /// picked, which for 下載 changes with download state.
+    /// picked, which for 下载 changes with download state.
     @ViewBuilder
     private func actionGlyph(for cell: ActionCell) -> some View {
         if let item = cell.item, let custom = settings.readerChromeIconImage(for: item) {
@@ -283,11 +283,11 @@ struct ReaderModernBookCard: View {
             ReaderSecondaryAction(
                 id: .changeSource,
                 icon: "arrow.left.and.right",
-                label: "換源",
+                label: "换源",
                 action: {}
             ),
-            ReaderSecondaryAction(id: .download, icon: "arrow.down.circle", label: "下載", action: {}),
-            ReaderSecondaryAction(id: .sourceLogin, icon: "person.crop.circle", label: "來源配置登入", action: {})
+            ReaderSecondaryAction(id: .download, icon: "arrow.down.circle", label: "下载", action: {}),
+            ReaderSecondaryAction(id: .sourceLogin, icon: "person.crop.circle", label: "来源配置登入", action: {})
         ],
         palette: ReaderChromePalette(theme: .sepia, settings: .shared),
         availableWidth: 440,

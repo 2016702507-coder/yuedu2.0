@@ -1,21 +1,21 @@
 import SwiftUI
 
-// 專題集合 (Phase 5 plan, decisions 30 and 37): a section of lists, one card per list, as the
-// public-library storefront's 精選書單: the list's name over its first covers, side by side and
+// 专题集合 (Phase 5 plan, decisions 30 and 37): a section of lists, one card per list, as the
+// public-library storefront's 精选书单: the list's name over its first covers, side by side and
 // tilted on a plain ground. A tap opens the whole list. The home names no source (decision 19),
 // so the storefront's "Project Gutenberg" line is not drawn.
 // The maintainer, 2026-10-25, after Apple Books' home (`Technotes/AppleBooksHomeLayouts-2026-10-25.md`):
-// - 分類卡片: as More to Explore, a wide card per list down the page, its name beside its
+// - 分类卡片: as More to Explore, a wide card per list down the page, its name beside its
 //   covers fanned at the trailing edge and cut off by the card's.
-// - 拼貼卡片: as Top Picks and Apple Books Japan's ピックアップ (2026-10-27, 1:1), a card per list
+// - 拼贴卡片: as Top Picks and Apple Books Japan's ピックアップ (2026-10-27, 1:1), a card per list
 //   swiped sideways, its first cover large and the next four small in two columns beside it,
 //   the second cut off by the card's edge, over its name and how many books it holds.
-// - 大圖卡片 (2026-10-27): a 分類卡 as More to Explore's Romance, a wide card a page, the list's
+// - 大图卡片 (2026-10-27): a 分类卡 as More to Explore's Romance, a wide card a page, the list's
 //   name on a face designed from it (`HomeCategoryArt`) or the reader's photo; no covers.
 // - 排行榜 (2026-10-27): Top Charts' columns, a ranking each (`HomeChartColumns`).
 
 /// A section's lists in its layout. A section of lists given a layout of books (a custom page's,
-/// a later build's) draws 專題集合, the layout every section of lists can take.
+/// a later build's) draws 专题集合, the layout every section of lists can take.
 struct HomeSectionLists: View {
     let layout: HomeSectionLayout
     let collections: [CollectionSummary]
@@ -41,7 +41,7 @@ struct HomeSectionLists: View {
 }
 
 /// A section's lists, a card to a page, the next one showing past the edge; two to a page on a
-/// wider screen, as 精選 pages its books.
+/// wider screen, as 精选 pages its books.
 struct HomeCollectionCards: View {
     let collections: [CollectionSummary]
     let open: (CollectionSummary) -> Void
@@ -65,7 +65,7 @@ struct HomeCollectionCards: View {
     }
 }
 
-/// One list: its name, then its artwork, as the storefront's 精選書單 card. The name is a size
+/// One list: its name, then its artwork, as the storefront's 精选书单 card. The name is a size
 /// under the section's own, which sits right above it on the home.
 struct HomeCollectionCard: View {
     let collection: CollectionSummary
@@ -109,7 +109,7 @@ extension CollectionSummary {
 }
 
 extension CollectionOpening {
-    /// The list's source, as 大圖卡片 names it over the list when the list does not
+    /// The list's source, as 大图卡片 names it over the list when the list does not
     /// (`CollectionSummary.sourceName`).
     @MainActor
     var sourceName: String {
@@ -158,9 +158,9 @@ private struct HomeCollectionButton<Card: View>: View {
     }
 }
 
-// MARK: - 分類卡片
+// MARK: - 分类卡片
 
-/// The lists down the page, a card each; two side by side on a wider screen. 編輯首頁 swipes
+/// The lists down the page, a card each; two side by side on a wider screen. 编辑首页 swipes
 /// them sideways, a card a page (`homeDrawsSideways`).
 struct HomeCategoryCards: View {
     let collections: [CollectionSummary]
@@ -257,7 +257,7 @@ struct HomeCategoryCard: View {
     }
 }
 
-// MARK: - 拼貼卡片
+// MARK: - 拼贴卡片
 
 /// The lists side by side, a card each, swiped sideways.
 struct HomeCollageCards: View {
@@ -353,9 +353,9 @@ struct HomeCollageCard: View {
     }
 }
 
-// MARK: - 大圖卡片
+// MARK: - 大图卡片
 
-/// The lists as 分類卡, a card to a page and the next one peeking (`DSLayout.homePagePeek`), as
+/// The lists as 分类卡, a card to a page and the next one peeking (`DSLayout.homePagePeek`), as
 /// Apple Books' More to Explore pages them; two to a page on a wider screen.
 struct HomeBannerCards: View {
     let collections: [CollectionSummary]
@@ -385,9 +385,9 @@ struct HomeBannerCards: View {
     }
 }
 
-/// One list as a 分類卡 (maintainer, 2026-10-27: 「大圖卡片…可以拿來當分類卡」「不需要真實封面」), as
+/// One list as a 分类卡 (maintainer, 2026-10-27: 「大图卡片…可以拿来当分类卡」「不需要真实封面」), as
 /// Apple Books' More to Explore draws Romance: the list's name in white at the foot of a wide
-/// card, the card the reader's photo for it (「分類卡的圖片可以自定義」), darkened under the name,
+/// card, the card the reader's photo for it (「分类卡的图片可以自定义」), darkened under the name,
 /// or else its designed face (`HomeCategoryArt`). A name too long for the card at a large text
 /// size makes the card taller. A thumbnail, as its section's form shows each card, is the same
 /// face in small.
@@ -451,7 +451,7 @@ struct HomeBannerCard: View {
 }
 
 /// A list's artwork: its first covers side by side, tilted, on a plain ground. The public-library
-/// storefront's 精選書單 drew it first; the home's 專題集合 (decision 37) draws it with the home's covers.
+/// storefront's 精选书单 drew it first; the home's 专题集合 (decision 37) draws it with the home's covers.
 /// `cover` draws one cover in the size given, a third of the artwork's width by its height.
 struct CollectionCoverArtwork<Cover: View>: View {
     let count: Int
@@ -475,13 +475,13 @@ struct CollectionCoverArtwork<Cover: View>: View {
 }
 
 #if DEBUG
-#Preview("分類卡片與拼貼卡片，古騰堡精選書單") {
+#Preview("分类卡片与拼贴卡片，古腾堡精选书单") {
     let lists = PublicLibraryCollection.all.map(CollectionSummary.bundledGutenberg)
     ScrollView {
         VStack(alignment: .leading, spacing: DSSpacing.xxl) {
             HomeCategoryCards(collections: lists, open: { _ in })
             HomeCollageCards(collections: lists, open: { _ in })
-            // 兒童與青少年 holds two books: a fan of two, a collage with one small cover.
+            // 儿童与青少年 holds two books: a fan of two, a collage with one small cover.
             HomeCategoryCards(collections: [lists[2]], open: { _ in })
                 .environment(\.dynamicTypeSize, .accessibility3)
         }
@@ -489,13 +489,13 @@ struct CollectionCoverArtwork<Cover: View>: View {
     }
 }
 
-#Preview("分類卡片，來源配置的分類") {
-    // A 來源配置's categories, drawn with the bundled lists' covers so the preview needs no network.
+#Preview("分类卡片，来源配置的分类") {
+    // A 来源配置's categories, drawn with the bundled lists' covers so the preview needs no network.
     let lists = PublicLibraryCollection.all.map(CollectionSummary.bundledGutenberg)
-    let categories = zip(["玄幻", "都市", "歷史軍事"], lists).map { title, list in
+    let categories = zip(["玄幻", "都市", "历史军事"], lists).map { title, list in
         let category = ExploreCategoryReference(sourceURL: "https://preview.example", title: title, url: "https://preview.example/\(title)")
         let opening = HomeListOpening(section: HomeSection(layout: .row, binding: .sourceCategories([category])),
-                                      source: SourceInstanceKey(type: .bookSource, id: category.sourceURL), sourceName: "預覽來源",
+                                      source: SourceInstanceKey(type: .bookSource, id: category.sourceURL), sourceName: "预览来源",
                                       title: title, entries: [])
         return CollectionSummary(id: title, title: title, books: list.books, languages: [], opening: .list(opening))
     }
@@ -505,12 +505,12 @@ struct CollectionCoverArtwork<Cover: View>: View {
     }
 }
 
-#Preview("大圖卡片，古騰堡精選書單") {
+#Preview("大图卡片，古腾堡精选书单") {
     let lists = PublicLibraryCollection.all.map(CollectionSummary.bundledGutenberg)
     ScrollView {
         VStack(alignment: .leading, spacing: DSSpacing.xxl) {
             HomeBannerCards(collections: lists, open: { _ in })
-            // 兒童與青少年 holds two books: a fan of two.
+            // 儿童与青少年 holds two books: a fan of two.
             HomeBannerCards(collections: [lists[2]], open: { _ in })
                 .environment(\.dynamicTypeSize, .accessibility3)
         }
@@ -518,12 +518,12 @@ struct CollectionCoverArtwork<Cover: View>: View {
     }
 }
 
-#Preview("專題集合，古騰堡精選書單") {
+#Preview("专题集合，古腾堡精选书单") {
     let lists = PublicLibraryCollection.all.map(CollectionSummary.bundledGutenberg)
     ScrollView {
         VStack(alignment: .leading, spacing: DSSpacing.xxl) {
             HomeCollectionCards(collections: lists, open: { _ in })
-            // 兒童與青少年 holds two books: the artwork with two covers.
+            // 儿童与青少年 holds two books: the artwork with two covers.
             HomeCollectionCard(collection: lists[2])
                 .padding(.horizontal, DSSpacing.lg)
         }

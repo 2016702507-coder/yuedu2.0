@@ -1,6 +1,6 @@
 import Foundation
 
-/// 搜索's 青空文庫 matches, searched once per query off the main actor. The list is rebuilt
+/// 搜索's 青空文库 matches, searched once per query off the main actor. The list is rebuilt
 /// on every publication of every part; it used to search the whole catalog each time, on the
 /// main actor, 21–27 ms a time — twice between the keyboard's Search and the sources' first
 /// request, which left 25–35 ms later (Phase 4 acceptance, 2026-10-14).

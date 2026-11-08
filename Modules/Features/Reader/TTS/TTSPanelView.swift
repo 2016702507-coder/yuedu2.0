@@ -8,16 +8,16 @@ import SwiftUI
         currentReaderChapterIndex: 0,
         activeTTSChapterIndex: nil,
         canGoNextChapter: true,
-        activeChapterTitle: "第三章　霧港",
+        activeChapterTitle: "第三章　雾港",
         coverImage: nil,
-        bookTitle: "歸舟",
+        bookTitle: "归舟",
         bookAuthor: "",
         onPlayPause: {},
         onPreviousChapter: { false },
         onNextChapter: { false },
         onSelectChapter: { _ in },
         bookID: UUID(),
-        detectedSpeakers: ["張若塵", "池瑤"],
+        detectedSpeakers: ["张若尘", "池瑶"],
         aiAdapter: AIBookContentAdapter(bookID: UUID(), chapters: [], textForChapter: { _ in nil }),
         aiProgress: 0.42
     )
@@ -25,19 +25,19 @@ import SwiftUI
 
 // MARK: - TTS Control Panel
 
-/// The pages 語音朗讀 pushes in its own navigation.
+/// The pages 语音朗读 pushes in its own navigation.
 private enum TTSPanelRoute: Hashable {
     case voiceSource
     case roleCast
     case highlight
 }
 
-/// 語音朗讀: a short sheet over the page being read. What is playing and the transport on
-/// top, 語速 under them, and the settings that are set once and left as rows that push
+/// 语音朗读: a short sheet over the page being read. What is playing and the transport on
+/// top, 语速 under them, and the settings that are set once and left as rows that push
 /// their own pages — so the sheet fits its content instead of being a long form.
 struct TTSPanelView: View {
     @ObservedObject var tts: TTSCoordinator
-    /// The 目錄 the chapter list shows. Its positions are not the spine indices below: an
+    /// The 目录 the chapter list shows. Its positions are not the spine indices below: an
     /// EPUB's TOC can be shorter than its spine or hold several entries in one item.
     let chapters: [BookChapter]
     /// The entry the list checks: where narration is, or the reader while nothing is read.
@@ -56,10 +56,10 @@ struct TTSPanelView: View {
     let onNextChapter: () -> Bool
     let onSelectChapter: (BookChapter) -> Void
     let bookID: UUID
-    /// Characters detected in the chapter being read, for 多角色朗讀. Computed by the
+    /// Characters detected in the chapter being read, for 多角色朗读. Computed by the
     /// reader, which is the only thing holding the chapter's narration text.
     let detectedSpeakers: [String]
-    /// Passed through to 多角色朗讀 so character cards can be built where they are used.
+    /// Passed through to 多角色朗读 so character cards can be built where they are used.
     let aiAdapter: AIBookContentAdapter
     /// Reading position on the chunks' 0…1 scale, so the character list defaults to who has
     /// actually appeared.
@@ -71,7 +71,7 @@ struct TTSPanelView: View {
     @State private var showChapterPicker = false
     @State private var path: [TTSPanelRoute] = []
     /// Measured height of the list's content, so the sheet is exactly as tall as what it
-    /// holds — the same fit 主題's panel has.
+    /// holds — the same fit 主题's panel has.
     @State private var contentHeight = DSLayout.ttsPanelSheetHeight
 
     /// The UI rate scale puts 1× at 0.5 (see `TTSCoordinator.minSpeechRate`).
@@ -132,7 +132,7 @@ struct TTSPanelView: View {
         Double(tts.speechRate / Self.normalSpeechRate)
     }
 
-    /// 「1.0×」 beside 語速; also what VoiceOver reads as the stepper's value.
+    /// 「1.0×」 beside 语速; also what VoiceOver reads as the stepper's value.
     private var speechRateText: String {
         speechMultiplier.formatted(.number.precision(.fractionLength(1...2))) + "×"
     }
@@ -142,8 +142,8 @@ struct TTSPanelView: View {
     }
 
     private var voiceSourceName: String {
-        if usesSystemVoice { return localized("系統離線語音") }
-        if gs.usesEdgeTTS { return localized("微軟線上語音") }
+        if usesSystemVoice { return localized("系统离线语音") }
+        if gs.usesEdgeTTS { return localized("微软线上语音") }
         if let source = gs.activeTTSSource { return source.name }
         // A template no imported source carries any more (the source was deleted while
         // selected): name it by where it points.
@@ -169,7 +169,7 @@ struct TTSPanelView: View {
                     if systemVoiceRateIsCapped {
                         Text(
                             String(
-                                format: localized("系統語音最快 %@（iOS 限制），需要更快請改用網路語音"),
+                                format: localized("系统语音最快 %@（iOS 限制），需要更快请改用网路语音"),
                                 String(format: "%.0f%%", SystemTTSEngine.maxSupportedUIRate / 0.5 * 100)
                             )
                         )
@@ -181,20 +181,20 @@ struct TTSPanelView: View {
                 Section {
                     sleepTimerRow
                     NavigationLink(value: TTSPanelRoute.voiceSource) {
-                        LabeledContent(localized("語音源"), value: voiceSourceName)
+                        LabeledContent(localized("语音源"), value: voiceSourceName)
                     }
                     .accessibilityIdentifier("tts_panel_voice_source")
                     NavigationLink(value: TTSPanelRoute.roleCast) {
                         LabeledContent(
-                            localized("多角色朗讀"),
-                            value: localized(gs.ttsMultiRoleEnabled ? "開啟" : "關閉")
+                            localized("多角色朗读"),
+                            value: localized(gs.ttsMultiRoleEnabled ? "开启" : "关闭")
                         )
                     }
                     .accessibilityIdentifier("tts_panel_role_cast")
                     NavigationLink(value: TTSPanelRoute.highlight) {
                         LabeledContent(
-                            localized("高亮與螢幕"),
-                            value: localized(gs.ttsHighlightEnabled ? "朗讀高亮" : "關閉")
+                            localized("高亮与萤幕"),
+                            value: localized(gs.ttsHighlightEnabled ? "朗读高亮" : "关闭")
                         )
                     }
                     .accessibilityIdentifier("tts_panel_highlight")
@@ -219,7 +219,7 @@ struct TTSPanelView: View {
         .presentationDetents(path.isEmpty ? [.height(contentHeight)] : [.large])
         .presentationDragIndicator(.visible)
         .alert(
-            localized("語音朗讀"),
+            localized("语音朗读"),
             isPresented: Binding(
                 get: { tts.errorMessage != nil },
                 set: { isPresented in
@@ -258,7 +258,7 @@ struct TTSPanelView: View {
                     progress: aiProgress
                 )
             } else {
-                ProgressView(localized("載入中…"))
+                ProgressView(localized("载入中…"))
             }
         case .highlight:
             TTSHighlightSettingsView()
@@ -296,7 +296,7 @@ struct TTSPanelView: View {
                 }
                 .contentShape(Rectangle())
             }
-            .accessibilityHint(localized("目錄"))
+            .accessibilityHint(localized("目录"))
             .accessibilityIdentifier("tts_panel_chapters")
 
             Button {
@@ -348,12 +348,12 @@ struct TTSPanelView: View {
             )
             .tint(DSColor.textPrimary)
             .disabled(!canSeek)
-            .accessibilityLabel(localized("朗讀進度"))
+            .accessibilityLabel(localized("朗读进度"))
             .accessibilityValue(paragraphText ?? "")
             HStack {
-                Text(localized("章節開始"))
+                Text(localized("章节开始"))
                 Spacer()
-                Text(localized("章節結尾"))
+                Text(localized("章节结尾"))
             }
             .font(DSFont.caption)
             .foregroundStyle(DSColor.textSecondary)
@@ -389,7 +389,7 @@ struct TTSPanelView: View {
                     .contentShape(Circle())
             }
             .accessibilityIdentifier("tts_panel_play_pause")
-            .accessibilityLabel(localized(isPlaying ? "暫停" : "播放"))
+            .accessibilityLabel(localized(isPlaying ? "暂停" : "播放"))
             .disabled(tts.playbackState == .stopped && !hasAudioSource)
             Spacer()
             chapterButton(
@@ -427,9 +427,9 @@ struct TTSPanelView: View {
         .disabled(!hasAudioSource || !enabled)
     }
 
-    // MARK: - 語速
+    // MARK: - 语速
 
-    /// 語速 and its value, with a tenth-at-a-time stepper for the speeds between and
+    /// 语速 and its value, with a tenth-at-a-time stepper for the speeds between and
     /// beyond the presets — the panel's slider used to reach 0.2×–5×.
     private var speechRateRow: some View {
         Stepper(
@@ -441,7 +441,7 @@ struct TTSPanelView: View {
             step: Self.speechRateStep
         ) {
             HStack {
-                Text(localized("語速"))
+                Text(localized("语速"))
                     .font(DSFont.headline)
                 Spacer()
                 Text(speechRateText)
@@ -452,14 +452,14 @@ struct TTSPanelView: View {
             // would hammer rate-limited sources.
             if !editing { tts.applyRateToActivePlayback() }
         }
-        .accessibilityLabel(localized("語速"))
+        .accessibilityLabel(localized("语速"))
         .accessibilityValue(speechRateText)
     }
 
     /// One tap to a common speed. A speed set with the stepper selects none of them.
     private var speechRatePresetRow: some View {
         Picker(
-            localized("語速"),
+            localized("语速"),
             selection: Binding<Double?>(
                 get: {
                     Self.speechRatePresets.first {
@@ -485,15 +485,15 @@ struct TTSPanelView: View {
 
     private var sleepTimerRow: some View {
         Picker(
-            localized("定時停止"),
+            localized("定时停止"),
             selection: Binding(
                 get: { tts.sleepMinutes },
                 set: { tts.setSleepTimer(minutes: $0) }
             )
         ) {
-            Text(localized("不定時")).tag(0)
+            Text(localized("不定时")).tag(0)
             ForEach([15, 30, 60, 90], id: \.self) { minutes in
-                Text(String(format: localized("%d 分鐘"), minutes)).tag(minutes)
+                Text(String(format: localized("%d 分钟"), minutes)).tag(minutes)
             }
         }
         .pickerStyle(.menu)
@@ -521,7 +521,7 @@ struct TTSPanelView: View {
             .scrollContentBackground(.hidden)
             .background(PageBackgroundView(scope: .settings).ignoresSafeArea())
             .pageBackgroundToolbar(for: .settings)
-            .navigationTitle(localized("目錄"))
+            .navigationTitle(localized("目录"))
             .toolbarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -530,14 +530,14 @@ struct TTSPanelView: View {
                     } label: {
                         Image(systemName: "xmark")
                     }
-                    .accessibilityLabel(localized("關閉"))
+                    .accessibilityLabel(localized("关闭"))
                 }
             }
         }
     }
 }
 
-// MARK: - 高亮與螢幕
+// MARK: - 高亮与萤幕
 
 /// What reading aloud does to the page and the screen: the highlight that follows the
 /// voice, and keeping the screen on.
@@ -547,41 +547,41 @@ private struct TTSHighlightSettingsView: View {
     var body: some View {
         List {
             Section {
-                Toggle(localized("朗讀高亮"), isOn: $gs.ttsHighlightEnabled)
+                Toggle(localized("朗读高亮"), isOn: $gs.ttsHighlightEnabled)
 
                 if gs.ttsHighlightEnabled {
                     ColorPicker(
-                        localized("高亮顏色"),
+                        localized("高亮颜色"),
                         selection: highlightColorBinding,
                         supportsOpacity: false
                     )
 
-                    Toggle(localized("朗讀底色框"), isOn: $gs.ttsHighlightBoxEnabled)
+                    Toggle(localized("朗读底色框"), isOn: $gs.ttsHighlightBoxEnabled)
 
                     if gs.ttsHighlightBoxEnabled {
-                        Picker(localized("底色框樣式"), selection: $gs.ttsHighlightBoxStyleRaw) {
-                            Text(localized("純色塊")).tag(0)
-                            Text(localized("漸層膠囊")).tag(1)
+                        Picker(localized("底色框样式"), selection: $gs.ttsHighlightBoxStyleRaw) {
+                            Text(localized("纯色块")).tag(0)
+                            Text(localized("渐层胶囊")).tag(1)
                         }
                         .pickerStyle(.segmented)
 
                         ColorPicker(
-                            localized("底色框顏色"),
+                            localized("底色框颜色"),
                             selection: highlightBoxColorBinding,
                             supportsOpacity: false
                         )
                     }
                 }
             } footer: {
-                Text(localized("朗讀時高亮目前正在唸的文字。"))
+                Text(localized("朗读时高亮目前正在念的文字。"))
                     .dsSectionFooter()
             }
             .interfaceSectionSurface()
 
             Section {
-                Toggle(localized("朗讀時保持螢幕開啟"), isOn: $gs.ttsKeepsScreenAwake)
+                Toggle(localized("朗读时保持萤幕开启"), isOn: $gs.ttsKeepsScreenAwake)
             } footer: {
-                Text(localized("只防止自動鎖定，按下電源鍵仍可鎖屏並繼續朗讀。"))
+                Text(localized("只防止自动锁定，按下电源键仍可锁屏并继续朗读。"))
                     .dsSectionFooter()
             }
             .interfaceSectionSurface()
@@ -590,7 +590,7 @@ private struct TTSHighlightSettingsView: View {
         .scrollContentBackground(.hidden)
         .background(PageBackgroundView(scope: .settings).ignoresSafeArea())
         .pageBackgroundToolbar(for: .settings)
-        .navigationTitle(localized("高亮與螢幕"))
+        .navigationTitle(localized("高亮与萤幕"))
         .toolbarTitleDisplayMode(.inline)
         .toolbar(.visible, for: .navigationBar)
     }

@@ -9,7 +9,7 @@ final class ReaderDetailHostingController: UIHostingController<AnyView> {
         super.init(rootView: content)
         hidesBottomBarWhenPushed = true
         navigationItem.largeTitleDisplayMode = .never
-        navigationItem.title = localized("作品詳情")
+        navigationItem.title = localized("作品详情")
     }
 
     @available(*, unavailable)

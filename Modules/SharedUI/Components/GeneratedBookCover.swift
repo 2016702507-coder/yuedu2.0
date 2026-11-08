@@ -44,9 +44,9 @@ enum GeneratedCoverPalette {
     static let light: [GeneratedCoverTone] = [
         tone(top: 0xF7F2E8, bottom: 0xEDE3D1, line: 0xB9A88A, ink: 0x6B5836),  // 米白
         tone(top: 0xEDF2F0, bottom: 0xDCE8E3, line: 0x93B0A6, ink: 0x3F6459),  // 淡青
-        tone(top: 0xF8F0F0, bottom: 0xEEDEDE, line: 0xC2A0A0, ink: 0x7A4B4B),  // 淺藕
-        tone(top: 0xEEF2F7, bottom: 0xDCE5EF, line: 0x9FB2CA, ink: 0x42587A),  // 霧藍
-        tone(top: 0xF2F5EB, bottom: 0xE3E9D7, line: 0xA9B98C, ink: 0x556438),  // 淺豆    
+        tone(top: 0xF8F0F0, bottom: 0xEEDEDE, line: 0xC2A0A0, ink: 0x7A4B4B),  // 浅藕
+        tone(top: 0xEEF2F7, bottom: 0xDCE5EF, line: 0x9FB2CA, ink: 0x42587A),  // 雾蓝
+        tone(top: 0xF2F5EB, bottom: 0xE3E9D7, line: 0xA9B98C, ink: 0x556438),  // 浅豆    
         tone(top: 0xF5EFF5, bottom: 0xE7DCE8, line: 0xB09EB6, ink: 0x63496C),  // 淡紫
     ]
 
@@ -673,27 +673,27 @@ struct GeneratedBookCover: View {
 #Preview("生成封面") {
     VStack(spacing: 20) {
         HStack(spacing: 16) {
-            GeneratedBookCover(title: "劍燭大荒", author: "青山鶴")
+            GeneratedBookCover(title: "剑烛大荒", author: "青山鹤")
                 .frame(width: 104, height: 138)
                 .clipShape(RoundedRectangle(cornerRadius: DSRadius.lg))
-            GeneratedBookCover(title: "宿命之環", author: "愛潛水的烏賊")
+            GeneratedBookCover(title: "宿命之环", author: "爱潜水的乌贼")
                 .frame(width: 104, height: 138)
                 .clipShape(RoundedRectangle(cornerRadius: DSRadius.lg))
-            GeneratedBookCover(title: "史記·卷八十七·李斯列傳第二十七", author: "司馬遷")
+            GeneratedBookCover(title: "史记·卷八十七·李斯列传第二十七", author: "司马迁")
                 .frame(width: 104, height: 138)
                 .clipShape(RoundedRectangle(cornerRadius: DSRadius.lg))
         }
         HStack(spacing: 16) {
-            GeneratedBookCover(title: "活著", author: "余華")
+            GeneratedBookCover(title: "活著", author: "余华")
                 .frame(width: 62, height: 84)
                 .clipShape(RoundedRectangle(cornerRadius: DSRadius.md))
-            GeneratedBookCover(title: "百年孤獨", author: "馬奎斯")
+            GeneratedBookCover(title: "百年孤独", author: "马奎斯")
                 .frame(width: 52, height: 70)
                 .clipShape(RoundedRectangle(cornerRadius: DSRadius.sm))
-            GeneratedBookCover(title: "圍城", author: "錢鍾書")
+            GeneratedBookCover(title: "围城", author: "钱锺书")
                 .frame(width: 34, height: 34)
                 .clipShape(Circle())
-            GeneratedBookCover(title: "紅樓夢", author: "曹雪芹")
+            GeneratedBookCover(title: "红楼梦", author: "曹雪芹")
                 .frame(width: 56, height: 56)
                 .clipShape(Circle())
         }

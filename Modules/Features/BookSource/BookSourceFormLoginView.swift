@@ -156,7 +156,7 @@ struct BookSourceFormLoginView: View {
             presenting: menuAlert
         ) { _ in
             if canRetryLoginUi {
-                Button(localized("重試")) {
+                Button(localized("重试")) {
                     menuAlert = nil
                     canRetryLoginUi = false
                     loadUI()
@@ -192,9 +192,9 @@ struct BookSourceFormLoginView: View {
         }
     }
 
-    /// Legado's `login_source` title format: 「登入：源名稱」.
+    /// Legado's `login_source` title format: 「登入：源名称」.
     private var loginTitle: String {
-        let name = source.bookSourceName.isEmpty ? localized("來源配置登入") : source.bookSourceName
+        let name = source.bookSourceName.isEmpty ? localized("来源配置登入") : source.bookSourceName
         return String(format: localized("登入：%@"), name)
     }
 
@@ -205,8 +205,8 @@ struct BookSourceFormLoginView: View {
         menuAlert = MenuActionAlert(
             title: localized("登录头"),
             detail: header?.isEmpty != false
-                ? localized("未設置登录头")
-                : header ?? localized("未設置登录头")
+                ? localized("未设置登录头")
+                : header ?? localized("未设置登录头")
         )
     }
 
@@ -214,7 +214,7 @@ struct BookSourceFormLoginView: View {
         LoginManager.shared.removeLoginHeader(sourceUrl: source.bookSourceUrl)
         menuAlert = MenuActionAlert(
             title: localized("完成"),
-            detail: localized("已刪除登录头")
+            detail: localized("已删除登录头")
         )
     }
 
@@ -241,8 +241,8 @@ struct BookSourceFormLoginView: View {
                     guard parsed == nil else { return }
                     self.canRetryLoginUi = true
                     self.menuAlert = MenuActionAlert(
-                        title: localized("來源配置腳本錯誤"),
-                        detail: evaluation.error ?? localized("載入失敗，點按重試")
+                        title: localized("来源配置脚本错误"),
+                        detail: evaluation.error ?? localized("载入失败，点按重试")
                     )
                 }
             }
@@ -303,7 +303,7 @@ struct BookSourceFormLoginView: View {
         // Run loginUrl and loginUi in one JS context, mirroring Legado's evalUiJs.
         // `book` and `chapter` are null for a standalone login sheet, as in Legado.
         // Do not append `result` here. Legado returns the loginUi script's completion
-        // value; 神魔小說 ends with `JSON.stringify(rows)` while `result` still contains
+        // value; 神魔小说 ends with `JSON.stringify(rows)` while `result` still contains
         // previously stored credentials. Returning `result` would replace the menu JSON
         // with that credentials object and make the form parser report a load failure.
         let wrapped = """
@@ -501,8 +501,8 @@ struct BookSourceFormLoginView: View {
         let missingFields = Self.missingRequiredFieldNames(fields: fields, values: credentials)
         guard missingFields.isEmpty else {
             menuAlert = MenuActionAlert(
-                title: localized("操作失敗"),
-                detail: localized("請填入登入資訊")
+                title: localized("操作失败"),
+                detail: localized("请填入登入资讯")
             )
             return
         }
@@ -574,7 +574,7 @@ struct BookSourceFormLoginView: View {
         let rawLogin = source.loginUrl.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !rawLogin.isEmpty else {
             menuAlert = MenuActionAlert(
-                title: localized("操作失敗"), detail: localized("來源配置未設定 loginUrl"))
+                title: localized("操作失败"), detail: localized("来源配置未设置 loginUrl"))
             return
         }
 
@@ -630,7 +630,7 @@ struct BookSourceFormLoginView: View {
             await MainActor.run {
                 isLoading = false
                 if let err = lastError, !err.isEmpty {
-                    menuAlert = MenuActionAlert(title: localized("操作失敗"), detail: err)
+                    menuAlert = MenuActionAlert(title: localized("操作失败"), detail: err)
                 } else {
                     menuAlert = MenuActionAlert(
                         title: localized("登入成功"),
@@ -748,10 +748,10 @@ struct BookSourceFormLoginView: View {
                 guard !spoke.fired else { return }
                 let report: MenuActionAlert?
                 if let jsError = engine.lastError {
-                    report = MenuActionAlert(title: localized("來源配置腳本錯誤"), detail: jsError)
+                    report = MenuActionAlert(title: localized("来源配置脚本错误"), detail: jsError)
                 } else if let failure = SourceAPIErrorLog.shared.last(for: source.bookSourceUrl) {
                     report = MenuActionAlert(
-                        title: localized("來源配置伺服器回應失敗"), detail: failure.displayText)
+                        title: localized("来源配置伺服器回应失败"), detail: failure.displayText)
                 } else {
                     report = nil
                 }
@@ -1014,22 +1014,22 @@ struct BookSourceFormLoginView: View {
 
 // MARK: - Preview
 
-#Preview("登入表單") {
+#Preview("登入表单") {
     var source = BookSource()
-    source.bookSourceName = "範例來源配置"
+    source.bookSourceName = "范例来源配置"
     source.bookSourceUrl = "https://example.com"
     source.loginUrl = "function login() { return true; }"
-    // 輸入框整行、按鈕預設半行；cols 1/2/4 展示混合欄寬（登入＋註冊半行、
-    // 遊客體驗整行、條款/隱私/客服/版本四欄）。
+    // 输入框整行、按钮预设半行；cols 1/2/4 展示混合栏宽（登入＋注册半行、
+    // 游客体验整行、条款/隐私/客服/版本四栏）。
     source.loginUi = """
     [
-        {"name": "帳號", "type": "text", "chars": ["手機號或 Email"]},
-        {"name": "密碼", "type": "password"},
+        {"name": "帐号", "type": "text", "chars": ["手机号或 Email"]},
+        {"name": "密码", "type": "password"},
         {"name": "登入", "type": "button", "action": "login()"},
-        {"name": "註冊帳號", "type": "button", "action": "register()"},
-        {"name": "遊客體驗", "type": "button", "action": "guest()", "style": {"cols": 1}},
-        {"name": "條款", "type": "button", "action": "terms()", "style": {"cols": 4}},
-        {"name": "隱私", "type": "button", "action": "privacy()", "style": {"cols": 4}},
+        {"name": "注册帐号", "type": "button", "action": "register()"},
+        {"name": "游客体验", "type": "button", "action": "guest()", "style": {"cols": 1}},
+        {"name": "条款", "type": "button", "action": "terms()", "style": {"cols": 4}},
+        {"name": "隐私", "type": "button", "action": "privacy()", "style": {"cols": 4}},
         {"name": "客服", "type": "button", "action": "support()", "style": {"cols": 4}},
         {"name": "版本", "type": "button", "action": "about()", "style": {"cols": 4}}
     ]
@@ -1037,19 +1037,19 @@ struct BookSourceFormLoginView: View {
     return BookSourceFormLoginView(source: source, onDismiss: {})
 }
 
-#Preview("來源配置選單") {
+#Preview("来源配置选单") {
     var source = BookSource()
     source.bookSourceName = "範例來源配置・設定選單"
     source.bookSourceUrl = "https://example.com"
     source.loginUrl = "function noop() {}"
-    // 書源動態選單常見的組合：開關、下拉與動作按鈕；viewName 是引號字面值時
-    // 直接顯示、不求值。layout_wrapBefore 讓「登出」強制換行。
+    // 书源动态选单常见的组合：开关、下拉与动作按钮；viewName 是引号字面值时
+    // 直接显示、不求值。layout_wrapBefore 让「登出」强制换行。
     source.loginUi = """
     [
-        {"name": "段評開關", "viewName": "'段評開關'", "type": "toggle",
+        {"name": "段评开关", "viewName": "'段评开关'", "type": "toggle",
          "action": "noop()", "chars": ["🔳", "✅"], "default": "🔳"},
-        {"name": "字體", "viewName": "'字體'", "type": "select",
-         "chars": ["預設", "圓角", "襯線"], "default": "預設"},
+        {"name": "字体", "viewName": "'字体'", "type": "select",
+         "chars": ["预设", "圆角", "衬线"], "default": "预设"},
         {"name": "重新整理", "viewName": "'重新整理'", "type": "button", "action": "noop()"},
         {"name": "登出", "viewName": "'登出'", "type": "button", "action": "noop()",
          "style": {"layout_wrapBefore": true}}

@@ -3,7 +3,7 @@ import Foundation
 /// Aozora Bunko's bundled catalog as a collection (unified library 2a). It projects the
 /// same `AozoraCatalogStore` index the Aozora screens read; it loads nothing of its own.
 ///
-/// Locations: 新着作品, 作家別, 作品名別 and 分類別 at the root; kana or classification
+/// Locations: 新着作品, 作家别, 作品名别 and 分类别 at the root; kana or classification
 /// groups below them; a person below an author group. Lists of works page by offset.
 @MainActor
 final class AozoraProvider: CollectionBrowsing {
@@ -22,7 +22,7 @@ final class AozoraProvider: CollectionBrowsing {
     }
 
     var instance: SourceInstanceKey { SourceInstanceKey(type: .aozora, id: PublicLibraryID.aozora.rawValue) }
-    var displayName: String { localized("青空文庫") }
+    var displayName: String { localized("青空文库") }
     /// Its catalog, then its books.
     var hosts: [String] { AozoraCatalogStore.manifestURL.providerHosts + [AozoraLibraryDownloadService.host] }
     var availability: ProviderAvailability {
@@ -36,11 +36,11 @@ final class AozoraProvider: CollectionBrowsing {
 
     func browse(_ location: CollectionLocation?, after cursor: CollectionCursor?) async throws -> CollectionPage {
         guard let index = catalog() else {
-            throw SourceFailure(kind: .unavailable, underlying: SourceFailure.Message(text: localized("此目錄沒有內容")))
+            throw SourceFailure(kind: .unavailable, underlying: SourceFailure.Message(text: localized("此目录没有内容")))
         }
         guard let location else {
             return CollectionPage(entries: [
-                ("new", "新着作品"), ("authors", "作家別"), ("titles", "作品名別"), ("categories", "分類別"),
+                ("new", "新着作品"), ("authors", "作家别"), ("titles", "作品名别"), ("categories", "分类别"),
             ].map { .location(CollectionLocation(id: $0.0, title: localized($0.1))) }, next: nil)
         }
         let parts = location.id.split(separator: "/", maxSplits: 1).map(String.init)

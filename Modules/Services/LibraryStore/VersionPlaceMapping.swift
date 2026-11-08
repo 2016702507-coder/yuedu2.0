@@ -1,14 +1,14 @@
 import Foundation
 
-/// A place carried from one version of a work to another: from a 來源配置's list to an EPUB's,
-/// from an imported TXT to a module's book, and back (換源 between versions, maintainer
-/// 2026-10-26: 「所有來源都是相同地位」).
+/// A place carried from one version of a work to another: from a 来源配置's list to an EPUB's,
+/// from an imported TXT to a module's book, and back (换源 between versions, maintainer
+/// 2026-10-26: 「所有来源都是相同地位」).
 ///
-/// The two lists do not count alike. A 來源配置's, a module's and a TXT's chapter is its place in
+/// The two lists do not count alike. A 来源配置's, a module's and a TXT's chapter is its place in
 /// the list; an EPUB's entry points into the spine (`WorkTableOfContents`), where several entries
 /// can share one spine item and front matter shifts the rest. So a place is first turned into its
 /// entry's place in the old list, that entry is found again in the new list by title
-/// (`ChapterAlignment`, as 換源 between sources does, the first entry included), and the new entry
+/// (`ChapterAlignment`, as 换源 between sources does, the first entry included), and the new entry
 /// says where its reader opens. The text of another version starts its chapters elsewhere, so no
 /// offset is carried.
 enum VersionPlaceMapping {

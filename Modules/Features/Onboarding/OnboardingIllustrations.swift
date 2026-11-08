@@ -2,7 +2,7 @@ import SwiftUI
 
 // The tour's pictures. Each says again what its page says in words, so VoiceOver skips them.
 
-/// 從探索找書: books of every kind side by side, the middle one in front. The covers are
+/// 从探索找书: books of every kind side by side, the middle one in front. The covers are
 /// `HomeLayoutSample`'s, which the app carries for the layout previews: a Japanese first
 /// edition, a comic, a classic, a magazine and a Chinese first edition.
 struct OnboardingCoverShelf: View {
@@ -33,7 +33,7 @@ struct OnboardingCoverShelf: View {
     }
 }
 
-/// 一部作品，一個頁面: one work in front of its other versions, with the count of places 搜尋
+/// 一部作品，一个页面: one work in front of its other versions, with the count of places 搜寻
 /// gives a work.
 struct OnboardingWorkStack: View {
     /// The shelf's classic, the kind of book many places have.
@@ -82,7 +82,7 @@ struct OnboardingWorkStack: View {
     }
 }
 
-/// 長時間閱讀也舒服: a page set across in 白色 and one set down in 棕色, its columns running
+/// 长时间阅读也舒服: a page set across in 白色 and one set down in 棕色, its columns running
 /// from the right.
 struct OnboardingPageSketches: View {
     private static let lineFractions: [CGFloat] = [1, 0.92, 1, 0.84, 0.96, 0.6]
@@ -131,7 +131,7 @@ struct OnboardingPageSketches: View {
     }
 }
 
-#Preview("封面書架") {
+#Preview("封面书架") {
     OnboardingCoverShelf()
         .padding()
 }
@@ -141,7 +141,7 @@ struct OnboardingPageSketches: View {
         .padding()
 }
 
-#Preview("橫排與直排") {
+#Preview("横排与直排") {
     OnboardingPageSketches()
         .padding()
 }

@@ -2,15 +2,15 @@ import Combine
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// The three ways in to 新增模組 (Phase 6e).
+/// The three ways in to 新增模组 (Phase 6e).
 enum RuleModuleAddRoute: CaseIterable, Hashable {
     case address, file, clipboard
 
     var titleKey: String {
         switch self {
-        case .address: "從網址"
-        case .file: "從檔案"
-        case .clipboard: "從剪貼簿"
+        case .address: "从网址"
+        case .file: "从档案"
+        case .clipboard: "从剪贴簿"
         }
     }
 
@@ -23,8 +23,8 @@ enum RuleModuleAddRoute: CaseIterable, Hashable {
     }
 }
 
-/// 新增模組, from 設定's 模組 (its toolbar; 資源庫's ••• and empty card until 2026-10-27). The
-/// source disclaimer comes first, as for a 來源配置 (`SourceDisclaimerGate`). The file picker is
+/// 新增模组, from 设置's 模组 (its toolbar; 资源库's ••• and empty card until 2026-10-27). The
+/// source disclaimer comes first, as for a 来源配置 (`SourceDisclaimerGate`). The file picker is
 /// presented from the page itself, never from a sheet: on iOS 17 a sheet cannot present it
 /// (`BookSourceImportPresentationPolicy`).
 @MainActor
@@ -94,7 +94,7 @@ private struct RuleModuleAddFlowModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
             .sheet(isPresented: $flow.showsSheet) {
-                RuleModuleImportSheet(model: flow.model, title: localized("新增模組"), asksForAddress: flow.asksForAddress)
+                RuleModuleImportSheet(model: flow.model, title: localized("新增模组"), asksForAddress: flow.asksForAddress)
             }
             .fileImporter(isPresented: $flow.showsFileImporter, allowedContentTypes: RuleModuleAddFlow.contentTypes) {
                 flow.picked($0)
@@ -105,7 +105,7 @@ private struct RuleModuleAddFlowModifier: ViewModifier {
     }
 }
 
-/// 新增模組's items inside an iOS 18 menu.
+/// 新增模组's items inside an iOS 18 menu.
 struct RuleModuleAddMenuItems: View {
     let flow: RuleModuleAddFlow
 

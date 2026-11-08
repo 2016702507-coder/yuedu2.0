@@ -20,7 +20,7 @@ extension ReaderView {
         // rebuilding the navigation tree or replacing the scroll container.
         if manuallyRefreshingChapterIndex == currentChapterIndex {
             readerSurfaceBackground
-                .overlay { ProgressView(localized("載入中…")) }
+                .overlay { ProgressView(localized("载入中…")) }
                 .readerLoadingChromeTap { toggleReaderChrome() }
                 .transition(.opacity)
         }
@@ -99,7 +99,7 @@ extension ReaderView {
 
     /// Scroll mode's share of `readerBarContentInsets`, split into the part that is
     /// clipped away (the bands the bars sit in) and the part that stays as ordinary
-    /// padding (上下邊距).
+    /// padding (上下边距).
     ///
     /// The two always add back up to `readerBarContentInsets`, which is also what
     /// the paginator is told, so the bar, the hole reserved for it and the text's
@@ -211,7 +211,7 @@ extension ReaderView {
     /// `readerBarContentInsets` is read by the render-settings snapshot, which is
     /// exactly the caller the note above warns about — pointing it at
     /// `windowSafeBottom` stalled the hosting controller and left books stuck on
-    /// 載入中.
+    /// 载入中.
     var effectiveReaderSafeBottom: CGFloat {
         readerSafeAreaBottom
     }

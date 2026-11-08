@@ -42,8 +42,8 @@ extension ReaderView {
         return BookSourceStore.shared.source(id: id)
     }
 
-    /// The reader menu's 自訂按鈕 (legado `ReadMenu.tvCustomBtn`): clickCustomButton with the
-    /// chapter on screen. A page the script builds shows in the 段評 sheet.
+    /// The reader menu's 自订按钮 (legado `ReadMenu.tvCustomBtn`): clickCustomButton with the
+    /// chapter on screen. A page the script builds shows in the 段评 sheet.
     func runSourceCustomButton() {
         guard let book = callBackBook, let source = readerSource else { return }
         let chapter = currentOnlineChapter.map(SourceCallBackService.chapterSnapshot)

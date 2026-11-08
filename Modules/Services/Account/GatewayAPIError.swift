@@ -64,54 +64,54 @@ extension GatewayAPIError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .notConfigured:
-            return localized("此版本未設定中轉服務")
+            return localized("此版本未设置中转服务")
         case .transport:
-            return localized("目前無法連線中轉服務，請檢查網路後再試")
+            return localized("目前无法连线中转服务，请检查网路后再试")
         case .server(let code, _, _, let details):
             // The Gateway's own text is English and technical (a zh-Hans deletion
             // showed "Apple access could not be revoked."); read the code instead.
             return Self.localizedMessage(code: code, upstream: details["upstream"] as? String)
         case .invalidResponse:
-            return localized("中轉服務回應格式不正確")
+            return localized("中转服务回应格式不正确")
         }
     }
 
     private static func localizedMessage(code: String, upstream: String?) -> String {
         switch code {
         case "invalid-credentials":
-            return localized("登入資訊不正確，請再試一次")
+            return localized("登入资讯不正确，请再试一次")
         case "wrong-account":
-            return localized("請用這個帳號已連結的 Apple 或 Google 帳號驗證")
+            return localized("请用这个帐号已连结的 Apple 或 Google 帐号验证")
         case "email-exists":
-            return localized("這個電子郵件已被其他帳號使用")
+            return localized("这个电子邮件已被其他帐号使用")
         case "user-disabled":
-            return localized("這個帳號已被停用")
+            return localized("这个帐号已被停用")
         case "user-not-found":
-            return localized("這個帳號已不存在")
+            return localized("这个帐号已不存在")
         case "unauthenticated":
-            return localized("登入狀態已失效，請重新登入")
+            return localized("登入状态已失效，请重新登入")
         case "reauth-required":
-            return localized("為了保護帳號安全，請重新登入後再試")
+            return localized("为了保护帐号安全，请重新登入后再试")
         case "provider-already-linked":
-            return localized("這個帳號已經連結過此登入方式")
+            return localized("这个帐号已经连结过此登入方式")
         case "credential-already-in-use":
-            return localized("此登入方式屬於另一個帳號。你可以改用它登入那個帳號，或先在那個帳號解除連結。")
+            return localized("此登入方式属于另一个帐号。你可以改用它登入那个帐号，或先在那个帐号解除连结。")
         case "cannot-unlink-last-provider":
-            return localized("這是唯一的登入方式，解除後就無法再登入，請先連結另一種方式")
+            return localized("这是唯一的登入方式，解除后就无法再登入，请先连结另一种方式")
         case "rate-limited":
-            return localized("嘗試次數過多，請稍後再試")
+            return localized("尝试次数过多，请稍后再试")
         case "upstream-unavailable":
-            return localized("服務暫時無法使用，請稍後再試")
+            return localized("服务暂时无法使用，请稍后再试")
         case "apple-revoke-failed":
-            return localized("無法撤銷 Apple 授權，帳號沒有被刪除，請稍後再試")
+            return localized("无法撤销 Apple 授权，帐号没有被删除，请稍后再试")
         case "cleanup-failed":
-            return localized("帳號資料沒有刪除完成，帳號仍保留，請再試一次")
+            return localized("帐号资料没有删除完成，帐号仍保留，请再试一次")
         case "invalid-argument" where upstream == "WEAK_PASSWORD":
-            return localized("密碼至少需要 6 個字元")
+            return localized("密码至少需要 6 个字元")
         case "invalid-argument" where upstream?.hasPrefix("INVALID_EMAIL") == true:
-            return localized("電子郵件格式不正確")
+            return localized("电子邮件格式不正确")
         default:
-            return String(format: localized("伺服器無法完成這個請求（%@）"), code)
+            return String(format: localized("伺服器无法完成这个请求（%@）"), code)
         }
     }
 }

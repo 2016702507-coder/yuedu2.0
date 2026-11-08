@@ -1,14 +1,14 @@
 import Foundation
 
 // Unified library 5d-3: the layouts the home draws (Phase 5 plan, decision 14, from the
-// maintainer's layout notes): 大型閱讀卡片, 橫向單排書架, 多行橫向輪播, 固定封面網格 and
-// 圖文資訊清單; 精簡閱讀卡片 since 5d-3c (decision 20). A stored layout may be anything a custom page
+// maintainer's layout notes): 大型阅读卡片, 横向单排书架, 多行横向轮播, 固定封面网格 and
+// 图文资讯清单; 精简阅读卡片 since 5d-3c (decision 20). A stored layout may be anything a custom page
 // or a later build wrote; the app decides what is drawn from it.
-// The maintainer, 2026-10-25, after Apple Books' store and home: 色帶書架, 大型封面書架 and
-// 一大四小 for books, and 分類卡片 and 拼貼卡片 for lists
-// (`Technotes/AppleBooksHomeLayouts-2026-10-25.md`). 2026-10-27: 色帶書架 became the home's
-// 頂部輪播圖, and 大圖卡片 joined the layouts of lists; later that day a 色帶書架 of its own came
-// back as Audiobooks We Love's (`colorBand`), and 排行榜, Top Charts' columns, replaced 顯示排名.
+// The maintainer, 2026-10-25, after Apple Books' store and home: 色带书架, 大型封面书架 and
+// 一大四小 for books, and 分类卡片 and 拼贴卡片 for lists
+// (`Technotes/AppleBooksHomeLayouts-2026-10-25.md`). 2026-10-27: 色带书架 became the home's
+// 顶部轮播图, and 大图卡片 joined the layouts of lists; later that day a 色带书架 of its own came
+// back as Audiobooks We Love's (`colorBand`), and 排行榜, Top Charts' columns, replaced 显示排名.
 
 /// One of the layouts.
 enum HomeLayoutStyle: String, CaseIterable, Identifiable, Sendable {
@@ -20,10 +20,10 @@ enum HomeLayoutStyle: String, CaseIterable, Identifiable, Sendable {
     case list
     case featured
     case largeRow
-    /// 色帶書架: the section on its first cover's colour, its covers stacked (`HomeSectionLayout.colorBand`).
+    /// 色带书架: the section on its first cover's colour, its covers stacked (`HomeSectionLayout.colorBand`).
     case colorBand
     case heroGrid
-    /// 專題集合: lists, not books, a card each (`HomeSection.listCards`), as are the four after it.
+    /// 专题集合: lists, not books, a card each (`HomeSection.listCards`), as are the four after it.
     case collection
     case categoryCards
     case collageCards
@@ -35,20 +35,20 @@ enum HomeLayoutStyle: String, CaseIterable, Identifiable, Sendable {
 
     var titleKey: String {
         switch self {
-        case .readingCard: "大型閱讀卡片"
-        case .compactReadingCard: "精簡閱讀卡片"
-        case .row: "橫向單排書架"
-        case .multiRow: "多行橫向輪播"
-        case .coverGrid: "固定封面網格"
-        case .list: "圖文資訊清單"
-        case .featured: "精選"
-        case .largeRow: "大型封面書架"
-        case .colorBand: "色帶書架"
+        case .readingCard: "大型阅读卡片"
+        case .compactReadingCard: "精简阅读卡片"
+        case .row: "横向单排书架"
+        case .multiRow: "多行横向轮播"
+        case .coverGrid: "固定封面网格"
+        case .list: "图文资讯清单"
+        case .featured: "精选"
+        case .largeRow: "大型封面书架"
+        case .colorBand: "色带书架"
         case .heroGrid: "一大四小"
-        case .collection: "專題集合"
-        case .categoryCards: "分類卡片"
-        case .collageCards: "拼貼卡片"
-        case .bannerCards: "大圖卡片"
+        case .collection: "专题集合"
+        case .categoryCards: "分类卡片"
+        case .collageCards: "拼贴卡片"
+        case .bannerCards: "大图卡片"
         case .chart: "排行榜"
         }
     }
@@ -73,7 +73,7 @@ enum HomeLayoutStyle: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
-    /// A layout of lists, each card a list: 專題集合, 分類卡片, 拼貼卡片, 大圖卡片 and 排行榜.
+    /// A layout of lists, each card a list: 专题集合, 分类卡片, 拼贴卡片, 大图卡片 and 排行榜.
     var drawsLists: Bool {
         switch self {
         case .collection, .categoryCards, .collageCards, .bannerCards, .chart: true
@@ -81,10 +81,10 @@ enum HomeLayoutStyle: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
-    /// What 呈現方式 offers a section: every layout (maintainer, 2026-10-27: every source in every
+    /// What 呈现方式 offers a section: every layout (maintainer, 2026-10-27: every source in every
     /// layout), a layout of lists drawing a card per list (`HomeSection.listCards`); only the
     /// layouts of lists for what is lists alone (`HomeSectionBinding.drawsOnlyLists`). One place,
-    /// for the long press, the form and 新增欄目.
+    /// for the long press, the form and 新增栏目.
     static func choices(for binding: HomeSectionBinding) -> [HomeLayoutStyle] {
         binding.drawsOnlyLists ? allCases.filter(\.drawsLists) : allCases
     }
@@ -92,7 +92,7 @@ enum HomeLayoutStyle: String, CaseIterable, Identifiable, Sendable {
 
 extension HomeSectionLayout {
     /// The layout the reader sees chosen. A custom page's seven kinds map as decision 14 says
-    /// (5d-4 migrates them with the same mapping), its rankings as 排行榜. 磚塊 and a later build's
+    /// (5d-4 migrates them with the same mapping), its rankings as 排行榜. 砖块 and a later build's
     /// layout are drawn as a row, the layout every section can take, and kept as they are.
     var style: HomeLayoutStyle {
         switch self {
@@ -103,12 +103,12 @@ extension HomeSectionLayout {
         case .list: return .list
         case .featured: return .featured
         case .collection: return .collection
-        // The page's first band is its 頂部輪播圖, drawn by the home itself; another is drawn
+        // The page's first band is its 顶部轮播图, drawn by the home itself; another is drawn
         // as the row of large covers it was closest to.
         case .band, .largeRow: return .largeRow
         case .colorBand: return .colorBand
         case .heroGrid: return .heroGrid
-        // 顯示排名's two values, written before 2026-10-27, and 排行榜's.
+        // 显示排名's two values, written before 2026-10-27, and 排行榜's.
         case .rankedRow, .rankedList: return .chart
         case .categoryCards: return .categoryCards
         case .collageCards: return .collageCards
@@ -123,7 +123,7 @@ extension HomeSectionLayout {
         }
     }
 
-    /// What 呈現方式 writes. 排行榜 is written as 橫向單排書架 with ranks, which a build before it
+    /// What 呈现方式 writes. 排行榜 is written as 横向单排书架 with ranks, which a build before it
     /// draws as that; one ranking is one card, as one list is.
     init(style: HomeLayoutStyle) {
         switch style {
@@ -146,7 +146,7 @@ extension HomeSectionLayout {
     }
 
     /// What the home draws: the chosen layout, except that two rows of covers do not fit a
-    /// phone at accessibility text sizes, so 多行橫向輪播 draws one (decision 14: the app
+    /// phone at accessibility text sizes, so 多行横向轮播 draws one (decision 14: the app
     /// decides what is drawn). 一大四小 draws covers alone, which no text size changes.
     func drawnStyle(accessibilityTextSize: Bool) -> HomeLayoutStyle {
         if accessibilityTextSize, style == .multiRow { return .row }

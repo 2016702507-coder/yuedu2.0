@@ -7,9 +7,9 @@ enum AozoraBrowseMode: String, CaseIterable, Identifiable {
     var titleKey: String {
         switch self {
         case .newest: "新着作品"
-        case .authors: "作家別"
-        case .titles: "作品名別"
-        case .categories: "分類別"
+        case .authors: "作家别"
+        case .titles: "作品名别"
+        case .categories: "分类别"
         }
     }
     var symbol: String {
@@ -59,7 +59,7 @@ struct AozoraCatalogView: View {
                     }
                 }
                 .overlay {
-                    if groups.isEmpty { ContentUnavailableView { UnavailableLabel(localized("此目錄沒有內容"), systemImage: "books.vertical") } }
+                    if groups.isEmpty { ContentUnavailableView { UnavailableLabel(localized("此目录没有内容"), systemImage: "books.vertical") } }
                 }
                 .navigationTitle(localized(mode.titleKey))
                 .toolbarTitleDisplayMode(.inline)
@@ -79,7 +79,7 @@ struct AozoraWorksView: View {
             PublicLibraryBooksGrid(books: works.map { .aozora($0, index) }) { openBooks?($0) }
         }
         .overlay {
-            if works.isEmpty { ContentUnavailableView { UnavailableLabel(localized("此目錄沒有內容"), systemImage: "books.vertical") } }
+            if works.isEmpty { ContentUnavailableView { UnavailableLabel(localized("此目录没有内容"), systemImage: "books.vertical") } }
         }
         .navigationTitle(title)
         .toolbarTitleDisplayMode(.inline)
@@ -119,7 +119,7 @@ struct AozoraWorkDetailView: View {
     }
     private var author: String { work.credits.compactMap { index.personsByID[$0.person]?.name }.joined(separator: "、") }
     private var readAction: BookDetailAction {
-        BookDetailAction(title: localized(shelfBook == nil ? "開始閱讀" : "動作：開啟"), systemImage: "book",
+        BookDetailAction(title: localized(shelfBook == nil ? "开始阅读" : "动作：开启"), systemImage: "book",
             isBusy: action != nil, isEnabled: action == nil,
             detail: BookDetailResume.detail(chapterIndex: nil, progress: shelfBook?.currentPosition), action: {
                 if let book = shelfBook { openReader(book.id) }
@@ -144,7 +144,7 @@ struct AozoraWorkDetailView: View {
         BookDetailScaffold(title: work.title, compactAction: readAction) {
             BookDetailHero(artworkShape: .book, cover: GeneratedBookCover(title: work.title, author: author),
                 title: work.title, author: author, meta: "", primary: readAction,
-                secondary: BookDetailAction(title: localized(shelfBook == nil ? "加入書架" : "已加入書架"),
+                secondary: BookDetailAction(title: localized(shelfBook == nil ? "加入书架" : "已加入书架"),
                     systemImage: shelfBook == nil ? "plus" : "checkmark", isBusy: action != nil,
                     isEnabled: action == nil && shelfBook == nil, action: { addToShelf() }),
                 authorActions: work.credits.compactMap { credit in
@@ -155,13 +155,13 @@ struct AozoraWorkDetailView: View {
         } content: {
             VStack(alignment: .leading, spacing: DSSpacing.lg) {
                 if action != nil {
-                    ProgressView(localized("正在加入書架"))
+                    ProgressView(localized("正在加入书架"))
                     Button(localized("取消"), role: .cancel) { action?.cancel() }
                 }
                 if let message {
                     Text(message).foregroundStyle(failed ? DSColor.destructive : DSColor.textSecondary)
                 }
-                if failed { Button(localized("重試")) { addToShelf(openAfterImport: opensAfterImport) } }
+                if failed { Button(localized("重试")) { addToShelf(openAfterImport: opensAfterImport) } }
                 if !work.yomi.isEmpty { Text(work.yomi).font(DSFont.subheadline).foregroundStyle(DSColor.textSecondary) }
                 if !work.subtitle.isEmpty { Text(work.subtitle).font(DSFont.body).foregroundStyle(DSColor.textPrimary) }
             }.padding(.horizontal, DSSpacing.lg)
@@ -170,15 +170,15 @@ struct AozoraWorkDetailView: View {
         .onDisappear { action?.cancel() }
     }
 
-    /// 作品資訊: the catalogue's record of the work, credits included.
+    /// 作品资讯: the catalogue's record of the work, credits included.
     private var infoItems: [BookDetailInfoItem] {
-        var items = [BookDetailInfoItem(id: "library", label: localized("來源"), value: localized("青空文庫"))]
+        var items = [BookDetailInfoItem(id: "library", label: localized("来源"), value: localized("青空文库"))]
         for (offset, credit) in work.credits.enumerated() {
             if let person = index.personsByID[credit.person] {
                 items.append(BookDetailInfoItem(id: "credit\(offset)", label: localized(credit.role), value: person.name))
             }
         }
-        items.append(BookDetailInfoItem(id: "published", label: localized("公開日"), value: work.published))
+        items.append(BookDetailInfoItem(id: "published", label: localized("公开日"), value: work.published))
         items.append(BookDetailInfoItem(id: "kana", label: localized("文字遣い種別"), value: work.kanaStyle))
         if !work.source.isEmpty { items.append(BookDetailInfoItem(id: "source", label: localized("底本"), value: work.source)) }
         if !work.sourcePublisher.isEmpty {
@@ -201,7 +201,7 @@ struct AozoraWorkDetailView: View {
             do {
                 let book = try await dependencies.aozoraLibrary.addToShelf(work: work, store: store)
                 try Task.checkCancellation()
-                message = localized("已加入書架")
+                message = localized("已加入书架")
                 if openAfterImport { openReader(book.id) }
             } catch is CancellationError {
                 message = localized("已取消")

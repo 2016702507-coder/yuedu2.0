@@ -5,16 +5,16 @@ import SwiftUI
 ///
 /// - The scrubber: ⏮ 上一章 / the book's progress slider / 下一章 ⏭, with the
 ///   chapter's page and the whole book's progress under the slider.
-/// - The tools: 目錄 / 深色 / 聽書 / 主題 from `ReaderChromeToolItem` (自定義 can
-///   hide or re-icon them), then 更多, which holds 書籤 and AI 助手 / AI 翻譯.
+/// - The tools: 目录 / 深色 / 听书 / 主题 from `ReaderChromeToolItem` (自定义 can
+///   hide or re-icon them), then 更多, which holds 书签 and AI 助手 / AI 翻译.
 ///
 /// Both wear the shared 界面效果 surface (`floatingSurface`), which on iOS 26 is the
-/// system's own glass, so 毛玻璃 / 透明度 / 光暈 reach them like every other floating
+/// system's own glass, so 毛玻璃 / 透明度 / 光晕 reach them like every other floating
 /// element. They are deliberately not the system bottom toolbar: the system sizes that
 /// capsule from the display's corner radius, and the scrubber above it could not be
 /// made to match.
 ///
-/// The other book-scoped actions (刷新 / 換源 / 下載 / 來源配置登入 …) are not here; they
+/// The other book-scoped actions (刷新 / 换源 / 下载 / 来源配置登入 …) are not here; they
 /// live in `ReaderModernBookCard` behind the cover.
 struct ReaderModernBottomControlBar: View {
     /// The built-in background the reader sits on: what the bar's colours are read from.
@@ -32,7 +32,7 @@ struct ReaderModernBottomControlBar: View {
     let onPrevChapter: () -> Void
     let onNextChapter: () -> Void
     let onOpenTOC: () -> Void
-    /// 主題: the quick panel — font size, 翻頁, brightness, backgrounds, 自動閱讀, and
+    /// 主题: the quick panel — font size, 翻页, brightness, backgrounds, 自动阅读, and
     /// the way into the full reader settings.
     let onOpenSettings: () -> Void
     let onListen: () -> Void
@@ -40,10 +40,10 @@ struct ReaderModernBottomControlBar: View {
     let onToggleDarkMode: () -> Void
     let onOpenBookmarks: () -> Void
     let onToggleBookmark: () -> Void
-    /// AI 助手 and AI 翻譯 — those that apply to this book and that 自定義 left on — listed
-    /// under 書籤 in 更多.
+    /// AI 助手 and AI 翻译 — those that apply to this book and that 自定义 left on — listed
+    /// under 书签 in 更多.
     let moreActions: [ReaderSecondaryAction]
-    /// 複製正文網址 and 調試正文 for an online chapter (`ReaderSourceDebugActions`), a group of
+    /// 复制正文网址 and 调试正文 for an online chapter (`ReaderSourceDebugActions`), a group of
     /// their own below `moreActions`.
     var sourceActions: [ReaderSecondaryAction] = []
 
@@ -53,7 +53,7 @@ struct ReaderModernBottomControlBar: View {
     /// One height for both capsules, growing with the captions they carry.
     @ScaledMetric(relativeTo: .caption2) private var rowHeight = DSLayout.readerModernBarRowHeight
     /// iOS 17 only: 更多 is a chooser sheet, and its choice runs from the sheet's real
-    /// `onDismiss` (Technotes/iOS17MenuModalPresentation.md) — 書籤 and the AI panels open
+    /// `onDismiss` (Technotes/iOS17MenuModalPresentation.md) — 书签 and the AI panels open
     /// sheets.
     @State private var showsLegacyMoreMenu = false
     @State private var legacyMoreSequence = DismissalSequencedPresentation<MoreRoute>()
@@ -137,7 +137,7 @@ struct ReaderModernBottomControlBar: View {
                     onIncrement: canGoNextChapter ? onNextChapter : nil,
                     onDecrement: canGoPrevChapter ? onPrevChapter : nil
                 )
-                .accessibilityLabel(localized("閱讀進度"))
+                .accessibilityLabel(localized("阅读进度"))
                 .accessibilityValue(progressPercentText)
 
                 VStack(spacing: 0) {
@@ -156,7 +156,7 @@ struct ReaderModernBottomControlBar: View {
 
             chapterButton(
                 systemImage: "forward.end",
-                label: localized(canGoNextChapter ? "下一章" : "書末頁"),
+                label: localized(canGoNextChapter ? "下一章" : "书末页"),
                 isEnabled: canGoNextChapter,
                 action: onNextChapter
             )
@@ -187,7 +187,7 @@ struct ReaderModernBottomControlBar: View {
 
     // MARK: - Tools
 
-    /// Same shared list 自定義 edits, so hiding a tool or importing an icon applies
+    /// Same shared list 自定义 edits, so hiding a tool or importing an icon applies
     /// here. Order always follows `allCases`; persistence only records what is hidden.
     private var toolRow: some View {
         HStack(spacing: 0) {
@@ -203,11 +203,11 @@ struct ReaderModernBottomControlBar: View {
     private func toolButton(for item: ReaderChromeToolItem) -> some View {
         switch item {
         case .tableOfContents:
-            toolButton(item: item, label: localized("目錄"), action: onOpenTOC)
+            toolButton(item: item, label: localized("目录"), action: onOpenTOC)
         case .settings:
-            toolButton(item: item, label: localized("主題"), action: onOpenSettings)
+            toolButton(item: item, label: localized("主题"), action: onOpenSettings)
         case .listen:
-            toolButton(item: item, label: localized("聽書"), action: onListen)
+            toolButton(item: item, label: localized("听书"), action: onListen)
         case .nightMode:
             toolButton(
                 item: item,
@@ -231,7 +231,7 @@ struct ReaderModernBottomControlBar: View {
         }
         .buttonStyle(.plain)
         // Derived from the item, not the label: the label is localized, so a
-        // UI test looking for 目錄 would only ever find it in one language.
+        // UI test looking for 目录 would only ever find it in one language.
         .accessibilityIdentifier("reader_tool_\(item.rawValue)")
         .accessibilityLabel(label)
         .accessibilityAddTraits(active ? .isSelected : [])
@@ -266,7 +266,7 @@ struct ReaderModernBottomControlBar: View {
                 .scaledToFit()
                 .frame(width: DSLayout.readerModernToolGlyphHeight, height: DSLayout.readerModernToolGlyphHeight)
         } else if item == .settings {
-            // 主題 is the serif "Aa" Apple Books uses for its themes button.
+            // 主题 is the serif "Aa" Apple Books uses for its themes button.
             Text(verbatim: "Aa")
                 .font(GlobalAppTypography.font(.headline, weight: .bold, systemDesign: .serif))
                 .foregroundStyle(palette.bottomIcon)
@@ -280,7 +280,7 @@ struct ReaderModernBottomControlBar: View {
     // MARK: - 更多
 
     private var bookmarkToggleTitle: String {
-        localized(isCurrentPageBookmarked ? "移除書籤" : "加入書籤")
+        localized(isCurrentPageBookmarked ? "移除书签" : "加入书签")
     }
 
     private var bookmarkToggleSymbol: String {
@@ -306,7 +306,7 @@ struct ReaderModernBottomControlBar: View {
                         actions: [
                             DismissalSequencedAction(
                                 route: MoreRoute.bookmarks,
-                                title: localized("書籤"),
+                                title: localized("书签"),
                                 systemImage: "list.bullet.rectangle"
                             ),
                             DismissalSequencedAction(
@@ -329,7 +329,7 @@ struct ReaderModernBottomControlBar: View {
         } else {
             Menu {
                 Button(action: onOpenBookmarks) {
-                    Label(localized("書籤"), systemImage: "list.bullet.rectangle")
+                    Label(localized("书签"), systemImage: "list.bullet.rectangle")
                 }
                 Button(action: onToggleBookmark) {
                     Label(bookmarkToggleTitle, systemImage: bookmarkToggleSymbol)
@@ -379,7 +379,7 @@ struct ReaderModernBottomControlBar: View {
         }
     }
 
-    /// The icon 自定義 imported for the action, else its symbol.
+    /// The icon 自定义 imported for the action, else its symbol.
     @ViewBuilder
     private func moreActionIcon(_ action: ReaderSecondaryAction) -> some View {
         if let item = ReaderChromeActionItem(action.id),
@@ -443,7 +443,7 @@ private struct GlassGroup<Content: View>: View {
     ZStack {
         theme.backgroundColor.ignoresSafeArea()
 
-        Text(String(repeating: "正文墊在浮動底欄後面，檢查是否穿透。", count: 24))
+        Text(String(repeating: "正文垫在浮动底栏后面，检查是否穿透。", count: 24))
             .font(DSFont.fixed(size: 17))
             .foregroundColor(theme.textColor)
             .padding(20)
@@ -453,7 +453,7 @@ private struct GlassGroup<Content: View>: View {
             overlayContentMaxWidth: .infinity,
             canGoPrevChapter: true,
             canGoNextChapter: true,
-            progressText: "12 / 28 頁 · 全書 6%",
+            progressText: "12 / 28 页 · 全书 6%",
             chapterSliderProgressValue: { 0.43 },
             applyChapterSliderProgress: { _ in },
             chapterTitleForProgress: { _ in "第五回" },
@@ -468,11 +468,11 @@ private struct GlassGroup<Content: View>: View {
             onToggleBookmark: {},
             moreActions: [
                 ReaderSecondaryAction(id: .aiAssistant, icon: "sparkles", label: "AI 助手", isLocked: true, action: {}),
-                ReaderSecondaryAction(id: .translation, icon: "translate", label: "AI 翻譯", isLocked: true, action: {})
+                ReaderSecondaryAction(id: .translation, icon: "translate", label: "AI 翻译", isLocked: true, action: {})
             ],
             sourceActions: [
-                ReaderSecondaryAction(id: .copyChapterURL, icon: "link", label: "複製正文網址", action: {}),
-                ReaderSecondaryAction(id: .debugContent, icon: "ladybug", label: "調試正文", action: {})
+                ReaderSecondaryAction(id: .copyChapterURL, icon: "link", label: "复制正文网址", action: {}),
+                ReaderSecondaryAction(id: .debugContent, icon: "ladybug", label: "调试正文", action: {})
             ]
         )
         .frame(maxHeight: .infinity, alignment: .bottom)

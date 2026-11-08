@@ -463,11 +463,11 @@ struct AppearanceThemePreset: Identifiable, Hashable {
 
     static let classicID = "classic"
 
-    /// "默認" — what the app looked like before appearance themes existed.
+    /// "默认" — what the app looked like before appearance themes existed.
     /// Selecting it applies no tint override (see `ContentView`); the colors
     /// here only drive the preview tile and serve as a base for custom copies.
     static let classic = AppearanceThemePreset(
-        id: classicID, nameKey: "默認",
+        id: classicID, nameKey: "默认",
         displayName: nil,
         background: hex(0xF4F5F7), text: hex(0x333333),
         bar: .white, accent: hex(0x007AFF), dialogue: hex(0xD8E9FB),
@@ -484,7 +484,7 @@ struct AppearanceThemePreset: Identifiable, Hashable {
     /// IDs are stable storage keys — do not rename when display names change.
     static let freeSolidPresets: [AppearanceThemePreset] = [
         AppearanceThemePreset(
-            id: "ocean_blue", nameKey: "海霧藍",
+            id: "ocean_blue", nameKey: "海雾蓝",
             displayName: nil,
             background: hex(0xEAF2FC), text: hex(0x263443),
             bar: hex(0xDCE9F8), accent: hex(0x3478F6), dialogue: hex(0xD4E4F7),
@@ -502,7 +502,7 @@ struct AppearanceThemePreset: Identifiable, Hashable {
             requiresPro: false, isImagePreset: false, isCustom: false
         ),
         AppearanceThemePreset(
-            id: "forest_green", nameKey: "苔原綠",
+            id: "forest_green", nameKey: "苔原绿",
             displayName: nil,
             background: hex(0xEBF4EC), text: hex(0x28382C),
             bar: hex(0xDCEBDE), accent: hex(0x3E9D63), dialogue: hex(0xD5E8D8),
@@ -520,7 +520,7 @@ struct AppearanceThemePreset: Identifiable, Hashable {
             requiresPro: false, isImagePreset: false, isCustom: false
         ),
         AppearanceThemePreset(
-            id: "rose_pink", nameKey: "櫻語粉",
+            id: "rose_pink", nameKey: "樱语粉",
             displayName: nil,
             background: hex(0xFCEFF4), text: hex(0x422D36),
             bar: hex(0xF6DCE7), accent: hex(0xE05C8A), dialogue: hex(0xF5D5E2),
@@ -736,7 +736,7 @@ struct AppearanceThemePreset: Identifiable, Hashable {
             // 图标/icons: tab-bar icon assets, not backgrounds.
             // 界面背景: loose background library reserved for the upcoming
             // background-import feature — not a coherent theme pack.
-            return value == "图标" || value == "圖標" || lower == "icon" || lower == "icons"
+            return value == "图标" || value == "图标" || lower == "icon" || lower == "icons"
                 || value == "界面背景"
         }
     }

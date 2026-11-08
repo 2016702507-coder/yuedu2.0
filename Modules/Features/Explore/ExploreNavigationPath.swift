@@ -9,27 +9,27 @@ enum ExploreNavigationRoute: Hashable {
     case sourceCategory(ExploreCategoryReference)
     /// Legado's 搜索 on a source: the search page scoped to that source alone.
     case searchInSource(sourceURL: String)
-    /// 書源管理, pushed on every version.
+    /// 书源管理, pushed on every version.
     case sourceManager
-    /// 聚合設定, from 探索's ••• (中繼資料語言偏好推薦, 參與聚合的來源; Phase 5 plan, decision 36).
+    /// 聚合设置, from 探索's ••• (中继资料语言偏好推荐, 参与聚合的来源; Phase 5 plan, decision 36).
     case aggregationSettings
-    /// RSS 訂閱, pushed: 資源庫's row and 訂閱的最新文章's 查看全部 (decision 30).
+    /// RSS 订阅, pushed: 资源库's row and 订阅的最新文章's 查看全部 (decision 30).
     case subscriptions
-    /// 古騰堡's or 青空文庫's page in 資源庫's 官方模組: what it offers, as a module's page (no
+    /// 古腾堡's or 青空文库's page in 资源库's 官方模组: what it offers, as a module's page (no
     /// shelves since 2026-10-22; decision 35's own page went).
     case library(SourceInstanceKey)
-    /// 資源庫's sources with a discover page: one group's, or all of them (decision 31).
+    /// 资源库's sources with a discover page: one group's, or all of them (decision 31).
     case sources(group: String?)
     /// An installed module's page (Phase 6e), by its id: the page reads the installed list, so
     /// an update or a removal shows at once.
     case module(id: String)
     /// A module row's 查看全部 (Phase 6f-2), with the section's values frozen in the route.
     case moduleList(ModuleListRoute)
-    /// 官方模組's AI 推薦 page (AI 推薦 plan 8d).
+    /// 官方模组's AI 推荐 page (AI 推荐 plan 8d).
     case aiRecommendations
-    /// 模組 (M6), from 設定 → 資源: 官方模組, the repositories and 匯入的模組.
+    /// 模组 (M6), from 设置 → 资源: 官方模组, the repositories and 汇入的模组.
     case moduleManager
-    /// 官方模組 or 匯入的模組, from 模組.
+    /// 官方模组 or 汇入的模组, from 模组.
     case moduleGroup(RuleModuleGroup)
     /// A subscribed repository's page, by its address.
     case moduleRepository(URL)

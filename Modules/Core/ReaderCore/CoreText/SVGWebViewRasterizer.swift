@@ -72,7 +72,7 @@ final class SVGWebViewRasterizer: NSObject {
     static let shared = SVGWebViewRasterizer()
 
     /// One rasterization lane: a dedicated WKWebView plus the item it is currently drawing.
-    /// A 段評-heavy 起点 chapter carries 100+ distinct bubble SVGs; a single WebView rasterizes
+    /// A 段评-heavy 起点 chapter carries 100+ distinct bubble SVGs; a single WebView rasterizes
     /// them one-by-one, and because the chapter renderer blocks on every image, the whole chapter
     /// shows "infinite loading" for many seconds. A small pool drains the queue ~`poolSize`× faster
     /// while still rendering each SVG exactly as authored.
@@ -131,7 +131,7 @@ final class SVGWebViewRasterizer: NSObject {
             wv.navigationDelegate = self
             workers.append(Worker(webView: wv))
         }
-        // A 段評-heavy 起点 chapter can carry 100+ bubble SVGs; 64 thrashed within a single
+        // A 段评-heavy 起点 chapter can carry 100+ bubble SVGs; 64 thrashed within a single
         // chapter (re-rasterizing on every page turn). Hold a whole chapter's worth.
         cache.countLimit = 1024
         readerBatteryCache.countLimit = 256
@@ -377,7 +377,7 @@ final class SVGWebViewRasterizer: NSObject {
             resolved = CGSize(width: w, height: h)
         }
 
-        // Cap to the display column width. A full-width comment card (起點/企点 本章说 is ~1080pt
+        // Cap to the display column width. A full-width comment card (起点/企点 本章说 is ~1080pt
         // wide) rasterized at its intrinsic width makes WKWebView.takeSnapshot throw on the
         // oversized bitmap → the whole card silently vanished. It's displayed scaled to the column
         // anyway, so rasterize it at the column width. (Small bubbles < renderWidth are untouched.)
@@ -483,7 +483,7 @@ final class SVGWebViewRasterizer: NSObject {
     }
 
     /// Takes a `WKWebView` snapshot, retrying after a short delay when it throws. A large SVG
-    /// card (起點/企点 本章说) can make `takeSnapshot` throw if it isn't fully painted at the moment
+    /// card (起点/企点 本章说) can make `takeSnapshot` throw if it isn't fully painted at the moment
     /// `didFinish` fires; a brief settle + retry lets it render instead of vanishing. (Falling back
     /// to `layer.render` does NOT work — WKWebView content renders out-of-process and comes back
     /// blank — so retrying the real snapshot is the reliable path.)

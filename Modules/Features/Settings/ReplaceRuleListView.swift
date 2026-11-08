@@ -41,9 +41,9 @@ struct ReplaceRuleListView: View {
                         Image(systemName: "text.magnifyingglass")
                             .font(DSFont.fixed(size: 48))
                             .foregroundStyle(DSColor.textSecondary)
-                        Text(localized("尚無替換規則"))
+                        Text(localized("尚无替换规则"))
                             .foregroundStyle(DSColor.textSecondary)
-                        Button(localized("新增規則")) { showingAdd = true }
+                        Button(localized("新增规则")) { showingAdd = true }
                             .buttonStyle(.bordered)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -71,20 +71,20 @@ struct ReplaceRuleListView: View {
                     .listStyle(.plain)
                     // `themedAppSurface` below only hides the *list's* background; a `.plain`
                     // row still paints its own opaque `systemBackground` unless handed one.
-                    // Same fix as 書源管理 / 語音朗讀設定.
+                    // Same fix as 书源管理 / 语音朗读设置.
                 }
             }
-            .navigationTitle(localized("替換規則"))
+            .navigationTitle(localized("替换规则"))
             .toolbarTitleDisplayMode(.inline)
             .themedAppSurface(for: .settings)
             .toolbar { toolbar }
             // Deleting the last rule while selecting swaps the list for the empty state and
-            // hides 編輯; leave selection so the next rule doesn't open in it.
+            // hides 编辑; leave selection so the next rule doesn't open in it.
             .onChange(of: store.rules.isEmpty) { _, isEmpty in
                 if isEmpty { endSelection() }
             }
-            .alert(localized("確認刪除"), isPresented: $showBulkDeleteAlert) {
-                Button(localized("刪除"), role: .destructive) {
+            .alert(localized("确认删除"), isPresented: $showBulkDeleteAlert) {
+                Button(localized("删除"), role: .destructive) {
                     let ids = selectedRuleIDs
                     withAnimation(reduceMotion ? nil : DSAnimation.standard) {
                         store.delete(ids: ids)
@@ -93,7 +93,7 @@ struct ReplaceRuleListView: View {
                 }
                 Button(localized("取消"), role: .cancel) {}
             } message: {
-                Text(String(format: localized("確定要刪除 %d 條替換規則嗎？"), selectedRuleIDs.count))
+                Text(String(format: localized("确定要删除 %d 条替换规则吗？"), selectedRuleIDs.count))
             }
             .sheet(
                 isPresented: $showLegacyActionChooser,
@@ -101,16 +101,16 @@ struct ReplaceRuleListView: View {
             ) {
                 AdaptiveSheetContainer(maxWidth: DSLayout.readableCompactWidth) {
                     DismissalSequencedActionChooser(
-                        title: localized("新增或匯入"),
+                        title: localized("新增或汇入"),
                         actions: [
                             DismissalSequencedAction(
                                 route: .add,
-                                title: localized("新增規則"),
+                                title: localized("新增规则"),
                                 systemImage: "plus"
                             ),
                             DismissalSequencedAction(
                                 route: .importFile,
-                                title: localized("匯入替換規則 JSON"),
+                                title: localized("汇入替换规则 JSON"),
                                 systemImage: "square.and.arrow.down"
                             ),
                         ],
@@ -142,7 +142,7 @@ struct ReplaceRuleListView: View {
         }
     }
 
-    /// 新增或匯入, 編輯 and done; while selecting, 全選 and done, with delete in a bottom bar —
+    /// 新增或汇入, 编辑 and done; while selecting, 全选 and done, with delete in a bottom bar —
     /// the bookshelf's selection layout.
     @ToolbarContentBuilder
     private var toolbar: some ToolbarContent {
@@ -153,7 +153,7 @@ struct ReplaceRuleListView: View {
                 Button {
                     selectedRuleIDs = isAllSelected ? [] : Set(store.rules.map(\.id))
                 } label: {
-                    Text(localized(isAllSelected ? "全不選" : "全選"))
+                    Text(localized(isAllSelected ? "全不选" : "全选"))
                         .font(DSFont.subheadline.weight(.medium))
                         .foregroundStyle(DSColor.textPrimary)
                 }
@@ -177,16 +177,16 @@ struct ReplaceRuleListView: View {
                 }
                 .tint(.red)
                 .disabled(selectedRuleIDs.isEmpty)
-                .accessibilityLabel(localized("刪除"))
+                .accessibilityLabel(localized("删除"))
             }
         } else {
             ToolbarItem(placement: .topBarLeading) {
                 addOrImportToolbarControl
-                .accessibilityLabel(localized("新增或匯入"))
+                .accessibilityLabel(localized("新增或汇入"))
             }
             if !store.rules.isEmpty {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button(localized("編輯")) {
+                    Button(localized("编辑")) {
                         withAnimation(reduceMotion ? nil : DSAnimation.standard) {
                             editMode = .active
                         }
@@ -224,14 +224,14 @@ struct ReplaceRuleListView: View {
                 Button {
                     showingAdd = true
                 } label: {
-                    Label(localized("新增規則"), systemImage: "plus")
+                    Label(localized("新增规则"), systemImage: "plus")
                 }
 
                 Button {
                     showingImportFile = true
                 } label: {
                     Label(
-                        localized("匯入替換規則 JSON"),
+                        localized("汇入替换规则 JSON"),
                         systemImage: "square.and.arrow.down"
                     )
                 }
@@ -263,18 +263,18 @@ struct ReplaceRuleListView: View {
                 let data = try Data(contentsOf: url)
                 let count = try store.importFromLegadoData(data)
                 importAlert = ReplaceRuleImportAlert(
-                    title: "成功匯入",
-                    message: String(format: localized("已匯入 %d 條替換規則"), count)
+                    title: "成功汇入",
+                    message: String(format: localized("已汇入 %d 条替换规则"), count)
                 )
             } catch {
                 importAlert = ReplaceRuleImportAlert(
-                    title: "匯入失敗",
-                    message: String(format: localized("替換規則匯入失敗：%@"), error.localizedDescription)
+                    title: "汇入失败",
+                    message: String(format: localized("替换规则汇入失败：%@"), error.localizedDescription)
                 )
             }
         case .failure(let error):
             importAlert = ReplaceRuleImportAlert(
-                title: "匯入失敗",
+                title: "汇入失败",
                 message: error.localizedDescription
             )
         }
@@ -305,13 +305,13 @@ private struct ReplaceRuleRow: View {
         HStack {
             VStack(alignment: .leading, spacing: 3) {
                 HStack(spacing: 6) {
-                    Text(rule.name.isEmpty ? localized("未命名規則") : rule.name)
+                    Text(rule.name.isEmpty ? localized("未命名规则") : rule.name)
                         .font(DSFont.subheadline)
                         .bold()
                         .foregroundColor(rule.enabled ? .primary : .secondary)
 
                     if rule.scope != "global" {
-                        Text(localized("來源配置"))
+                        Text(localized("来源配置"))
                             .font(DSFont.caption2)
                             .padding(.horizontal, 4)
                             .padding(.vertical, 1)
@@ -372,25 +372,25 @@ struct ReplaceRuleEditView: View {
         NavigationStack {
             Form {
                 Section(header: Text(localized("基本")).foregroundStyle(DSColor.textSecondary)) {
-                    TextField(localized("規則名稱"), text: $rule.name)
-                    Toggle(localized("啟用"), isOn: $rule.enabled)
+                    TextField(localized("规则名称"), text: $rule.name)
+                    Toggle(localized("启用"), isOn: $rule.enabled)
                 }
                 .interfaceSectionSurface()
 
                 Section(header: Text(localized("匹配")).foregroundStyle(DSColor.textSecondary)) {
-                    Toggle(localized("正則表達式"), isOn: $rule.isRegex)
+                    Toggle(localized("正则表达式"), isOn: $rule.isRegex)
                     TextField(localized("匹配模式"), text: $rule.pattern)
                         .font(DSFont.fixed(size: 14, design: .monospaced))
                         .autocapitalization(.none)
                         .disableAutocorrection(true)
-                    TextField(localized("替換為（空白=刪除）"), text: $rule.replacement)
+                    TextField(localized("替换为（空白=删除）"), text: $rule.replacement)
                         .font(DSFont.fixed(size: 14, design: .monospaced))
                         .autocapitalization(.none)
                 }
                 .interfaceSectionSurface()
 
-                Section(header: Text(localized("作用範圍")).foregroundStyle(DSColor.textSecondary)) {
-                    Picker(localized("範圍"), selection: $rule.scope) {
+                Section(header: Text(localized("作用范围")).foregroundStyle(DSColor.textSecondary)) {
+                    Picker(localized("范围"), selection: $rule.scope) {
                         Text(localized("全局")).tag("global")
                         if rule.scope != "global" {
                             Text(rule.scope).tag(rule.scope)
@@ -401,7 +401,7 @@ struct ReplaceRuleEditView: View {
                 .interfaceSectionSurface()
             }
             .softScrollEdges()
-            .navigationTitle(rule.name.isEmpty ? localized("新增規則") : rule.name)
+            .navigationTitle(rule.name.isEmpty ? localized("新增规则") : rule.name)
             .toolbarTitleDisplayMode(.inline)
             .themedAppSurface(for: .settings)
             .toolbar {

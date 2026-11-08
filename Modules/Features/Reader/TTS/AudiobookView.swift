@@ -17,15 +17,15 @@ import UIKit
 // recording): a grabber instead of a top bar, the cover large while playing and smaller while
 // paused, a scrolling title with the author under it, a thumbless timeline with the chapter's
 // title between the times, 「1倍」・15 s back・play・15 s on・sleep, the system volume, then
-// AirPlay and 目錄. Apple Books' price pill is 加入書架 here, for a book played without being
-// shelved, and its ••• maps onto what Yuedu has: 分享 and 加入分組 (收藏清單), 加入書架,
-// 標記為已讀完, 作品詳情 (在商店中檢視), and 移除書架. The features the recording lacks — 上一章 /
-// 下一章, 播放模式, 跳過片頭片尾 and the source's own buttons — are in the same menu.
+// AirPlay and 目录. Apple Books' price pill is 加入书架 here, for a book played without being
+// shelved, and its ••• maps onto what Yuedu has: 分享 and 加入分组 (收藏清单), 加入书架,
+// 标记为已读完, 作品详情 (在商店中检视), and 移除书架. The features the recording lacks — 上一章 /
+// 下一章, 播放模式, 跳过片头片尾 and the source's own buttons — are in the same menu.
 
 struct AudiobookReaderView: View {
     let bookId: UUID
-    /// The page was opened from the book's own 作品詳情 (`AudiobookDetailView`) without the book
-    /// being on the shelf: the cover and 作品詳情 go back to that page.
+    /// The page was opened from the book's own 作品详情 (`AudiobookDetailView`) without the book
+    /// being on the shelf: the cover and 作品详情 go back to that page.
     var detailIsPresenter = false
     /// The player grows out of the app root's bar and folds back into it (`NowPlayingPopupHost`),
     /// which also draws it down and says when it opens and closes. Otherwise a reader, or a page
@@ -57,7 +57,7 @@ struct AudiobookReaderView: View {
     @State private var pendingShare: PendingShareExport<URL>?
     @State private var shareURL: URL?
     @State private var addingToShelf = false
-    /// The shelf book a transient session became through 加入書架 on this page.
+    /// The shelf book a transient session became through 加入书架 on this page.
     @State private var shelvedBookId: UUID?
     @State private var sourcePage: ReaderHTMLUtilities.ReviewTarget?
     // Before iOS 18 a menu cannot launch a sheet or popover; its rows open from these choosers'
@@ -147,7 +147,7 @@ struct AudiobookReaderView: View {
             }
         }
         .sheet(isPresented: $showsSleepChooser, onDismiss: runPendingSleepChoice) {
-            DismissalSequencedActionChooser(title: localized("睡眠定時"), actions: sleepChooserActions) {
+            DismissalSequencedActionChooser(title: localized("睡眠定时"), actions: sleepChooserActions) {
                 sleepSequence.select($0)
             }
         }
@@ -247,7 +247,7 @@ struct AudiobookReaderView: View {
         }
         .buttonStyle(.plain)
         .simultaneousGesture(dismissDrag, including: dismissDragMask)
-        .accessibilityLabel(localized("收合播放頁"))
+        .accessibilityLabel(localized("收合播放页"))
     }
 
     /// Folds the player back into the root's bar, or takes the cover away.
@@ -356,7 +356,7 @@ struct AudiobookReaderView: View {
                     : String(format: localized("%1$@，%2$@"), player.bookTitle, player.bookAuthor)
             )
             .accessibilityAddTraits(canShowWorkDetail ? .isButton : [])
-            .accessibilityHint(canShowWorkDetail ? localized("作品詳情") : "")
+            .accessibilityHint(canShowWorkDetail ? localized("作品详情") : "")
 
             if isTransient, player.isActive(bookId: currentBookId) {
                 addToShelfPill
@@ -370,7 +370,7 @@ struct AudiobookReaderView: View {
     /// Apple Books' price pill: here the one thing a book played without being shelved lacks.
     private var addToShelfPill: some View {
         Button(action: addToShelf) {
-            Text(localized(addingToShelf ? "加入中…" : "加入書架"))
+            Text(localized(addingToShelf ? "加入中…" : "加入书架"))
                 .font(DSFont.fixed(size: DSLayout.audiobookPlayerPillFontSize, weight: .semibold))
                 .foregroundStyle(DSColor.audiobookPlayerPrimary)
                 .lineLimit(1)
@@ -391,7 +391,7 @@ struct AudiobookReaderView: View {
                 .font(DSFont.caption)
                 .foregroundStyle(DSColor.audiobookPlayerPrimary)
                 .multilineTextAlignment(.center)
-            Button(localized("重試")) {
+            Button(localized("重试")) {
                 player.retryCurrentChapter()
             }
             .foregroundStyle(DSColor.audiobookPlayerPrimary)
@@ -438,7 +438,7 @@ struct AudiobookReaderView: View {
                 }
             }
             Button { perform(.addToGroup) } label: {
-                Label(localized("加入分組"), systemImage: "plus.circle")
+                Label(localized("加入分组"), systemImage: "plus.circle")
             }
             .disabled(isTransient)
         }
@@ -465,7 +465,7 @@ struct AudiobookReaderView: View {
             }
             .pickerStyle(.menu)
             Button { perform(.skipCredits) } label: {
-                Label(localized("跳過片頭片尾"), systemImage: skipsCredits ? "forward.fill" : "forward")
+                Label(localized("跳过片头片尾"), systemImage: skipsCredits ? "forward.fill" : "forward")
             }
             .accessibilityValue(skipCreditsValue)
             ForEach(sourceMoreRoutes, id: \.self) { route in
@@ -481,7 +481,7 @@ struct AudiobookReaderView: View {
         }
     }
 
-    /// 加入書架 (加入藏書), 標記為已讀完, 作品詳情 (在商店中檢視): what applies to this book.
+    /// 加入书架 (加入藏书), 标记为已读完, 作品详情 (在商店中检视): what applies to this book.
     private var primaryMoreRoutes: [AudiobookMoreRoute] {
         var routes: [AudiobookMoreRoute] = []
         if isTransient { routes.append(.addToShelf) }
@@ -563,7 +563,7 @@ struct AudiobookReaderView: View {
             if let source = callBackSource, let url = player.currentAudioURL?.absoluteString {
                 runSourceTap(.clickCopyPlayUrl, source: source, result: url) {
                     UIPasteboard.general.string = url
-                    BookSourceFormLoginView.presentToastAlert(message: localized("已複製"))
+                    BookSourceFormLoginView.presentToastAlert(message: localized("已复制"))
                 }
             }
         case .removeFromShelf:
@@ -576,9 +576,9 @@ struct AudiobookReaderView: View {
     }
 
     private var skipCreditsValue: String {
-        guard skipsCredits else { return localized("狀態：關閉") }
+        guard skipsCredits else { return localized("状态：关闭") }
         return String(
-            format: localized("片頭 %d 秒，片尾 %d 秒"),
+            format: localized("片头 %d 秒，片尾 %d 秒"),
             player.openingCreditsSeconds,
             player.closingCreditsSeconds
         )
@@ -597,7 +597,7 @@ struct AudiobookReaderView: View {
         }
     }
 
-    /// 移除書架: the page goes with the book, as the reader's does.
+    /// 移除书架: the page goes with the book, as the reader's does.
     private func removeFromShelf() {
         NowPlayingBookActions.removeFromShelf(bookId: currentBookId, store: store) { close() }
     }
@@ -606,9 +606,9 @@ struct AudiobookReaderView: View {
         player.playingBook.flatMap { NowPlayingBookActions.shareURL(for: $0, store: store) }
     }
 
-    // MARK: 作品詳情
+    // MARK: 作品详情
 
-    /// A shelf book has its 作品詳情 over the player, as Apple Books' store page is; a book
+    /// A shelf book has its 作品详情 over the player, as Apple Books' store page is; a book
     /// played from its own page without being shelved goes back to that page.
     private var canShowWorkDetail: Bool { !isTransient || detailIsPresenter }
 
@@ -641,7 +641,7 @@ struct AudiobookReaderView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button { workDetail = nil } label: { Image(systemName: "xmark") }
-                        .accessibilityLabel(localized("關閉"))
+                        .accessibilityLabel(localized("关闭"))
                 }
             }
         }
@@ -729,11 +729,11 @@ struct AudiobookReaderView: View {
                     .contentShape(Rectangle())
             }
             .disabled(player.isLoading)
-            .accessibilityLabel(localized(player.isPlaying ? "暫停" : "播放"))
+            .accessibilityLabel(localized(player.isPlaying ? "暂停" : "播放"))
             Button { skip(by: 15) } label: {
                 transportIcon("goforward.15", size: DSLayout.audiobookPlayerSkipIconSize)
             }
-            .accessibilityLabel(localized("快轉 15 秒"))
+            .accessibilityLabel(localized("快转 15 秒"))
             sleepButton
         }
         .buttonStyle(.plain)
@@ -784,7 +784,7 @@ struct AudiobookReaderView: View {
                 Menu {
                     ForEach(AudiobookSleepChoice.menu, id: \.self) { choice in
                         // A toggle per row: checked where the timer is, and each tap acts —
-                        // 自訂 again opens the wheel again.
+                        // 自订 again opens the wheel again.
                         Toggle(choice.title, isOn: Binding(
                             get: { AudiobookSleepChoice(player.sleepOption) == choice },
                             set: { _ in choose(choice) }
@@ -793,12 +793,12 @@ struct AudiobookReaderView: View {
                 } label: {
                     sleepLabel
                 }
-                // 自訂 on top, 關閉 at the bottom, as Apple Books lists them above the moon.
+                // 自订 on top, 关闭 at the bottom, as Apple Books lists them above the moon.
                 .menuOrder(.fixed)
             }
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(localized("睡眠定時"))
+        .accessibilityLabel(localized("睡眠定时"))
         .accessibilityValue(sleepAccessibilityValue)
         .popover(isPresented: $showsCustomSleep, arrowEdge: .bottom) {
             AudiobookCustomSleepTimer { minutes in
@@ -884,11 +884,11 @@ struct AudiobookReaderView: View {
             }
             .buttonStyle(.plain)
             .disabled(player.chapters.isEmpty)
-            .accessibilityLabel(localized("目錄"))
+            .accessibilityLabel(localized("目录"))
         }
     }
 
-    // MARK: Source events (legado `AudioPlayActivity` custom button / 複製播放 URL)
+    // MARK: Source events (legado `AudioPlayActivity` custom button / 复制播放 URL)
 
     /// The book's source when it listens for events or asks for its own button.
     private var callBackSource: BookSource? {
@@ -952,7 +952,7 @@ struct AudiobookReaderView: View {
     }
 }
 
-/// 作品詳情 over the player, by an identity of its own: a route is a value, and the same book's
+/// 作品详情 over the player, by an identity of its own: a route is a value, and the same book's
 /// route opened twice is two presentations.
 struct AudiobookWorkDetail: Identifiable {
     let id = UUID()
@@ -977,17 +977,17 @@ enum AudiobookMoreRoute: Hashable {
     var title: String {
         switch self {
         case .share: localized("分享")
-        case .addToGroup: localized("加入分組")
-        case .addToShelf: localized("加入書架")
-        case .markFinished: localized("標記為已讀完")
-        case .workDetail: localized("作品詳情")
+        case .addToGroup: localized("加入分组")
+        case .addToShelf: localized("加入书架")
+        case .markFinished: localized("标记为已读完")
+        case .workDetail: localized("作品详情")
         case .previousChapter: localized("上一章")
         case .nextChapter: localized("下一章")
         case .playMode(let mode): mode.localizedTitle
-        case .skipCredits: localized("跳過片頭片尾")
-        case .customButton: localized("自訂按鈕")
-        case .copyPlayURL: localized("複製播放網址")
-        case .removeFromShelf: localized("移除書架…")
+        case .skipCredits: localized("跳过片头片尾")
+        case .customButton: localized("自订按钮")
+        case .copyPlayURL: localized("复制播放网址")
+        case .removeFromShelf: localized("移除书架…")
         }
     }
 
@@ -1085,12 +1085,12 @@ struct AudiobookChapterListView: View {
             .scrollContentBackground(.hidden)
             .background(PageBackgroundView(scope: .settings).ignoresSafeArea())
             .pageBackgroundToolbar(for: .settings)
-            .navigationTitle(localized("目錄"))
+            .navigationTitle(localized("目录"))
             .toolbarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button { dismiss() } label: { Image(systemName: "xmark") }
-                        .accessibilityLabel(localized("關閉"))
+                        .accessibilityLabel(localized("关闭"))
                 }
             }
         }
@@ -1099,7 +1099,7 @@ struct AudiobookChapterListView: View {
 
 // MARK: - Skip credits
 
-/// legado-E / legado-with-MD3 跳過片頭片尾: the seconds skipped at the start and cut at the
+/// legado-E / legado-with-MD3 跳过片头片尾: the seconds skipped at the start and cut at the
 /// end of every chapter of this book, 0–180 each, in whole seconds as legado has them.
 struct AudiobookSkipCreditsView: View {
     @ObservedObject var player: AudiobookPlayer
@@ -1122,7 +1122,7 @@ struct AudiobookSkipCreditsView: View {
             Form {
                 Section {
                     SettingsSliderRow(
-                        title: localized("片頭"),
+                        title: localized("片头"),
                         systemImage: "text.line.first.and.arrowtriangle.forward",
                         valueText: Self.secondsText(openingSeconds),
                         value: $openingSeconds,
@@ -1138,19 +1138,19 @@ struct AudiobookSkipCreditsView: View {
                         step: 1
                     )
                 } footer: {
-                    Text(localized("只套用在這本書；片頭只在章節從頭播放時跳過。"))
+                    Text(localized("只套用在这本书；片头只在章节从头播放时跳过。"))
                         .dsSectionFooter()
                 }
                 .interfaceSectionSurface()
             }
             .softScrollEdges()
             .themedAppSurface(for: .settings)
-            .navigationTitle(localized("跳過片頭片尾"))
+            .navigationTitle(localized("跳过片头片尾"))
             .toolbarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button { dismiss() } label: { Image(systemName: "xmark") }
-                        .accessibilityLabel(localized("關閉"))
+                        .accessibilityLabel(localized("关闭"))
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
@@ -1179,10 +1179,10 @@ extension AudiobookPlayMode {
     /// legado-with-MD3's names for the modes (`audio_play_mode_*`).
     var localizedTitle: String {
         switch self {
-        case .listEndStop: return localized("順序播放")
-        case .singleLoop: return localized("單曲循環")
-        case .random: return localized("隨機播放")
-        case .listLoop: return localized("列表循環")
+        case .listEndStop: return localized("顺序播放")
+        case .singleLoop: return localized("单曲循环")
+        case .random: return localized("随机播放")
+        case .listLoop: return localized("列表循环")
         }
     }
 
@@ -1202,17 +1202,17 @@ extension AudiobookPlayMode {
         .environmentObject(BookStore())
 }
 
-#Preview("橫向", traits: .landscapeLeft) {
+#Preview("横向", traits: .landscapeLeft) {
     AudiobookReaderView(bookId: UUID())
         .environmentObject(BookStore())
 }
 
-#Preview("跳過片頭片尾") {
+#Preview("跳过片头片尾") {
     AudiobookSkipCreditsView(player: .shared)
 }
 #endif
 
-// MARK: - 播放進度
+// MARK: - 播放进度
 
 /// The chapter's timeline, and the place to drag it somewhere else: Apple Books' thumbless bar,
 /// the time played and the time left at its ends, the chapter's title between them — and, while
@@ -1263,7 +1263,7 @@ struct AudiobookProgressSection: View {
                 onDecrement: onSkipBackward
             )
             .frame(height: DSLayout.audiobookPlayerSliderHeight)
-            .accessibilityLabel(localized("播放進度"))
+            .accessibilityLabel(localized("播放进度"))
             .accessibilityValue(AudiobookReaderView.positionText(shownTime, of: duration))
 
             ZStack {
@@ -1314,7 +1314,7 @@ private struct AudiobookCountdownLabelStyle: LabelStyle {
     }
 }
 
-#Preview("播放進度") {
+#Preview("播放进度") {
     AudiobookProgressSection(
         currentTime: 100,
         duration: 600,

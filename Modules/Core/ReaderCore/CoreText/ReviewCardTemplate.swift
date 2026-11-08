@@ -33,11 +33,11 @@ struct ReviewCardTemplate: Sendable {
         var errorDescription: String? {
             switch self {
             case let .unreadable(line, column, reason):
-                return String(format: localized("模板無法讀取（第 %d 行第 %d 欄）：%@"), line, column, reason)
+                return String(format: localized("模板无法读取（第 %d 行第 %d 栏）：%@"), line, column, reason)
             case .notSVG:
-                return localized("模板的最外層必須是 <svg>。")
+                return localized("模板的最外层必须是 <svg>。")
             case .tooLarge:
-                return localized("模板太大，請縮小到 256 KB 以內。")
+                return localized("模板太大，请缩小到 256 KB 以内。")
             }
         }
     }

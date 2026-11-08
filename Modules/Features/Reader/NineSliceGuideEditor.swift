@@ -122,7 +122,7 @@ enum NineSliceGuide: CaseIterable, Identifiable {
 
     /// The middle band never closes, so the edges always have something to stretch.
     static let minimumCenter = 0.02
-    /// What 九宮格 starts from when an image had no slices of its own.
+    /// What 九宫格 starts from when an image had no slices of its own.
     static let defaultSlices = ReaderStyleImageSlices(top: 0.3, right: 0.3, bottom: 0.3, left: 0.3)
 
     var id: Self { self }
@@ -149,10 +149,10 @@ enum NineSliceGuide: CaseIterable, Identifiable {
 
     var titleKey: String {
         switch self {
-        case .top: "上切線"
-        case .bottom: "下切線"
-        case .left: "左切線"
-        case .right: "右切線"
+        case .top: "上切线"
+        case .bottom: "下切线"
+        case .left: "左切线"
+        case .right: "右切线"
         }
     }
 

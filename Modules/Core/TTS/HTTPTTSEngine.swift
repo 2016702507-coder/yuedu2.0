@@ -577,7 +577,7 @@ final class HTTPTTSEngine: NSObject, TTSPlayable {
         resumePlaybackTime = 0
         audioPlayer?.clear()
         AppLogger.error(
-            "[TTS] 段落取得失敗，保留位置並暫停",
+            "[TTS] 段落取得失败，保留位置并暂停",
             context: [
                 "index": index,
                 "reason": String(describing: error)

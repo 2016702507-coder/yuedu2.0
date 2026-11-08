@@ -1,7 +1,7 @@
 import Combine
 import Foundation
 
-/// What 遠端書庫 shows under a WebDAV connection (unified library 2d).
+/// What 远端书库 shows under a WebDAV connection (unified library 2d).
 enum WebDAVIndexStatus: Hashable, Sendable {
     case indexing(Int)
     case indexed(Int)
@@ -13,9 +13,9 @@ enum WebDAVIndexStatus: Hashable, Sendable {
         switch self {
         case .indexing(let count): String(format: localized("正在建立索引（%d 本）"), count)
         case .indexed(let count): String(format: localized("已建立索引（%d 本）"), count)
-        case .pausedNotOnWiFi: localized("已暫停：未連接 Wi-Fi")
-        case .limitReached(let count): String(format: localized("已達上限（%d 本）"), count)
-        case .failed(let message): String(format: localized("建立索引失敗：%@"), message)
+        case .pausedNotOnWiFi: localized("已暂停：未连接 Wi-Fi")
+        case .limitReached(let count): String(format: localized("已达上限（%d 本）"), count)
+        case .failed(let message): String(format: localized("建立索引失败：%@"), message)
         }
     }
 }

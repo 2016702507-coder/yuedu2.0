@@ -16,7 +16,7 @@ struct LanServerView: View {
                         Circle()
                             .fill(server.isRunning ? Color.green : Color.gray)
                             .frame(width: 10, height: 10)
-                        Text(server.isRunning ? localized("運行中") : localized("已停止"))
+                        Text(server.isRunning ? localized("运行中") : localized("已停止"))
                             .foregroundColor(server.isRunning ? .green : DSColor.textSecondary)
                         Spacer()
                     }
@@ -34,7 +34,7 @@ struct LanServerView: View {
                         }
                         if !server.accessPIN.isEmpty {
                             HStack {
-                                Text(localized("PIN 碼"))
+                                Text(localized("PIN 码"))
                                     .foregroundColor(DSColor.textSecondary)
                                 Spacer()
                                 Text(server.accessPIN)
@@ -45,7 +45,7 @@ struct LanServerView: View {
                         }
                     }
                 } header: {
-                    Text(localized("服務狀態"))
+                    Text(localized("服务状态"))
                         .foregroundStyle(DSColor.textSecondary)
                 }
                 .interfaceSectionSurface()
@@ -62,7 +62,7 @@ struct LanServerView: View {
                     } label: {
                         HStack {
                             Spacer()
-                            Text(server.isRunning ? localized("停止服務") : localized("啟動服務"))
+                            Text(server.isRunning ? localized("停止服务") : localized("启动服务"))
                                 .fontWeight(.semibold)
                                 .foregroundColor(server.isRunning ? .red : DSColor.accent)
                             Spacer()
@@ -73,10 +73,10 @@ struct LanServerView: View {
 
                 // MARK: API endpoints
                 Section {
-                    endpointRow(method: "GET", path: "/", description: localized("書架列表"))
-                    endpointRow(method: "GET", path: "/book/:id", description: localized("書籍詳情"))
-                    endpointRow(method: "GET", path: "/api/sources", description: localized("來源配置列表"))
-                    endpointRow(method: "GET", path: "/health", description: localized("健康檢查"))
+                    endpointRow(method: "GET", path: "/", description: localized("书架列表"))
+                    endpointRow(method: "GET", path: "/book/:id", description: localized("书籍详情"))
+                    endpointRow(method: "GET", path: "/api/sources", description: localized("来源配置列表"))
+                    endpointRow(method: "GET", path: "/health", description: localized("健康检查"))
                 } header: {
                     Text(localized("可用接口"))
                         .foregroundStyle(DSColor.textSecondary)
@@ -84,7 +84,7 @@ struct LanServerView: View {
                 .interfaceSectionSurface()
             }
             .softScrollEdges()
-            .navigationTitle(localized("局域網服務"))
+            .navigationTitle(localized("局域网服务"))
             .toolbarTitleDisplayMode(.inline)
             .themedAppSurface(for: .settings)
             .toolbar {

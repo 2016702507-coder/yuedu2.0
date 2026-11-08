@@ -118,10 +118,10 @@ final class SharedImportQueueDrainer: ObservableObject {
 
         var errorDescription: String? {
             switch self {
-            case .missingPayloadDirectory, .missingQueuedFile: localized("找不到分享過來的檔案")
-            case .missingBookStore: localized("書架還沒準備好，請再分享一次")
-            case .invalidRemoteURL: localized("分享過來的網址無效")
-            case .unsupportedPayload: localized("不支援這種檔案格式")
+            case .missingPayloadDirectory, .missingQueuedFile: localized("找不到分享过来的档案")
+            case .missingBookStore: localized("书架还没准备好，请再分享一次")
+            case .invalidRemoteURL: localized("分享过来的网址无效")
+            case .unsupportedPayload: localized("不支援这种档案格式")
             }
         }
 
@@ -532,7 +532,7 @@ final class SharedImportQueueDrainer: ObservableObject {
         }
         // Parse now so a malformed pack still fails here and is reported as a failure, then
         // hand the result to the confirmation list. Returning 0 keeps this out of the
-        // "成功匯入 N 個項目" tally — nothing has been written yet — and `publish` skips the
+        // "成功汇入 N 个项目" tally — nothing has been written yet — and `publish` skips the
         // alert entirely when a drain carried nothing but sources to review.
         let sources = try BookSourceStore.shared.parseForImport(
             data: data,

@@ -55,7 +55,7 @@ private final class ShelfEntriesMemo {
     /// Every store publish is a new revision, so the memo above recomputes — and re-sorting
     /// by title or author is `localizedCompare` over the whole shelf, the largest part of the
     /// shelf's own work per publish when sampled. A reading-position write (the commonest
-    /// publish) cannot move a book under any sort order but 最近閱讀, and that one sorts by
+    /// publish) cannot move a book under any sort order but 最近阅读, and that one sorts by
     /// when a book was opened, not by its position. `signature` covers each book's id and
     /// sort field; while it matches, the stored order is applied to the current books.
     private var orders: [OrderKey: (signature: Int, ids: [UUID])] = [:]
@@ -98,7 +98,7 @@ private enum ShelfEntry: Identifiable {
         if case .book(let book) = self { book } else { nil }
     }
 
-    /// The book, or a folder's first book: what a book dropped before it in 手動 lands before.
+    /// The book, or a folder's first book: what a book dropped before it in 手动 lands before.
     var firstBookID: UUID? {
         switch self {
         case .book(let book): book.id
@@ -106,7 +106,7 @@ private enum ShelfEntry: Identifiable {
         }
     }
 
-    /// What 書名 sorts it by: a folder goes by its group's name.
+    /// What 书名 sorts it by: a folder goes by its group's name.
     var sortTitle: String {
         switch self {
         case .book(let book): book.title
@@ -246,7 +246,7 @@ struct HomeView: View {
         DismissalSequencedPresentation<BookshelfImportPresentationRoute>()
     @State private var editingBook: ReadingBook? = nil
     @State private var bookToDelete: ReadingBook? = nil
-    /// 作品詳情 from a book's •••, the shelf's one item destination (iOS 17 guardrail 12,
+    /// 作品详情 from a book's •••, the shelf's one item destination (iOS 17 guardrail 12,
     /// `Technotes/iOS17SearchWatchdogPostmortem.md`).
     @State private var shelfWork: WorkDetailRoute? = nil
     @State private var editMode = EditMode.inactive
@@ -257,7 +257,7 @@ struct HomeView: View {
     @State private var selectedBookIds: Set<UUID> = []
     @State private var showBulkDeleteAlert = false
     @State private var showAddToGroupSheet = false
-    /// 重命名分組 from a folder's •••: the group, and the name being typed for it. The alert's
+    /// 重命名分组 from a folder's •••: the group, and the name being typed for it. The alert's
     /// button reads them when it is tapped; closing the alert leaves them be.
     @State private var showsRenameGroupAlert = false
     @State private var groupToRename = ""
@@ -318,7 +318,7 @@ struct HomeView: View {
     @StateObject private var readerNavigation = ShelfReaderNavigation()
     private var readerCoordinator: ReaderNavigationCoordinator { readerNavigation.coordinator }
     @StateObject private var readerGeometryStore = BookshelfReaderGeometryStore()
-    /// Bumped when the book just opened has moved to the front of 最近閱讀. The shelf then
+    /// Bumped when the book just opened has moved to the front of 最近阅读. The shelf then
     /// goes back to its top behind the reader: left scrolled down to where the book was,
     /// its new place is off screen, and the closing card had nowhere to land but a
     /// stand-in in the middle of the shelf.
@@ -381,7 +381,7 @@ struct HomeView: View {
             pendingReaderOpenToken = requestToken
             AppLogger.info("⟐ openBook staged token=\(requestToken) hasPendingToken=\(pendingReaderOpenToken != nil)")
             // What the tapped card reported drawing, so the lifted card carries the
-            // very image the shelf was showing (including a 預設封面).
+            // very image the shelf was showing (including a 预设封面).
             let snapshot = BookshelfCoverStyle.snapshot(
                 for: book,
                 drawn: tapped?.drawnCover,
@@ -443,7 +443,7 @@ struct HomeView: View {
                                 .environment(\.appDependencies, readerDependencies)
                                 .environment(\.readerNavigator, navigator)
                                 // Its own hosting controller starts a new environment;
-                                // without this the reader could hide only 書架's tab bar.
+                                // without this the reader could hide only 书架's tab bar.
                                 .environment(\.rootTabBarVisibility, readerTabBarVisibility)
                         ))
                     },
@@ -510,7 +510,7 @@ struct HomeView: View {
         openedFolder.map(ShelfPage.folder) ?? ShelfPage(pagerGroup: selectedGroup)
     }
 
-    /// The books 選取 can take on that page: on 全部, the ones outside a folder.
+    /// The books 选取 can take on that page: on 全部, the ones outside a folder.
     var sortedFilteredBooks: [ReadingBook] {
         entries(onPage: activePage).compactMap(\.book)
     }
@@ -521,7 +521,7 @@ struct HomeView: View {
     }
 
     /// What a page lists, in the shelf's order. On 全部 each group is one folder, where
-    /// its first book would be — the one read last, under 最近閱讀 — except under 書名,
+    /// its first book would be — the one read last, under 最近阅读 — except under 书名,
     /// which sorts a folder by its group's name among the titles.
     private func entries(onPage page: ShelfPage) -> [ShelfEntry] {
         entriesMemo.entries(
@@ -603,7 +603,7 @@ struct HomeView: View {
             }
             .themedAppSurface(for: .bookshelf)
             .animation(DSAnimation.standard, value: store.books.isEmpty)
-            .rootTabTitle(localized("書架"), onScroll: .fadesTitle)
+            .rootTabTitle(localized("书架"), onScroll: .fadesTitle)
             .toolbar { shelfToolbar(addsBooks: true) }
             // In edit mode, hide the app tab bar so the contextual .bottomBar (delete / group / share)
             // takes its place — the system selection pattern used by Photos / Files.
@@ -622,7 +622,7 @@ struct HomeView: View {
                 folderPage(group)
             }
             .onChange(of: openedFolder) { _, folder in
-                // 選取 on a group's page ends with the page.
+                // 选取 on a group's page ends with the page.
                 if folder == nil, editMode == .active {
                     editMode = .inactive
                     selectedBookIds = []
@@ -641,16 +641,16 @@ struct HomeView: View {
             ) {
                 AdaptiveSheetContainer(maxWidth: DSLayout.readableCompactWidth) {
                     DismissalSequencedActionChooser(
-                        title: localized("添加書籍"),
+                        title: localized("添加书籍"),
                         actions: [
                             DismissalSequencedAction(
                                 route: .local,
-                                title: localized("從本地匯入"),
+                                title: localized("从本地汇入"),
                                 systemImage: "folder"
                             ),
                             DismissalSequencedAction(
                                 route: .calibreWireless,
-                                title: localized("電腦傳書"),
+                                title: localized("电脑传书"),
                                 systemImage: "desktopcomputer"
                             ),
                         ],
@@ -670,7 +670,7 @@ struct HomeView: View {
                     addSheetSessionID = UUID()
                 }
             }
-            // 新手導覽's 匯入文件.
+            // 新手导览's 汇入文件.
             .onChange(of: onboarding?.pendingStart, initial: true) { _, _ in
                 guard onboarding?.take(.importFiles) == true else { return }
                 addSheetSessionID = UUID()
@@ -694,7 +694,7 @@ struct HomeView: View {
                 WorkDetailView(route: route, onRemoveFromShelf: { shelfWork = nil })
                     .environmentObject(store)
             }
-            // 書籍資訊 owns the cover pickers, so on iOS 17 it is pushed rather
+            // 书籍资讯 owns the cover pickers, so on iOS 17 it is pushed rather
             // than presented (`BookInfoEditPresentationPolicy`); iOS 18 keeps the
             // sheet. Two bindings, one screen — the same shape ProfileView uses
             // for book-source management.
@@ -719,13 +719,13 @@ struct HomeView: View {
                 }
             }
             .alert(
-                localized("確認刪除"),
+                localized("确认删除"),
                 isPresented: Binding(
                     get: { bookToDelete != nil },
                     set: { if !$0 { bookToDelete = nil } }
                 )
             ) {
-                Button(localized("刪除"), role: .destructive) {
+                Button(localized("删除"), role: .destructive) {
                     if let b = bookToDelete {
                         SourceCallBackService.notify(.delBookShelf, book: b)
                         store.delete(bookId: b.id)
@@ -734,18 +734,18 @@ struct HomeView: View {
                 Button(localized("取消"), role: .cancel) {}
             } message: {
                 if let b = bookToDelete {
-                    Text(String(format: localized("確定要從書架刪除《%@》嗎？"), b.title))
+                    Text(String(format: localized("确定要从书架删除《%@》吗？"), b.title))
                 }
             }
-            .alert(localized("重命名分組"), isPresented: $showsRenameGroupAlert) {
-                TextField(localized("分組名稱"), text: $groupRenameText)
+            .alert(localized("重命名分组"), isPresented: $showsRenameGroupAlert) {
+                TextField(localized("分组名称"), text: $groupRenameText)
                 Button(localized("取消"), role: .cancel) {}
-                Button(localized("確定")) {
+                Button(localized("确定")) {
                     store.renameGroup(groupToRename, to: groupRenameText)
                 }
             }
-            .alert(localized("確認刪除"), isPresented: $showBulkDeleteAlert) {
-                Button(localized("刪除"), role: .destructive) {
+            .alert(localized("确认删除"), isPresented: $showBulkDeleteAlert) {
+                Button(localized("删除"), role: .destructive) {
                     let ids = selectedBookIds
                     withAnimation(reduceMotion ? nil : DSAnimation.standard) {
                         ids.forEach { id in
@@ -759,7 +759,7 @@ struct HomeView: View {
                 }
                 Button(localized("取消"), role: .cancel) {}
             } message: {
-                Text(String(format: localized("確定要刪除 %d 本書嗎？"), selectedBookIds.count))
+                Text(String(format: localized("确定要删除 %d 本书吗？"), selectedBookIds.count))
             }
             // Keep the probe inside this NavigationStack's root destination.
             // Its responder chain resolves this shelf's UIKit navigation
@@ -812,7 +812,7 @@ struct HomeView: View {
                 Image(systemName: "plus")
                     .font(DSFont.toolbarIcon)
             }
-            .accessibilityLabel(localized("添加書籍"))
+            .accessibilityLabel(localized("添加书籍"))
             .accessibilityIdentifier("home_add_book")
         } else {
             Menu {
@@ -820,18 +820,18 @@ struct HomeView: View {
                     addSheetSessionID = UUID()
                     showAddSheet = true
                 } label: {
-                    Label(localized("從本地匯入"), systemImage: "folder")
+                    Label(localized("从本地汇入"), systemImage: "folder")
                 }
                 Button {
                     showCalibreWireless = true
                 } label: {
-                    Label(localized("電腦傳書"), systemImage: "desktopcomputer")
+                    Label(localized("电脑传书"), systemImage: "desktopcomputer")
                 }
             } label: {
                 Image(systemName: "plus")
                     .font(DSFont.toolbarIcon)
             }
-            .accessibilityLabel(localized("添加書籍"))
+            .accessibilityLabel(localized("添加书籍"))
             .accessibilityIdentifier("home_add_book")
             .id("\(Locale.autoupdatingCurrent.identifier)_add_menu")
         }
@@ -839,7 +839,7 @@ struct HomeView: View {
 
     /// Without Pro: marked, and opens the paywall. On iOS 17 a menu cannot open a sheet
     /// (Technotes/iOS17MenuModalPresentation.md), so there it pushes the organizer, whose
-    /// 開始整理 opens the paywall instead.
+    /// 开始整理 opens the paywall instead.
     private var organizerMenuItem: some View {
         let locked = !ReaderPremiumVisibilityPolicy(isProActive: subscription.isProActive).allowsAI
         return Button {
@@ -850,9 +850,9 @@ struct HomeView: View {
             }
         } label: {
             // Two `Text`s: the second is the menu row's subtitle.
-            Text(localized("AI 整理書架"))
+            Text(localized("AI 整理书架"))
             if locked {
-                Text(localized("需要尊享會員"))
+                Text(localized("需要尊享会员"))
             }
             Image(systemName: locked ? "lock.fill" : "sparkles")
         }
@@ -863,7 +863,7 @@ struct HomeView: View {
             Button {
                 withAnimation(reduceMotion ? nil : DSAnimation.standard) { editMode = .active }
             } label: {
-                Label(localized("選取"), systemImage: "checkmark.circle")
+                Label(localized("选取"), systemImage: "checkmark.circle")
             }
             organizerMenuItem
 
@@ -871,7 +871,7 @@ struct HomeView: View {
 
             Picker("", selection: $isGridMode) {
                 Label(localized("列表"), systemImage: "list.bullet").tag(false)
-                Label(localized("格狀"), systemImage: "square.grid.2x2").tag(true)
+                Label(localized("格状"), systemImage: "square.grid.2x2").tag(true)
             }
             .pickerStyle(.inline)
             .labelsHidden()
@@ -879,10 +879,10 @@ struct HomeView: View {
             Divider()
 
             Picker("", selection: $sortOrder) {
-                Text(localized("最近閱讀")).tag(BookSortOrder.recentlyRead.rawValue)
-                Text(localized("書名")).tag(BookSortOrder.title.rawValue)
+                Text(localized("最近阅读")).tag(BookSortOrder.recentlyRead.rawValue)
+                Text(localized("书名")).tag(BookSortOrder.title.rawValue)
                 Text(localized("作者")).tag(BookSortOrder.author.rawValue)
-                Text(localized("手動")).tag(BookSortOrder.manual.rawValue)
+                Text(localized("手动")).tag(BookSortOrder.manual.rawValue)
             }
             .pickerStyle(.inline)
             .labelsHidden()
@@ -896,8 +896,8 @@ struct HomeView: View {
 
     // MARK: - Toolbar
 
-    /// The shelf's buttons, on 書架 and on a group's page: the options menu and, on 書架,
-    /// the add button; while selecting, 全選 and done, with delete, 加入分組 and share in a
+    /// The shelf's buttons, on 书架 and on a group's page: the options menu and, on 书架,
+    /// the add button; while selecting, 全选 and done, with delete, 加入分组 and share in a
     /// bottom bar.
     @ToolbarContentBuilder
     private func shelfToolbar(addsBooks: Bool) -> some ToolbarContent {
@@ -912,7 +912,7 @@ struct HomeView: View {
                         selectedBookIds = Set(sortedFilteredBooks.map(\.id))
                     }
                 } label: {
-                    Text(localized(isAllSelected ? "全不選" : "全選"))
+                    Text(localized(isAllSelected ? "全不选" : "全选"))
                         .font(DSFont.subheadline.weight(.medium))
                         .foregroundStyle(DSColor.textPrimary)
                 }
@@ -939,7 +939,7 @@ struct HomeView: View {
                 }
                 .tint(.red)
                 .disabled(selectedBookIds.isEmpty)
-                .accessibilityLabel(localized("刪除"))
+                .accessibilityLabel(localized("删除"))
 
                 Spacer()
 
@@ -947,13 +947,13 @@ struct HomeView: View {
                     if !selectedBookIds.isEmpty { showAddToGroupSheet = true }
                 } label: {
                     ToolbarTitleAndIconLabel(
-                        title: localized("加入分組"),
+                        title: localized("加入分组"),
                         systemImage: "text.badge.plus",
                         width: DSLayout.bookshelfAddToGroupLabelWidth
                     )
                 }
                 .disabled(selectedBookIds.isEmpty)
-                .accessibilityLabel(localized("加入分組"))
+                .accessibilityLabel(localized("加入分组"))
                 .accessibilityIdentifier("home_add_to_group")
 
                 Spacer()
@@ -991,14 +991,14 @@ struct HomeView: View {
         return store.allGroups.map { (name: $0, count: counts[$0] ?? 0) }
     }
 
-    /// 重命名分組 from a folder's •••: the alert opens on the group's name.
+    /// 重命名分组 from a folder's •••: the alert opens on the group's name.
     private func beginRenaming(group: String) {
         groupToRename = group
         groupRenameText = group
         showsRenameGroupAlert = true
     }
 
-    /// Moves the selection into `group` and ends 選取. A name left empty moves nothing.
+    /// Moves the selection into `group` and ends 选取. A name left empty moves nothing.
     private func addSelection(toGroup group: String) {
         guard !group.isEmpty, !selectedBookIds.isEmpty else { return }
         store.setGroups(Dictionary(uniqueKeysWithValues: selectedBookIds.map { ($0, group) }))
@@ -1020,7 +1020,7 @@ struct HomeView: View {
     /// no edge and no line, so there the bar stays above the pages, which stop under it.
     ///
     /// Covers passing under the chips made a muddle of both (maintainer, 2026-10-27), so
-    /// from iOS 26 the chips go with 書架's title as the page leaves its top and are back
+    /// from iOS 26 the chips go with 书架's title as the page leaves its top and are back
     /// once it is. Before iOS 26 nothing passes under them, and gone they would leave an
     /// empty band over the pages, so they stay.
     @ViewBuilder
@@ -1104,7 +1104,7 @@ struct HomeView: View {
     // MARK: - Folder Page
 
     /// A group opened from its folder on 全部: its books as the shelf shows them, under the
-    /// group's name, with the shelf's options and 選取.
+    /// group's name, with the shelf's options and 选取.
     private func folderPage(_ group: String) -> some View {
         AdaptiveContentContainer(maxWidth: DSLayout.readableShelfWidth) {
             shelfContent(.folder(group), isInView: true)
@@ -1159,7 +1159,7 @@ struct HomeView: View {
 
     private func bookListContent(entries: [ShelfEntry], page: ShelfPage, isInView: Bool) -> some View {
         let isSelecting = editMode == .active
-        // A group's page pushed over the shelf leaves 書架's title alone.
+        // A group's page pushed over the shelf leaves 书架's title alone.
         let measuresTitleFade = isInView && page.isOnPager
         // Native multi-select: binding the selection Set drives the system selection circles in
         // edit mode. A book row is tagged with its id; a folder has no id to select.
@@ -1246,7 +1246,7 @@ struct HomeView: View {
             columnSpacing: gridColumnSpacing
         )
         // The grid has no List to draw selection for it: each cell shows its own place
-        // in `selectedBookIds`, and a tap in 選取 toggles it instead of opening the book.
+        // in `selectedBookIds`, and a tap in 选取 toggles it instead of opening the book.
         let isSelecting = editMode == .active
         return ScrollViewReader { proxy in
             bookGridScrollView(
@@ -1323,7 +1323,7 @@ struct HomeView: View {
             .padding(.vertical, DSSpacing.md)
             .background {
                 // The page in view measures its scroll for the title's fade; a group's page
-                // pushed over the shelf leaves 書架's title alone.
+                // pushed over the shelf leaves 书架's title alone.
                 if isInView, page.isOnPager {
                     Color.clear.rootTabTitleScrollAnchor()
                 }
@@ -1344,14 +1344,14 @@ struct HomeView: View {
         }
     }
 
-    /// Puts the book into the 選取 selection, or takes it out.
+    /// Puts the book into the 选取 selection, or takes it out.
     private func toggleSelection(of bookID: UUID) {
         if selectedBookIds.remove(bookID) == nil {
             selectedBookIds.insert(bookID)
         }
     }
 
-    /// 書籍資訊 as a pushed destination (iOS 17) — nil on iOS 18+. Carries the id
+    /// 书籍资讯 as a pushed destination (iOS 17) — nil on iOS 18+. Carries the id
     /// rather than the book because `navigationDestination(item:)` needs a
     /// Hashable value, and the editor reads the live record from the store anyway.
     private var pushedEditingBookId: Binding<UUID?> {
@@ -1365,7 +1365,7 @@ struct HomeView: View {
         )
     }
 
-    /// 書籍資訊 as a sheet (iOS 18+) — nil on iOS 17.
+    /// 书籍资讯 as a sheet (iOS 18+) — nil on iOS 17.
     private var sheetEditingBook: Binding<ReadingBook?> {
         Binding(
             get: {
@@ -1377,7 +1377,7 @@ struct HomeView: View {
         )
     }
 
-    /// 作品詳情 (unified library 5f): the copy as the shelf's own item, as Explore's cards
+    /// 作品详情 (unified library 5f): the copy as the shelf's own item, as Explore's cards
     /// freeze theirs.
     private func showWorkDetail(for book: ReadingBook) {
         shelfWork = ShelfProvider(store: store).items([book]).first.flatMap(WorkDetailRoute.init)
@@ -1386,7 +1386,7 @@ struct HomeView: View {
 
 // MARK: - Edit Book Info Sheet
 
-/// How 書籍資訊 is being shown. On iOS 17 the bookshelf pushes it so its image
+/// How 书籍资讯 is being shown. On iOS 17 the bookshelf pushes it so its image
 /// pickers are first-level presentations — see `BookInfoEditPresentationPolicy`.
 enum BookInfoEditPresentation {
     case sheet
@@ -1454,13 +1454,13 @@ struct EditBookSheet: View {
                             } label: {
                                 Image(systemName: "xmark")
                             }
-                            .accessibilityLabel(localized("關閉"))
+                            .accessibilityLabel(localized("关闭"))
                         }
                         saveToolbarItem
                     }
             }
         case .push:
-            // Pushed from the shelf: the back button is the way out, so no 關閉.
+            // Pushed from the shelf: the back button is the way out, so no 关闭.
             editorContent
                 .toolbarTitleDisplayMode(.inline)
                 .toolbar { saveToolbarItem }
@@ -1485,12 +1485,12 @@ struct EditBookSheet: View {
                 Form {
                     coverSection
 
-                    Section(header: Text(localized("基本資訊")).foregroundStyle(DSColor.textSecondary)) {
+                    Section(header: Text(localized("基本资讯")).foregroundStyle(DSColor.textSecondary)) {
                         HStack {
-                            Text(localized("書名"))
+                            Text(localized("书名"))
                                 .foregroundStyle(DSColor.textPrimary)
                             Spacer()
-                            TextField(localized("書名"), text: $titleInput)
+                            TextField(localized("书名"), text: $titleInput)
                                 .multilineTextAlignment(.trailing)
                         }
                         HStack {
@@ -1501,10 +1501,10 @@ struct EditBookSheet: View {
                                 .multilineTextAlignment(.trailing)
                         }
                         HStack {
-                            Text(localized("分組"))
+                            Text(localized("分组"))
                                 .foregroundStyle(DSColor.textPrimary)
                             Spacer()
-                            TextField(localized("未分組"), text: $groupInput)
+                            TextField(localized("未分组"), text: $groupInput)
                                 .multilineTextAlignment(.trailing)
                         }
                         if !store.allGroups.isEmpty {
@@ -1524,41 +1524,41 @@ struct EditBookSheet: View {
                     }
                     .interfaceSectionSurface()
                     Section {
-                        TextField(localized("簡介"), text: $introInput, axis: .vertical)
+                        TextField(localized("简介"), text: $introInput, axis: .vertical)
                             .lineLimit(3...10)
                             .accessibilityIdentifier("bookInfo.intro")
                         if let origin = filledIntroOrigin, introInput.isEmpty {
-                            removeFilledButton(localized("移除自動補上的簡介"), origin: origin) {
+                            removeFilledButton(localized("移除自动补上的简介"), origin: origin) {
                                 store.removeFilledValue(.intro, of: book.id)
                                 filledIntroOrigin = nil
                             }
                         }
                     } header: {
-                        Text(localized("簡介")).foregroundStyle(DSColor.textSecondary)
+                        Text(localized("简介")).foregroundStyle(DSColor.textSecondary)
                     } footer: {
                         // The field holds only the reader's own text, so it is empty for a book
                         // whose page does show a description; this says where that one comes from.
-                        Text(localized("留空時顯示書本或來源提供的簡介。"))
+                        Text(localized("留空时显示书本或来源提供的简介。"))
                             .dsSectionFooter()
                     }
                     .interfaceSectionSurface()
-                    Section(header: Text(localized("閱讀進度")).foregroundStyle(DSColor.textSecondary)) {
+                    Section(header: Text(localized("阅读进度")).foregroundStyle(DSColor.textSecondary)) {
                         HStack {
-                            Text(localized("目前進度"))
+                            Text(localized("目前进度"))
                                 .foregroundStyle(DSColor.textPrimary)
                             Spacer()
                             Text("\(Int(book.currentPosition * 100))%")
                                 .foregroundStyle(DSColor.textSecondary)
                         }
                         HStack {
-                            Text(localized("加入時間"))
+                            Text(localized("加入时间"))
                                 .foregroundStyle(DSColor.textPrimary)
                             Spacer()
                             Text(book.addedDate, style: .date)
                                 .foregroundStyle(DSColor.textSecondary)
                         }
                         HStack {
-                            Text(localized("來源"))
+                            Text(localized("来源"))
                                 .foregroundStyle(DSColor.textPrimary)
                             Spacer()
                             Text(SourceLabel.text(for: book, record: .derived(from: book, context: .live()),
@@ -1570,16 +1570,16 @@ struct EditBookSheet: View {
                 }
                 .softScrollEdges()
                 .task { loadFilledOrigins() }
-                .navigationTitle(localized("書籍資訊"))
+                .navigationTitle(localized("书籍资讯"))
                 .themedAppSurface(for: .bookshelf)
                 .alert(
-                    localized("封面設定失敗"),
+                    localized("封面设置失败"),
                     isPresented: Binding(
                         get: { coverErrorMessage != nil },
                         set: { if !$0 { coverErrorMessage = nil } }
                     )
                 ) {
-                    Button(localized("確定"), role: .cancel) {}
+                    Button(localized("确定"), role: .cancel) {}
                 } message: {
                     Text(coverErrorMessage ?? "")
                 }
@@ -1626,15 +1626,15 @@ struct EditBookSheet: View {
                     applyCover(url: candidate.coverUrl, sourceId: candidate.sourceId)
                 }
             } label: {
-                SettingsRowLabel(localized("換封面"), systemImage: "books.vertical")
+                SettingsRowLabel(localized("换封面"), systemImage: "books.vertical")
             }
             .disabled(isApplyingCover)
 
             ImageSourcePickerButton(
-                accessibilityTitle: localized("選擇封面圖片"),
+                accessibilityTitle: localized("选择封面图片"),
                 onPick: handleCoverPick
             ) {
-                Label(localized("選擇圖片"), systemImage: "photo")
+                Label(localized("选择图片"), systemImage: "photo")
             }
             .disabled(isApplyingCover)
 
@@ -1643,12 +1643,12 @@ struct EditBookSheet: View {
                     store.resetCover(bookId: book.id)
                     coverUrlInput = liveBook.coverUrl ?? ""
                 } label: {
-                    Label(localized("重設封面"), systemImage: "arrow.uturn.backward")
+                    Label(localized("重设封面"), systemImage: "arrow.uturn.backward")
                 }
                 .disabled(isApplyingCover)
             }
             if let origin = filledCoverOrigin, store.filledCovers.path(for: liveBook) != nil {
-                removeFilledButton(localized("移除自動補上的封面"), origin: origin) {
+                removeFilledButton(localized("移除自动补上的封面"), origin: origin) {
                     store.removeFilledValue(.cover, of: book.id)
                     filledCoverOrigin = nil
                 }
@@ -1657,26 +1657,26 @@ struct EditBookSheet: View {
             Text(localized("封面"))
                 .foregroundStyle(DSColor.textSecondary)
         } footer: {
-            Text(localized("封面搜索會上網找封面；換封面則在你已加入的來源配置裡，尋找同書名同作者的封面。"))
+            Text(localized("封面搜索会上网找封面；换封面则在你已加入的来源配置里，寻找同书名同作者的封面。"))
                 .dsSectionFooter()
         }
         .interfaceSectionSurface()
 
         Section {
-            TextField(localized("封面網址"), text: $coverUrlInput)
+            TextField(localized("封面网址"), text: $coverUrlInput)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
                 .keyboardType(.URL)
-                .accessibilityLabel(localized("封面網址"))
+                .accessibilityLabel(localized("封面网址"))
 
             Button {
                 applyCover(url: coverUrlInput, sourceId: liveBook.bookSourceId)
             } label: {
-                Label(localized("套用網址"), systemImage: "arrow.down.circle")
+                Label(localized("套用网址"), systemImage: "arrow.down.circle")
             }
             .disabled(isApplyingCover || !canApplyCoverUrl)
         } footer: {
-            Text(localized("貼上圖片網址後，點「套用網址」下載為封面。"))
+            Text(localized("贴上图片网址后，点「套用网址」下载为封面。"))
                 .dsSectionFooter()
         }
         .interfaceSectionSurface()
@@ -1688,7 +1688,7 @@ struct EditBookSheet: View {
             Label {
                 VStack(alignment: .leading, spacing: DSSpacing.xxs) {
                     Text(title)
-                    Text(String(format: localized("自動補上・%@"), origin))
+                    Text(String(format: localized("自动补上・%@"), origin))
                         .font(DSFont.caption)
                         .foregroundStyle(DSColor.textSecondary)
                 }
@@ -1720,7 +1720,7 @@ struct EditBookSheet: View {
         )
     }
 
-    /// 書籍資訊 opens on the cover: the artwork at a size worth looking at, lifted
+    /// 书籍资讯 opens on the cover: the artwork at a size worth looking at, lifted
     /// off a blurred wash of itself that melts into the page background.
     ///
     /// Both layers render one `coverArtwork` value. They request the same size, so
@@ -1807,7 +1807,7 @@ struct EditBookSheet: View {
             if applied {
                 coverUrlInput = trimmed
             } else {
-                coverErrorMessage = localized("無法下載這張封面，請換一張或檢查網路。")
+                coverErrorMessage = localized("无法下载这张封面，请换一张或检查网路。")
             }
         }
     }
@@ -1818,7 +1818,7 @@ struct EditBookSheet: View {
             storePickedCover(data)
         case .success(.file(let url)):
             guard let data = try? Data(contentsOf: url) else {
-                coverErrorMessage = localized("無法讀取圖片。")
+                coverErrorMessage = localized("无法读取图片。")
                 return
             }
             storePickedCover(data)
@@ -1829,7 +1829,7 @@ struct EditBookSheet: View {
 
     private func storePickedCover(_ data: Data) {
         guard store.applyCustomCover(bookId: book.id, imageData: data) else {
-            coverErrorMessage = localized("無法讀取圖片。")
+            coverErrorMessage = localized("无法读取图片。")
             return
         }
         coverUrlInput = ""
@@ -1846,15 +1846,15 @@ struct EmptyLibraryView: View {
             Image(systemName: "books.vertical")
                 .font(DSFont.fixed(size: 72))
                 .foregroundColor(DSColor.textSecondary.opacity(0.35))
-            Text(localized("書架還是空的"))
+            Text(localized("书架还是空的"))
                 .font(DSFont.title2.weight(.semibold))
                 .foregroundStyle(DSColor.textPrimary)
-            Text(localized("匯入 TXT 文件，或是輸入網址\n抓取網頁小說加入書架"))
+            Text(localized("汇入 TXT 文件，或是输入网址\n抓取网页小说加入书架"))
                 .font(DSFont.subheadline).foregroundColor(DSColor.textSecondary).multilineTextAlignment(.center)
             Button {
                 showAdd = true
             } label: {
-                Label(localized("添加書籍"), systemImage: "plus")
+                Label(localized("添加书籍"), systemImage: "plus")
                     .font(DSFont.headline).foregroundStyle(DSColor.textOnAccent)
                     .padding(.horizontal, DSSpacing.xxl).padding(.vertical, 14)
                     .background(DSColor.accent).clipShape(Capsule())
@@ -1862,7 +1862,7 @@ struct EmptyLibraryView: View {
             NavigationLink {
                 SearchView()
             } label: {
-                Label(localized("搜索書籍"), systemImage: "magnifyingglass")
+                Label(localized("搜索书籍"), systemImage: "magnifyingglass")
                     .font(DSFont.subheadline.weight(.medium))
                     .foregroundStyle(DSColor.textPrimary)
             }
@@ -1886,7 +1886,7 @@ struct BookRow: View {
     var onCoverFrameChange: ((CGRect) -> Void)? = nil
     let onEdit: () -> Void
     let onDelete: () -> Void
-    /// 作品詳情 (5f), offered for every book.
+    /// 作品详情 (5f), offered for every book.
     var onShowWork: (() -> Void)? = nil
 
     /// A row's cover. A group's folder in the list takes the same frame.
@@ -1908,10 +1908,10 @@ struct BookRow: View {
                 .accessibilityAction { openBook() }
                 .accessibilityActions {
                     if let onShowWork {
-                        Button(localized("作品詳情")) { onShowWork() }
+                        Button(localized("作品详情")) { onShowWork() }
                     }
-                    Button(localized("編輯書籍資訊")) { onEdit() }
-                    Button(localized("刪除書籍"), role: .destructive) { onDelete() }
+                    Button(localized("编辑书籍资讯")) { onEdit() }
+                    Button(localized("删除书籍"), role: .destructive) { onDelete() }
                 }
         }
     }
@@ -2019,7 +2019,7 @@ struct BookRow: View {
             .padding(.vertical, 2)
             .background(DSColor.accent)
             .clipShape(Capsule())
-            .accessibilityLabel(localized("有新章節"))
+            .accessibilityLabel(localized("有新章节"))
     }
 
     @ViewBuilder
@@ -2033,7 +2033,7 @@ struct BookRow: View {
                 .background(Color(red: 0.03, green: 0.31, blue: 0.58))
                 .clipShape(Capsule())
         } else if book.currentPosition >= 0.99 {
-            Text(localized("已讀完"))
+            Text(localized("已读完"))
                 .font(DSFont.fixed(size: 12))
                 .foregroundColor(DSColor.textSecondary)
         } else {
@@ -2089,7 +2089,7 @@ private struct BookSyncIndicator: View {
             }
         }
         .frame(width: 26, height: 26)
-        .accessibilityLabel(localized("下載中"))
+        .accessibilityLabel(localized("下载中"))
     }
 }
 
@@ -2099,7 +2099,7 @@ struct BookGridCell: View {
     var isCompactLayout: Bool = false
     /// The cover's frame as the grid lays it out; picks the decode size.
     var coverDisplaySize: CGSize = .zero
-    /// 選取 is on: a tap selects the book instead of opening it, and the cover shows
+    /// 选取 is on: a tap selects the book instead of opening it, and the cover shows
     /// whether it is in the selection. The shelf owns the selection; the cell reports taps.
     var isEditing: Bool = false
     var isSelected: Bool = false
@@ -2111,7 +2111,7 @@ struct BookGridCell: View {
     var onCoverFrameChange: ((CGRect) -> Void)? = nil
     let onEdit: () -> Void
     let onDelete: () -> Void
-    /// 作品詳情 (5f), offered for every book.
+    /// 作品详情 (5f), offered for every book.
     var onShowWork: (() -> Void)? = nil
     @State private var coverFrame = BookshelfCoverFrameBox()
     @Environment(\.colorScheme) private var colorScheme
@@ -2150,10 +2150,10 @@ struct BookGridCell: View {
                             .background(DSColor.accent)
                             .clipShape(Capsule())
                             .padding(6)
-                            .accessibilityLabel(localized("有新章節"))
+                            .accessibilityLabel(localized("有新章节"))
                     }
                 }
-                // While 選取 is on, a cover out of the selection dims and one in it
+                // While 选取 is on, a cover out of the selection dims and one in it
                 // lifts. The mark sits outside the dimming, so it stays white.
                 .opacity(isEditing && !isSelected ? DSLayout.bookshelfUnselectedCoverOpacity : 1)
                 .overlay(alignment: .bottomTrailing) {
@@ -2164,7 +2164,7 @@ struct BookGridCell: View {
                     }
                 }
                 .scaleEffect(coverLiftScale, anchor: BookshelfGridSelectionStyle.liftAnchor)
-                // However the selection changed: a tap, 全選, or clearing it.
+                // However the selection changed: a tap, 全选, or clearing it.
                 .animation(DSAnimation.standard, value: isSelected)
             }
             .buttonStyle(.plain)
@@ -2192,7 +2192,7 @@ struct BookGridCell: View {
                         onDelete: onDelete,
                         onShowWork: onShowWork
                     )
-                    // 選取 takes the per-book menu away, as it does in the list. It keeps
+                    // 选取 takes the per-book menu away, as it does in the list. It keeps
                     // its room, so the shelf does not reflow on the way in and out.
                     .opacity(isEditing ? 0 : 1)
                     .allowsHitTesting(!isEditing)
@@ -2212,10 +2212,10 @@ struct BookGridCell: View {
         .accessibilityActions {
             if !isEditing {
                 if let onShowWork {
-                    Button(localized("作品詳情")) { onShowWork() }
+                    Button(localized("作品详情")) { onShowWork() }
                 }
-                Button(localized("編輯書籍資訊")) { onEdit() }
-                Button(localized("刪除書籍"), role: .destructive) { onDelete() }
+                Button(localized("编辑书籍资讯")) { onEdit() }
+                Button(localized("删除书籍"), role: .destructive) { onDelete() }
             }
         }
     }
@@ -2317,8 +2317,8 @@ private enum BookshelfFolderLabel {
 }
 
 /// A group on 全部 in the list: its folder where a book's cover would be, its name, and how
-/// many books it holds, with 重命名分組 and 解散分組 in a ••• where a book has its own. A tap
-/// opens the group's page. 選取 takes books only, so the folder dims and takes no taps while
+/// many books it holds, with 重命名分组 and 解散分组 in a ••• where a book has its own. A tap
+/// opens the group's page. 选取 takes books only, so the folder dims and takes no taps while
 /// it is on, and its ••• goes as a book's does.
 private struct BookshelfFolderRow: View {
     let name: String
@@ -2384,8 +2384,8 @@ private struct BookshelfFolderRow: View {
         // The ••• is not its own element, so its items are the folder's rotor actions.
         .accessibilityActions {
             if !isSelecting {
-                Button(localized("重命名分組")) { onRename() }
-                Button(localized("解散分組"), role: .destructive) { confirmsDissolving = true }
+                Button(localized("重命名分组")) { onRename() }
+                Button(localized("解散分组"), role: .destructive) { confirmsDissolving = true }
             }
         }
         .accessibilityIdentifier("home_group_folder")
@@ -2440,7 +2440,7 @@ private struct BookshelfFolderGridCell: View {
                         onDissolve: { confirmsDissolving = true }
                     )
                     .confirmsDissolving(group: name, isPresented: $confirmsDissolving, onDissolve: onDissolve)
-                    // 選取 takes the ••• away, as it does a book's. It keeps its room, so the
+                    // 选取 takes the ••• away, as it does a book's. It keeps its room, so the
                     // shelf does not reflow on the way in and out.
                     .opacity(isSelecting ? 0 : 1)
                     .allowsHitTesting(!isSelecting)
@@ -2459,15 +2459,15 @@ private struct BookshelfFolderGridCell: View {
         .accessibilityAction { onOpen() }
         .accessibilityActions {
             if !isSelecting {
-                Button(localized("重命名分組")) { onRename() }
-                Button(localized("解散分組"), role: .destructive) { confirmsDissolving = true }
+                Button(localized("重命名分组")) { onRename() }
+                Button(localized("解散分组"), role: .destructive) { confirmsDissolving = true }
             }
         }
         .accessibilityIdentifier("home_group_folder")
     }
 }
 
-/// A group's •••: 重命名分組, then 解散分組 last, as 刪除書籍 is last in a book's.
+/// A group's •••: 重命名分组, then 解散分组 last, as 删除书籍 is last in a book's.
 private struct BookshelfFolderMenu: View {
     let iconSize: CGFloat
     var controlSize: CGFloat = 44
@@ -2478,10 +2478,10 @@ private struct BookshelfFolderMenu: View {
     var body: some View {
         Menu {
             Button { onRename() } label: {
-                Label(localized("重命名分組"), systemImage: "pencil")
+                Label(localized("重命名分组"), systemImage: "pencil")
             }
             Button(role: .destructive) { onDissolve() } label: {
-                Label(localized("解散分組"), systemImage: "folder.badge.minus")
+                Label(localized("解散分组"), systemImage: "folder.badge.minus")
             }
         } label: {
             BookshelfOverflowLabel(iconSize: iconSize, controlSize: controlSize)
@@ -2492,7 +2492,7 @@ private struct BookshelfFolderMenu: View {
 }
 
 private extension View {
-    /// 解散分組's question, from the group's ••• — on iPad a popover pointing at it. The books
+    /// 解散分组's question, from the group's ••• — on iPad a popover pointing at it. The books
     /// stay on the shelf, and the question says so.
     func confirmsDissolving(group: String, isPresented: Binding<Bool>, onDissolve: @escaping () -> Void) -> some View {
         confirmationDialog(
@@ -2500,17 +2500,17 @@ private extension View {
             isPresented: isPresented,
             titleVisibility: .visible
         ) {
-            Button(localized("解散分組"), role: .destructive, action: onDissolve)
+            Button(localized("解散分组"), role: .destructive, action: onDissolve)
             Button(localized("取消"), role: .cancel) {}
         } message: {
-            Text(localized("書會留在書架上，不再屬於任何分組。"))
+            Text(localized("书会留在书架上，不再属于任何分组。"))
         }
     }
 }
 
 // MARK: - Add to Group Sheet
 
-/// 加入分組: 新建分組 first, which names a group in an alert and puts the books straight in,
+/// 加入分组: 新建分组 first, which names a group in an alert and puts the books straight in,
 /// then each of the shelf's groups with how many books it holds, and 取消 on its own below.
 struct BookshelfAddToGroupSheet: View {
     let groups: [(name: String, count: Int)]
@@ -2531,7 +2531,7 @@ struct BookshelfAddToGroupSheet: View {
                     showsNewGroupAlert = true
                 } label: {
                     Label {
-                        Text(localized("新建分組"))
+                        Text(localized("新建分组"))
                             .foregroundStyle(DSColor.textPrimary)
                     } icon: {
                         Image(systemName: "plus")
@@ -2559,7 +2559,7 @@ struct BookshelfAddToGroupSheet: View {
                     }
                 }
             } header: {
-                Text(localized("加入分組"))
+                Text(localized("加入分组"))
                     .font(DSFont.subheadline)
                     .foregroundStyle(DSColor.textSecondary)
                     .textCase(nil)
@@ -2584,8 +2584,8 @@ struct BookshelfAddToGroupSheet: View {
         .softScrollEdges()
         .themedAppSurface(for: .bookshelf)
         .presentationDetents(detents)
-        .alert(localized("新建分組"), isPresented: $showsNewGroupAlert) {
-            TextField(localized("分組名稱"), text: $newGroupName)
+        .alert(localized("新建分组"), isPresented: $showsNewGroupAlert) {
+            TextField(localized("分组名称"), text: $newGroupName)
             Button(localized("新建")) {
                 choose(newGroupName.trimmingCharacters(in: .whitespacesAndNewlines))
             }
@@ -2614,21 +2614,21 @@ private struct BookOverflowMenu: View {
     var controlSize: CGFloat = 44
     let onEdit: () -> Void
     let onDelete: () -> Void
-    /// 作品詳情 (5f), offered for every book.
+    /// 作品详情 (5f), offered for every book.
     var onShowWork: (() -> Void)? = nil
 
     var body: some View {
         Menu {
             if let onShowWork {
                 Button { onShowWork() } label: {
-                    Label(localized("作品詳情"), systemImage: "books.vertical")
+                    Label(localized("作品详情"), systemImage: "books.vertical")
                 }
             }
             Button { onEdit() } label: {
-                Label(localized("編輯書籍資訊"), systemImage: "pencil")
+                Label(localized("编辑书籍资讯"), systemImage: "pencil")
             }
             Button(role: .destructive) { onDelete() } label: {
-                Label(localized("刪除書籍"), systemImage: "trash")
+                Label(localized("删除书籍"), systemImage: "trash")
             }
         } label: {
             BookshelfOverflowLabel(iconSize: iconSize, controlSize: controlSize)
@@ -2657,8 +2657,8 @@ private struct BookshelfOverflowLabel: View {
 #if DEBUG
 private func previewOnlineBook(hasUpdate: Bool) -> ReadingBook {
     var book = ReadingBook(
-        title: "示範線上小說",
-        author: "示範作者",
+        title: "示范线上小说",
+        author: "示范作者",
         source: "https://example.com",
         contentFilename: ""
     )
@@ -2666,14 +2666,14 @@ private func previewOnlineBook(hasUpdate: Bool) -> ReadingBook {
     book.currentPosition = 0.42
     // A shelf record: the summary of its table of contents, not the list.
     book.applyChapterSummary(from: [
-        OnlineChapterRef(index: 0, title: "第一章 開始", url: "https://example.com/1"),
-        OnlineChapterRef(index: 1, title: "第一百零八章 大結局", url: "https://example.com/108"),
+        OnlineChapterRef(index: 0, title: "第一章 开始", url: "https://example.com/1"),
+        OnlineChapterRef(index: 1, title: "第一百零八章 大结局", url: "https://example.com/108"),
     ])
     book.hasNewChapterUpdate = hasUpdate
     return book
 }
 
-#Preview("BookRow – 有更新 / 無更新") {
+#Preview("BookRow – 有更新 / 无更新") {
     List {
         BookRow(book: previewOnlineBook(hasUpdate: true), onTap: { _ in }, onEdit: {}, onDelete: {})
         BookRow(book: previewOnlineBook(hasUpdate: false), onTap: { _ in }, onEdit: {}, onDelete: {})
@@ -2682,7 +2682,7 @@ private func previewOnlineBook(hasUpdate: Bool) -> ReadingBook {
     .listStyle(.plain)
 }
 
-#Preview("BookGridCell – 有更新 / 無更新") {
+#Preview("BookGridCell – 有更新 / 无更新") {
     LazyVGrid(
         columns: Array(repeating: GridItem(.flexible(), spacing: DSSpacing.md), count: 3),
         spacing: DSSpacing.lg
@@ -2701,7 +2701,7 @@ private func previewOnlineBook(hasUpdate: Bool) -> ReadingBook {
     .padding()
 }
 
-#Preview("BookGridCell – 選取中") {
+#Preview("BookGridCell – 选取中") {
     @Previewable @State var selected: Set<Int> = [1]
     let coverSize = CGSize(width: 110, height: 165)
     LazyVGrid(
@@ -2729,14 +2729,14 @@ private func previewOnlineBook(hasUpdate: Bool) -> ReadingBook {
     .padding()
 }
 
-#Preview("分組資料夾 – 列表／格狀") {
+#Preview("分组资料夹 – 列表／格状") {
     let books = (0..<3).map { previewOnlineBook(hasUpdate: $0 == 0) }
     let coverSize = CGSize(width: 110, height: 165)
     VStack(spacing: 0) {
         List {
             BookshelfFolderRow(name: "在追", books: books) {}
             BookshelfFolderRow(name: "同人", books: Array(books.prefix(1))) {}
-            BookshelfFolderRow(name: "選取中", books: books, isSelecting: true) {}
+            BookshelfFolderRow(name: "选取中", books: books, isSelecting: true) {}
         }
         .listStyle(.plain)
         LazyVGrid(
@@ -2745,21 +2745,21 @@ private func previewOnlineBook(hasUpdate: Bool) -> ReadingBook {
         ) {
             BookshelfFolderGridCell(name: "在追", books: books, coverDisplaySize: coverSize) {}
             BookshelfFolderGridCell(name: "同人", books: Array(books.prefix(1)), coverDisplaySize: coverSize) {}
-            BookshelfFolderGridCell(name: "選取中", books: books, coverDisplaySize: coverSize, isSelecting: true) {}
+            BookshelfFolderGridCell(name: "选取中", books: books, coverDisplaySize: coverSize, isSelecting: true) {}
         }
         .padding()
     }
     .background(DSColor.groupedBackground)
 }
 
-#Preview("加入分組") {
+#Preview("加入分组") {
     Color.clear
         .sheet(isPresented: .constant(true)) {
             BookshelfAddToGroupSheet(groups: [("未看", 18), ("在追", 18), ("同人", 3)]) { _ in }
         }
 }
 
-#Preview("書籍資訊 – 封面區") {
+#Preview("书籍资讯 – 封面区") {
     EditBookSheet(book: previewOnlineBook(hasUpdate: false)) { _, _, _, _ in }
         .environmentObject(BookStore())
 }
@@ -2772,7 +2772,7 @@ private func previewOnlineBook(hasUpdate: Bool) -> ReadingBook {
 // re-ran every visible cell's body — and re-resolved all its text — on every store publish:
 // one book's reading position changing cost all of them (sampled with
 // `ShelfRenderScaleTests`, 300 books). The closures only route actions back to the shelf, so
-// equality is the book and the cell's value inputs, plus whether 詳情 is offered.
+// equality is the book and the cell's value inputs, plus whether 详情 is offered.
 
 extension BookGridCell: @MainActor Equatable {
     static func == (lhs: BookGridCell, rhs: BookGridCell) -> Bool {

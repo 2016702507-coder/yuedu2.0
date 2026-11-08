@@ -1,6 +1,6 @@
 import Foundation
 
-/// Phase 6b: a 來源配置 described by the same `ProviderManifest` as the built-in providers
+/// Phase 6b: a 来源配置 described by the same `ProviderManifest` as the built-in providers
 /// (design §14.2, step 2), from the rules it has. Derived on demand, never stored per source:
 /// a library can hold 50,000. Running a source still goes through `BookSourceSession`.
 enum BookSourceManifest {

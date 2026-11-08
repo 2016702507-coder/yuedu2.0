@@ -57,7 +57,7 @@ final class ReaderWebEmbedManager: NSObject {
         webView.isOpaque = false
         webView.backgroundColor = .black
         webView.scrollView.backgroundColor = .black
-        webView.accessibilityLabel = embed.title ?? localized("內嵌網頁")
+        webView.accessibilityLabel = embed.title ?? localized("内嵌网页")
 
         let decoded = OnlineImageRequestOptions.decode(embed.src)
         if let page = embed.inlinePage {

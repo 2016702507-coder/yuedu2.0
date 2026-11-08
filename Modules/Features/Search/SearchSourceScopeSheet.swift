@@ -6,12 +6,12 @@ struct SearchSourceScopeCapsule: View {
     let action: () -> Void
 
     var body: some View {
-        // A filter chip beside 類型 (search 9c), tinted while it narrows the search.
+        // A filter chip beside 类型 (search 9c), tinted while it narrows the search.
         Button(action: action) {
             SearchFilterChipLabel(title: title)
         }
         .searchFilterChip(isActive: isCustom)
-        .accessibilityLabel(localized("搜索範圍"))
+        .accessibilityLabel(localized("搜索范围"))
         .accessibilityValue(title)
         .searchFilterChipRowHeight()
     }
@@ -40,10 +40,10 @@ struct SearchSourceScopeSheet: View {
     var body: some View {
         NavigationStack {
             List {
-                Section(localized("搜索範圍")) {
-                    Picker(localized("搜索範圍"), selection: $mode) {
-                        Text(localized("全部來源配置")).tag(SearchSourceScope.Mode.all)
-                        Text(localized("自選來源配置")).tag(SearchSourceScope.Mode.custom)
+                Section(localized("搜索范围")) {
+                    Picker(localized("搜索范围"), selection: $mode) {
+                        Text(localized("全部来源配置")).tag(SearchSourceScope.Mode.all)
+                        Text(localized("自选来源配置")).tag(SearchSourceScope.Mode.custom)
                     }
                     .pickerStyle(.segmented)
                     .listRowBackground(DSColor.surface)
@@ -59,9 +59,9 @@ struct SearchSourceScopeSheet: View {
             .scrollContentBackground(.hidden)
             .background(PageBackgroundView(scope: .search).ignoresSafeArea())
             .pageBackgroundToolbar(for: .search)
-            .navigationTitle(localized("搜索範圍"))
+            .navigationTitle(localized("搜索范围"))
             .toolbarTitleDisplayMode(.inline)
-            .searchable(text: $sourceQuery, prompt: localized("搜索來源配置"))
+            .searchable(text: $sourceQuery, prompt: localized("搜索来源配置"))
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button {
@@ -87,8 +87,8 @@ struct SearchSourceScopeSheet: View {
     }
 
     private var quickSelectionSection: some View {
-        Section(localized("快速選擇")) {
-            Button(localized("全選")) {
+        Section(localized("快速选择")) {
+            Button(localized("全选")) {
                 selectedSourceURLs = Set(enabledSources.compactMap { source in
                     let key = SearchSourceScope.sourceKey(for: source)
                     return key.isEmpty ? nil : key
@@ -108,7 +108,7 @@ struct SearchSourceScopeSheet: View {
         Section {
             if enabledSources.isEmpty {
                 ContentUnavailableView {
-                    UnavailableLabel(localized("尚未設置來源配置"), systemImage: "exclamationmark.triangle")
+                    UnavailableLabel(localized("尚未设置来源配置"), systemImage: "exclamationmark.triangle")
                 }
                 .listRowBackground(Color.clear)
             } else if filteredSources.isEmpty {
@@ -121,7 +121,7 @@ struct SearchSourceScopeSheet: View {
             }
         } footer: {
             if !canSave {
-                Text(localized("請至少選擇一個可用來源配置"))
+                Text(localized("请至少选择一个可用来源配置"))
                     .dsSectionFooter(color: DSColor.destructive)
             }
         }
@@ -150,7 +150,7 @@ struct SearchSourceScopeSheet: View {
                 }
                 Spacer(minLength: DSSpacing.sm)
                 if isSelected {
-                    Label(localized("已選取"), systemImage: "checkmark")
+                    Label(localized("已选取"), systemImage: "checkmark")
                         .font(DSFont.caption)
                         .foregroundStyle(DSColor.accent)
                         .accessibilityHidden(true)
@@ -161,7 +161,7 @@ struct SearchSourceScopeSheet: View {
         .buttonStyle(.plain)
         .listRowBackground(DSColor.surface)
         .accessibilityLabel(source.bookSourceName)
-        .accessibilityValue(localized(isSelected ? "已選取" : "未選取"))
+        .accessibilityValue(localized(isSelected ? "已选取" : "未选取"))
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
@@ -200,15 +200,15 @@ struct SearchSourceScopeSheet: View {
 
 private let searchSourceScopePreviewSources: [BookSource] = {
     var first = BookSource()
-    first.bookSourceName = "示例來源配置 A"
+    first.bookSourceName = "示例来源配置 A"
     first.bookSourceUrl = "https://source-a.example"
     var second = BookSource()
-    second.bookSourceName = "示例來源配置 B"
+    second.bookSourceName = "示例来源配置 B"
     second.bookSourceUrl = "https://source-b.example"
     return [first, second]
 }()
 
-#Preview("搜索範圍") {
+#Preview("搜索范围") {
     SearchSourceScopeSheet(
         enabledSources: searchSourceScopePreviewSources,
         initialScope: SearchSourceScope(

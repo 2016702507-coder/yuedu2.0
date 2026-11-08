@@ -66,7 +66,7 @@ struct RSSArticleReaderView: View {
                         Button {
                             findRequestID = UUID()
                         } label: {
-                            Label(localized("搜尋文章"), systemImage: "magnifyingglass")
+                            Label(localized("搜寻文章"), systemImage: "magnifyingglass")
                         }
 
                         Menu {
@@ -111,9 +111,9 @@ struct RSSArticleReaderView: View {
                 }
             } else {
                 ContentUnavailableView {
-                    UnavailableLabel(localized("目前沒有文章"), systemImage: "newspaper")
+                    UnavailableLabel(localized("目前没有文章"), systemImage: "newspaper")
                 } description: {
-                    Text(localized("重新載入")).font(DSFont.unavailableDescription).foregroundStyle(DSColor.textSecondary)
+                    Text(localized("重新载入")).font(DSFont.unavailableDescription).foregroundStyle(DSColor.textSecondary)
                 }
             }
         }
@@ -149,7 +149,7 @@ struct RSSArticleReaderView: View {
         case .feed:
             return localized("Reader View")
         case .reader:
-            return localized("顯示摘要")
+            return localized("显示摘要")
         }
     }
 
@@ -180,7 +180,7 @@ struct RSSArticleReaderView: View {
         if !title.isEmpty {
             return title
         }
-        return source?.name ?? localized("RSS 訂閱")
+        return source?.name ?? localized("RSS 订阅")
     }
 
     private func bodyHTML(for article: RSSArticleRecord) -> String {
@@ -256,7 +256,7 @@ struct RSSArticleReaderView: View {
            case .httpStatus(403) = loaderError {
             return error.localizedDescription
         }
-        return String(format: localized("全文抓取失敗：%@"), error.localizedDescription)
+        return String(format: localized("全文抓取失败：%@"), error.localizedDescription)
     }
 
     private func shouldPreferFeedContent(_ article: RSSArticleRecord) -> Bool {

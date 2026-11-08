@@ -1,10 +1,10 @@
 import SwiftUI
 
-/// 會員卡密解鎖面板。
+/// 会员卡密解锁面板。
 ///
-/// 側載版本的商店頁沒有可用的商品（沒有真實 App 內購買），點「開通 Pro」只會停在
-/// 失敗或空白頁，所以凡是需要會員的入口都改成這個面板：輸入統一卡密即可解鎖，
-/// 解鎖狀態由 `CardKeyMembership` 存在本機。
+/// 侧载版本的商店页没有可用的商品（没有真实 App 内购买），点「开通 Pro」只会停在
+/// 失败或空白页，所以凡是需要会员的入口都改成这个面板：输入统一卡密即可解锁，
+/// 解锁状态由 `CardKeyMembership` 存在本机。
 struct CardKeyUnlockView: View {
     @Environment(\.dismiss) private var dismiss
     @ObservedObject private var membership = CardKeyMembership.shared
@@ -20,10 +20,10 @@ struct CardKeyUnlockView: View {
                 .foregroundStyle(.yellow)
                 .padding(.top, 4)
 
-            Text(localized("尊享會員"))
+            Text(localized("尊享会员"))
                 .font(.title3.weight(.semibold))
 
-            Text(localized("支援月卡（30 天）與永久卡，一個兌換碼限一台裝置"))
+            Text(localized("支援月卡（30 天）与永久卡，一个兑换码限一台装置"))
                 .font(.footnote)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -34,7 +34,7 @@ struct CardKeyUnlockView: View {
                     .foregroundStyle(.secondary)
             }
 
-            TextField(localized("請輸入兌換碼"), text: $input)
+            TextField(localized("请输入兑换码"), text: $input)
                 .textFieldStyle(.roundedBorder)
                 // 卡密可能是大小写混排（兜底那条就是），全键盘 + 关掉自动大写和纠错，
                 // 否则 iOS 会把首字母改成大写、或者把 I 纠成 l，输对了也校验不过。
@@ -86,16 +86,16 @@ struct CardKeyUnlockView: View {
         }
     }
 
-    /// 目前檔位一行；未激活時不顯示。
+    /// 目前档位一行；未激活时不显示。
     private var statusText: String {
         switch membership.plan {
         case .forever:
-            return localized("目前：永久會員")
+            return localized("目前：永久会员")
         case .month:
             guard let days = membership.remainingDays, days > 0 else {
-                return localized("目前：月卡會員")
+                return localized("目前：月卡会员")
             }
-            return String(format: localized("目前：月卡會員 · 剩餘 %d 天"), days)
+            return String(format: localized("目前：月卡会员 · 剩余 %d 天"), days)
         case .none:
             return ""
         }
@@ -104,11 +104,11 @@ struct CardKeyUnlockView: View {
     /// 失败文案按原因区分：卡密对但设备不符时，提示「卡密错误」会让人一直重输。
     private var failureText: String {
         switch membership.lastFailureReason {
-        case "device_mismatch": return "此兌換碼已在其他裝置啟用"
-        case "expired": return "此兌換碼已到期，請換一張新兌換碼"
-        case "already_forever": return "已是永久會員，無需再激活"
-        case "network": return "網路連線失敗，請稍後重試"
-        default: return "兌換碼錯誤，請重新輸入"
+        case "device_mismatch": return "此兑换码已在其他装置启用"
+        case "expired": return "此兑换码已到期，请换一张新兑换码"
+        case "already_forever": return "已是永久会员，无需再激活"
+        case "network": return "网路连线失败，请稍后重试"
+        default: return "兑换码错误，请重新输入"
         }
     }
 
@@ -130,7 +130,7 @@ struct CardKeyUnlockView: View {
     }
 }
 
-/// 需要會員的功能被擋下時顯示的整頁提示：說明這一頁要卡密，並就地提供輸入。
+/// 需要会员的功能被挡下时显示的整页提示：说明这一页要卡密，并就地提供输入。
 struct CardKeyLockedPrompt: View {
     let title: String
     let message: String
@@ -156,7 +156,7 @@ struct CardKeyLockedPrompt: View {
             Button {
                 showsUnlock = true
             } label: {
-                Text(localized("輸入兌換碼"))
+                Text(localized("输入兑换码"))
                     .font(.body.weight(.semibold))
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)

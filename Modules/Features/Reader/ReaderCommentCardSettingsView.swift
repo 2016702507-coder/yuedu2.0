@@ -1,18 +1,18 @@
 import SwiftUI
 import UIKit
 
-/// 氣泡設定 › 本章說 / 作者說 / 神評論: the template one kind of review card is redrawn from.
+/// 气泡设置 › 本章说 / 作者说 / 神评论: the template one kind of review card is redrawn from.
 struct ReaderCommentCardSettingsView: View {
     @Bindable private var settings = GlobalSettings.shared
     let kind: ReaderCommentCardKind
-    /// 匯入樣式, handed to the first-level document picker; nil hides it.
+    /// 汇入样式, handed to the first-level document picker; nil hides it.
     var onOpenImporter: (() -> Void)?
     @State private var editorDraft: CommentCardStyleDraft?
     @State private var stylePendingDeletion: ReaderCommentCardCustomStyle?
 
     var body: some View {
         Form {
-            Section(header: Text(localized("預覽")).foregroundStyle(DSColor.textSecondary)) {
+            Section(header: Text(localized("预览")).foregroundStyle(DSColor.textSecondary)) {
                 CommentCardTemplatePreview(
                     source: selectedSource,
                     kind: kind,
@@ -22,8 +22,8 @@ struct ReaderCommentCardSettingsView: View {
             }
             .interfaceSectionSurface()
 
-            Section(header: Text(localized("樣式")).foregroundStyle(DSColor.textSecondary)) {
-                Picker(localized("樣式"), selection: selectionBinding) {
+            Section(header: Text(localized("样式")).foregroundStyle(DSColor.textSecondary)) {
+                Picker(localized("样式"), selection: selectionBinding) {
                     Text(localized("玻璃")).tag(UUID?.none)
                     ForEach(styles) { style in
                         Text(style.name).tag(UUID?.some(style.id))
@@ -35,24 +35,24 @@ struct ReaderCommentCardSettingsView: View {
             .interfaceSectionSurface()
 
             Section {
-                Toggle(localized("優先使用選取的樣式"), isOn: prefersSelectedBinding)
+                Toggle(localized("优先使用选取的样式"), isOn: prefersSelectedBinding)
                     .foregroundStyle(DSColor.textPrimary)
             } header: {
-                Text(localized("顯示偏好"))
+                Text(localized("显示偏好"))
                     .foregroundStyle(DSColor.textSecondary)
             } footer: {
-                Text(localized("開啟後以選取的樣式重繪卡片；關閉或卡片無法辨識時，顯示來源配置提供的樣式。"))
+                Text(localized("开启后以选取的样式重绘卡片；关闭或卡片无法辨识时，显示来源配置提供的样式。"))
                     .dsSectionFooter()
             }
             .interfaceSectionSurface()
 
             Section(header: Text(localized("管理")).foregroundStyle(DSColor.textSecondary)) {
                 Button(action: openNewStyleEditor) {
-                    SettingsRowLabel(localized("新建樣式"), systemImage: "plus.circle", role: .action)
+                    SettingsRowLabel(localized("新建样式"), systemImage: "plus.circle", role: .action)
                 }
                 if let onOpenImporter {
                     Button(action: onOpenImporter) {
-                        SettingsRowLabel(localized("匯入樣式"), systemImage: "square.and.arrow.down", role: .action)
+                        SettingsRowLabel(localized("汇入样式"), systemImage: "square.and.arrow.down", role: .action)
                     }
                 }
                 exportLink
@@ -60,12 +60,12 @@ struct ReaderCommentCardSettingsView: View {
                     Button {
                         editorDraft = CommentCardStyleDraft(kind: kind, style: selectedStyle, source: selectedStyle.svg)
                     } label: {
-                        SettingsRowLabel(localized("編輯目前樣式"), systemImage: "pencil", role: .action)
+                        SettingsRowLabel(localized("编辑目前样式"), systemImage: "pencil", role: .action)
                     }
                     Button(role: .destructive) {
                         stylePendingDeletion = selectedStyle
                     } label: {
-                        SettingsRowLabel(localized("刪除目前樣式"), systemImage: "trash", role: .destructive)
+                        SettingsRowLabel(localized("删除目前样式"), systemImage: "trash", role: .destructive)
                     }
                 }
             }
@@ -79,20 +79,20 @@ struct ReaderCommentCardSettingsView: View {
             CommentCardStyleEditorView(draft: draft)
         }
         .alert(
-            localized("刪除目前樣式？"),
+            localized("删除目前样式？"),
             isPresented: Binding(
                 get: { stylePendingDeletion != nil },
                 set: { if !$0 { stylePendingDeletion = nil } }
             ),
             presenting: stylePendingDeletion
         ) { style in
-            Button(localized("刪除目前樣式"), role: .destructive) {
+            Button(localized("删除目前样式"), role: .destructive) {
                 settings.deleteCommentCardStyle(id: style.id)
                 stylePendingDeletion = nil
             }
             Button(localized("取消"), role: .cancel) {}
         } message: { style in
-            Text(String(format: localized("「%@」會被永久刪除，此操作無法復原。"), style.name))
+            Text(String(format: localized("「%@」会被永久删除，此操作无法复原。"), style.name))
         }
     }
 
@@ -137,7 +137,7 @@ struct ReaderCommentCardSettingsView: View {
     /// anything else as the SVG.
     @ViewBuilder
     private var exportLink: some View {
-        let label = SettingsRowLabel(localized("匯出當前樣式"), systemImage: "square.and.arrow.up", role: .action)
+        let label = SettingsRowLabel(localized("汇出当前样式"), systemImage: "square.and.arrow.up", role: .action)
         if let style = selectedStyle, style.dayColor != nil || style.nightColor != nil,
            let payload = Self.packageExport(style) {
             ShareLink(item: payload, preview: SharePreview(style.name)) { label }
@@ -179,8 +179,8 @@ struct CommentCardStyleDraft: Identifiable, Hashable {
     func hash(into hasher: inout Hasher) { hasher.combine(id) }
 }
 
-/// 新建樣式 / 編輯樣式 for a card template: its name, SVG and `${color}`, with the sample card
-/// drawn by day and by night. Leaving without 儲存 keeps the template as it was.
+/// 新建样式 / 编辑样式 for a card template: its name, SVG and `${color}`, with the sample card
+/// drawn by day and by night. Leaving without 储存 keeps the template as it was.
 struct CommentCardStyleEditorView: View {
     @Environment(\.dismiss) private var dismiss
     @Bindable private var settings = GlobalSettings.shared
@@ -202,12 +202,12 @@ struct CommentCardStyleEditorView: View {
 
     var body: some View {
         Form {
-            Section(header: Text(localized("樣式名稱")).foregroundStyle(DSColor.textSecondary)) {
-                TextField(localized("樣式名稱"), text: $name)
+            Section(header: Text(localized("样式名称")).foregroundStyle(DSColor.textSecondary)) {
+                TextField(localized("样式名称"), text: $name)
             }
             .interfaceSectionSurface()
 
-            Section(header: Text(localized("預覽")).foregroundStyle(DSColor.textSecondary)) {
+            Section(header: Text(localized("预览")).foregroundStyle(DSColor.textSecondary)) {
                 CommentCardTemplatePreview(source: svg, kind: draft.kind, colorHex: dayColor, isNight: false)
                 CommentCardTemplatePreview(source: svg, kind: draft.kind, colorHex: nightColor, isNight: true)
             }
@@ -221,39 +221,39 @@ struct CommentCardStyleEditorView: View {
                 Button {
                     if let pasted = UIPasteboard.general.string { svg = pasted }
                 } label: {
-                    SettingsRowLabel(localized("從剪貼簿貼上 SVG"), systemImage: "doc.on.clipboard", role: .action)
+                    SettingsRowLabel(localized("从剪贴簿贴上 SVG"), systemImage: "doc.on.clipboard", role: .action)
                 }
             } header: {
                 Text(localized("SVG 模板")).foregroundStyle(DSColor.textSecondary)
             } footer: {
-                Text(localized("可用 ${title}、${count}、${num}、${user}、${likes}、${content}、${color} 與 ${accent}（閱讀背景的強調色）；帶 data-yd-repeat 的元素會為每則評論重複一次，帶 data-yd-glass 的元素會畫成系統玻璃。"))
+                Text(localized("可用 ${title}、${count}、${num}、${user}、${likes}、${content}、${color} 与 ${accent}（阅读背景的强调色）；带 data-yd-repeat 的元素会为每则评论重复一次，带 data-yd-glass 的元素会画成系统玻璃。"))
                     .dsSectionFooter()
             }
             .interfaceSectionSurface()
 
             Section {
                 OptionalHexColorRows(
-                    toggleTitle: localized("自訂白天顏色"),
-                    pickerTitle: localized("白天顏色"),
+                    toggleTitle: localized("自订白天颜色"),
+                    pickerTitle: localized("白天颜色"),
                     hex: $dayColor,
                     initialColor: ReaderTheme.white.uiTextColor
                 )
                 OptionalHexColorRows(
-                    toggleTitle: localized("自訂夜間顏色"),
-                    pickerTitle: localized("夜間顏色"),
+                    toggleTitle: localized("自订夜间颜色"),
+                    pickerTitle: localized("夜间颜色"),
                     hex: $nightColor,
                     initialColor: ReaderTheme.night.uiTextColor
                 )
             } header: {
-                Text(localized("顏色")).foregroundStyle(DSColor.textSecondary)
+                Text(localized("颜色")).foregroundStyle(DSColor.textSecondary)
             } footer: {
-                Text(localized("未設定時 ${color} 跟隨閱讀文字顏色。"))
+                Text(localized("未设置时 ${color} 跟随阅读文字颜色。"))
                     .dsSectionFooter()
             }
             .interfaceSectionSurface()
         }
         .softScrollEdges()
-        .navigationTitle(localized(draft.style == nil ? "新建樣式" : "編輯樣式"))
+        .navigationTitle(localized(draft.style == nil ? "新建样式" : "编辑样式"))
         .toolbarTitleDisplayMode(.inline)
         .themedAppSurface(for: .settings)
         .toolbar {
@@ -262,17 +262,17 @@ struct CommentCardStyleEditorView: View {
                     Image(systemName: "checkmark")
                 }
                 .disabled(svg.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                .accessibilityLabel(localized("儲存"))
+                .accessibilityLabel(localized("储存"))
             }
         }
         .alert(
-            localized("無法儲存樣式"),
+            localized("无法储存样式"),
             isPresented: Binding(
                 get: { validationMessage != nil },
                 set: { if !$0 { validationMessage = nil } }
             )
         ) {
-            Button(localized("確定"), role: .cancel) {}
+            Button(localized("确定"), role: .cancel) {}
         } message: {
             Text(validationMessage ?? "")
         }
@@ -290,7 +290,7 @@ struct CommentCardStyleEditorView: View {
         settings.upsertCommentCardStyle(ReaderCommentCardCustomStyle(
             id: draft.style?.id ?? UUID(),
             kind: draft.kind,
-            name: trimmedName.isEmpty ? localized("自訂模板") : trimmedName,
+            name: trimmedName.isEmpty ? localized("自订模板") : trimmedName,
             svg: source,
             updatedAt: draft.style?.updatedAt,
             dayColor: dayColor,
@@ -300,7 +300,7 @@ struct CommentCardStyleEditorView: View {
     }
 }
 
-#Preview("本章說") {
+#Preview("本章说") {
     NavigationStack {
         ReaderCommentCardSettingsView(kind: .chapterSay, onOpenImporter: {})
     }

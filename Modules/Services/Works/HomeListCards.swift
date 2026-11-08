@@ -1,32 +1,32 @@
 import Foundation
 
-// Every source in every layout of lists (maintainer, 2026-10-27: 「所有欄目，都是提供給所有的來源
-// 選擇的不管是不是官方模組」). 專題集合, 分類卡片, 拼貼卡片 and 大圖卡片 draw a card per list, and a
-// list is whatever a section of books shows: a module's list, a 來源配置's category, a library's
-// feed, 古騰堡's shelves and lists, 青空文庫's, App 資料's.
+// Every source in every layout of lists (maintainer, 2026-10-27: 「所有栏目，都是提供给所有的来源
+// 选择的不管是不是官方模组」). 专题集合, 分类卡片, 拼贴卡片 and 大图卡片 draw a card per list, and a
+// list is whatever a section of books shows: a module's list, a 来源配置's category, a library's
+// feed, 古腾堡's shelves and lists, 青空文库's, App 资料's.
 // - A section's cards (`HomeSection.listCards`): a `.lists` section's own, as the reader put them
-//   together in its form, from any sources, each with its own parameters (趨勢's 地區); a 來源配置's
-//   categories a card each, as 分類卡片 drew them since 2026-10-26; any other binding one card of
-//   itself, so 呈現方式 offers the layouts of lists to every section without changing what it stores.
+//   together in its form, from any sources, each with its own parameters (趋势's 地区); a 来源配置's
+//   categories a card each, as 分类卡片 drew them since 2026-10-26; any other binding one card of
+//   itself, so 呈现方式 offers the layouts of lists to every section without changing what it stores.
 // - Each card is a row of its own (`HomeModel.Row.card`), loaded as a section of its binding is,
-//   by the provider that serves it and under its policy: a 來源配置's categories one at a time,
-//   古騰堡's with the home. 最新 is a card per library, as it is a row per library. A row that gives
-//   lists itself gives a card each: 精選書單's bundled lists, the 書架's groups.
+//   by the provider that serves it and under its policy: a 来源配置's categories one at a time,
+//   古腾堡's with the home. 最新 is a card per library, as it is a row per library. A row that gives
+//   lists itself gives a card each: 精选书单's bundled lists, the 书架's groups.
 // - A card's covers are its list's first books and its name the list's own. It opens what the
-//   list's 查看全部 opens, or, for a list with no page of its own (繼續閱讀, a 書架 group…),
+//   list's 查看全部 opens, or, for a list with no page of its own (继续阅读, a 书架 group…),
 //   the books it drew (`HomeListRoute`).
-// - The section shows once every card has loaded, as 分類卡片 did: a card that failed or holds
+// - The section shows once every card has loaded, as 分类卡片 did: a card that failed or holds
 //   nothing is left out (the model logs it), and the section fails only when every card did.
 // - A build before `.lists` reads it as `.unknown`, keeps it and draws nothing for it. A section of
-//   one list, or of one 來源配置's categories, is written as before (`HomeSection.settingCards`).
+//   one list, or of one 来源配置's categories, is written as before (`HomeSection.settingCards`).
 
 /// One card of a section of lists: the list it shows, with its own parameter values.
 struct HomeListCard: Codable, Hashable, Sendable {
     var binding: HomeSectionBinding
     /// The list's parameters by name, as a section's (`HomeSection.parameters`): a module list's
-    /// values, a 來源配置 category's filters.
+    /// values, a 来源配置 category's filters.
     var parameters: [String: String]
-    /// The list's name for a binding that cannot name itself (a feed), from 選擇內容來源; empty
+    /// The list's name for a binding that cannot name itself (a feed), from 选择内容来源; empty
     /// follows the list.
     var title: String
 
@@ -78,7 +78,7 @@ extension HomeSectionBinding {
         }
     }
 
-    /// What only a layout of lists can draw: 精選書單, the bundled lists, and a section of lists.
+    /// What only a layout of lists can draw: 精选书单, the bundled lists, and a section of lists.
     var drawsOnlyLists: Bool {
         switch self {
         case .gutenbergLists, .lists: true
@@ -92,7 +92,7 @@ extension HomeSection {
     /// have loaded.
     static let listCardLimit = 8
 
-    /// Drawn as lists, a card each: 專題集合, 分類卡片, 拼貼卡片, 大圖卡片.
+    /// Drawn as lists, a card each: 专题集合, 分类卡片, 拼贴卡片, 大图卡片.
     var drawsLists: Bool { layout.style.drawsLists }
 
     /// The cards the section draws in a layout of lists, at most `listCardLimit`; none in a
@@ -108,20 +108,20 @@ extension HomeSection {
         case .myLibrary, .unknown:
             return []
         default:
-            // A feed is named by the section, which 選擇內容來源 titled after it.
+            // A feed is named by the section, which 选择内容来源 titled after it.
             return [.picked(binding, parameters: parameters, name: title)]
         }
     }
 
     /// A card's list as a section of its own, which its row loads: in the section's layout, so a
-    /// provider that lists groups (the 書架's) gives them as lists.
+    /// provider that lists groups (the 书架's) gives them as lists.
     func cardSection(_ card: HomeListCard) -> HomeSection {
         HomeSection(id: id, layout: layout, binding: card.binding, parameters: card.parameters)
     }
 
     /// The section with `cards`, written in the oldest form that says them, so a build before
     /// `.lists` still draws what it can: one card as its own binding and parameters, one
-    /// 來源配置's categories under one set of filters as `.sourceCategories`. Every card is kept,
+    /// 来源配置's categories under one set of filters as `.sourceCategories`. Every card is kept,
     /// those this build cannot draw too; `listCards` draws the first ones it can.
     func settingCards(_ cards: [HomeListCard]) -> HomeSection {
         var section = self
@@ -163,7 +163,7 @@ struct HomeListOpening: Hashable, Sendable {
 }
 
 extension HomeModel.Row {
-    /// A card's name: its own (a feed's, from 選擇內容來源), else its list's; a library's 最新 by
+    /// A card's name: its own (a feed's, from 选择内容来源), else its list's; a library's 最新 by
     /// the library, since every card of 最新 is one.
     var cardTitle: String {
         if let title = card?.title, !title.isEmpty { return title }
@@ -174,8 +174,8 @@ extension HomeModel.Row {
 }
 
 extension CollectionSummary {
-    /// A card row's cards: those it gave as lists, in 偏好閱讀語言's order as 精選書單's were; else
-    /// one card of its books, an article's image as its cover, or of its places (青空文庫's
+    /// A card row's cards: those it gave as lists, in 偏好阅读语言's order as 精选书单's were; else
+    /// one card of its books, an article's image as its cover, or of its places (青空文库's
     /// indexes), which have none. A row with neither has no card.
     static func cards(of row: HomeModel.Row, entries: [CollectionEntry],
                       languages: ReadingLanguagePreferences?) -> [CollectionSummary] {
@@ -229,11 +229,11 @@ extension CollectionSummary {
     }
 }
 
-/// A card's books, for a list with no page of its own: 繼續閱讀, 相關, 系列下一本, a 書架 group.
+/// A card's books, for a list with no page of its own: 继续阅读, 相关, 系列下一本, a 书架 group.
 /// What the card drew, frozen in the route.
 struct HomeListRoute: Hashable {
     let title: String
-    /// The card's list, so a shelf copy on 繼續閱讀 or 書架 opens its reader as their cards do.
+    /// The card's list, so a shelf copy on 继续阅读 or 书架 opens its reader as their cards do.
     let binding: HomeSectionBinding
     let entries: [CollectionEntry]
 }

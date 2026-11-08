@@ -211,7 +211,7 @@ class BookStore: @MainActor ObservableObject, BookProvider {
     }
     private var lastPersistedReadingData: Data?
     /// Set when the reading-record file could not be read, or did not decode and could not be
-    /// copied aside. The books only read (立即閱讀 copies, remote references taken off the
+    /// copied aside. The books only read (立即阅读 copies, remote references taken off the
     /// shelf) are in no other file; writing would replace them with the few this launch knows.
     private var readingRecordsWritesBlocked = false
 
@@ -266,7 +266,7 @@ class BookStore: @MainActor ObservableObject, BookProvider {
     let remoteRecords: RemoteRecordStore
     /// Unified library 5c-4: the one work index of this shelf, `Works/index.json`, refreshed
     /// when a reader of it asks (`WorkIndexService.current()`). Here, beside the stores it is
-    /// built from, so Explore's home and the bookshelf's 作品詳情 (5f) share it.
+    /// built from, so Explore's home and the bookshelf's 作品详情 (5f) share it.
     @MainActor lazy var workIndex = WorkIndexService(
         store: self,
         directory: metadataFileURL.deletingLastPathComponent().appendingPathComponent("Works", isDirectory: true)
@@ -288,11 +288,11 @@ class BookStore: @MainActor ObservableObject, BookProvider {
     /// book missing from `records` be taken as gone, and its list and settings removed.
     private var recordsLoadedCompletely = false
 
-    /// Where a book read and then taken off the shelf leaves its name for 搜索's 最近閱讀
+    /// Where a book read and then taken off the shelf leaves its name for 搜索's 最近阅读
     /// (`OffShelfReadRecords`). Nil for a store on any shelf but the app's own, which then
     /// leaves no names behind.
     private let offShelfReadRecordsDefaults: UserDefaults?
-    /// Where opening a book records its genres for AI 推薦 (Discovery Phase 7a-2). Nil for a
+    /// Where opening a book records its genres for AI 推荐 (Discovery Phase 7a-2). Nil for a
     /// store on any shelf but the app's own.
     private let readingGenres: ReadingGenreRecorder?
 
@@ -372,17 +372,17 @@ class BookStore: @MainActor ObservableObject, BookProvider {
             )
             return placeholder.makePackage(pipelineKind: .epub, originalSourceURL: epubURL)
         case .html:
-            throw ReaderError.unsupportedFormat("HTML 渲染尚待 CoreText 遷移完成，目前不支援")
+            throw ReaderError.unsupportedFormat("HTML 渲染尚待 CoreText 迁移完成，目前不支援")
         case .txt:
-            throw ReaderError.unsupportedFormat("TXT 渲染尚待 CoreText 遷移完成，目前不支援")
+            throw ReaderError.unsupportedFormat("TXT 渲染尚待 CoreText 迁移完成，目前不支援")
         case .manga:
-            throw ReaderError.unsupportedFormat("漫畫使用獨立的圖片閱讀器，無 CoreText 套件")
+            throw ReaderError.unsupportedFormat("漫画使用独立的图片阅读器，无 CoreText 套件")
         case .fixedPage:
-            throw ReaderError.unsupportedFormat("固定頁面文件使用獨立的固定頁面閱讀器，無 CoreText 套件")
+            throw ReaderError.unsupportedFormat("固定页面文件使用独立的固定页面阅读器，无 CoreText 套件")
         case .audio:
-            throw ReaderError.unsupportedFormat("有聲書使用獨立的音訊播放器，無 CoreText 套件")
+            throw ReaderError.unsupportedFormat("有声书使用独立的音讯播放器，无 CoreText 套件")
         case .video:
-            throw ReaderError.unsupportedFormat("影片使用獨立的影片播放器，無 CoreText 套件")
+            throw ReaderError.unsupportedFormat("影片使用独立的影片播放器，无 CoreText 套件")
         }
     }
 
@@ -757,7 +757,7 @@ class BookStore: @MainActor ObservableObject, BookProvider {
 
     @discardableResult
     /// - Parameter isInBookshelf: false for a copy made to be read, which joins the shelf only
-    ///   when the reader adds it (a 青空文庫 work read from its 作品詳情).
+    ///   when the reader adds it (a 青空文库 work read from its 作品详情).
     nonisolated func importEpub(url: URL, title: String? = nil, author: String? = nil, requireValidPublication: Bool = false,
                     isInBookshelf: Bool = true) async throws -> ReadingBook {
         let importStartUptime = ProcessInfo.processInfo.systemUptime
@@ -925,7 +925,7 @@ class BookStore: @MainActor ObservableObject, BookProvider {
     func importWeb(
         content: String,
         title: String,
-        author: String = "網路書籍",
+        author: String = "网路书籍",
         sourceURL: String,
         format: ImportedBookContentFormat = .plainText
     ) throws -> ReadingBook {
@@ -1064,15 +1064,15 @@ class BookStore: @MainActor ObservableObject, BookProvider {
         readingGenres?.bookOpened(records[idx], metadata: importedMetadata, sources: .shared)
     }
 
-    /// 從繼續閱讀移除 (unified library 5d-3c): out of 繼續閱讀 until the book is opened again.
-    /// The shelf, its 最近閱讀 order and the book's progress are untouched.
+    /// 从继续阅读移除 (unified library 5d-3c): out of 继续阅读 until the book is opened again.
+    /// The shelf, its 最近阅读 order and the book's progress are untouched.
     func removeFromContinueReading(bookId: UUID) {
         guard let idx = records.firstIndex(where: { $0.id == bookId }) else { return }
         records[idx].continueReadingHiddenAt = Date()
         saveMeta()
     }
 
-    /// 標記為已讀完 (unified library 5d-3c): 已讀完 wherever progress shows, and out of 繼續閱讀,
+    /// 标记为已读完 (unified library 5d-3c): 已读完 wherever progress shows, and out of 继续阅读,
     /// as Apple Books' Mark as Finished. The reader keeps its own position, so opening the
     /// book again resumes where it was and its next save writes the real progress back.
     func markFinished(bookId: UUID) {
@@ -1177,7 +1177,7 @@ class BookStore: @MainActor ObservableObject, BookProvider {
         guard book.isOnline else { return book }
         if var stored = readingBook(id: book.id) {
             // Only a shelf book's chapters download (`OfflineDownloadManager.runBook`). One
-            // only read — 立即閱讀's, which stays off the shelf — goes on it as its download
+            // only read — 立即阅读's, which stays off the shelf — goes on it as its download
             // starts, and stays there.
             if !stored.isInBookshelf, addReadingBookToShelf(id: book.id) != nil {
                 stored.isInBookshelf = true
@@ -1192,7 +1192,7 @@ class BookStore: @MainActor ObservableObject, BookProvider {
     }
 
     /// Finds a shelf book by its source-qualified online identity — or, `onShelf: false`, a
-    /// book only read: what 立即閱讀 keeps while its reader is open, and leaves behind when
+    /// book only read: what 立即阅读 keeps while its reader is open, and leaves behind when
     /// the app ends before the reader closes.
     ///
     /// A detail URL is not globally unique: aggregation sources can expose the
@@ -1230,18 +1230,18 @@ class BookStore: @MainActor ObservableObject, BookProvider {
         saveMeta()
     }
 
-    /// 一頁一個書籤：這一頁上已有的書籤，由早到晚。Another converted text version's bookmarks
+    /// 一页一个书签：这一页上已有的书签，由早到晚。Another converted text version's bookmarks
     /// mark other words, and belong to no page here.
     func pageBookmarks(bookId: UUID, in range: ReaderPageBookmarkRange) -> [Bookmark] {
         guard let book = records.first(where: { $0.id == bookId }) else { return [] }
         return range.pageBookmarks(in: book.bookmarks.indexingReadText(of: bookId))
     }
 
-    /// 一頁一個書籤：這頁沒有就加一個（位置記在頁首），已經有就把整頁範圍內的書籤都移除。
+    /// 一页一个书签：这页没有就加一个（位置记在页首），已经有就把整页范围内的书签都移除。
     ///
-    /// 用範圍而不是位置相等來判斷，換過字級／邊距之後舊書籤仍然屬於它原本那一頁，
-    /// 不會在同一頁上疊出第二個，也刪得掉。
-    /// - Returns: `true` 代表這次是加入書籤，`false` 代表移除。
+    /// 用范围而不是位置相等来判断，换过字级／边距之后旧书签仍然属于它原本那一页，
+    /// 不会在同一页上叠出第二个，也删得掉。
+    /// - Returns: `true` 代表这次是加入书签，`false` 代表移除。
     @discardableResult
     func togglePageBookmark(
         bookId: UUID, chapterIndex: Int, chapterTitle: String,
@@ -1298,8 +1298,8 @@ class BookStore: @MainActor ObservableObject, BookProvider {
         let targetRange = NSRange(location: position.charOffset, length: safeLength)
         // Another text version's highlights index other words; they neither merge nor move.
         let existingAnnotations = records[idx].bookmarks.indexingReadText(of: bookId).compactMap(\.coreTextTextAnnotation)
-        // 改顏色／樣式時範圍不變，舊標註會被下面的 removeExact 拿掉。新標註要接手它的身分
-        // （id、筆記、建立時間、摘錄），否則「換個顏色」等於刪掉重畫一條新的。
+        // 改颜色／样式时范围不变，旧标注会被下面的 removeExact 拿掉。新标注要接手它的身分
+        // （id、笔记、建立时间、摘录），否则「换个颜色」等于删掉重画一条新的。
         let replaced = existingAnnotations.first {
             $0.spineIndex == position.spineIndex && NSEqualRanges($0.range, targetRange)
         }
@@ -1311,8 +1311,8 @@ class BookStore: @MainActor ObservableObject, BookProvider {
             color: color,
             note: note ?? replaced?.note
         )
-        // 若同一範圍已有標註（改顏色/樣式時範圍不變），先移除舊的，避免新舊兩色並存。
-        // 全新選取不會精確命中既有範圍，removeExact 為 no-op。
+        // 若同一范围已有标注（改颜色/样式时范围不变），先移除旧的，避免新旧两色并存。
+        // 全新选取不会精确命中既有范围，removeExact 为 no-op。
         let (cleaned, replacedIDs) = AnnotationStore.removeExact(
             spineIndex: position.spineIndex,
             range: targetRange,
@@ -1332,14 +1332,14 @@ class BookStore: @MainActor ObservableObject, BookProvider {
             absorbedIDs = ids
         }
 
-        // 只換掉這次被取代或併入的標註，其他劃線原封不動。以前是把全書劃線整批刪掉再從範圍重建，
-        // 別條的 id、建立時間、摘錄全被洗掉（見 BookStoreTextAnnotationTests）。
+        // 只换掉这次被取代或并入的标注，其他划线原封不动。以前是把全书划线整批删掉再从范围重建，
+        // 别条的 id、建立时间、摘录全被洗掉（见 BookStoreTextAnnotationTests）。
         let consumedIDs = Set(replacedIDs).union(absorbedIDs)
         let consumed = records[idx].bookmarks.filter { consumedIDs.contains($0.id) }
         records[idx].bookmarks.removeAll { consumedIDs.contains($0.id) }
 
-        // 沒選到文字時呼叫端送的是頁面開頭（`currentPageExcerpt`），所以範圍沒變就沿用原本的摘錄；
-        // 原本是空的（例如被舊版清掉）才用這次送來的。範圍變大時舊摘錄只涵蓋其中一段，改用這次的。
+        // 没选到文字时呼叫端送的是页面开头（`currentPageExcerpt`），所以范围没变就沿用原本的摘录；
+        // 原本是空的（例如被旧版清掉）才用这次送来的。范围变大时旧摘录只涵盖其中一段，改用这次的。
         let replacedExcerpt = replaced.flatMap { old in consumed.first { $0.id == old.id }?.excerpt } ?? ""
         let keepsReplacedExcerpt = NSEqualRanges(annotation.range, targetRange) && !replacedExcerpt.isEmpty
         records[idx].bookmarks.append(Bookmark(
@@ -1375,20 +1375,20 @@ class BookStore: @MainActor ObservableObject, BookProvider {
             from: records[idx].bookmarks.compactMap(\.coreTextTextAnnotation)
         )
         guard !removedIDs.isEmpty else {
-            AppLogger.cache("劃線：要刪除的範圍沒有完全相同的標註 spine=\(position.spineIndex) range=\(range)")
+            AppLogger.cache("划线：要删除的范围没有完全相同的标注 spine=\(position.spineIndex) range=\(range)")
             return
         }
-        // 只刪命中的那一條。以前會把同章其他劃線重建成空摘錄、新 id、新建立時間。
+        // 只删命中的那一条。以前会把同章其他划线重建成空摘录、新 id、新建立时间。
         let removedIDSet = Set(removedIDs)
         records[idx].bookmarks.removeAll { removedIDSet.contains($0.id) }
         records[idx].bookmarks = records[idx].bookmarks.sortedByStablePosition()
         saveMeta()
     }
 
-    /// 找出涵蓋指定範圍的標註書籤。
+    /// 找出涵盖指定范围的标注书签。
     ///
-    /// 新增標註後範圍可能被 `AnnotationStore.merge` 併大，呼叫端不能拿自己送出去的
-    /// range 當結果用——筆記要掛在合併後那一條上，否則下次開啟會對不到。
+    /// 新增标注后范围可能被 `AnnotationStore.merge` 并大，呼叫端不能拿自己送出去的
+    /// range 当结果用——笔记要挂在合并后那一条上，否则下次开启会对不到。
     func textAnnotationBookmark(bookId: UUID, spineIndex: Int, range: NSRange) -> Bookmark? {
         guard let book = records.first(where: { $0.id == bookId }) else { return nil }
         let start = range.location
@@ -1401,7 +1401,7 @@ class BookStore: @MainActor ObservableObject, BookProvider {
         }
     }
 
-    /// 寫入／清空一條標註的筆記。傳空字串等於「只刪筆記、保留標註」。
+    /// 写入／清空一条标注的笔记。传空字串等于「只删笔记、保留标注」。
     func setTextAnnotationNote(bookId: UUID, bookmarkId: UUID, note: String) {
         guard let idx = records.firstIndex(where: { $0.id == bookId }),
               let bmIdx = records[idx].bookmarks.firstIndex(where: { $0.id == bookmarkId })
@@ -1416,7 +1416,7 @@ class BookStore: @MainActor ObservableObject, BookProvider {
         }) ?? false
     }
 
-    /// 一頁一個書籤：這一頁上有沒有書籤。
+    /// 一页一个书签：这一页上有没有书签。
     func isPageBookmarked(bookId: UUID, range: ReaderPageBookmarkRange) -> Bool {
         !pageBookmarks(bookId: bookId, in: range).isEmpty
     }
@@ -1444,7 +1444,7 @@ class BookStore: @MainActor ObservableObject, BookProvider {
         }
     }
 
-    /// The author the 來源配置 agreed on for a copy that names none (a TXT with no 「作者：」
+    /// The author the 来源配置 agreed on for a copy that names none (a TXT with no 「作者：」
     /// line): written only over 未知作者, never over an author the reader typed.
     func nameUnknownAuthor(_ author: String, for bookId: UUID) {
         let name = author.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -1455,7 +1455,7 @@ class BookStore: @MainActor ObservableObject, BookProvider {
         saveMeta()
     }
 
-    /// The reader's own description, from 編輯資訊; empty clears it, and the page shows the
+    /// The reader's own description, from 编辑资讯; empty clears it, and the page shows the
     /// book's own again.
     func setCustomIntro(_ text: String, for bookId: UUID) {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -1487,9 +1487,9 @@ class BookStore: @MainActor ObservableObject, BookProvider {
         setGroups([bookId: group])
     }
 
-    // MARK: 養肥
+    // MARK: 养肥
 
-    /// Puts a book on the 養肥 shelf, or takes it off. The chip used to mean "never
+    /// Puts a book on the 养肥 shelf, or takes it off. The chip used to mean "never
     /// opened", which swept in every new import; it is now a shelf the reader keeps.
     /// The date is kept so the list can be sorted by when it was put there later.
     func setFattening(_ isFattening: Bool, for bookId: UUID) {
@@ -1499,7 +1499,7 @@ class BookStore: @MainActor ObservableObject, BookProvider {
         saveMeta()
     }
 
-    /// Moves several books at once and saves once — AI 整理書架 applies a whole proposal.
+    /// Moves several books at once and saves once — AI 整理书架 applies a whole proposal.
     func setGroups(_ assignments: [UUID: String]) {
         var updated = records
         var changed = false
@@ -1513,7 +1513,7 @@ class BookStore: @MainActor ObservableObject, BookProvider {
         saveMeta()
     }
 
-    /// 重命名分組: every book in `group` moves to `newName`, trimmed. A name another group
+    /// 重命名分组: every book in `group` moves to `newName`, trimmed. A name another group
     /// already has merges the two; an empty or unchanged one leaves the shelf as it is.
     func renameGroup(_ group: String, to newName: String) {
         let name = newName.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -1521,7 +1521,7 @@ class BookStore: @MainActor ObservableObject, BookProvider {
         setGroups(assignments(movingBooksOf: group, to: name))
     }
 
-    /// 解散分組: the group's books stay on the shelf, in no group.
+    /// 解散分组: the group's books stay on the shelf, in no group.
     func dissolveGroup(_ group: String) {
         guard !group.isEmpty else { return }
         setGroups(assignments(movingBooksOf: group, to: ""))
@@ -1550,8 +1550,8 @@ class BookStore: @MainActor ObservableObject, BookProvider {
     }
 
     /// Keeps the name of `book`, read and now off the shelf — removed, or read from its detail
-    /// page and not added (`ShelfWorkService.leaveReadCopyOffShelf`) — for 搜索's 最近閱讀, as
-    /// legado's 閱讀記錄 outlives the book.
+    /// page and not added (`ShelfWorkService.leaveReadCopyOffShelf`) — for 搜索's 最近阅读, as
+    /// legado's 阅读记录 outlives the book.
     func recordOffShelfRead(_ book: ReadingBook) {
         guard let offShelfReadRecordsDefaults, let lastRead = book.lastOpenedDate else { return }
         OffShelfReadRecords.record(
@@ -1565,7 +1565,7 @@ class BookStore: @MainActor ObservableObject, BookProvider {
 
     func delete(bookId: UUID) {
         // The versions kept beside a shelf book (`ShelfVersionSwitch`) are the same work, and only
-        // its 換源 lists them: deleting the book deletes them. A merge relinks them first
+        // its 换源 lists them: deleting the book deletes them. A merge relinks them first
         // (`ShelfWorkMerger.absorb`).
         for version in records where version.versionOf == bookId {
             delete(bookId: version.id)
@@ -1629,7 +1629,7 @@ class BookStore: @MainActor ObservableObject, BookProvider {
             // legado's chapters go with their book (`ForeignKey.CASCADE`); so does the list here.
             chapterStore.removeChapters(for: bookId)
             importedMetadata.remove(copyID: bookId)
-            // The 多角色朗讀 cast is keyed by book id and would otherwise outlive the book.
+            // The 多角色朗读 cast is keyed by book id and would otherwise outlive the book.
             let globalSettings = GlobalSettings.shared
             let remainingRoleVoices = TTSRoleVoiceCast.clearing(bookID: bookId, in: globalSettings.ttsRoleVoices)
             if remainingRoleVoices.count != globalSettings.ttsRoleVoices.count {
@@ -1705,7 +1705,7 @@ class BookStore: @MainActor ObservableObject, BookProvider {
     ///
     /// `chapterIndex` is the chapter whose content was detected — the one the text reader
     /// was opened at. The image reader restores from `mangaChapterIndex`, not the position
-    /// store, so without it a comic opened from 目錄 at any chapter flipped to its first.
+    /// store, so without it a comic opened from 目录 at any chapter flipped to its first.
     @discardableResult
     func upgradeToMangaIfDetected(
         bookId: UUID, content: String, imageStyle: String? = nil, atChapter chapterIndex: Int
@@ -1863,7 +1863,7 @@ class BookStore: @MainActor ObservableObject, BookProvider {
         init?(_ book: ReadingBook) {
             let names: [String?]
             if book.downloadsItsCover {
-                // Not the original kept for 重設封面, which downloads it again itself.
+                // Not the original kept for 重设封面, which downloads it again itself.
                 names = [book.coverImagePath]
                 origin = .download(url: book.coverUrl ?? "", sourceId: book.bookSourceId)
             } else if let format = ImportedBookCover.format(of: book) {
@@ -1897,9 +1897,9 @@ class BookStore: @MainActor ObservableObject, BookProvider {
         saveMeta()
     }
 
-    // MARK: - Custom cover (封面搜索 / 相簿 / 手動網址)
+    // MARK: - Custom cover (封面搜索 / 相簿 / 手动网址)
 
-    /// Download a cover the user picked in 書籍資訊 (封面搜索 result or a pasted
+    /// Download a cover the user picked in 书籍资讯 (封面搜索 result or a pasted
     /// address) and make it this book's cover.
     ///
     /// `sourceId` is the book source the cover URL came from — its headers are
@@ -1926,7 +1926,7 @@ class BookStore: @MainActor ObservableObject, BookProvider {
         return storeCustomCover(bookId: bookId, image: image, customCoverUrl: trimmed)
     }
 
-    /// Make a locally picked image (相簿 / 檔案) this book's cover. Downsampled on
+    /// Make a locally picked image (相簿 / 档案) this book's cover. Downsampled on
     /// the way in, like every network cover, so a 12MP photo does not become a
     /// full-size decode in each shelf row.
     @discardableResult
@@ -1969,7 +1969,7 @@ class BookStore: @MainActor ObservableObject, BookProvider {
 
         let previousPath = records[idx].coverImagePath
         // First customization only: keep whatever the source or the EPUB gave us
-        // so 重設封面 has something to restore. Later changes replace each other.
+        // so 重设封面 has something to restore. Later changes replace each other.
         if records[idx].originalCoverImagePath == nil {
             records[idx].originalCoverImagePath = previousPath
         } else if let previousPath, previousPath != records[idx].originalCoverImagePath {
@@ -1978,7 +1978,7 @@ class BookStore: @MainActor ObservableObject, BookProvider {
         records[idx].coverImagePath = filename
         records[idx].customCoverUrl = customCoverUrl
         // Picking a cover is a user-confirmed metadata transaction, like a source
-        // switch: it must survive leaving 書籍資訊 and an immediate suspension. The
+        // switch: it must survive leaving 书籍资讯 and an immediate suspension. The
         // 2-second debounce is for high-frequency progress/TOC writes.
         saveMetaImmediately()
         return true
@@ -2109,7 +2109,7 @@ class BookStore: @MainActor ObservableObject, BookProvider {
         // Every chapter is about to go back to the network for the first time since the
         // download was made. Doing that against a table of contents the cache has been
         // replaying unchanged — it is keyed by `(sourceId, url)` and outlives the book — is
-        // what turned 移除下載 into "the whole book fails and only 換源 fixes it".
+        // what turned 移除下载 into "the whole book fails and only 换源 fixes it".
         if let sourceId = removing.bookSourceId,
            let source = BookSourceStore.shared.source(id: sourceId) {
             BookSourceFetcher.shared.clearTOCAndBookInfoCache(
@@ -2140,7 +2140,7 @@ class BookStore: @MainActor ObservableObject, BookProvider {
         // An open reader still holds `.ready` chapter states for the files just deleted, and
         // nothing else would tell it otherwise: no load state changed and no chapter was
         // entered, so neither of the reader's mismatch checks runs. Left alone it renders
-        // 資料不一致 over a chapter it could simply refetch.
+        // 资料不一致 over a chapter it could simply refetch.
         NotificationCenter.default.post(
             name: .onlineChapterCacheDidClear,
             object: nil,
@@ -2167,7 +2167,7 @@ class BookStore: @MainActor ObservableObject, BookProvider {
 
     /// Switches the book to a new source: fetches new TOC, updates book-source metadata,
     /// replaces onlineChapters, and clears the chapter cache.
-    /// 設置書籍變量 editor: replaces the book's runtime-variable map (the values
+    /// 设置书籍变量 editor: replaces the book's runtime-variable map (the values
     /// a source's JS reads back as book variables on subsequent fetches).
     func updateBookRuntimeVariables(bookId: UUID, variables: [String: String]?) {
         guard let idx = records.firstIndex(where: { $0.id == bookId }) else { return }
@@ -2190,7 +2190,7 @@ class BookStore: @MainActor ObservableObject, BookProvider {
         guard let source = BookSourceStore.shared.source(id: origin.sourceId)
         else {
             throw NSError(
-                domain: "BookStore", code: -1, userInfo: [NSLocalizedDescriptionKey: "找不到來源配置"])
+                domain: "BookStore", code: -1, userInfo: [NSLocalizedDescriptionKey: "找不到来源配置"])
         }
         let tocPackage: TOCPackage
         if let preparedTOC {
@@ -2207,7 +2207,7 @@ class BookStore: @MainActor ObservableObject, BookProvider {
         guard !tocPackage.chapters.isEmpty else {
             throw NSError(
                 domain: "BookStore", code: -5,
-                userInfo: [NSLocalizedDescriptionKey: localized("此來源配置取不到目錄")])
+                userInfo: [NSLocalizedDescriptionKey: localized("此来源配置取不到目录")])
         }
         let oldRefs = await MainActor.run {
             chapterStore.chapters(for: bookId) ?? []
@@ -2263,7 +2263,7 @@ class BookStore: @MainActor ObservableObject, BookProvider {
             records.first(where: { $0.id == bookId }).flatMap { $0.isOnline ? $0 : nil }
         }) else {
             throw NSError(
-                domain: "BookStore", code: -2, userInfo: [NSLocalizedDescriptionKey: "找不到線上書籍"])
+                domain: "BookStore", code: -2, userInfo: [NSLocalizedDescriptionKey: "找不到线上书籍"])
         }
 
         // Snapshot of what the user has already seen, so the final merge can tell
@@ -2300,13 +2300,13 @@ class BookStore: @MainActor ObservableObject, BookProvider {
             BookSourceStore.shared.source(id: sourceId)
         }) else {
             throw NSError(
-                domain: "BookStore", code: -3, userInfo: [NSLocalizedDescriptionKey: "找不到來源配置"])
+                domain: "BookStore", code: -3, userInfo: [NSLocalizedDescriptionKey: "找不到来源配置"])
         }
 
         let bookURL = normalizedOnlineValue(snapshot.bookInfoURL ?? snapshot.source)
         guard !bookURL.isEmpty else {
             throw NSError(
-                domain: "BookStore", code: -4, userInfo: [NSLocalizedDescriptionKey: "缺少書籍詳情頁 URL"])
+                domain: "BookStore", code: -4, userInfo: [NSLocalizedDescriptionKey: "缺少书籍详情页 URL"])
         }
 
         var runtimeVariables = snapshot.runtimeVariables
@@ -3016,7 +3016,7 @@ class BookStore: @MainActor ObservableObject, BookProvider {
     /// It used to wait for the write on the calling (main) thread. The write first flushes
     /// every changed table of contents, so on a large shelf the main thread stood still for
     /// seconds — on the way into the background long enough for the 10 s scene-update
-    /// watchdog to kill the app ("聽書息屏秒崩"; MetricKit `scene-update watchdog`, 169 users
+    /// watchdog to kill the app ("听书息屏秒崩"; MetricKit `scene-update watchdog`, 169 users
     /// in 30 days up to build 2.0.7 (127)).
     private func saveMetaImmediately() {
         cancelPendingMetadataSave()
@@ -3843,7 +3843,7 @@ private final class TaskBox: @unchecked Sendable {
 // MARK: - 快取管理's covers
 
 extension BookStore: SavedCoverOwner {
-    /// Every cover a book shows or keeps for 重設封面 that is not its own download: an
+    /// Every cover a book shows or keeps for 重设封面 that is not its own download: an
     /// imported book's artwork came out of its file, and a remote-library copy's address
     /// needs its catalog's session. Nil until every record has loaded.
     func irreplaceableCoverFilenames() -> Set<String>? {

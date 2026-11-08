@@ -8,7 +8,7 @@ struct GutenbergBook: Identifiable, Hashable {
     let author: String
     let feedURL: URL?
     let entry: OPDSEntry?
-    /// The text's language (`zh`, `en`), for 中繼資料語言偏好推薦 (5d-3d): the bundled lists say it per
+    /// The text's language (`zh`, `en`), for 中继资料语言偏好推荐 (5d-3d): the bundled lists say it per
     /// book, since a list mixes languages; a feed's entry says it when the feed does.
     let language: String?
 
@@ -85,7 +85,7 @@ enum PublicLibraryBook: Identifiable {
             work.credits.compactMap { index.personsByID[$0.person]?.name }.joined(separator: "、")
         }
     }
-    /// Gutenberg's cover; nil for 青空文庫, which has none.
+    /// Gutenberg's cover; nil for 青空文库, which has none.
     var coverURL: URL? {
         switch self {
         case .gutenberg(let book): book.coverURL
@@ -130,14 +130,14 @@ struct GutenbergAuthor: Identifiable, Hashable {
 
     var displayName: String { Self.displayName(name) }
 
-    /// The localization key of the role, for its row in 作品詳情's 作品資訊.
+    /// The localization key of the role, for its row in 作品详情's 作品资讯.
     var roleKey: String {
         switch role {
         case "Translator": "翻訳者"
-        case "Editor": "編者"
-        case "Illustrator": "插畫"
-        case "Commentator": "評註"
-        default: "貢獻者"
+        case "Editor": "编者"
+        case "Illustrator": "插画"
+        case "Commentator": "评注"
+        default: "贡献者"
         }
     }
 
@@ -271,7 +271,7 @@ enum PublicLibraryFeedTransport {
         // Fixtures exercise gestures without touching the unavailable Aozora site
         // or multiplying Gutenberg traffic during UI regression runs.
         if let directory = ProcessInfo.processInfo.environment["YUEDU_PUBLIC_LIBRARY_FIXTURES"] {
-            // By path; a test that tells two lists of one path apart (熱門 and 最新 are both
+            // By path; a test that tells two lists of one path apart (热门 and 最新 are both
             // `ebooks/search.opds`, 5d-6a) writes `<path>@<query>.xml` for one of them.
             let folder = URL(fileURLWithPath: directory)
             let name = url.path.split(separator: "/").joined(separator: "_")
@@ -289,7 +289,7 @@ enum PublicLibraryFeedTransport {
 
 extension GutenbergBookDetail {
     /// A Gutenberg book's catalog entry: the one its listing carried, else its own feed's. The
-    /// book page and 換源 read it here (`VersionReadingCopy`).
+    /// book page and 换源 read it here (`VersionReadingCopy`).
     @MainActor
     static func load(_ book: GutenbergBook,
                      fetch: (URL) async throws -> OPDSFeed = storefrontFeed) async throws -> GutenbergBookDetail {

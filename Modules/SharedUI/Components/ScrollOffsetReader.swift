@@ -9,7 +9,7 @@ extension View {
     /// Put it on a view inside the scroll view's content — a grid, or a list's first row.
     /// It observes the nearest `UIScrollView` above itself, so it always measures the
     /// scroll view it is in. The navigation controller's `contentScrollView(for: .top)`
-    /// would be shorter, but on iOS 17 it names 書架's group filter bar instead of its
+    /// would be shorter, but on iOS 17 it names 书架's group filter bar instead of its
     /// list. The same on every iOS version from 17 on.
     ///
     /// A list recycles the row this sits on once it scrolls far out of sight; the last
@@ -58,7 +58,7 @@ extension View {
 /// `morph` as a number that animates with it, so the pin knows on every frame how far the
 /// morph has come — `progress` on its way to `target` — and that it has ended on the frame it
 /// does. Not `withAnimation`'s completion: the morph's never came, though another animation
-/// started with the same curve beside it completed in 0.65 s (探索's 編輯首頁, iOS 27 simulator).
+/// started with the same curve beside it completed in 0.65 s (探索's 编辑首页, iOS 27 simulator).
 private struct ScrollEndPinning: ViewModifier, Animatable {
     let pins: Bool
     var progress: Double
@@ -205,7 +205,7 @@ private struct ScrollEndPin: UIViewRepresentable {
             // Never animated. The tab bar coming back changes the safe area inside UIKit's own
             // animation, and an offset set there went with it: the page then showed that
             // animation's offset, not the one set each frame after, and jumped 646 points when
-            // it ended (編輯首頁's 完成, iOS 27 simulator).
+            // it ended (编辑首页's 完成, iOS 27 simulator).
             UIView.performWithoutAnimation { scrollView.contentOffset.y = offset }
         }
 
@@ -221,7 +221,7 @@ private struct ScrollEndPin: UIViewRepresentable {
     /// end, drew the rows at their own height, so the end moved back, and sent back, put them off
     /// the screen again — in one frame without end: the app hung at full CPU (iOS 27 simulator,
     /// 2026-10-28: 探索's 完成 from the editor's top, six hidden sections last, its lazy stack 1888
-    /// and 1117 points tall by turns; and its 編輯首頁 on a home that ends on the screen, 1292 and 716).
+    /// and 1117 points tall by turns; and its 编辑首页 on a home that ends on the screen, 1292 and 716).
     /// So a height that comes back after another settles the frame on the end of a pass that had
     /// the last rows on the screen. Delete it when the morph stops following the content's size,
     /// or when a lazy stack stops guessing at the rows it has not drawn.

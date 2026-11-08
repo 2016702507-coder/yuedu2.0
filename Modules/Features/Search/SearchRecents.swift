@@ -54,15 +54,15 @@ extension RecentSearchQueries: RawRepresentable {
     }
 }
 
-// MARK: - 最近閱讀
+// MARK: - 最近阅读
 
-/// What the 搜索 page lists under 最近閱讀, most recently read first: shelf books, and
+/// What the 搜索 page lists under 最近阅读, most recently read first: shelf books, and
 /// books read that are not on the shelf — read without being added, or removed after
 /// reading (`OffShelfReadRecords`). A book that is back on the shelf is listed once, as
 /// the shelf book.
 ///
 /// Clearing only moves where the list starts (`clearedAtStorageKey`). The books and
-/// their reading history are untouched, so the shelf's 最近閱讀 order does not change,
+/// their reading history are untouched, so the shelf's 最近阅读 order does not change,
 /// and a book opened afterwards comes back.
 enum RecentReadingSelection {
     static let clearedAtStorageKey = "yd_search_recent_reading_cleared_at"

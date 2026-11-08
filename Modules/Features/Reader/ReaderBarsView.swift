@@ -61,7 +61,7 @@ enum ReaderBarStyleResolver {
 
 // MARK: - One bar
 
-/// The 頁眉 or 頁腳 band: three slots, left / centre / right.
+/// The 页眉 or 页脚 band: three slots, left / centre / right.
 ///
 /// A thin wrapper over `ReaderBarRenderer`, deliberately: paged mode draws its
 /// bars into the CoreText page and cannot use SwiftUI at all, so a second SwiftUI
@@ -145,8 +145,8 @@ private struct ReaderBarsPreviewHost: View {
 
     private var snapshot: ReaderOverlayContentSnapshot {
         ReaderOverlayContentSnapshot(
-            bookTitle: "紅樓夢",
-            chapterTitle: "第一回 甄士隱夢幻識通靈",
+            bookTitle: "红楼梦",
+            chapterTitle: "第一回 甄士隐梦幻识通灵",
             chapterPage: 3,
             chapterPageCount: 12,
             pageScope: .chapterBody,
@@ -191,17 +191,17 @@ private struct ReaderBarsPreviewHost: View {
     }
 }
 
-#Preview("頁眉頁腳條 · 棕色") {
+#Preview("页眉页脚条 · 棕色") {
     ReaderBarsPreviewHost(theme: .sepia)
 }
 
-#Preview("頁眉頁腳條 · 夜間") {
+#Preview("页眉页脚条 · 夜间") {
     ReaderBarsPreviewHost(theme: .night)
 }
 
 // MARK: - Page Bars Layer
 
-/// Owns the reader's clock and draws the screen-fixed 頁眉／頁腳.
+/// Owns the reader's clock and draws the screen-fixed 页眉／页脚.
 ///
 /// The clock is observed here and nowhere else. `ClockBatteryModel` used to be a
 /// `@StateObject` on `ReaderView`, where its minute-aligned tick published `now`
@@ -264,8 +264,8 @@ private struct ReaderPageBarsLayerPreviewHost: View {
 
     private var snapshot: ReaderOverlayContentSnapshot {
         ReaderOverlayContentSnapshot(
-            bookTitle: "紅樓夢",
-            chapterTitle: "第一回 甄士隱夢幻識通靈",
+            bookTitle: "红楼梦",
+            chapterTitle: "第一回 甄士隐梦幻识通灵",
             chapterPage: 3,
             chapterPageCount: 12,
             pageScope: .chapterBody,
@@ -306,6 +306,6 @@ private struct ReaderPageBarsLayerPreviewHost: View {
     }
 }
 
-#Preview("頁眉頁腳層") {
+#Preview("页眉页脚层") {
     ReaderPageBarsLayerPreviewHost()
 }

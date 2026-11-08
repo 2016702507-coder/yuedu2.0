@@ -37,7 +37,7 @@ final class CacheManagementViewModel: ObservableObject {
             }.value
         } catch {
             AppLogger.error("CacheManagementView clear failed", error: error)
-            errorMessage = localized("快取操作失敗")
+            errorMessage = localized("快取操作失败")
         }
         isLoading = false
     }
@@ -53,7 +53,7 @@ final class CacheManagementViewModel: ObservableObject {
             snapshot = CacheStorageSnapshot()
         } catch {
             AppLogger.error("CacheManagementView clear-all failed", error: error)
-            errorMessage = localized("快取操作失敗")
+            errorMessage = localized("快取操作失败")
             snapshot = await Task.detached(priority: .utility) {
                 await service.snapshot()
             }.value
@@ -93,7 +93,7 @@ struct CacheManagementView: View {
                     Section {
                         HStack {
                             Spacer()
-                            ProgressView(localized("正在讀取快取大小…"))
+                            ProgressView(localized("正在读取快取大小…"))
                             Spacer()
                         }
                     }
@@ -103,12 +103,12 @@ struct CacheManagementView: View {
                 if viewModel.errorMessage != nil {
                     Section {
                         Label(
-                            localized("快取操作失敗"),
+                            localized("快取操作失败"),
                             systemImage: "exclamationmark.triangle"
                         )
                         .foregroundColor(DSColor.warning)
 
-                        Button(localized("重試")) {
+                        Button(localized("重试")) {
                             Task { await viewModel.refresh() }
                         }
                         .foregroundColor(DSColor.accent)
@@ -132,9 +132,9 @@ struct CacheManagementView: View {
                         }
                     }
                     .disabled(viewModel.isLoading || viewModel.snapshot.total == 0)
-                    .accessibilityHint(localized("將清除所有可重新下載的快取內容"))
+                    .accessibilityHint(localized("将清除所有可重新下载的快取内容"))
                 } footer: {
-                    Text(localized("書籍、設定與備份同步資料不會受影響。"))
+                    Text(localized("书籍、设置与备份同步资料不会受影响。"))
                         .dsSectionFooter()
                 }
                 .interfaceSectionSurface()
@@ -150,7 +150,7 @@ struct CacheManagementView: View {
                     } label: {
                         Image(systemName: "xmark")
                     }
-                    .accessibilityLabel(localized("關閉"))
+                    .accessibilityLabel(localized("关闭"))
                 }
             }
             .task {
@@ -176,7 +176,7 @@ struct CacheManagementView: View {
                 case .all:
                     Alert(
                         title: Text(localized("清除全部快取？")),
-                        message: Text(localized("將刪除所有可重新下載的快取內容。書籍、設定與備份同步資料不會受影響。")),
+                        message: Text(localized("将删除所有可重新下载的快取内容。书籍、设置与备份同步资料不会受影响。")),
                         primaryButton: .destructive(Text(localized("清除全部快取"))) {
                             pendingConfirmation = nil
                             Task { await viewModel.clearAll() }
@@ -190,10 +190,10 @@ struct CacheManagementView: View {
             .onChange(of: viewModel.errorMessage) { _, message in
                 showError = message != nil
             }
-            .alert(localized("操作失敗"), isPresented: $showError) {
-                Button(localized("確定"), role: .cancel) {}
+            .alert(localized("操作失败"), isPresented: $showError) {
+                Button(localized("确定"), role: .cancel) {}
             } message: {
-                Text(viewModel.errorMessage ?? localized("快取操作失敗"))
+                Text(viewModel.errorMessage ?? localized("快取操作失败"))
             }
         }
     }

@@ -99,7 +99,7 @@ enum ReedenThemeImporter {
 
         var notes: [String] = []
         var result = QiThemeImport(
-            name: file.name?.trimmedNonEmpty ?? localized("Reeden 主題包")
+            name: file.name?.trimmedNonEmpty ?? localized("Reeden 主题包")
         )
         applyColors(light: light, dark: dark, into: &result, notes: &notes)
         applyPageBackground(light: light, dark: dark, root: root, into: &result)
@@ -178,12 +178,12 @@ enum ReedenThemeImporter {
         )
 
         if lightPalette.droppedAlpha || darkPalette?.droppedAlpha == true {
-            notes.append(localized("主題顏色的透明度沒有對應設定，已以不透明顏色套用。"))
+            notes.append(localized("主题颜色的透明度没有对应设置，已以不透明颜色套用。"))
         }
         // Reeden has two text levels (foreground / muted foreground); ours are three, and
         // a partial trio is not applied (see `AppearanceCustomTheme.textColors`).
         if light.foregroundColor != nil || light.mutedForegroundColor != nil {
-            notes.append(localized("全域文字顏色需要主要／次要／第三階三個都提供才會套用，這個外觀包只給了一部分。"))
+            notes.append(localized("全域文字颜色需要主要／次要／第三阶三个都提供才会套用，这个外观包只给了一部分。"))
         }
     }
 
@@ -342,10 +342,10 @@ enum ReedenThemeImporter {
             )
         }
         for tab in skipped.sorted() {
-            notes.append(String(format: localized("分頁圖示「%@」在本 App 沒有對應的分頁，已略過。"), tab))
+            notes.append(String(format: localized("分页图示「%@」在本 App 没有对应的分页，已略过。"), tab))
         }
         if hasSelected {
-            notes.append(localized("選中狀態的分頁圖示未套用：本 App 的分頁圖示分淺色／深色，沒有選中態。"))
+            notes.append(localized("选中状态的分页图示未套用：本 App 的分页图示分浅色／深色，没有选中态。"))
         }
     }
 
@@ -464,7 +464,7 @@ enum ReedenThemeImporter {
         let meta = (try? Data(contentsOf: directoryURL.appendingPathComponent("meta.json")))
             .flatMap { try? JSONDecoder().decode(ReedenSplashMeta.self, from: $0) }
         if let type = meta?.assetType, type != "image" {
-            notes.append(localized("啟動畫面不是圖片（例如影片），本 App 只支援圖片，已略過。"))
+            notes.append(localized("启动画面不是图片（例如影片），本 App 只支援图片，已略过。"))
             return nil
         }
         guard let asset = names.first(where: { ($0 as NSString).deletingPathExtension == "asset" }),
@@ -504,7 +504,7 @@ enum ReedenThemeImporter {
             adjusted = adjusted || isAdjustedPicture(schema)
         }
         if adjusted {
-            notes.append(localized("閱讀背景圖的透明度與模糊沒有對應設定，已以原圖套用。"))
+            notes.append(localized("阅读背景图的透明度与模糊没有对应设置，已以原图套用。"))
         }
 
         // The layout is the light schema's: Reeden keeps one layout per theme and repeats
@@ -518,7 +518,7 @@ enum ReedenThemeImporter {
             config = try JSONDecoder().decode(ReedenLayoutConfig.self, from: configData)
         } catch {
             AppLogger.parse("⟐ red layoutConfig unreadable", error: error)
-            notes.append(localized("排版參數無法讀取，其餘項目仍已匯入。"))
+            notes.append(localized("排版参数无法读取，其余项目仍已汇入。"))
             return
         }
         result.layoutConfig = layoutConfig(config, name: lightSchema.name, notes: &notes)
@@ -544,7 +544,7 @@ enum ReedenThemeImporter {
         )
 
         if config.fontFamily != nil || config.titleFontFamily != nil {
-            notes.append(localized("主題包只記錄了 Reeden 字型庫的編號，沒有附帶字型檔，正文與標題仍使用原本的字型。"))
+            notes.append(localized("主题包只记录了 Reeden 字型库的编号，没有附带字型档，正文与标题仍使用原本的字型。"))
         }
     }
 
@@ -599,18 +599,18 @@ enum ReedenThemeImporter {
         translated.pageAnim = pageAnim(forTurnPageType: config.turnPageType)
 
         if let left = config.paddingLeft, let right = config.paddingRight, abs(left - right) >= 1 {
-            notes.append(localized("左右頁邊距不同，本 App 只有單一邊距，已取兩者平均。"))
+            notes.append(localized("左右页边距不同，本 App 只有单一边距，已取两者平均。"))
         }
         if let indent = config.paragraphIndent, indent != "defaults", indent != "double" {
-            notes.append(localized("首行縮排固定為兩字元，無法調整，已略過。"))
+            notes.append(localized("首行缩排固定为两字元，无法调整，已略过。"))
         }
         if let align = config.contentAlign, align != "defaults" {
-            notes.append(localized("正文對齊方式固定為兩端對齊，已略過。"))
+            notes.append(localized("正文对齐方式固定为两端对齐，已略过。"))
         }
         if config.turnPageType == "none" {
-            notes.append(localized("主題設定的「無動畫」翻頁無法隨排版匯入，已保留原本的翻頁方式。"))
+            notes.append(localized("主题设置的「无动画」翻页无法随排版汇入，已保留原本的翻页方式。"))
         } else if let type = config.turnPageType, translated.pageAnim == nil {
-            notes.append(String(format: localized("翻頁方式「%@」無法辨識，已保留原本設定。"), type))
+            notes.append(String(format: localized("翻页方式「%@」无法辨识，已保留原本设置。"), type))
         }
 
         guard translated.hasAnyValue else { return nil }
@@ -729,7 +729,7 @@ enum ReedenThemeImporter {
         var unreadableArtwork: [String] = []
         var dropped: Set<String> = []
         for rule in source {
-            let name = rule.name?.trimmedNonEmpty ?? localized("高亮規則")
+            let name = rule.name?.trimmedNonEmpty ?? localized("高亮规则")
             let css = rule.styleCssText ?? ""
             let titleOnly = rule.titleOnly == true || rule.target == "title"
             guard let keyword = rule.keyword, !keyword.isEmpty,
@@ -776,19 +776,19 @@ enum ReedenThemeImporter {
         }
         if !skipped.isEmpty {
             notes.append(String(
-                format: localized("下列高亮規則需要首字下沉或只套用於標題，本 App 無法重現，已略過：%@"),
+                format: localized("下列高亮规则需要首字下沉或只套用于标题，本 App 无法重现，已略过：%@"),
                 skipped.joined(separator: localized("、"))
             ))
         }
         if !unreadableArtwork.isEmpty {
             notes.append(String(
-                format: localized("下列高亮規則的背景圖片無法讀取，已略過：%@"),
+                format: localized("下列高亮规则的背景图片无法读取，已略过：%@"),
                 unreadableArtwork.joined(separator: localized("、"))
             ))
         }
         if !dropped.isEmpty {
             notes.append(String(
-                format: localized("高亮規則的下列樣式沒有對應設定，已略過：%@"),
+                format: localized("高亮规则的下列样式没有对应设置，已略过：%@"),
                 dropped.sorted().joined(separator: localized("、"))
             ))
         }
@@ -910,7 +910,7 @@ enum ReedenThemeImporter {
     ) -> ChapterTitleStyle? {
         guard bound.layout == "numberTitle" else {
             notes.append(String(
-                format: localized("標題樣式「%@」的版型無法辨識，只套用了標題的對齊、大小與間距。"),
+                format: localized("标题样式「%@」的版型无法辨识，只套用了标题的对齐、大小与间距。"),
                 bound.name ?? bound.layout ?? ""
             ))
             return nil
@@ -929,7 +929,7 @@ enum ReedenThemeImporter {
         if let bodySize { style.size = CGFloat(bodySize) }
         if !dropped.isEmpty {
             notes.append(String(
-                format: localized("標題樣式的下列設定沒有對應項目，已略過：%@"),
+                format: localized("标题样式的下列设置没有对应项目，已略过：%@"),
                 dropped.sorted().joined(separator: localized("、"))
             ))
         }
@@ -975,28 +975,28 @@ enum ReedenThemeImporter {
 
         var unmapped: [String] = []
         if any({ $0.bookshelfCarouselImageUrls?.isEmpty == false }) {
-            unmapped.append(localized("書架輪播圖"))
+            unmapped.append(localized("书架轮播图"))
         }
         if any({ $0.popoverColor != nil || $0.dialogBackgroundColor != nil
             || $0.dialogBackgroundBlur != nil || $0.popoverBackgroundBlur != nil }) {
-            unmapped.append(localized("彈出視窗與對話框配色"))
+            unmapped.append(localized("弹出视窗与对话框配色"))
         }
         if any({ $0.inputBackgroundColor != nil || $0.inputBorderColor != nil
             || $0.searchFieldBackgroundColor != nil || $0.searchFieldBorder != nil }) {
-            unmapped.append(localized("輸入框與搜尋框配色"))
+            unmapped.append(localized("输入框与搜寻框配色"))
         }
-        if any({ $0.shelfColor != nil }) { unmapped.append(localized("書架底色")) }
+        if any({ $0.shelfColor != nil }) { unmapped.append(localized("书架底色")) }
         if any({ $0.tabBorder != nil || $0.switchBorder != nil }) {
-            unmapped.append(localized("分頁列與開關邊框"))
+            unmapped.append(localized("分页列与开关边框"))
         }
         if any({ $0.cardShadow != nil || ($0.cardRadius ?? 0) > 0 }) {
-            unmapped.append(localized("卡片圓角與陰影"))
+            unmapped.append(localized("卡片圆角与阴影"))
         }
-        if any({ ($0.themeEffectType ?? "none") != "none" }) { unmapped.append(localized("主題動態特效")) }
-        if any({ ($0.audiobookSkinId ?? "follow") != "follow" }) { unmapped.append(localized("聽書介面樣式")) }
+        if any({ ($0.themeEffectType ?? "none") != "none" }) { unmapped.append(localized("主题动态特效")) }
+        if any({ ($0.audiobookSkinId ?? "follow") != "follow" }) { unmapped.append(localized("听书介面样式")) }
         guard !unmapped.isEmpty else { return }
         notes.append(String(
-            format: localized("以下項目本 App 沒有對應設定，已略過：%@"),
+            format: localized("以下项目本 App 没有对应设置，已略过：%@"),
             unmapped.joined(separator: localized("、"))
         ))
     }

@@ -1,6 +1,6 @@
 import SwiftUI
 
-// MARK: - 全書搜尋
+// MARK: - 全书搜寻
 
 extension ReaderView {
     /// Per book, so each book offers its own recent searches.
@@ -46,7 +46,7 @@ extension ReaderView {
         }
     }
 
-    /// The sheet opened again: results found in other text — 繁簡, 替換規則 or the source
+    /// The sheet opened again: results found in other text — 繁简, 替换规则 or the source
     /// changed since — are searched again rather than shown against a page they no longer match.
     func refreshBookSearchIfStale() {
         guard !bookSearch.query.isEmpty, bookSearch.isStale(for: bookSearchSignature) else { return }
@@ -83,7 +83,7 @@ extension ReaderView {
                 // recognisably in what it laid out. The chapter is still where it is, and
                 // the bar stays for the next hit; no wash, since a wash on another match
                 // would be worse than none.
-                AppLogger.render("全書搜尋 hit not located spine=\(hit.chapterIndex) range=\(hit.range)")
+                AppLogger.render("全书搜寻 hit not located spine=\(hit.chapterIndex) range=\(hit.range)")
                 searchHitHighlight = nil
                 jumpToChapter(hit.chapterIndex)
             }
@@ -139,7 +139,7 @@ extension ReaderView {
                     .frame(width: DSLayout.minimumTapTarget, height: DSLayout.minimumTapTarget)
             }
             .disabled(bookSearch.hitIndex(offsetBy: -1) == nil)
-            .accessibilityLabel(localized("上一個結果"))
+            .accessibilityLabel(localized("上一个结果"))
 
             VStack(spacing: 0) {
                 Text(String(format: localized("%1$d／%2$d"), position, count))
@@ -153,7 +153,7 @@ extension ReaderView {
             }
             .frame(maxWidth: .infinity)
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel(String(format: localized("第 %1$d 個結果，共 %2$d 個"), position, count))
+            .accessibilityLabel(String(format: localized("第 %1$d 个结果，共 %2$d 个"), position, count))
             .accessibilityValue(title)
 
             Button { stepBookSearch(by: 1) } label: {
@@ -161,19 +161,19 @@ extension ReaderView {
                     .frame(width: DSLayout.minimumTapTarget, height: DSLayout.minimumTapTarget)
             }
             .disabled(bookSearch.hitIndex(offsetBy: 1) == nil)
-            .accessibilityLabel(localized("下一個結果"))
+            .accessibilityLabel(localized("下一个结果"))
 
             Button { showReaderSearch = true } label: {
                 Image(systemName: "list.bullet")
                     .frame(width: DSLayout.minimumTapTarget, height: DSLayout.minimumTapTarget)
             }
-            .accessibilityLabel(localized("全部結果"))
+            .accessibilityLabel(localized("全部结果"))
 
             Button { requestEndBookSearch() } label: {
                 Image(systemName: "xmark")
                     .frame(width: DSLayout.minimumTapTarget, height: DSLayout.minimumTapTarget)
             }
-            .accessibilityLabel(localized("結束搜尋"))
+            .accessibilityLabel(localized("结束搜寻"))
         }
         .buttonStyle(.borderless)
         .foregroundStyle(palette.bottomIcon)

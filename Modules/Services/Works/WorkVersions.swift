@@ -1,6 +1,6 @@
 import Foundation
 
-// Unified library 5f: 作品詳情, the page every Explore card opens first, as Emby's posters open
+// Unified library 5f: 作品详情, the page every Explore card opens first, as Emby's posters open
 // the item's page (Phase 5 plan, decision 27). It shows the work and lists the versions this
 // device knows of it; reading starts from the page.
 
@@ -10,8 +10,8 @@ struct WorkDetailRoute: Hashable, Sendable {
     let record: SourceRecord
     let summary: WorkSummary
     let opening: ItemOpening
-    /// Why the reader's AI service suggested the work (AI 推薦 8e), shown under 「推薦理由」;
-    /// set only on a work opened from the AI 推薦 row, so it never follows the reader into a
+    /// Why the reader's AI service suggested the work (AI 推荐 8e), shown under 「推荐理由」;
+    /// set only on a work opened from the AI 推荐 row, so it never follows the reader into a
     /// related work.
     var recommendationReason: String?
 
@@ -53,8 +53,8 @@ struct WorkDetailRoute: Hashable, Sendable {
     /// The node the work index knows the version by: a copy by its own key.
     var nodeKey: SourceItemKey { record.copyKey ?? record.key }
 
-    /// The shelf copy this version is, whose source 換源 on its page rebinds (feedback #24);
-    /// nil for a version found elsewhere, whose 換源 only changes the page.
+    /// The shelf copy this version is, whose source 换源 on its page rebinds (feedback #24);
+    /// nil for a version found elsewhere, whose 换源 only changes the page.
     var shelfCopyID: UUID? {
         if case .copy(let id) = opening { return id }
         return nil
@@ -103,16 +103,16 @@ extension CollectionEntry {
 }
 
 enum WorkVersions {
-    /// The versions 作品詳情 lists, each once, by its node key:
+    /// The versions 作品详情 lists, each once, by its node key:
     /// 1. the copies on the shelf, the one opened most recently first;
     /// 2. the item tapped;
     /// 3. the other members of its work in the index (shelf copies and WebDAV files read from,
     ///    `known`), in the index's order.
     ///
-    /// A copy taken from a listed library item (青空文庫, Gutenberg, an OPDS entry, a WebDAV
+    /// A copy taken from a listed library item (青空文库, Gutenberg, an OPDS entry, a WebDAV
     /// file) is that item's version, not one of its own: the item stands in its place, and its
-    /// page reads the copy, shows its progress and says 已加入書架 (2026-10-12: read from 青空文庫,
-    /// the copy led as 「書架」 and the page lost the work's details).
+    /// page reads the copy, shows its progress and says 已加入书架 (2026-10-12: read from 青空文库,
+    /// the copy led as 「书架」 and the page lost the work's details).
     ///
     /// - Parameters:
     ///   - copies: the copies `CopyLookup` finds for the tapped item, and the tapped copy.
@@ -143,7 +143,7 @@ enum WorkVersions {
         return versions
     }
 
-    /// Decision 32 (已知的閱讀來源): of a work's members in the index, the sources the reader
+    /// Decision 32 (已知的阅读来源): of a work's members in the index, the sources the reader
     /// knows — a copy they put on the shelf (the index lists only those), or a library file
     /// they read from. A file the index matched by title and author and the reader never opened
     /// is left out.
@@ -151,12 +151,12 @@ enum WorkVersions {
         members.filter { $0.record.copyID != nil || readFrom($0.record.key) }
     }
 
-    /// The version 作品詳情's main button acts on until one is chosen: the first readable one.
+    /// The version 作品详情's main button acts on until one is chosen: the first readable one.
     static func primary(in versions: [WorkDetailRoute]) -> WorkDetailRoute? {
         versions.first(where: \.isReadable)
     }
 
-    /// The version 作品詳情 shows and acts on: the one chosen from its 來源 menu while it is
+    /// The version 作品详情 shows and acts on: the one chosen from its 来源 menu while it is
     /// still listed, otherwise the primary one, otherwise the first (a page of data only).
     static func selected(in versions: [WorkDetailRoute], chosen: SourceItemKey?) -> WorkDetailRoute? {
         chosen.flatMap { key in versions.first { $0.nodeKey == key } } ?? primary(in: versions) ?? versions.first

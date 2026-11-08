@@ -17,7 +17,7 @@ import os
 /// / 15 floors of every MetricKit diagnostic API used here, so no availability
 /// checks are needed. No mutable state → safe as an `@unchecked Sendable` singleton.
 ///
-/// Payloads also land in `DiagnosticLog` so 設定 → 診斷與回報 can show a crash or
+/// Payloads also land in `DiagnosticLog` so 设置 → 诊断与回报 can show a crash or
 /// hang to the person who hit it. Crashlytics is the developer's copy; that is the
 /// user's.
 final class MetricKitDiagnosticReporter: NSObject, MXMetricManagerSubscriber, @unchecked Sendable {

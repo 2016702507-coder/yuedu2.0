@@ -13,9 +13,9 @@ enum ProviderCapability: Hashable, Sendable {
     case homeSections
     /// Searched, and when; never `.none`.
     case search(CollectionSearchSupport)
-    /// Answers a work's details (a 來源配置's book-info rule; 6b).
+    /// Answers a work's details (a 来源配置's book-info rule; 6b).
     case metadata
-    /// Its items can be read in the app (a 來源配置's table of contents and content rules; 6b).
+    /// Its items can be read in the app (a 来源配置's table of contents and content rules; 6b).
     case reading
 }
 

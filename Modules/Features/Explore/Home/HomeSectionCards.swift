@@ -2,28 +2,28 @@ import SwiftUI
 
 // Unified library 5d-3: a section's books in the layout it chose (Phase 5 plan, decision 14;
 // the maintainer's layout notes):
-// - 大型閱讀卡片: a large cover beside the title, author and how far it is read, one card to a
+// - 大型阅读卡片: a large cover beside the title, author and how far it is read, one card to a
 //   phone's width (two on a wider screen), the next one showing past the edge.
-// - 精簡閱讀卡片 (5d-3c, decision 20): as Apple Books' Continue, a small cover beside the
+// - 精简阅读卡片 (5d-3c, decision 20): as Apple Books' Continue, a small cover beside the
 //   title, author and kind・progress, on the cover's colour, with a ••• for a shelf copy.
-// - 橫向單排書架: one row of covers that swipes sideways (5c's row).
-// - 多行橫向輪播: two rows of smaller covers, swiped sideways together.
-// - 固定封面網格: a fixed number of columns, read downwards.
-// - 圖文資訊清單: a small cover beside the title, author and blurb.
-// - 精選 (decisions 30 and 37): as Apple Books' featured, one book to a page on the cover's
+// - 横向单排书架: one row of covers that swipes sideways (5c's row).
+// - 多行横向轮播: two rows of smaller covers, swiped sideways together.
+// - 固定封面网格: a fixed number of columns, read downwards.
+// - 图文资讯清单: a small cover beside the title, author and blurb.
+// - 精选 (decisions 30 and 37): as Apple Books' featured, one book to a page on the cover's
 //   colour: a large cover beside the category, title, author, a line of blurb and 查看作品.
 // The maintainer, 2026-10-25, after Apple Books' store and home
 // (`Technotes/AppleBooksHomeLayouts-2026-10-25.md`):
-// - 色帶書架: as Apple Books Japan's manga band, large covers alone under the header, all on
+// - 色带书架: as Apple Books Japan's manga band, large covers alone under the header, all on
 //   the first cover's colour from edge to edge (`HomeBandGround`). Since 2026-10-27 the
-//   home's 頂部輪播圖 only, drawn when the row gives the band's colour (`bandCover`).
-// - 大型封面書架: a row of larger covers with their titles, about two to a phone.
+//   home's 顶部轮播图 only, drawn when the row gives the band's colour (`bandCover`).
+// - 大型封面书架: a row of larger covers with their titles, about two to a phone.
 // - 一大四小: as Apple Books' Customer Favorites (2026-10-27, 1:1), a large cover and four small
 //   ones beside it in two rows standing on its bottom edge, a group a page, the next peeking.
-// - 色帶 (2026-10-27): as Apple Books' Audiobooks We Love, the section on the first cover's
+// - 色带 (2026-10-27): as Apple Books' Audiobooks We Love, the section on the first cover's
 //   colour from edge to edge, its first covers stacked at the leading margin and cut by the
-//   band's foot. Not the 頂部輪播圖, which keeps the page's first 色帶書架 (`HomeSectionLayout.band`).
-// Ranks are 排行榜's (`HomeChartColumns`), a layout of lists since 2026-10-27: 顯示排名 is gone.
+//   band's foot. Not the 顶部轮播图, which keeps the page's first 色带书架 (`HomeSectionLayout.band`).
+// Ranks are 排行榜's (`HomeChartColumns`), a layout of lists since 2026-10-27: 显示排名 is gone.
 // The grid and the list show a few rows when the section has 查看全部 and everything when it
 // has not, since nothing else would show the rest. A loading section draws the same layout
 // with blank cards, so the page does not jump when the books arrive.
@@ -36,12 +36,12 @@ struct HomeSectionCards: View {
     /// Whether the header leads to 查看全部.
     let hasShowAll: Bool
     let open: (HomeCardContent, [HomeCardContent]) -> Void
-    /// What a shelf copy's ••• offers on 精簡閱讀卡片; none in a fixture or a loading row.
+    /// What a shelf copy's ••• offers on 精简阅读卡片; none in a fixture or a loading row.
     var bookActions: HomeBookActions?
-    /// 呈現方式's gallery: the rows a layout read downwards shows (`HomeLayoutPreview`).
+    /// 呈现方式's gallery: the rows a layout read downwards shows (`HomeLayoutPreview`).
     var previewRows: Int?
     /// The colour of the band the row draws, the first cover's, which the first cover reports
-    /// here: the 頂部輪播圖's large covers alone, whatever the layout, or 色帶's stack.
+    /// here: the 顶部轮播图's large covers alone, whatever the layout, or 色带's stack.
     var bandCover: Binding<CoverTint.RGB?>?
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -59,9 +59,9 @@ struct HomeSectionCards: View {
     @State private var gridWidth: CGFloat = 0
     /// 一大四小's page width, which sizes its groups.
     @State private var heroWidth: CGFloat = 0
-    /// 色帶's width, which sizes its covers.
+    /// 色带's width, which sizes its covers.
     @State private var fanWidth: CGFloat = 0
-    /// 色帶's colour where no row draws its band (呈現方式's gallery): it draws its own.
+    /// 色带's colour where no row draws its band (呈现方式's gallery): it draws its own.
     @State private var ownBandCover: CoverTint.RGB?
 
     /// Rows the grid shows, and books the list shows, when 查看全部 has the rest.
@@ -75,7 +75,7 @@ struct HomeSectionCards: View {
     var body: some View {
         Group {
             if let bandCover {
-                // 編輯首頁 draws 色帶's covers in a row too, on its band (`homeDrawsSideways`).
+                // 编辑首页 draws 色带's covers in a row too, on its band (`homeDrawsSideways`).
                 if style == .colorBand, !drawsSideways { fan(cover: bandCover) } else { band(cover: bandCover) }
             } else {
                 switch style {
@@ -83,7 +83,7 @@ struct HomeSectionCards: View {
                 case .compactReadingCard: compactReadingCards
                 case .row: rail(coverWidth: rowCoverWidth)
                 case .multiRow: multiRow
-                // 編輯首頁 draws every section sideways (`homeDrawsSideways`): the grid's covers in
+                // 编辑首页 draws every section sideways (`homeDrawsSideways`): the grid's covers in
                 // one row, the list's rows a page each.
                 case .coverGrid: if drawsSideways { rail(coverWidth: compactCoverWidth) } else { grid }
                 case .list: if drawsSideways { sidewaysList } else { list }
@@ -129,7 +129,7 @@ struct HomeSectionCards: View {
         .accessibilityIdentifier("home.card.\(card.id.instance.type.rawValue).\(card.id.item)")
     }
 
-    // MARK: 橫向單排書架, 大型封面書架
+    // MARK: 横向单排书架, 大型封面书架
 
     /// One row of covers with their titles.
     private func rail(coverWidth: CGFloat) -> some View {
@@ -145,7 +145,7 @@ struct HomeSectionCards: View {
         .modifier(HomeSidewaysScroll())
     }
 
-    // MARK: 頂部輪播圖
+    // MARK: 顶部轮播图
 
     /// Covers alone, larger than a row's; the first one's colour is the band's.
     private func band(cover: Binding<CoverTint.RGB?>) -> some View {
@@ -163,7 +163,7 @@ struct HomeSectionCards: View {
         .modifier(HomeSidewaysScroll())
     }
 
-    // MARK: 色帶
+    // MARK: 色带
 
     /// As Apple Books' Audiobooks We Love (maintainer, 2026-10-27): the first covers in a stack
     /// at the leading margin, each behind the one before, a little smaller and further along, all
@@ -248,7 +248,7 @@ struct HomeSectionCards: View {
         .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { heroWidth = $0 }
     }
 
-    // MARK: 大型閱讀卡片
+    // MARK: 大型阅读卡片
 
     private var readingCards: some View {
         let perScreen = horizontalSizeClass == .regular ? 2 : 1
@@ -267,7 +267,7 @@ struct HomeSectionCards: View {
         .modifier(HomeSidewaysScroll())
     }
 
-    // MARK: 精簡閱讀卡片
+    // MARK: 精简阅读卡片
 
     private var compactReadingCards: some View {
         let stacks = dynamicTypeSize.isAccessibilitySize
@@ -301,7 +301,7 @@ struct HomeSectionCards: View {
         .modifier(HomeSidewaysScroll())
     }
 
-    // MARK: 精選
+    // MARK: 精选
 
     /// One book to a page, the next one showing past the edge; two to a page on a wider screen.
     private var featured: some View {
@@ -316,7 +316,7 @@ struct HomeSectionCards: View {
                                          stacksVertically: dynamicTypeSize.isAccessibilitySize,
                                          reservesMenuSpace: !menu.isEmpty)
                     }
-                    // Beside the card's button, as 精簡閱讀卡片 has it: a shelf copy's •••.
+                    // Beside the card's button, as 精简阅读卡片 has it: a shelf copy's •••.
                     .overlay(alignment: .bottomTrailing) {
                         if !menu.isEmpty { HomeCardMenuButton(card: card, items: menu) }
                     }
@@ -328,7 +328,7 @@ struct HomeSectionCards: View {
         .modifier(HomeSidewaysScroll())
     }
 
-    // MARK: 多行橫向輪播
+    // MARK: 多行横向轮播
 
     private var multiRow: some View {
         let columns = stride(from: 0, to: cards.count, by: 2).map { Array($0..<min($0 + 2, cards.count)) }
@@ -349,7 +349,7 @@ struct HomeSectionCards: View {
         .modifier(HomeSidewaysScroll())
     }
 
-    // MARK: 固定封面網格
+    // MARK: 固定封面网格
 
     /// As many columns as fit at the compact cover's width, never fewer than two.
     private var gridColumns: Int {
@@ -378,7 +378,7 @@ struct HomeSectionCards: View {
         .padding(.horizontal, DSSpacing.lg)
     }
 
-    // MARK: 圖文資訊清單
+    // MARK: 图文资讯清单
 
     private var list: some View {
         let count = previewRows ?? (hasShowAll ? Self.listCount : nil)
@@ -397,7 +397,7 @@ struct HomeSectionCards: View {
         .padding(.horizontal, DSSpacing.lg)
     }
 
-    /// 編輯首頁's: the rows side by side, a page each, the next one showing past the edge.
+    /// 编辑首页's: the rows side by side, a page each, the next one showing past the edge.
     private var sidewaysList: some View {
         let perScreen = horizontalSizeClass == .regular ? 2 : 1
         return ScrollView(.horizontal) {
@@ -436,9 +436,9 @@ extension View {
 
 /// On the home, from the width the home lays its sections out in (`homeRowWidth`), a width the
 /// row knows as it is first measured. Sized by `containerRelativeFrame` there, a row of lists
-/// reported less height than it drew — mid-scroll 編輯首頁 sat over 月票榜's card — and each scroll
-/// up was taken back to 編輯首頁 at the end (回饋中心 #120, a reader's iOS 17.0 recording; the 17.5
-/// and 27 simulators lay it out right either way). Off the home — 作品詳情's series, 模組, a
+/// reported less height than it drew — mid-scroll 编辑首页 sat over 月票榜's card — and each scroll
+/// up was taken back to 编辑首页 at the end (回馈中心 #120, a reader's iOS 17.0 recording; the 17.5
+/// and 27 simulators lay it out right either way). Off the home — 作品详情's series, 模组, a
 /// layout's preview — the container's length, as before: those pages hand down no width.
 private struct HomeSidewaysCardWidth: ViewModifier {
     let width: (CGFloat) -> CGFloat
@@ -464,7 +464,7 @@ struct HomeSidewaysScroll: ViewModifier {
     }
 }
 
-/// A cover alone, for the layouts that draw no text with it (頂部輪播圖, 一大四小); VoiceOver
+/// A cover alone, for the layouts that draw no text with it (顶部轮播图, 一大四小); VoiceOver
 /// reads the card's label all the same. A shelf copy part read shows how far along its bottom.
 struct HomeCoverCard: View {
     let content: HomeCardContent
@@ -482,12 +482,12 @@ struct HomeCoverCard: View {
 
 /// A band: the first cover's colour from edge to edge, under the section's header and covers;
 /// the placeholder grey until that cover has drawn. Darkened until the header's line, the cover's
-/// hue made light (`line(for:)`), reads at 4.5:1 on it (7:1 with 增加對比), so the header's white
-/// does too, as 精簡閱讀卡片's ground is. Decoration: VoiceOver reads nothing of it. Inactive, it
+/// hue made light (`line(for:)`), reads at 4.5:1 on it (7:1 with 增加对比), so the header's white
+/// does too, as 精简阅读卡片's ground is. Decoration: VoiceOver reads nothing of it. Inactive, it
 /// draws nothing, and the row keeps its identity as the band comes and goes.
-/// - The 頂部輪播圖's runs up behind the bars and the status bar (`DSLayout.homeCarouselBleed`),
+/// - The 顶部轮播图's runs up behind the bars and the status bar (`DSLayout.homeCarouselBleed`),
 ///   and whether it draws is reported up (`HomeCarouselBandKey`), for the bar's white 探索.
-/// - 色帶's (maintainer, 2026-10-27, as Apple Books' Audiobooks We Love) stays in its place on the
+/// - 色带's (maintainer, 2026-10-27, as Apple Books' Audiobooks We Love) stays in its place on the
 ///   page, and its covers run off its foot (`cutsCovers`).
 struct HomeBandGround: ViewModifier {
     let cover: CoverTint.RGB?
@@ -524,14 +524,14 @@ struct HomeBandGround: ViewModifier {
     }
 }
 
-/// The 頂部輪播圖 draws its band: the bar's 探索 and buttons are white only over it, never over
-/// a carousel drawn without one (a failure, no books, AI 推薦 not yet generated).
+/// The 顶部轮播图 draws its band: the bar's 探索 and buttons are white only over it, never over
+/// a carousel drawn without one (a failure, no books, AI 推荐 not yet generated).
 struct HomeCarouselBandKey: PreferenceKey {
     static var defaultValue: Bool { false }
     static func reduce(value: inout Bool, nextValue: () -> Bool) { value = value || nextValue() }
 }
 
-// MARK: - 大型閱讀卡片
+// MARK: - 大型阅读卡片
 
 /// A large cover and, beside it, the title, author, the blurb or status, and the progress bar
 /// of a copy part read. The text goes under the cover at accessibility text sizes.
@@ -601,11 +601,11 @@ struct HomeReadingCard: View {
     }
 }
 
-// MARK: - 精選
+// MARK: - 精选
 
-/// 精選's page (decision 37): a large cover and, beside it, the category, title, author, a line
-/// of blurb and 查看作品, in white on the cover's colour, as 精簡閱讀卡片 draws it. A line the
-/// source has nothing for is not drawn, so a 青空文庫 work with its generated cover and title
+/// 精选's page (decision 37): a large cover and, beside it, the category, title, author, a line
+/// of blurb and 查看作品, in white on the cover's colour, as 精简阅读卡片 draws it. A line the
+/// source has nothing for is not drawn, so a 青空文库 work with its generated cover and title
 /// alone is still a full card. A shelf copy shows how far it is read in place of the blurb.
 /// The text goes under the cover at accessibility text sizes.
 struct HomeFeaturedCard: View {
@@ -702,11 +702,11 @@ struct HomeFeaturedCard: View {
     }
 }
 
-// MARK: - 精簡閱讀卡片
+// MARK: - 精简阅读卡片
 
-/// What a shelf copy's ••• offers on 精簡閱讀卡片 (5d-3c, decision 20).
+/// What a shelf copy's ••• offers on 精简阅读卡片 (5d-3c, decision 20).
 struct HomeBookActions {
-    /// 從繼續閱讀移除; nil outside 繼續閱讀.
+    /// 从继续阅读移除; nil outside 继续阅读.
     var removeFromContinueReading: ((ReadingBook) -> Void)?
     let markFinished: (ReadingBook) -> Void
 }
@@ -718,17 +718,17 @@ struct HomeCardMenuItem: Identifiable {
     let symbol: String
     let perform: () -> Void
 
-    /// A shelf copy's items: 從繼續閱讀移除 in 繼續閱讀, and 標記為已讀完 unless it is finished.
+    /// A shelf copy's items: 从继续阅读移除 in 继续阅读, and 标记为已读完 unless it is finished.
     /// Nothing for another source's book, so it has no •••.
     static func items(for card: HomeCardContent, actions: HomeBookActions?) -> [HomeCardMenuItem] {
         guard let actions, let book = card.shelfBook else { return [] }
         var items: [HomeCardMenuItem] = []
         if let remove = actions.removeFromContinueReading {
-            items.append(HomeCardMenuItem(id: "removeFromContinueReading", title: localized("從繼續閱讀移除"),
+            items.append(HomeCardMenuItem(id: "removeFromContinueReading", title: localized("从继续阅读移除"),
                                           symbol: "minus.circle", perform: { remove(book) }))
         }
         if book.currentPosition < 0.99 {
-            items.append(HomeCardMenuItem(id: "markFinished", title: localized("標記為已讀完"),
+            items.append(HomeCardMenuItem(id: "markFinished", title: localized("标记为已读完"),
                                           symbol: "checkmark.circle", perform: { actions.markFinished(book) }))
         }
         return items
@@ -761,7 +761,7 @@ struct HomeCardMenuButton: View {
 /// Apple Books' Continue card, measured on a 440pt phone: a 40×60 cover inset 10, then the
 /// title (two lines), author and kind・progress in 15pt, centred against the cover. The title
 /// and author are white; the kind line is the cover's hue made light. The ground is the cover's
-/// main colour, darkened until that line reads at 4.5:1 (7:1 with 增加對比), so white does too.
+/// main colour, darkened until that line reads at 4.5:1 (7:1 with 增加对比), so white does too.
 /// The text goes under the cover at accessibility text sizes.
 struct HomeCompactReadingCard: View {
     let content: HomeCardContent
@@ -839,7 +839,7 @@ struct HomeCompactReadingCard: View {
     }
 }
 
-// MARK: - 圖文資訊清單
+// MARK: - 图文资讯清单
 
 /// A small cover, and the title, author, blurb and status beside it.
 struct HomeListRow: View {
@@ -941,7 +941,7 @@ struct HomeChartRow: View {
     }
 }
 
-#Preview("每種呈現方式") {
+#Preview("每种呈现方式") {
     let cards = (0..<8).map(HomeCardContent.placeholder)
     ScrollView {
         VStack(alignment: .leading, spacing: DSSpacing.xxl) {
@@ -956,7 +956,7 @@ struct HomeChartRow: View {
     }
 }
 
-#Preview("每種呈現方式，在編輯首頁") {
+#Preview("每种呈现方式，在编辑首页") {
     let cards = (0..<8).map(HomeCardContent.placeholder)
     let lists = PublicLibraryCollection.all.map(CollectionSummary.bundledGutenberg)
     ScrollView {
@@ -978,16 +978,16 @@ struct HomeChartRow: View {
 }
 
 #if DEBUG
-/// 精選's preview cards: a book-source book with everything, and a bundled Gutenberg book with a
+/// 精选's preview cards: a book-source book with everything, and a bundled Gutenberg book with a
 /// title, an author and a generated cover, nothing else.
 @MainActor
 private func featuredPreviewCards() -> [HomeCardContent] {
     var source = BookSource()
     source.bookSourceUrl = "https://source.example"
-    let book = OnlineBook(name: "宿命之環", author: "愛潛水的烏賊",
-                          intro: "灰霧之上，命運的環一圈圈收緊；一個從夢裡醒來的人，發現自己的日子已經被寫好了。",
+    let book = OnlineBook(name: "宿命之环", author: "爱潜水的乌贼",
+                          intro: "灰雾之上，命运的环一圈圈收紧；一个从梦里醒来的人，发现自己的日子已经被写好了。",
                           coverUrl: "", bookUrl: "https://source.example/book/1", tocUrl: "", wordCount: "",
-                          lastChapter: "", kind: "玄幻,連載", sourceId: source.id, sourceName: "S")
+                          lastChapter: "", kind: "玄幻,连载", sourceId: source.id, sourceName: "S")
     let entries: [CollectionEntry] = [
         CollectionEntry.onlineBook(book, source: source),
         CollectionEntry.bundledGutenberg(PublicLibraryCollection.all[0].books[0]),
@@ -995,7 +995,7 @@ private func featuredPreviewCards() -> [HomeCardContent] {
     return entries.compactMap { HomeCardContent($0, status: { _ in nil }, shelfBooks: [:]) }
 }
 
-#Preview("趨勢的系列，在作者下面") {
+#Preview("趋势的系列，在作者下面") {
     // The same book twice, the second on the shelf; each its own item, as a row's cards are.
     let cards = [nil, CopyLookup.Status.onShelf].enumerated().compactMap { index, status in
         let record = SourceRecord(key: SourceItemKey(instance: ModuleProvider.instanceKey(moduleID: "trends"), item: "mistborn-\(index)"),
@@ -1016,7 +1016,7 @@ private func featuredPreviewCards() -> [HomeCardContent] {
     }
 }
 
-#Preview("精選，資料齊全與最少") {
+#Preview("精选，资料齐全与最少") {
     let cards = featuredPreviewCards()
     ScrollView {
         VStack(alignment: .leading, spacing: DSSpacing.lg) {

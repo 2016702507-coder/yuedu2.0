@@ -64,7 +64,7 @@ enum RemoteLibraryBrowsePresentation {
 }
 
 /// A Gutenberg book's page in the store's card carousel (`PublicLibraryBookSheet`), kept while
-/// the carousel is off (Phase 5 plan, decision 27). Every other library item opens 作品詳情,
+/// the carousel is off (Phase 5 plan, decision 27). Every other library item opens 作品详情,
 /// which replaced this view's pushed list page (decision 28).
 struct RemoteLibraryBookDetailView: View {
     private let authors: [GutenbergAuthor]
@@ -108,7 +108,7 @@ struct RemoteLibraryBookDetailView: View {
     }
 
     private var readAction: BookDetailAction {
-        BookDetailAction(title: localized(book?.lastOpenedDate == nil ? "開始閱讀" : "繼續閱讀"), systemImage: "book",
+        BookDetailAction(title: localized(book?.lastOpenedDate == nil ? "开始阅读" : "继续阅读"), systemImage: "book",
                          isBusy: action == .read, isEnabled: canAct,
                          detail: BookDetailResume.detail(chapterIndex: nil, progress: book?.currentPosition),
                          action: { begin(.read) })
@@ -120,7 +120,7 @@ struct RemoteLibraryBookDetailView: View {
                 cover: PublicLibraryCoverArtwork(title: artworkTitle ?? item.title, author: artworkAuthor ?? item.author,
                                                  coverURL: artworkCoverURL),
                 title: item.title, author: item.author ?? "", meta: "",
-                // 加入書架 is the card header's; 下載 was taken off on 2026-10-12 with the rest of
+                // 加入书架 is the card header's; 下载 was taken off on 2026-10-12 with the rest of
                 // the library's own actions (maintainer: the page is where the book is read).
                 primary: readAction, secondary: nil,
                 authorActions: authors.map { author in
@@ -147,7 +147,7 @@ struct RemoteLibraryBookDetailView: View {
             BookDetailInfoSection(items: infoItems)
         } actions: {
             Button { begin(.addToShelf) } label: {
-                BookDetailCardIcon(title: localized(isOnShelf ? "已加入書架" : "加入書架"), systemImage: isOnShelf ? "checkmark" : "plus")
+                BookDetailCardIcon(title: localized(isOnShelf ? "已加入书架" : "加入书架"), systemImage: isOnShelf ? "checkmark" : "plus")
             }.disabled(!canAct || isOnShelf)
             Menu {
                 Picker(localized("格式"), selection: $selectedFormatID) {
@@ -155,16 +155,16 @@ struct RemoteLibraryBookDetailView: View {
                 }.disabled(action != nil)
                 if let url = item.alternateURL { ShareLink(item: url) }
             } label: {
-                BookDetailCardIcon(title: localized("書庫操作"), systemImage: "ellipsis")
+                BookDetailCardIcon(title: localized("书库操作"), systemImage: "ellipsis")
             }
         }
     }
 
     private var infoItems: [BookDetailInfoItem] {
-        var result = [BookDetailInfoItem(id: "source", label: localized("來源"), value: localized("Project Gutenberg")),
+        var result = [BookDetailInfoItem(id: "source", label: localized("来源"), value: localized("Project Gutenberg")),
                       BookDetailInfoItem(id: "format", label: localized("格式"), value: selectedFormat?.displayName ?? "")]
         if let size = selectedFormat?.size, size > 0 {
-            result.append(BookDetailInfoItem(id: "size", label: localized("檔案大小"),
+            result.append(BookDetailInfoItem(id: "size", label: localized("档案大小"),
                 value: ByteCountFormatter.string(fromByteCount: size, countStyle: .file)))
         }
         return result
@@ -190,7 +190,7 @@ struct RemoteLibraryBookDetailView: View {
 #Preview {
     NavigationStack {
         RemoteLibraryBookDetailView(item: RemoteLibraryItem(
-            id: "preview", connectionID: PublicLibraryID.gutenberg.rawValue, title: "紅樓夢",
+            id: "preview", connectionID: PublicLibraryID.gutenberg.rawValue, title: "红楼梦",
             author: "曹雪芹", summary: nil, coverURL: nil,
             formats: [RemoteLibraryFormat(url: URL(string: "https://example.com/book.epub")!,
                                           fileExtension: "epub", mimeType: "application/epub+zip", size: nil)]

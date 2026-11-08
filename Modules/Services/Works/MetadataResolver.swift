@@ -29,7 +29,7 @@ enum MetadataResolver {
 
     /// The precedence: override > lock > chosen candidate > field priority > the copy.
     ///
-    /// - `anchor`: the copy's key (`SourceItemKey.copy`), so decisions survive 換源.
+    /// - `anchor`: the copy's key (`SourceItemKey.copy`), so decisions survive 换源.
     /// - `copyValue`: what `ReadingBook` holds for the field, if anything.
     /// - `values`: the sidecar's values for this copy. A bibliographic database's values are
     ///   there only when its record matched the copy by identifier (design §8.1): the

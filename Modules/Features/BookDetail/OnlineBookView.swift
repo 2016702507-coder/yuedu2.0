@@ -5,9 +5,9 @@ import SwiftUI
 /// Everything a book-source detail page pushes, through its one `navigationDestination`.
 private enum OnlineBookDetailPush: Hashable {
     case reader(UUID)
-    /// A genre link's category, or 同題材's 查看全部.
+    /// A genre link's category, or 同题材's 查看全部.
     case category(ExploreCategoryReference)
-    /// A 同題材 book.
+    /// A 同题材 book.
     case book(OnlineBook)
 
     var readerID: UUID? {
@@ -17,7 +17,7 @@ private enum OnlineBookDetailPush: Hashable {
 }
 
 struct OnlineBookView: View {
-    /// The aggregated search book, when opened from search — enables source switching (換源).
+    /// The aggregated search book, when opened from search — enables source switching (换源).
     /// `nil` when opened from a single-source context (e.g. Discover).
     private let searchBook: SearchBook?
     /// When opened from the reader, this is the shelf record whose source the detail page is
@@ -31,10 +31,10 @@ struct OnlineBookView: View {
     /// which replaces this page with the audiobook detail page. `nil` for the
     /// reader-owned detail, which commits every switch to its open reader's book.
     private let onSourceKindChange: ((BookOrigin) -> Void)?
-    /// On 作品詳情, the work's versions: 換源 lists the others first, and picking one switches
+    /// On 作品详情, the work's versions: 换源 lists the others first, and picking one switches
     /// the page to it (unified library 5f-3). `nil` elsewhere.
     private let workVersions: BookDetailInfoChoice?
-    /// On 作品詳情, the work's series fanned behind the cover, as the work's own page draws it
+    /// On 作品详情, the work's series fanned behind the cover, as the work's own page draws it
     /// (`SeriesCoverFan`). `nil` elsewhere.
     private let seriesFan: SeriesFan?
 
@@ -62,10 +62,10 @@ struct OnlineBookView: View {
     @State private var alreadyInShelf = false
     /// The shelved copy's sidecar values, read once per copy for its description.
     @State private var copySidecar: [MetadataValue] = []
-    /// The chapter the shelf copy's reader left off in, for 「繼續閱讀　第 N 章」.
+    /// The chapter the shelf copy's reader left off in, for 「继续阅读　第 N 章」.
     @State private var resumeChapterIndex: Int?
     @State private var temporaryReaderBookId: UUID? = nil
-    /// The book just read without adding, while 「加入書架？」 asks about it.
+    /// The book just read without adding, while 「加入书架？」 asks about it.
     @State private var shelvePrompt: ReadingBook?
     @State private var detailInfo: OnlineBook? = nil
     @State private var tocRuntimeVariables: [String: String]? = nil
@@ -110,7 +110,7 @@ struct OnlineBookView: View {
     }
 
     /// Search entry — opens `initialOrigin` when given, otherwise the first origin;
-    /// keeps the rest for 換源.
+    /// keeps the rest for 换源.
     init(
         searchBook: SearchBook,
         initialOrigin: BookOrigin? = nil,
@@ -155,7 +155,7 @@ struct OnlineBookView: View {
         let d = detailInfo?.name.trimmingCharacters(in: .whitespacesAndNewlines)
         let b = currentBook.name.trimmingCharacters(in: .whitespacesAndNewlines)
         if let d = d, !d.isEmpty { return d }
-        return b.isEmpty ? localized("未知書名") : b
+        return b.isEmpty ? localized("未知书名") : b
     }
 
     private var displayAuthor: String {
@@ -235,7 +235,7 @@ struct OnlineBookView: View {
         let name = currentBook.sourceName.trimmingCharacters(in: .whitespacesAndNewlines)
         if !name.isEmpty { return name }
         if let s = source?.bookSourceName, !s.isEmpty { return s }
-        return localized("未知來源配置")
+        return localized("未知来源配置")
     }
 
     /// Category string split into individual genre tags, junk filtered out.
@@ -287,7 +287,7 @@ struct OnlineBookView: View {
                 )
             }
             BookDetailChapterSection(
-                title: localized("目錄"),
+                title: localized("目录"),
                 chapters: chapters,
                 isLoading: loadingTOC,
                 errorMessage: tocError,
@@ -318,7 +318,7 @@ struct OnlineBookView: View {
                     }
                 )
             }
-            // 作品資訊 last: the first half serves reading and finding more (2026-10-12).
+            // 作品资讯 last: the first half serves reading and finding more (2026-10-12).
             BookDetailInfoSection(items: infoItems)
         }
         .environment(\.locale, Locale(identifier: gs.localeIdentifier))
@@ -442,7 +442,7 @@ struct OnlineBookView: View {
 
     // MARK: Genres and author
 
-    /// What the genre links and 同題材 are read for: the source, the genres and the book. Nil
+    /// What the genre links and 同题材 are read for: the source, the genres and the book. Nil
     /// until the chapters have loaded or failed: the source's categories are read after them,
     /// never in the way of the page's own loading, and with the genres the detail gives.
     private var genreLoadKey: String? {
@@ -452,7 +452,7 @@ struct OnlineBookView: View {
 
     /// Whether the genres are links: not for a source that takes label taps itself, and not on
     /// the page a reader opened, where another book's page could open a second reader
-    /// (decision 32). That page has no 同題材 either.
+    /// (decision 32). That page has no 同题材 either.
     private var linksGenres: Bool { sourceCallBacks == nil && onContinueReading == nil }
 
     /// The genre and author taps, for a source that does not take them itself.
@@ -488,8 +488,8 @@ struct OnlineBookView: View {
     private var readAction: BookDetailAction {
         BookDetailAction(
             title: openingReader
-                ? localized("打開中…")
-                : (alreadyInShelf ? localized("繼續閱讀") : localized("立即閱讀")),
+                ? localized("打开中…")
+                : (alreadyInShelf ? localized("继续阅读") : localized("立即阅读")),
             systemImage: "book.fill",
             isBusy: openingReader,
             isEnabled: !chapters.isEmpty && !addingToShelf,
@@ -502,8 +502,8 @@ struct OnlineBookView: View {
     private var shelfAction: BookDetailAction {
         BookDetailAction(
             title: alreadyInShelf
-                ? localized("移除書架")
-                : (addingToShelf ? localized("加入中…") : localized("加入書架")),
+                ? localized("移除书架")
+                : (addingToShelf ? localized("加入中…") : localized("加入书架")),
             systemImage: alreadyInShelf ? "checkmark" : "plus",
             isBusy: addingToShelf,
             isEnabled: !chapters.isEmpty,
@@ -517,12 +517,12 @@ struct OnlineBookView: View {
         var items: [BookDetailInfoItem] = []
         if !displayWordCount.isEmpty {
             items.append(BookDetailInfoItem(
-                id: "wordCount", label: localized("字數"), value: displayWordCount
+                id: "wordCount", label: localized("字数"), value: displayWordCount
             ))
         }
         if !chapters.isEmpty {
             items.append(BookDetailInfoItem(
-                id: "chapters", label: localized("章節"), value: chapters.count.formatted()
+                id: "chapters", label: localized("章节"), value: chapters.count.formatted()
             ))
         }
         items.append(.source(name: sourceName) { showSourcePicker = true })
@@ -538,8 +538,8 @@ struct OnlineBookView: View {
         return tocRuntimeVariables ?? detailInfo?.runtimeVariables ?? currentBook.runtimeVariables
     }
 
-    /// A 簡介 button or image: its script runs against this page's book.
-    /// `book` as this page's source scripts see it (簡介 buttons, `callBackJs`).
+    /// A 简介 button or image: its script runs against this page's book.
+    /// `book` as this page's source scripts see it (简介 buttons, `callBackJs`).
     private var sourceScriptBook: ReaderHTMLUtilities.LegadoSourceActionContext.BookSnapshot {
         .detailPage(
             name: displayName,
@@ -586,7 +586,7 @@ struct OnlineBookView: View {
         )
     }
 
-    /// Legado's 設置書籍變量: write `custom` into every runtime-variable map this page
+    /// Legado's 设置书籍变量: write `custom` into every runtime-variable map this page
     /// carries forward, and into the shelf record when the book is on the shelf.
     private func saveBookVariable(_ value: String) {
         currentBook.runtimeVariables = BookCustomVariable.merged(value, into: currentBook.runtimeVariables)
@@ -695,7 +695,7 @@ struct OnlineBookView: View {
 
     private func loadTOC(forceRefresh: Bool = false) async {
         guard let source else {
-            tocError = localized("來源配置已被刪除")
+            tocError = localized("来源配置已被删除")
             return
         }
 
@@ -750,7 +750,7 @@ struct OnlineBookView: View {
                     }
                     guard let (sourceSwitchBookId, origin) = commitContext else { return }
                     do {
-                        // The reader's 換源 commit: rebinds the source and carries the stored
+                        // The reader's 换源 commit: rebinds the source and carries the stored
                         // place over to the new list (it used to keep the old chapter index).
                         try await OnlineBookSourceSwitch(store: self.bookStore, dependencies: self.dependencies)
                             .commit(bookId: sourceSwitchBookId, origin: origin, toc: tocPackage)
@@ -939,7 +939,7 @@ struct OnlineBookView: View {
         }
     }
 
-    /// What this page has in hand for 加入書架 and 立即閱讀.
+    /// What this page has in hand for 加入书架 and 立即阅读.
     private func onlineCopy(from source: BookSource) -> ShelfWorkService.OnlineCopy {
         ShelfWorkService.OnlineCopy(
             name: displayName,
@@ -976,7 +976,7 @@ struct OnlineBookView: View {
         }
     }
 
-    /// 加入書架 after reading: the record read joins the shelf, with where it was read to. When
+    /// 加入书架 after reading: the record read joins the shelf, with where it was read to. When
     /// its work is already on the shelf from another source, that book takes this source and
     /// what was just read instead (`ShelfWorkService.shelveReadCopy`).
     private func keepReadBook(_ book: ReadingBook) {
@@ -994,7 +994,7 @@ struct OnlineBookView: View {
         }
     }
 
-    /// 不加入: the record read stays off the shelf, and 立即閱讀 reads it again with its place
+    /// 不加入: the record read stays off the shelf, and 立即阅读 reads it again with its place
     /// and reading mode (`ShelfWorkService.leaveReadCopyOffShelf`, feedback #101).
     private func leaveReadBook(_ book: ReadingBook) {
         ShelfWorkService(store: bookStore, dependencies: dependencies).leaveReadCopyOffShelf(id: book.id)
@@ -1003,7 +1003,7 @@ struct OnlineBookView: View {
         checkAlreadyInShelf()
     }
 
-    /// The reader closed with nothing for 「加入書架？」 to ask: a copy made for it and never
+    /// The reader closed with nothing for 「加入书架？」 to ask: a copy made for it and never
     /// opened goes, a version read as itself stays (`ShelfWorkService.discardUnopenedCopy`).
     private func discardTemporaryReaderBook(_ tempId: UUID) {
         ShelfWorkService(store: bookStore, dependencies: dependencies).discardUnopenedCopy(id: tempId)
@@ -1059,7 +1059,7 @@ struct OnlineBookView: View {
             }
             // A shelf book that turned out to be an audiobook (`upgradeToAudioIfDetected`) plays
             // out of the now-playing bar, as every shelf audiobook does. A copy read without
-            // being added keeps its cover: closing it is when 加入書架？ is asked.
+            // being added keeps its cover: closing it is when 加入书架？ is asked.
             if temporaryReaderBookId == nil,
                NowPlayingHub.shared.openIfAudiobook(readingBook, store: bookStore) {
                 openingReader = false
@@ -1082,15 +1082,15 @@ struct OnlineBookView: View {
     let sample = OnlineBook(
         name: "修仙聊天群",
         author: "世味煮作茶",
-        intro: "某一天，剛被開除的上班族余小安偶然進入了一個奇怪的修仙聊天群，接受了一個種藥草的委託，從此，他變成了一個種地的……不過他的顧客名字都很奇怪，比如：白帝仙王、青龍仙君、太上仙尊。",
+        intro: "某一天，刚被开除的上班族余小安偶然进入了一个奇怪的修仙聊天群，接受了一个种药草的委托，从此，他变成了一个种地的……不过他的顾客名字都很奇怪，比如：白帝仙王、青龙仙君、太上仙尊。",
         coverUrl: "",
         bookUrl: "https://example.com/book/1",
         tocUrl: "https://example.com/book/1/toc",
-        wordCount: "34.8萬字",
-        lastChapter: "第703章 大結局",
-        kind: "都市腦洞 | 都市 | 系統 | 神豪 | 諸天萬界",
+        wordCount: "34.8万字",
+        lastChapter: "第703章 大结局",
+        kind: "都市脑洞 | 都市 | 系统 | 神豪 | 诸天万界",
         sourceId: UUID(),
-        sourceName: "晴天小說"
+        sourceName: "晴天小说"
     )
     return NavigationStack {
         OnlineBookView(book: sample)
@@ -1098,14 +1098,14 @@ struct OnlineBookView: View {
     }
 }
 
-#Preview("作品詳情的書源版本") {
+#Preview("作品详情的书源版本") {
     let sample = OnlineBook(
         name: "修仙聊天群", author: "世味煮作茶", intro: "", coverUrl: "",
         bookUrl: "https://example.com/book/1", tocUrl: "https://example.com/book/1/toc",
-        wordCount: "34.8萬字", lastChapter: "第703章 大結局", kind: "都市", sourceId: UUID(), sourceName: "晴天小說"
+        wordCount: "34.8万字", lastChapter: "第703章 大结局", kind: "都市", sourceId: UUID(), sourceName: "晴天小说"
     )
-    // 換源 lists 書架 above the sources.
-    let versions = BookDetailInfoChoice(options: [.init(id: "source", title: "晴天小說"), .init(id: "copy", title: "書架 · 已讀 42%")],
+    // 换源 lists 书架 above the sources.
+    let versions = BookDetailInfoChoice(options: [.init(id: "source", title: "晴天小说"), .init(id: "copy", title: "书架 · 已读 42%")],
                                         selection: .constant("source"))
     return NavigationStack {
         OnlineBookView(book: sample, workVersions: versions)
@@ -1115,13 +1115,13 @@ struct OnlineBookView: View {
 
 // `SeriesFan.preview` exists in Debug only; a Release archive must not see this preview.
 #if DEBUG
-#Preview("作品詳情的書源版本，系列扇形") {
+#Preview("作品详情的书源版本，系列扇形") {
     let sample = OnlineBook(
         name: "Frankenstein", author: "Mary Shelley", intro: "", coverUrl: "",
         bookUrl: "https://example.com/book/1", tocUrl: "https://example.com/book/1/toc",
-        wordCount: "", lastChapter: "", kind: "", sourceId: UUID(), sourceName: "晴天小說"
+        wordCount: "", lastChapter: "", kind: "", sourceId: UUID(), sourceName: "晴天小说"
     )
-    // A 趨勢 work shown as the first source found: the work's fan stays behind the cover.
+    // A 趋势 work shown as the first source found: the work's fan stays behind the cover.
     return NavigationStack {
         OnlineBookView(book: sample, seriesFan: SeriesFan.preview.fan)
             .environmentObject(BookStore())

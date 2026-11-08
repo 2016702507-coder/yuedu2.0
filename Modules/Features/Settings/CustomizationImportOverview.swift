@@ -3,8 +3,8 @@ import SwiftUI
 
 // MARK: - Reading setup parts
 
-/// One part of a reading setup, named the way 閱讀設定 names it. The pre-import alert
-/// lists these so a pack cannot pass for "just the header/footer", and the 匯入完成
+/// One part of a reading setup, named the way 阅读设置 names it. The pre-import alert
+/// lists these so a pack cannot pass for "just the header/footer", and the 汇入完成
 /// sheet shows the same list as what actually landed.
 enum ReadingSetupPart: CaseIterable, Hashable {
     case font
@@ -20,23 +20,23 @@ enum ReadingSetupPart: CaseIterable, Hashable {
 
     var titleKey: String {
         switch self {
-        case .font: return "字體"
+        case .font: return "字体"
         case .layout: return "排版"
-        case .pageTurn: return "翻頁方式"
-        case .headerFooter: return "頁首頁尾"
-        case .chapterTitle: return "章節標題樣式"
-        // Its own key: the shared 閱讀背景 is lower-case English, written for use
+        case .pageTurn: return "翻页方式"
+        case .headerFooter: return "页首页尾"
+        case .chapterTitle: return "章节标题样式"
+        // Its own key: the shared 阅读背景 is lower-case English, written for use
         // inside a sentence rather than as a row title.
         case .background: return "ReadingSetup.Background"
-        case .commentBubble: return "段評氣泡"
-        case .dialogueBubble: return "對話氣泡"
-        case .regexHighlights: return "正則高亮"
-        case .textDecoration: return "文字顏色與底線"
+        case .commentBubble: return "段评气泡"
+        case .dialogueBubble: return "对话气泡"
+        case .regexHighlights: return "正则高亮"
+        case .textDecoration: return "文字颜色与底线"
         }
     }
 
-    /// The 排版生效範圍 rows this part is made of — the one mapping from fields to what
-    /// 閱讀設定 calls them.
+    /// The 排版生效范围 rows this part is made of — the one mapping from fields to what
+    /// 阅读设置 calls them.
     var scopeItems: Set<ReadingSettingsScopeItem> {
         switch self {
         case .font: return [.font]
@@ -52,7 +52,7 @@ enum ReadingSetupPart: CaseIterable, Hashable {
         }
     }
 
-    /// The symbol 閱讀設定 gives the control; 排版 has no single control, so it takes
+    /// The symbol 阅读设置 gives the control; 排版 has no single control, so it takes
     /// the type size's.
     var systemImage: String {
         switch self {
@@ -69,13 +69,13 @@ enum ReadingSetupPart: CaseIterable, Hashable {
         }
     }
 
-    /// The parts a setup speaks for, in 閱讀設定's order.
+    /// The parts a setup speaks for, in 阅读设置's order.
     static func parts(in reading: AppearanceThemeReadingSettings) -> [ReadingSetupPart] {
         let items = reading.items
         return allCases.filter { !$0.scopeItems.isDisjoint(with: items) }
     }
 
-    /// 「字體、排版和頁首頁尾」 — joined the way the current language joins a list.
+    /// 「字体、排版和页首页尾」 — joined the way the current language joins a list.
     static func localizedList(_ parts: [ReadingSetupPart]) -> String {
         ListFormatter.localizedString(byJoining: parts.map { localized($0.titleKey) })
     }
@@ -84,11 +84,11 @@ enum ReadingSetupPart: CaseIterable, Hashable {
 // MARK: - Pre-import question
 
 /// The alert asked after a reading-settings file parsed and before anything lands. Built
-/// here so both entry points — 閱讀設定 › 匯入閱讀設定 and a file opened from another app —
+/// here so both entry points — 阅读设置 › 汇入阅读设置 and a file opened from another app —
 /// ask the same question in the same words.
 ///
 /// A theme pack asks nothing: its reading setup is its theme's own, worn while the theme
-/// is and switched away with it. It used to ask 跟隨主題 or 取代全域設定 (2026-09-29).
+/// is and switched away with it. It used to ask 跟随主题 or 取代全域设置 (2026-09-29).
 struct CustomizationImportPrompt: Identifiable {
     let id = UUID()
     let title: String
@@ -110,13 +110,13 @@ struct CustomizationImportPrompt: Identifiable {
         if let name, !name.isEmpty {
             contents = String(format: localized("「%@」包含%@。"), name, list)
         } else {
-            contents = String(format: localized("這個檔案包含%@。"), list)
+            contents = String(format: localized("这个档案包含%@。"), list)
         }
         let consequence = themeName.map {
-            String(format: localized("跟隨主題的設定會存進「%@」，其餘取代全域設定。"), $0)
-        } ?? localized("會取代全域閱讀設定。")
+            String(format: localized("跟随主题的设置会存进「%@」，其余取代全域设置。"), $0)
+        } ?? localized("会取代全域阅读设置。")
         return CustomizationImportPrompt(
-            title: localized("取代目前的閱讀設定？"),
+            title: localized("取代目前的阅读设置？"),
             message: contents + consequence
         )
     }
@@ -156,7 +156,7 @@ extension View {
 
 // MARK: - Overview
 
-/// What an import changed, for the 匯入完成 sheet: what the file brought in, where its
+/// What an import changed, for the 汇入完成 sheet: what the file brought in, where its
 /// reading setup went, and what did not come across exactly.
 struct CustomizationImportOverview {
     struct Item: Identifiable, Hashable {
@@ -238,27 +238,27 @@ extension CustomizationImportOverview {
             appearanceItems = Self.appearanceItems(of: selectedTheme, installedFontName: nil, coverCount: 0)
         } else if summary.themes > 1 {
             appearanceItems.append(Item(
-                titleKey: "主題配色",
+                titleKey: "主题配色",
                 systemImage: "paintpalette",
-                detail: String(format: localized("%d 個主題"), summary.themes)
+                detail: String(format: localized("%d 个主题"), summary.themes)
             ))
         }
         if summary.restoredPageBackgrounds,
-           !appearanceItems.contains(where: { $0.id == "頁面背景" }) {
-            appearanceItems.append(Item(titleKey: "頁面背景", systemImage: "photo"))
+           !appearanceItems.contains(where: { $0.id == "页面背景" }) {
+            appearanceItems.append(Item(titleKey: "页面背景", systemImage: "photo"))
         }
         if summary.tabIcons > 0 {
             appearanceItems.append(Item(
                 titleKey: "底部 Tab",
                 systemImage: "square.grid.2x2",
-                detail: String(format: localized("%d 個圖示"), summary.tabIcons)
+                detail: String(format: localized("%d 个图示"), summary.tabIcons)
             ))
         }
         if summary.launchImages > 0 {
             appearanceItems.append(Item(
-                titleKey: "啟動圖",
+                titleKey: "启动图",
                 systemImage: "iphone",
-                detail: String(format: localized("%d 張"), summary.launchImages)
+                detail: String(format: localized("%d 张"), summary.launchImages)
             ))
         }
         if summary.restoredReaderBackground {
@@ -287,35 +287,35 @@ extension CustomizationImportOverview {
         installedFontName: String?,
         coverCount: Int
     ) -> [Item] {
-        var items = [Item(titleKey: "主題配色", systemImage: "paintpalette")]
+        var items = [Item(titleKey: "主题配色", systemImage: "paintpalette")]
         guard let extras = theme.extras else { return items }
         if extras.pageBackgrounds?.isEmpty == false {
-            items.append(Item(titleKey: "頁面背景", systemImage: "photo"))
+            items.append(Item(titleKey: "页面背景", systemImage: "photo"))
         }
         let tabs = Set((extras.tabIcons ?? [:]).keys.compactMap { $0.split(separator: ".").first })
         if !tabs.isEmpty {
             items.append(Item(
                 titleKey: "底部 Tab",
                 systemImage: "square.grid.2x2",
-                detail: String(format: localized("%d 個圖示"), tabs.count)
+                detail: String(format: localized("%d 个图示"), tabs.count)
             ))
         }
         if extras.launchImageLightFileName != nil || extras.launchImageDarkFileName != nil {
-            items.append(Item(titleKey: "啟動圖", systemImage: "iphone"))
+            items.append(Item(titleKey: "启动图", systemImage: "iphone"))
         }
         let covers = coverCount > 0
             ? coverCount
             : (extras.defaultCoverLightFileNames?.count ?? 0) + (extras.defaultCoverDarkFileNames?.count ?? 0)
         if covers > 0 {
             items.append(Item(
-                titleKey: "預設封面",
+                titleKey: "预设封面",
                 systemImage: "book.closed",
-                detail: String(format: localized("%d 張"), covers)
+                detail: String(format: localized("%d 张"), covers)
             ))
         }
         if let font = extras.globalFontPostScript, !font.isEmpty {
             items.append(Item(
-                titleKey: "全局字體",
+                titleKey: "全局字体",
                 systemImage: "f.cursive",
                 detail: installedFontName ?? fontDisplayName(font)
             ))
@@ -324,7 +324,7 @@ extension CustomizationImportOverview {
             || extras.glowIntensity != nil || extras.glassCards != nil {
             var effects: [String] = []
             if extras.frostedGlass == true { effects.append(localized("毛玻璃")) }
-            if (extras.glowIntensity ?? 0) > 0 { effects.append(localized("光暈")) }
+            if (extras.glowIntensity ?? 0) > 0 { effects.append(localized("光晕")) }
             items.append(Item(
                 titleKey: "界面效果",
                 systemImage: "sparkles",
@@ -337,17 +337,17 @@ extension CustomizationImportOverview {
         if extras.bookshelfGridColumnCount != nil || extras.bookshelfCoverCornerRadius != nil
             || extras.forceDefaultCover != nil {
             items.append(Item(
-                titleKey: "書架",
+                titleKey: "书架",
                 systemImage: "books.vertical",
-                detail: extras.bookshelfGridColumnCount.map { String(format: localized("%d 欄"), $0) }
+                detail: extras.bookshelfGridColumnCount.map { String(format: localized("%d 栏"), $0) }
             ))
         }
-        // Named after the 閱讀界面 › 按鈕圖示 page these land on.
+        // Named after the 阅读界面 › 按钮图示 page these land on.
         if let chromeIcons = extras.readerChromeIcons, !chromeIcons.isEmpty {
             items.append(Item(
-                titleKey: "按鈕圖示",
+                titleKey: "按钮图示",
                 systemImage: "circle.grid.2x2",
-                detail: String(format: localized("%d 個圖示"), chromeIcons.count)
+                detail: String(format: localized("%d 个图示"), chromeIcons.count)
             ))
         }
         return items
@@ -376,14 +376,14 @@ extension CustomizationImportOverview {
         switch part {
         case .font:
             guard let font = reading.fontPostScript else { return nil }
-            if font.isEmpty { return localized("系統字體") }
+            if font.isEmpty { return localized("系统字体") }
             return fontName ?? fontDisplayName(font)
         case .layout:
             return reading.fontSize.map {
                 String(format: localized("ReaderOverlay.Format.Points"), Int($0.rounded()))
             }
         case .pageTurn:
-            if reading.scrollMode == true { return localized("捲動") }
+            if reading.scrollMode == true { return localized("卷动") }
             return reading.pageTurnStyle.flatMap(PageTurnStyle.init(rawValue:)).map { localized($0.rawValue) }
         default:
             return nil
@@ -399,7 +399,7 @@ extension CustomizationImportOverview {
 
 // MARK: - Sheet
 
-/// The state of one import as the 匯入完成 sheet shows it. The sheet goes up as soon as
+/// The state of one import as the 汇入完成 sheet shows it. The sheet goes up as soon as
 /// the user has answered the alert, so a pack that takes a moment to install a large
 /// font shows progress instead of nothing.
 @MainActor
@@ -449,9 +449,9 @@ struct CustomizationImportOverviewView: View {
 
     private var titleKey: String {
         switch progress.phase {
-        case .importing: return "匯入中"
-        case .finished: return "匯入完成"
-        case .failed: return "匯入失敗"
+        case .importing: return "汇入中"
+        case .finished: return "汇入完成"
+        case .failed: return "汇入失败"
         }
     }
 
@@ -459,19 +459,19 @@ struct CustomizationImportOverviewView: View {
     private var content: some View {
         switch progress.phase {
         case .importing:
-            ProgressView(localized("匯入中，請稍候…"))
+            ProgressView(localized("汇入中，请稍候…"))
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(DSColor.groupedBackground)
         case .failed(let message):
             ContentUnavailableView {
-                UnavailableLabel(localized("匯入失敗"), systemImage: "exclamationmark.triangle")
+                UnavailableLabel(localized("汇入失败"), systemImage: "exclamationmark.triangle")
             } description: {
                 Text(message).font(DSFont.unavailableDescription).foregroundStyle(DSColor.textSecondary)
             }
             .background(DSColor.groupedBackground)
         case .finished(let overview) where overview.isEmpty && overview.notes.isEmpty:
             ContentUnavailableView {
-                UnavailableLabel(localized("這個檔案沒有可匯入的內容。"), systemImage: "doc")
+                UnavailableLabel(localized("这个档案没有可汇入的内容。"), systemImage: "doc")
             }
             .background(DSColor.groupedBackground)
         case .finished(let overview):
@@ -485,11 +485,11 @@ struct CustomizationImportOverviewView: View {
                 Section {
                     ForEach(overview.appearanceItems) { itemRow($0) }
                 } header: {
-                    Text(localized("外觀"))
+                    Text(localized("外观"))
                         .foregroundStyle(DSColor.textSecondary)
                 } footer: {
                     if let name = overview.selectedThemeName {
-                        Text(String(format: localized("「%@」已設為目前的外觀主題。"), name))
+                        Text(String(format: localized("「%@」已设为目前的外观主题。"), name))
                             .dsSectionFooter()
                     }
                 }
@@ -500,7 +500,7 @@ struct CustomizationImportOverviewView: View {
                 Section {
                     ForEach(overview.readingItems) { itemRow($0) }
                 } header: {
-                    Text(localized("閱讀設定"))
+                    Text(localized("阅读设置"))
                         .foregroundStyle(DSColor.textSecondary)
                 } footer: {
                     if let placement = overview.readingPlacement {
@@ -552,38 +552,38 @@ struct CustomizationImportOverviewView: View {
     private func placementText(_ placement: CustomizationImportOverview.ReadingPlacement) -> String {
         switch placement {
         case .followsTheme(let name):
-            return String(format: localized("這些設定屬於主題「%@」，選這個主題時套用，其他主題照舊。"), name)
+            return String(format: localized("这些设置属于主题「%@」，选这个主题时套用，其他主题照旧。"), name)
         case .theme(let name):
-            return String(format: localized("已存進主題「%@」。"), name)
+            return String(format: localized("已存进主题「%@」。"), name)
         case .split(let name):
-            return String(format: localized("跟隨主題的設定已存進「%@」，其餘取代了全域設定。"), name)
+            return String(format: localized("跟随主题的设置已存进「%@」，其余取代了全域设置。"), name)
         case .global:
-            return localized("已取代全域閱讀設定。")
+            return localized("已取代全域阅读设置。")
         }
     }
 }
 
-#Preview("匯入完成") {
+#Preview("汇入完成") {
     var overview = CustomizationImportOverview()
     overview.appearanceItems = [
-        .init(titleKey: "主題配色", systemImage: "paintpalette"),
+        .init(titleKey: "主题配色", systemImage: "paintpalette"),
         .init(titleKey: "底部 Tab", systemImage: "square.grid.2x2", detail: "4"),
-        .init(titleKey: "界面效果", systemImage: "sparkles", detail: "毛玻璃、光暈"),
+        .init(titleKey: "界面效果", systemImage: "sparkles", detail: "毛玻璃、光晕"),
     ]
     overview.selectedThemeName = "山风 - 春水漾"
     overview.readingItems = [
         .init(titleKey: "排版", systemImage: "plus.magnifyingglass", detail: "17 pt"),
-        .init(titleKey: "翻頁方式", systemImage: "book.pages", detail: "捲動"),
-        .init(titleKey: "頁首頁尾", systemImage: "rectangle.split.3x1"),
+        .init(titleKey: "翻页方式", systemImage: "book.pages", detail: "卷动"),
+        .init(titleKey: "页首页尾", systemImage: "rectangle.split.3x1"),
     ]
     overview.readingPlacement = .followsTheme(name: "山风 - 春水漾")
-    overview.notes = ["左右頁邊距不同，本 App 只有單一邊距，已取兩者平均。"]
+    overview.notes = ["左右页边距不同，本 App 只有单一边距，已取两者平均。"]
     return CustomizationImportOverviewView(
         progress: CustomizationImportProgress(phase: .finished(overview)),
         onDone: {}
     )
 }
 
-#Preview("匯入中") {
+#Preview("汇入中") {
     CustomizationImportOverviewView(progress: CustomizationImportProgress(), onDone: {})
 }

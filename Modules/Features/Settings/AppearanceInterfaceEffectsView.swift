@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// 外觀主題 › 界面效果 — the two knobs behind `View.floatingSurface(in:)`, with a
+/// 外观主题 › 界面效果 — the two knobs behind `View.floatingSurface(in:)`, with a
 /// live sample of what they do. Every floating element in the app reads the same
 /// values, so the preview here is the real modifier rather than a mock-up.
 struct AppearanceInterfaceEffectsView: View {
@@ -15,7 +15,7 @@ struct AppearanceInterfaceEffectsView: View {
                     .listRowInsets(EdgeInsets())
                     .listRowBackground(Color.clear)
             } footer: {
-                Text(localized("效果套用於底部迷你播放器與閱讀器的浮動工具列、控制欄。"))
+                Text(localized("效果套用于底部迷你播放器与阅读器的浮动工具列、控制栏。"))
                     .dsSectionFooter()
             }
 
@@ -35,17 +35,17 @@ struct AppearanceInterfaceEffectsView: View {
             }
             .interfaceSectionSurface()
 
-            // 段評面板：閱讀器裡浮在正文之上的那層。它不跟隨上面的毛玻璃開關——
-            // 面板永遠帶一層薄霧，否則評論的字會直接壓在正文上，兩邊都讀不清。
+            // 段评面板：阅读器里浮在正文之上的那层。它不跟随上面的毛玻璃开关——
+            // 面板永远带一层薄雾，否则评论的字会直接压在正文上，两边都读不清。
             Section {
                 reviewSheetRow
             } footer: {
-                Text(localized("段評面板浮在閱讀器之上。數值越低，背後的正文越清楚；拉到 0 就完全不畫底色。"))
+                Text(localized("段评面板浮在阅读器之上。数值越低，背后的正文越清楚；拉到 0 就完全不画底色。"))
                     .dsSectionFooter()
             }
             .interfaceSectionSurface()
 
-            // The 分組卡片 switch is gone (maintainer, 2026-11-07: 所有界面要保持一個結構).
+            // The 分组卡片 switch is gone (maintainer, 2026-11-07: 所有界面要保持一个结构).
             // It only ever moved hand-drawn cards while settings rows were glass regardless,
             // so the same screen could hold both looks; cards now follow the rows
             // unconditionally, and Reduce Transparency is the one way to get solids back.
@@ -54,7 +54,7 @@ struct AppearanceInterfaceEffectsView: View {
             // groups them (2026-09-29).
             Section {
                 Toggle(isOn: glowEnabled) {
-                    Text(localized("光暈"))
+                    Text(localized("光晕"))
                         .font(DSFont.body)
                         .foregroundStyle(DSColor.textPrimary)
                 }
@@ -65,7 +65,7 @@ struct AppearanceInterfaceEffectsView: View {
                     glowColorRow
                 }
             } footer: {
-                Text(localized("光暈從浮動元素的邊緣向外擴散。沒選顏色時跟隨主題色。"))
+                Text(localized("光晕从浮动元素的边缘向外扩散。没选颜色时跟随主题色。"))
                     .dsSectionFooter()
             }
             .interfaceSectionSurface()
@@ -93,7 +93,7 @@ struct AppearanceInterfaceEffectsView: View {
     private var glowRow: some View {
         VStack(alignment: .leading, spacing: DSSpacing.sm) {
             HStack {
-                Text(localized("光暈強度"))
+                Text(localized("光晕强度"))
                     .font(DSFont.body)
                     .foregroundStyle(DSColor.textPrimary)
                 Spacer(minLength: DSSpacing.md)
@@ -108,17 +108,17 @@ struct AppearanceInterfaceEffectsView: View {
             )
             // A bare Slider has no name and announces a fraction of its range;
             // both modifiers reuse the text shown above. docs/design.md §7.1.
-            .accessibilityLabel(localized("光暈強度"))
+            .accessibilityLabel(localized("光晕强度"))
             .accessibilityValue(glowValueText)
         }
     }
 
     /// Opens on the colour the glow is drawn in right now — the theme's accent until
-    /// one is picked — the same contract as 閱讀界面's colour rows.
+    /// one is picked — the same contract as 阅读界面's colour rows.
     @ViewBuilder
     private var glowColorRow: some View {
         ColorPicker(selection: glowColorBinding, supportsOpacity: false) {
-            Text(localized("光暈顏色"))
+            Text(localized("光晕颜色"))
                 .font(DSFont.body)
                 .foregroundStyle(DSColor.textPrimary)
         }
@@ -126,7 +126,7 @@ struct AppearanceInterfaceEffectsView: View {
             Button {
                 settings.interfaceGlowColor = nil
             } label: {
-                Label(localized("跟隨主題色"), systemImage: "arrow.counterclockwise")
+                Label(localized("跟随主题色"), systemImage: "arrow.counterclockwise")
             }
         }
     }
@@ -144,7 +144,7 @@ struct AppearanceInterfaceEffectsView: View {
     private var reviewSheetRow: some View {
         VStack(alignment: .leading, spacing: DSSpacing.sm) {
             HStack {
-                Text(localized("段評面板不透明度"))
+                Text(localized("段评面板不透明度"))
                     .font(DSFont.body)
                     .foregroundStyle(DSColor.textPrimary)
                 Spacer(minLength: DSSpacing.md)
@@ -157,7 +157,7 @@ struct AppearanceInterfaceEffectsView: View {
                 in: GlobalSettings.reviewSheetOpacityRange,
                 step: 0.05
             )
-            .accessibilityLabel(localized("段評面板不透明度"))
+            .accessibilityLabel(localized("段评面板不透明度"))
             .accessibilityValue(Self.percentText(settings.reviewSheetOpacity))
         }
     }
@@ -187,8 +187,8 @@ struct AppearanceInterfaceEffectsView: View {
     /// user with a switch that visibly does nothing.
     private var frostedGlassFooterKey: String {
         reduceTransparency
-            ? "系統已開啟「降低透明度」，浮動元素目前一律使用不透明底色。"
-            : "關閉後，浮動元素改用不透明底色。透明度越低，背後的內容越不透出。"
+            ? "系统已开启「降低透明度」，浮动元素目前一律使用不透明底色。"
+            : "关闭后，浮动元素改用不透明底色。透明度越低，背后的内容越不透出。"
     }
 
     private var glowValueText: String {
@@ -206,7 +206,7 @@ struct AppearanceInterfaceEffectsView: View {
     // MARK: - Preview card
 
     /// Floating samples over stand-in body text, so 毛玻璃 has something to blur and
-    /// 光暈 something to bleed onto. Decorative as a whole — VoiceOver gets one
+    /// 光晕 something to bleed onto. Decorative as a whole — VoiceOver gets one
     /// element naming what it is, not each sample icon.
     private var previewCard: some View {
         ZStack {
@@ -219,7 +219,7 @@ struct AppearanceInterfaceEffectsView: View {
                     previewCircle("list.bullet")
                 }
 
-                Text(localized("浮動工具列"))
+                Text(localized("浮动工具列"))
                     .font(DSFont.subheadline)
                     .foregroundStyle(DSColor.textPrimary)
                     .padding(.horizontal, DSSpacing.xl)
@@ -233,7 +233,7 @@ struct AppearanceInterfaceEffectsView: View {
         .padding(.horizontal, DSSpacing.lg)
         .padding(.vertical, DSSpacing.sm)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(localized("效果預覽"))
+        .accessibilityLabel(localized("效果预览"))
     }
 
     private func previewCircle(_ symbol: String) -> some View {

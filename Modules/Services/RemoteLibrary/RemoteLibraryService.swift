@@ -112,7 +112,7 @@ final class RemoteLibraryService: RemoteLibraryServing {
     }
 
     /// The copy a reader opens for `item` in `format`, recorded but not yet prepared: the
-    /// reader prepares it (`BookReaderView`, 載入中…), so a detail page opens the reader at
+    /// reader prepares it (`BookReaderView`, 载入中…), so a detail page opens the reader at
     /// once instead of waiting on the download itself.
     func readingCopy(item: RemoteLibraryItem, format: RemoteLibraryFormat, store: BookStore) throws -> ReadingBook {
         try record(item: item, format: format, store: store)

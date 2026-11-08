@@ -9,16 +9,16 @@ enum BookshelfAccessibility {
         if let latest = book.latestChapterDisplayTitle {
             parts.append(localized("最新") + localized("，") + latest)
         }
-        if book.hasNewChapterUpdate { parts.append(localized("有新章節")) }
+        if book.hasNewChapterUpdate { parts.append(localized("有新章节")) }
         parts.append(readingStatus(for: book))
-        if book.offlineDownloadState == .downloading { parts.append(localized("下載中")) }
+        if book.offlineDownloadState == .downloading { parts.append(localized("下载中")) }
         return parts.joined(separator: "，")
     }
 
-    /// 新增, 已讀完, or how far the book is read: the shelf's words, also on Explore's home cards.
+    /// 新增, 已读完, or how far the book is read: the shelf's words, also on Explore's home cards.
     static func readingStatus(for book: ReadingBook) -> String {
         if book.shouldShowNewOnBookshelf { return localized("新增") }
-        if book.currentPosition >= 0.99 { return localized("已讀完") }
-        return String(format: localized("已讀 %d%%"), Int(book.currentPosition * 100))
+        if book.currentPosition >= 0.99 { return localized("已读完") }
+        return String(format: localized("已读 %d%%"), Int(book.currentPosition * 100))
     }
 }

@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// One book a saved library (unified search 4b-2), a module (Phase 6g) or Open Library (4b-3)
-/// found for 搜索, as the home draws one of its items, with the 作品詳情 route frozen when it
+/// found for 搜索, as the home draws one of its items, with the 作品详情 route frozen when it
 /// was found.
 struct LibrarySearchMatch: Identifiable {
     /// Made once, when the answer arrives, so the iOS 17 table can diff its rows.
@@ -23,14 +23,14 @@ struct LibrarySearchFailure: Identifiable, Equatable {
     let name: String
     let reason: String
 
-    /// 「Calibre：無法搜尋（原因）」.
+    /// 「Calibre：无法搜寻（原因）」.
     var line: String {
-        String(format: localized("%@：無法搜尋（%@）"), name, reason)
+        String(format: localized("%@：无法搜寻（%@）"), name, reason)
     }
 }
 
-/// A section of 搜索 asked on submit, each place answering on its own: 我的書庫 (the saved OPDS
-/// and Calibre libraries, unified search 4b-2, and the installed modules, Phase 6g) and 書目資料庫
+/// A section of 搜索 asked on submit, each place answering on its own: 我的书库 (the saved OPDS
+/// and Calibre libraries, unified search 4b-2, and the installed modules, Phase 6g) and 书目资料库
 /// (Open Library, 4b-3). Owned by the search page and read only by the views that draw it.
 @Observable
 @MainActor

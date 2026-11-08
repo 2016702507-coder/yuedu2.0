@@ -272,7 +272,7 @@ final class CoreTextChunkCollectionCell: UICollectionViewCell {
     private(set) var currentChunk: CoreTextChunk?
     private var annotationOverlays: [LayerKey: InteractionOverlayView] = [:]
     private let noteMarkerOverlay = NoteMarkerOverlayView()
-    /// 目前這個 chunk 上的筆記圓圈（座標同 `drawView`），供捲動控制器做命中判定。
+    /// 目前这个 chunk 上的笔记圆圈（座标同 `drawView`），供卷动控制器做命中判定。
     private(set) var noteMarkers: [CoreTextAnnotationRenderer.NoteMarker] = []
     /// Opens the reader toolbar from VoiceOver — the same sink the centre tap uses.
     /// Without it a VoiceOver user cannot reach the toolbar in scroll mode: the tap
@@ -302,7 +302,7 @@ final class CoreTextChunkCollectionCell: UICollectionViewCell {
         contentView.addSubview(reviewCardGlassHost)
         contentView.addSubview(playbackOverlay)
         contentView.addSubview(overlay)
-        // 標註 overlay 是 `insertSubview(belowSubview: overlay)`，所以圓圈加在最後就會在最上層。
+        // 标注 overlay 是 `insertSubview(belowSubview: overlay)`，所以圆圈加在最后就会在最上层。
         noteMarkerOverlay.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(noteMarkerOverlay)
         contentView.addLayoutGuide(chunkGuide)
@@ -441,12 +441,12 @@ final class CoreTextChunkCollectionCell: UICollectionViewCell {
         drawView.isAccessibilityElement = true
         drawView.accessibilityTraits = .staticText
         drawView.accessibilityLabel = Self.plainText(of: chunk)
-        drawView.accessibilityHint = localized("點兩下展開閱讀工具")
+        drawView.accessibilityHint = localized("点两下展开阅读工具")
         drawView.onAccessibilityActivate = { [weak self] in self?.onAccessibilityMenu?() }
         let live = (chunk.attachments + chunk.blockRenderables.compactMap(\.imageAttachment))
             .compactMap(InlineLiveContent.init)
         drawView.accessibilityCustomActions = [
-            UIAccessibilityCustomAction(name: localized("選單")) { [weak self] _ in
+            UIAccessibilityCustomAction(name: localized("选单")) { [weak self] _ in
                 guard let handler = self?.onAccessibilityMenu else { return false }
                 handler()
                 return true
@@ -669,7 +669,7 @@ final class CoreTextChunkCollectionCell: UICollectionViewCell {
         noteMarkerOverlay.markers = noteMarkers
     }
 
-    /// 命中判定：`localPoint` 是 `drawView` 座標。回傳被點到的標註 id。
+    /// 命中判定：`localPoint` 是 `drawView` 座标。回传被点到的标注 id。
     func noteMarkerAnnotationID(atLocalPoint localPoint: CGPoint) -> UUID? {
         noteMarkers.first {
             NoteMarkerGeometry.tapRect(for: $0.badgeRect).contains(localPoint)

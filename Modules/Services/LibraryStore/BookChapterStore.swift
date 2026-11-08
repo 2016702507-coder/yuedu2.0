@@ -11,7 +11,7 @@ import os
 /// the lists live here.
 ///
 /// Until 2026-10 every list sat inside `books_meta.json`, and every shelf save — each
-/// progress tick of 聽書 among them — encoded all of them on the main thread. A tester's
+/// progress tick of 听书 among them — encoded all of them on the main thread. A tester's
 /// 110 online books made the file 138 MB, and the save made as the app left the
 /// foreground outlasted the 10-second scene-update watchdog (0x8BADF00D; build 113
 /// MetricKit: `flushPendingMetadataSave` → `encodeBooksMetadata`).
@@ -118,7 +118,7 @@ final class BookChapterStore: Sendable {
         let cachedIDs = state.withLock { Array($0.entries.keys) }
         let orphans = Set(storedIDs + cachedIDs).subtracting(bookIDs)
         guard !orphans.isEmpty else { return }
-        AppLogger.cache("目錄：移除已不在書架與閱讀紀錄中的書的目錄", context: ["count": orphans.count])
+        AppLogger.cache("目录：移除已不在书架与阅读纪录中的书的目录", context: ["count": orphans.count])
         for bookID in orphans {
             removeChapters(for: bookID)
         }

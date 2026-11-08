@@ -3,21 +3,21 @@ import Foundation
 
 // One book per work on the shelf (feedback #16, maintainer 2026-10-18).
 //
-// A reader with 1559 來源配置 added the same novel from several sources and got one shelf book
+// A reader with 1559 来源配置 added the same novel from several sources and got one shelf book
 // per source. The decision: a work is on the shelf once. Adding it from another source switches
-// the shelf book to that source through 換源 (`OnlineBookSourceSwitch`), and the copies already
+// the shelf book to that source through 换源 (`OnlineBookSourceSwitch`), and the copies already
 // on the shelf are merged once at launch (`ShelfWorkMerger`).
 //
-// Every origin, since 2026-10-26 (maintainer: 「自己導入的書、來源配置、WebDAV、Calibre、模組⋯
-// 都是相同地位」): an imported file, a library's book, a module's, 青空文庫's and a 來源配置's are
+// Every origin, since 2026-10-26 (maintainer: 「自己导入的书、来源配置、WebDAV、Calibre、模组⋯
+// 都是相同地位」): an imported file, a library's book, a module's, 青空文库's and a 来源配置's are
 // versions of the work alike. One is on the shelf; the others are kept beside it
-// (`ReadingBook.versionOf`) for 換源 to switch to (`ShelfVersionSwitch`), each with its own file,
-// place and highlights. A work keeps one 來源配置 copy: two are merged into one, as before.
+// (`ReadingBook.versionOf`) for 换源 to switch to (`ShelfVersionSwitch`), each with its own file,
+// place and highlights. A work keeps one 来源配置 copy: two are merged into one, as before.
 
 /// The shelf's "same work" test: the work index's B-level rule (`WorkIndex`, design §7.2) —
 /// equal `WorkMatchKey` titles and compatible named authors — plus the same content kind. Unlike
-/// 換源's `SearchBook.isLikelySameBook`, a side without an author never matches: this test
-/// deletes books, and 「三體」 with no author is not proof of anything.
+/// 换源's `SearchBook.isLikelySameBook`, a side without an author never matches: this test
+/// deletes books, and 「三体」 with no author is not proof of anything.
 enum ShelfWork {
     struct Key: Equatable {
         var title: String
@@ -43,13 +43,13 @@ enum ShelfWork {
             && WorkMatchKey.authorKeysCompatible(lhs.authors, rhs.authors)
     }
 
-    /// A book read from a 來源配置: online, bound to a source, and nothing else.
+    /// A book read from a 来源配置: online, bound to a source, and nothing else.
     static func isSourceCopy(_ book: ReadingBook) -> Bool {
         book.isOnline && book.bookSourceId != nil && book.module == nil
             && book.remoteSource == nil && book.aozora == nil
     }
 
-    /// The reader split these two into different works (作品詳情 →「不是同一部作品」).
+    /// The reader split these two into different works (作品详情 →「不是同一部作品」).
     @MainActor
     static func keptApart(_ lhs: ReadingBook, _ rhs: ReadingBook, decisions: [WorkDecision]) -> Bool {
         let context = SourceRecordContext.live()
@@ -117,29 +117,29 @@ enum ShelfWork {
     }
 }
 
-/// Merges the copies of a work on the shelf (`mergeDuplicates`): two 來源配置 copies become one
+/// Merges the copies of a work on the shelf (`mergeDuplicates`): two 来源配置 copies become one
 /// (`absorb`), and every other copy is kept beside the shelf book as a version of it (`keep`).
-/// `absorb` is shared with 加入書架 of a copy just read (`ShelfWorkService.shelveReadCopy`).
+/// `absorb` is shared with 加入书架 of a copy just read (`ShelfWorkService.shelveReadCopy`).
 ///
 /// What moves, and how:
 /// - Bookmarks, highlights, underlines and their notes (`ReadingBook.bookmarks`, the only place
 ///   annotations live). They are anchored by chapter index + UTF-16 offset, and an offset into
-///   one source's text means nothing in another's. So, as 換源 does for the reading position,
+///   one source's text means nothing in another's. So, as 换源 does for the reading position,
 ///   the chapter is found again by `ChapterAlignment` and the offset is kept only when the
 ///   chapter keeps its index. A highlight or underline whose offset cannot be kept becomes a
 ///   bookmark at the start of its chapter, with its excerpt and note — never a range drawn over
 ///   the wrong text. Same id = already moved, so a merge cut short and run again is a no-op.
-/// - Group (書架分組), custom cover and custom intro, when the kept copy has none.
+/// - Group (书架分组), custom cover and custom intro, when the kept copy has none.
 /// - The reading place, only when the merged copy was read more recently (never at launch,
 ///   where the kept copy is the most recent by definition).
 /// - The book's reader settings — reading mode and the fixed-page reader's toggles — when
 ///   they are the later choice or the kept copy has none (`BookReaderSettingsStore.carrySettings`).
-///   An online manga has them like any other book: a copy set to 條漫 lost it to the shelf book
+///   An online manga has them like any other book: a copy set to 条漫 lost it to the shelf book
 ///   it joined (feedback #74).
 ///
 /// What does not move: downloaded chapters (they belong to the other source and go with it),
-/// its 換源 cache, AI summaries / translations / character memory / chats (built from that
-/// source's text), 多角色朗讀 casts, work-index decisions anchored to its copy key. Reading
+/// its 换源 cache, AI summaries / translations / character memory / chats (built from that
+/// source's text), 多角色朗读 casts, work-index decisions anchored to its copy key. Reading
 /// statistics are left as they are: sessions are summed by title, and the delete path never
 /// removes them.
 @MainActor
@@ -149,7 +149,7 @@ struct ShelfWorkMerger {
 
     struct Report: Equatable {
         var survivor: UUID
-        /// The 來源配置 copies merged into the work's one and deleted.
+        /// The 来源配置 copies merged into the work's one and deleted.
         var merged: [UUID]
         var movedBookmarks: Int
         /// The copies kept beside the shelf book as versions of it.
@@ -157,7 +157,7 @@ struct ShelfWorkMerger {
     }
 
     /// Merges every set of shelf copies of one work, keeping its most recently read copy on the
-    /// shelf (`ShelfWork.keptFirst`). The work's 來源配置 copies are merged into the most recently
+    /// shelf (`ShelfWork.keptFirst`). The work's 来源配置 copies are merged into the most recently
     /// read of them, the others deleted through `BookStore.delete(bookId:)` — the path whose
     /// removal the iCloud merge turns into a tombstone, so another device does not bring them
     /// back. Every other copy, and that source copy when it is not the one on the shelf, is kept
@@ -199,7 +199,7 @@ struct ShelfWorkMerger {
 
     /// Keeps shelf copy `versionID` beside shelf book `survivorID` as a version of it, off the
     /// shelf: its file, place, bookmarks and highlights stay its own, as a version's do
-    /// (`ShelfVersionSwitch`), and 換源 switches to it. What is the shelf's — 書架分組, a custom
+    /// (`ShelfVersionSwitch`), and 换源 switches to it. What is the shelf's — 书架分组, a custom
     /// cover and a custom intro — goes to the shelf book when it has none; the versions kept
     /// beside the copy follow it.
     func keep(_ versionID: UUID, beside survivorID: UUID) {
@@ -319,7 +319,7 @@ struct ShelfWorkMerger {
     }
 }
 
-/// 加入書架 for books read from a 來源配置, and 立即閱讀／不加入 of one not on the shelf — the one
+/// 加入书架 for books read from a 来源配置, and 立即阅读／不加入 of one not on the shelf — the one
 /// use case every entry point calls.
 @MainActor
 struct ShelfWorkService {
@@ -373,18 +373,18 @@ struct ShelfWorkService {
     }
 
     /// Adds `copy` to the shelf, unless its work is there: then the shelf book switches to
-    /// `copy`'s source through 換源 and keeps its place (mapped by chapter title). A shelf book
+    /// `copy`'s source through 换源 and keeps its place (mapped by chapter title). A shelf book
     /// read from elsewhere is kept beside the work's source copy, which takes the shelf.
     func add(_ copy: OnlineCopy) async throws -> Outcome {
         if let existing = store.onlineBook(sourceId: copy.sourceId, bookInfoURL: copy.bookInfoURL) {
             return .alreadyOnShelf(existing)
         }
         // This source's copy was read without being added and is still here: the app ended
-        // while its reader was open, or 「加入書架？」 was declined. It is the book
+        // while its reader was open, or 「加入书架？」 was declined. It is the book
         // being added, so it goes on the shelf the way a read copy does, with its reading mode,
         // place and bookmarks. A new record beside it left all of those behind (feedback #74).
         if let readCopy = store.onlineBook(sourceId: copy.sourceId, bookInfoURL: copy.bookInfoURL, onShelf: false) {
-            // The page's list is the newer one, as when 立即閱讀 reopens this copy.
+            // The page's list is the newer one, as when 立即阅读 reopens this copy.
             if !copy.chapters.isEmpty {
                 store.updateOnlineChapters(bookId: readCopy.id, chapters: copy.chapters, runtimeVariables: copy.runtimeVariables)
             }
@@ -429,9 +429,9 @@ struct ShelfWorkService {
         return .added(book)
     }
 
-    /// The copy 立即閱讀 reads when `copy` is not on the shelf: the record it was read as
-    /// before, left off the shelf — 「加入書架？」 declined, the app ended with its reader open,
-    /// or 換源 kept it beside the work's shelf book as a version, read as itself as 作品詳情
+    /// The copy 立即阅读 reads when `copy` is not on the shelf: the record it was read as
+    /// before, left off the shelf — 「加入书架？」 declined, the app ended with its reader open,
+    /// or 换源 kept it beside the work's shelf book as a version, read as itself as 作品详情
     /// reads a module's or a library's — with the page's newer list, so it opens with its
     /// place, bookmarks and reading mode; else a new record off the shelf, which neither shows
     /// on the shelf nor syncs.
@@ -448,21 +448,21 @@ struct ShelfWorkService {
         )
     }
 
-    /// 不加入 for a copy only read so far: it stays off the shelf, and the next 立即閱讀 reads it
-    /// again (`readingCopy`) with its place, bookmarks and reading mode, as 作品詳情, a module and
-    /// 青空文庫 keep theirs (maintainer, 2026-10-13). Deleting it took its reading mode along, and
-    /// a manga read that way reopened in 漫畫預設模式 every time (feedback #101). Its name goes to
-    /// 搜索's 最近閱讀, as a book removed after reading leaves it.
+    /// 不加入 for a copy only read so far: it stays off the shelf, and the next 立即阅读 reads it
+    /// again (`readingCopy`) with its place, bookmarks and reading mode, as 作品详情, a module and
+    /// 青空文库 keep theirs (maintainer, 2026-10-13). Deleting it took its reading mode along, and
+    /// a manga read that way reopened in 漫画预设模式 every time (feedback #101). Its name goes to
+    /// 搜索's 最近阅读, as a book removed after reading leaves it.
     func leaveReadCopyOffShelf(id: UUID) {
         guard let copy = store.readingBook(id: id), !copy.isInBookshelf else { return }
         store.recordOffShelfRead(copy)
     }
 
-    /// When 立即閱讀's reader closes with nothing for 「加入書架？」 to ask
+    /// When 立即阅读's reader closes with nothing for 「加入书架？」 to ask
     /// (`ReaderShelvePrompt.copy`): a copy made for that reader and never opened is deleted. A
     /// version kept beside a shelf book stays, opened or not: it is the work's, and `readingCopy`
-    /// reads it when its source's page is opened without its copy — from 探索, 同題材, or a book
-    /// 作品詳情 found. Deleting it took its place, bookmarks and reading mode, and, synced, took
+    /// reads it when its source's page is opened without its copy — from 探索, 同题材, or a book
+    /// 作品详情 found. Deleting it took its place, bookmarks and reading mode, and, synced, took
     /// it from every device.
     func discardUnopenedCopy(id: UUID) {
         guard let copy = store.readingBook(id: id), !copy.isInBookshelf, copy.versionOf == nil,
@@ -470,7 +470,7 @@ struct ShelfWorkService {
         store.delete(bookId: id)
     }
 
-    /// 加入書架 for a copy only read so far (立即閱讀 → the reader closed → 「加入書架？」).
+    /// 加入书架 for a copy only read so far (立即阅读 → the reader closed → 「加入书架？」).
     /// When its work is on the shelf from another source, that shelf book switches to this
     /// copy's source, takes over what was just read (the place, since this copy was read last,
     /// and its bookmarks), and the read copy is deleted. When the work's shelf book is read
@@ -486,7 +486,7 @@ struct ShelfWorkService {
         }
         guard ShelfWork.isSourceCopy(copy), ShelfWork.isSourceCopy(existing) else {
             try await versions.commit(from: existing.id, to: id, carriesPlace: false)
-            // A work keeps one 來源配置 copy: one kept beside the shelf book is merged into the
+            // A work keeps one 来源配置 copy: one kept beside the shelf book is merged into the
             // source copy now on the shelf.
             if ShelfWork.isSourceCopy(copy) {
                 for kept in store.keptVersions(of: id) where ShelfWork.isSourceCopy(kept) {
@@ -537,7 +537,7 @@ struct ShelfWorkService {
 
 /// Runs `ShelfWorkMerger` once per launch, on the app's own shelf.
 ///
-/// With iCloud 自動同步 on it waits for the launch sync to finish: the survivor is chosen by
+/// With iCloud 自动同步 on it waits for the launch sync to finish: the survivor is chosen by
 /// `lastOpenedDate`, and two devices agree on it only when they see the same dates. Merging
 /// before the sync, a device that read copy B since the last sync would keep B while another
 /// keeps A, and each would tombstone the other's survivor — the work would be gone from both.

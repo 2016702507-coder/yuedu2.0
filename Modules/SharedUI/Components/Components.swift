@@ -34,7 +34,7 @@ struct DSSettingsRow: View {
     let icon: String
     let title: String
     var detail: String? = nil
-    /// Needs Pro the user does not have: the chevron becomes a lock, as on 外觀's 啟動圖
+    /// Needs Pro the user does not have: the chevron becomes a lock, as on 外观's 启动图
     /// row, and `action` is expected to open the paywall.
     var isLocked = false
     let action: () -> Void
@@ -79,9 +79,9 @@ struct IconConsistentLabelStyle: LabelStyle {
         }
     }
 
-    /// A row's symbol wears the tint — 強調色 — in every theme, 默認 included, as the
+    /// A row's symbol wears the tint — 强调色 — in every theme, 默认 included, as the
     /// symbol leading a list row does on iOS (user's call, 2026-09-29). `.tint` resolves
-    /// from the environment when the symbol draws, so a theme switch or a 強調色 edit
+    /// from the environment when the symbol draws, so a theme switch or a 强调色 edit
     /// reaches rows SwiftUI does not rebuild. Deciding here from
     /// `AppearanceThemePreset.activeAppThemes`, a global SwiftUI cannot observe, left
     /// those rows in the colour they were first drawn in — black beside red ones.
@@ -180,7 +180,7 @@ private struct PageBackgroundToolbarModifier: ViewModifier {
            gs.resolvedPageBackgroundSlice(for: scope, colorScheme: colorScheme) != nil {
             return true
         }
-        // 默認 with its 背景 as shipped keeps the system's page, and the bar that goes with it.
+        // 默认 with its 背景 as shipped keeps the system's page, and the bar that goes with it.
         guard let theme = appThemes.theme(for: colorScheme) else { return false }
         return !theme.keepsSystemBackgrounds
     }
@@ -188,8 +188,8 @@ private struct PageBackgroundToolbarModifier: ViewModifier {
     /// Always the same modifier, only its visibility changes (`.automatic` is
     /// the default bar background, i.e. what "not applied" looked like). An
     /// `if/else` here re-identified the whole screen whenever the theme moved
-    /// between 默認 and a real theme: 外觀主題 uses this modifier, so switching
-    /// themes from it reset its own `@State` and popped it back to 設定.
+    /// between 默认 and a real theme: 外观主题 uses this modifier, so switching
+    /// themes from it reset its own `@State` and popped it back to 设置.
     func body(content: Content) -> some View {
         content.toolbarBackground(hasBackground ? .hidden : .automatic, for: .navigationBar)
     }
@@ -236,7 +236,7 @@ struct DSCard<Content: View>: View {
 }
 
 /// The capsule every chip, filter and quick action in a bar is drawn as. Unselected it
-/// sits on the app's floating surface — glass with 外觀主題 › 界面效果 › 毛玻璃 on, its
+/// sits on the app's floating surface — glass with 外观主题 › 界面效果 › 毛玻璃 on, its
 /// fill without — so it matches the controls floating over the page; selected it is the
 /// accent with `DSColor.textOnAccent` text. The label is subheadline at medium weight: a semantic text
 /// style, so it scales with Dynamic Type and keeps the system's tracking, with the
@@ -319,12 +319,12 @@ struct DSChip: View {
     }
 }
 
-#Preview("DSChip – 強調色上的文字") {
+#Preview("DSChip – 强调色上的文字") {
     // Accents set the way `ContentView` sets a theme's. F5F5F5 is the near-white dark
     // accent imported packs bring (feedback #77); 琥珀金 is past the 3:1 floor too.
     let accents: [(name: String, color: Color?)] = [
-        ("默認", nil),
-        ("海霧藍", Color(red: 0x34 / 255, green: 0x78 / 255, blue: 0xF6 / 255)),
+        ("默认", nil),
+        ("海雾蓝", Color(red: 0x34 / 255, green: 0x78 / 255, blue: 0xF6 / 255)),
         ("琥珀金", Color(red: 0xD6 / 255, green: 0x9A / 255, blue: 0x2D / 255)),
         ("F5F5F5", Color(red: 0xF5 / 255, green: 0xF5 / 255, blue: 0xF5 / 255)),
     ]

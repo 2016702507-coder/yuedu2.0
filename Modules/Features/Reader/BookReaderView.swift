@@ -1,14 +1,14 @@
 import SwiftUI
 
-// The single reader entry point. It reads one copy at a time: 換源 to another version of the
+// The single reader entry point. It reads one copy at a time: 换源 to another version of the
 // work (`ShelfVersionSwitch`) hands its place to that version's reader, in the same place in
 // the navigation.
 struct BookReaderView: View {
     let bookId: UUID
-    /// 作品詳情's 目錄 entry the reader opens at (`ReaderView`'s opening restore goes on to it).
+    /// 作品详情's 目录 entry the reader opens at (`ReaderView`'s opening restore goes on to it).
     var openingTOCTarget: ReaderTOCTarget?
     @Environment(\.readerNavigator) private var readerNavigator
-    /// The version 換源 switched to, and where its reader opens.
+    /// The version 换源 switched to, and where its reader opens.
     @State private var switched: SwitchedVersion?
 
     private struct SwitchedVersion {
@@ -28,7 +28,7 @@ struct BookReaderView: View {
     }
 }
 
-/// 換源 to another version of the work: the reader on screen gives way to the version's own.
+/// 换源 to another version of the work: the reader on screen gives way to the version's own.
 struct ReaderVersionSwitchAction {
     let perform: @MainActor (UUID, ReaderTOCTarget?) -> Void
 
@@ -65,7 +65,7 @@ private struct BookReaderContent: View {
     @State private var retryGeneration = 0
     @State private var holdsCache = false
     @State private var resourceFailureAlert = RemoteReaderFailureAlertState()
-    /// This open has moved the book to the front of 繼續閱讀 and 最近閱讀 (`onAppear`).
+    /// This open has moved the book to the front of 继续阅读 and 最近阅读 (`onAppear`).
     @State private var stampedOpen = false
 
     private var book: ReadingBook? { store.readingBook(id: bookId) }
@@ -100,14 +100,14 @@ private struct BookReaderContent: View {
             resourceFailureAlert.receive(failure, bookID: bookId, isReady: remoteReady)
         }
         .alert(
-            localized("遠端內容載入失敗"),
+            localized("远端内容载入失败"),
             isPresented: Binding(
                 get: { resourceFailureAlert.failure != nil },
                 set: { if !$0 { resourceFailureAlert.dismiss() } }
             ),
             presenting: resourceFailureAlert.failure
         ) { _ in
-            Button(localized("關閉")) { closeReader() }
+            Button(localized("关闭")) { closeReader() }
             Button(localized("取消"), role: .cancel) { resourceFailureAlert.dismiss() }
         } message: { failure in
             Text(failure.message)
@@ -149,10 +149,10 @@ private struct BookReaderContent: View {
                 CrashContext.setKey("current_book_kind", "\(book.resolvedPipelineKind)")
                 CrashContext.setKey("current_book_online", book.isOnline)
                 CrashContext.breadcrumb("open reader: \(book.title) (\(book.resolvedPipelineKind))")
-                // Every open is the book's newest, from 作品詳情, 探索, 搜索 or a modal alike, and
+                // Every open is the book's newest, from 作品详情, 探索, 搜索 or a modal alike, and
                 // once: coming back from a page pushed above the reader is not another open.
                 // The shelf's card transition stamps its open itself once the card has landed
-                // (`HomeView.openBook`), so a 最近閱讀 shelf does not move the source cover mid-open.
+                // (`HomeView.openBook`), so a 最近阅读 shelf does not move the source cover mid-open.
                 if !stampedOpen, readerNavigator == nil, !playsUnderNowPlayingBar {
                     stampedOpen = true
                     store.updateLastOpened(bookId: bookId)
@@ -183,7 +183,7 @@ private struct BookReaderContent: View {
         }
     }
 
-    /// Pushed onto a tab's navigation — by 書架's card transition or onto a detail page's
+    /// Pushed onto a tab's navigation — by 书架's card transition or onto a detail page's
     /// stack — the reader hides the root tab bar from every tab (`RootTabBarVisibility`).
     /// A modal reader covers the tab bar instead, and so does everything pushed inside it:
     /// asking from there would only hide the bar behind the cover, for it to jump back in
@@ -217,11 +217,11 @@ private struct BookReaderContent: View {
     }
 }
 
-/// A book being readied before its reader can open — a library's copy downloading, a 青空文庫
+/// A book being readied before its reader can open — a library's copy downloading, a 青空文库
 /// work imported (`AozoraReaderEntry`) or brought up to this build's converter: the reader's
-/// own 載入中…, full screen on the surface the reader opens on. Until 2026-10-27 this was a
-/// page of its own, 正在開啟書籍 and 取消 on the app's background, and a reader pushed in a tab
-/// showed it under the tab bar and the status bar (maintainer: 「統一都是加載中」).
+/// own 载入中…, full screen on the surface the reader opens on. Until 2026-10-27 this was a
+/// page of its own, 正在开启书籍 and 取消 on the app's background, and a reader pushed in a tab
+/// showed it under the tab bar and the status bar (maintainer: 「统一都是加载中」).
 struct ReaderPreparingView: View {
     let error: String?
     var onRetry: () -> Void
@@ -244,7 +244,7 @@ struct ReaderPreparingView: View {
 }
 
 /// `ReaderPreparingView` on a given surface. As on the reader's loading page, a tap raises the
-/// reading menu with the status bar; before there is a book to show, its menu is 退出閱讀.
+/// reading menu with the status bar; before there is a book to show, its menu is 退出阅读.
 private struct ReaderPreparingSurface: View {
     let theme: ReaderTheme
     let imageURL: URL?
@@ -259,7 +259,7 @@ private struct ReaderPreparingSurface: View {
 
     var body: some View {
         // The reader's own stack, where it has one: shown full screen or by the shelf's card,
-        // with no stack above it to put 退出閱讀 in.
+        // with no stack above it to put 退出阅读 in.
         ReaderNavigationContainer {
             ZStack {
                 ReaderSurfaceBackground(theme: theme, imageURL: imageURL)
@@ -272,7 +272,7 @@ private struct ReaderPreparingSurface: View {
                         onClose: onClose
                     )
                 } else {
-                    ProgressView(localized("載入中…"))
+                    ProgressView(localized("载入中…"))
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .readerLoadingChromeTap {
                             withAnimation(DSAnimation.readerChrome) { showsChrome.toggle() }
@@ -283,12 +283,12 @@ private struct ReaderPreparingSurface: View {
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button(action: onClose) {
-                        Label(localized("退出閱讀"), systemImage: "chevron.left")
+                        Label(localized("退出阅读"), systemImage: "chevron.left")
                             .labelStyle(.iconOnly)
                             .foregroundStyle(backIcon)
                     }
                     .accessibilityIdentifier("reader_back_button")
-                    .accessibilityLabel(localized("退出閱讀"))
+                    .accessibilityLabel(localized("退出阅读"))
                 }
             }
             .toolbar(chromeIsShown ? .visible : .hidden, for: .navigationBar)
@@ -309,7 +309,7 @@ private struct ReaderPreparingSurface: View {
     }
 }
 
-/// 「無法開啟書籍」, the one page for a book that cannot be opened: before the format
+/// 「无法开启书籍」, the one page for a book that cannot be opened: before the format
 /// reader mounts (`ReaderPreparingView`), and inside `ReaderView` when a local EPUB
 /// fails to open. The reader draws it on the reading background, so it passes the
 /// reader's text colours; elsewhere the app's apply.
@@ -323,7 +323,7 @@ struct BookOpenFailureView: View {
     var body: some View {
         ContentUnavailableView {
             UnavailableLabel(
-                localized("無法開啟書籍"),
+                localized("无法开启书籍"),
                 systemImage: "exclamationmark.triangle",
                 titleColor: titleColor,
                 symbolColor: detailColor
@@ -332,8 +332,8 @@ struct BookOpenFailureView: View {
             Text(message).font(DSFont.unavailableDescription).foregroundStyle(detailColor ?? DSColor.textSecondary)
         } actions: {
             UnavailableActions {
-                Button(localized("重試"), action: onRetry)
-                Button(localized("關閉"), action: onClose)
+                Button(localized("重试"), action: onRetry)
+                Button(localized("关闭"), action: onClose)
             }
         }
     }
@@ -351,14 +351,14 @@ struct BookOpenFailureView: View {
 }
 
 #Preview("Preparing · error") {
-    ReaderPreparingView(error: localized("認證失敗，請確認帳號和密碼"), onRetry: {}, onClose: {})
+    ReaderPreparingView(error: localized("认证失败，请确认帐号和密码"), onRetry: {}, onClose: {})
 }
 
 #Preview("Local EPUB failure in the reader") {
     // 黑色 in light mode: the case the reader's own colours are for.
     let text = ReaderTheme.night.previewTextColor
     BookOpenFailureView(
-        message: localized("檔案可能已損毀，或不是支援的 EPUB 格式。"),
+        message: localized("档案可能已损毁，或不是支援的 EPUB 格式。"),
         titleColor: text,
         detailColor: text.opacity(0.62),
         onRetry: {},

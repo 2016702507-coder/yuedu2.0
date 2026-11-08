@@ -47,7 +47,7 @@ final class AIRequestTrace: @unchecked Sendable {
             event("missingChapter", ["order": "\(chapter.order)", "status": chapter.status.rawValue])
         }
     }
-    /// For requests that read no book text of their own — 查詞, 書架整理. `bookID` is
+    /// For requests that read no book text of their own — 查词, 书架整理. `bookID` is
     /// `AIRequestTrace.library` when the request is about the library rather than one book.
     init(feature: String, bookID: UUID, origin: AIDiagnostics.Origin = .observed, captureContent: Bool = false, requestID: UUID = UUID()) {
         self.requestID = requestID
@@ -166,7 +166,7 @@ struct AITracedProvider: LLMProviding {
     }
 
     /// Runs on its caller's actor up to `base.generate`, so requests sent from one actor reach
-    /// an actor-isolated base in the order they were sent (整章翻譯's batches, the one on
+    /// an actor-isolated base in the order they were sent (整章翻译's batches, the one on
     /// screen first). Called through `any LLMProviding`, it still starts on the global pool.
     nonisolated(nonsending) func generate(_ request: LLMGenerationRequest, model: String?) async throws -> LLMRawResponse {
         let trace = AIDiagnostics.current

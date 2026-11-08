@@ -46,9 +46,9 @@ final class ModuleRecommendationResolver: AIRecommendationResolving {
     }
 }
 
-/// AI 推薦's one use case, 產生推薦 (and 重新產生): read the shelf, ask the reader's AI service,
+/// AI 推荐's one use case, 产生推荐 (and 重新产生): read the shelf, ask the reader's AI service,
 /// keep the works, then look each up in Open Library's module for a cover and description, and
-/// fill the covers still missing from 資料來源's places (`fillMissingCovers`).
+/// fill the covers still missing from 资料来源's places (`fillMissingCovers`).
 ///
 /// The works are saved as soon as the answer is read, so the home shows them while the
 /// lookups (one a second) go on. A failed run keeps the previous list.
@@ -77,8 +77,8 @@ final class AIRecommendationService: ObservableObject {
 
         var errorDescription: String? {
             switch self {
-            case .nothingRead: localized("書架上還沒有讀過的書")
-            case .nothingNew: localized("AI 推薦的作品都已在書架上")
+            case .nothingRead: localized("书架上还没有读过的书")
+            case .nothingNew: localized("AI 推荐的作品都已在书架上")
             }
         }
     }
@@ -91,7 +91,7 @@ final class AIRecommendationService: ObservableObject {
     private let activeService: @MainActor () -> Result<AIProviderAssembly.ActiveService, AIProviderAssembly.Unavailable>
     private let resolver: any AIRecommendationResolving
     private let lookupEnabled: @MainActor () async -> Bool
-    /// 資料來源's checked places, made for each pass (a provider reads the sources once).
+    /// 资料来源's checked places, made for each pass (a provider reads the sources once).
     private let coverProviders: @MainActor () async -> [any MetadataFillProvider]
     private let genres: () async -> [String: Double]
     private let language: AIAnswerLanguage
@@ -118,7 +118,7 @@ final class AIRecommendationService: ObservableObject {
         self.resolver = resolver ?? ModuleRecommendationResolver()
         self.lookupEnabled = lookupEnabled
         self.coverProviders = coverProviders ?? {
-            // 資料來源 is the list under 自動補齊書籍資料: with the switch off, nothing is asked.
+            // 资料来源 is the list under 自动补齐书籍资料: with the switch off, nothing is asked.
             guard GlobalSettings.shared.autoFillBookMetadata else { return [] }
             await RuleModuleLibrary.shared.loadIfNeeded()
             return MetadataFillCoordinator.liveProviders()
@@ -129,7 +129,7 @@ final class AIRecommendationService: ObservableObject {
         self.now = now
     }
 
-    /// 資料來源 (6h) has Open Library's module checked, and it is installed and not turned off.
+    /// 资料来源 (6h) has Open Library's module checked, and it is installed and not turned off.
     static func openLibraryChecked() async -> Bool {
         let library = RuleModuleLibrary.shared
         await library.loadIfNeeded()
@@ -144,7 +144,7 @@ final class AIRecommendationService: ObservableObject {
     }
 
     /// The shelf books sent: those the reader has opened, most recently first, at most
-    /// `AIRecommendation.maximumBooks`. A book never opened is not 「最近讀的」.
+    /// `AIRecommendation.maximumBooks`. A book never opened is not 「最近读的」.
     static func recentlyRead(_ books: [ReadingBook]) -> [ReadingBook] {
         Array(books.compactMap { book in book.lastOpenedDate.map { (book, $0) } }
             .sorted { $0.1 > $1.1 }
@@ -152,7 +152,7 @@ final class AIRecommendationService: ObservableObject {
             .map(\.0))
     }
 
-    /// 產生推薦. Does nothing while a run is going on.
+    /// 产生推荐. Does nothing while a run is going on.
     func generate(shelf: BookStore) {
         guard !state.isRunning else { return }
         let active: AIProviderAssembly.ActiveService
@@ -252,8 +252,8 @@ final class AIRecommendationService: ObservableObject {
     // MARK: Covers
 
     /// Feedback #10: a work Open Library gave no cover showed the generated one on its card,
-    /// while 作品詳情 found it in the reader's book sources. Each work of the stored list
-    /// without a cover is asked of 資料來源's places, as a shelf copy without artwork is
+    /// while 作品详情 found it in the reader's book sources. Each work of the stored list
+    /// without a cover is asked of 资料来源's places, as a shelf copy without artwork is
     /// (`MetadataFillRunner.wanted`): by title and author only the reader's book sources give
     /// a cover (`BookSourceFillProvider`). The answer is kept with the work
     /// (`Entry.coverFill`), so a list saved before is filled once and never asked again.
@@ -280,7 +280,7 @@ final class AIRecommendationService: ObservableObject {
         if reportsProgress { state = .resolving(completed: 0, total: missing.count) }
         for (index, id) in missing.enumerated() {
             if Task.isCancelled { break }
-            // A list replaced since (重新產生) is no longer this pass's.
+            // A list replaced since (重新产生) is no longer this pass's.
             guard let current = store.list, current.generatedAt == list.generatedAt else { break }
             if let entry = current.entries.first(where: { $0.id == id }), needsCover(entry, of: list) {
                 switch await cover(of: entry.work, from: providers) {
@@ -318,7 +318,7 @@ final class AIRecommendationService: ObservableObject {
         case notAsked
     }
 
-    /// The places in 資料來源's order; the first cover found is the work's.
+    /// The places in 资料来源's order; the first cover found is the work's.
     private func cover(of work: AIRecommendation.Work, from providers: [any MetadataFillProvider]) async -> CoverAnswer {
         var asked = false
         var failed = false

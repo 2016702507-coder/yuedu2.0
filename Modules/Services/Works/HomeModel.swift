@@ -9,8 +9,8 @@ import Foundation
 /// - 「最新」 expands into one row per source that serves it; every other section is served by
 ///   the first provider that takes it. A section nothing serves (a removed connection, a
 ///   binding from a later build) has no row.
-/// - 我的書庫 is not drawn (unified library 5d-1, settled decision 12): the libraries are
-///   reached from 範圍. A saved page keeps its section, so an older build still shows it.
+/// - 我的书库 is not drawn (unified library 5d-1, settled decision 12): the libraries are
+///   reached from 范围. A saved page keeps its section, so an older build still shows it.
 /// - A row loads when its view asks: book-source rows one at a time per source, bundled and
 ///   on-device rows at once. Gutenberg's load as soon as the home shows (`homeAppeared`),
 ///   wherever they sit on the page (Phase 5 plan, decision 15).
@@ -36,7 +36,7 @@ final class HomeModel: ObservableObject {
         /// for a section of books, whose row is the section's.
         var card: HomeListCard? = nil
         var cardIndex: Int? = nil
-        /// The source's own name (`SourceProvider.displayName`): a card's source, over it in 大圖卡片.
+        /// The source's own name (`SourceProvider.displayName`): a card's source, over it in 大图卡片.
         var providerName = ""
 
         /// What the row loads: its card's list, or its section.
@@ -55,7 +55,7 @@ final class HomeModel: ObservableObject {
     private var providers: [String: any HomeSectionProviding] = [:]
     private var requested: Set<String> = []
     private var queueTails: [SourceInstanceKey: Task<Void, Never>] = [:]
-    /// Rows queued or loading, so a 重試 or pull to refresh never starts a second load.
+    /// Rows queued or loading, so a 重试 or pull to refresh never starts a second load.
     private var active: Set<String> = []
     /// Rows a sync changed while they loaded: they start again once that load ends, which
     /// shows nothing (`isCurrent`).
@@ -90,11 +90,11 @@ final class HomeModel: ObservableObject {
 
     /// Builds the rows for `page` as it now stands.
     /// - A row whose source and content are unchanged keeps what it loaded, and takes the
-    ///   section's new title and layout (呈現方式, 5d-3).
+    ///   section's new title and layout (呈现方式, 5d-3).
     /// - A row whose content changed under the same id starts again at once if it had been
     ///   asked for: its view is the same view, so nothing else would ask again. A module list's
     ///   content includes its version and the language it follows (`inputsKey`).
-    /// - `hiddenFromLatest`: the libraries 聚合設定's 顯示在最新 turns off (5d-3f). They get
+    /// - `hiddenFromLatest`: the libraries 聚合设置's 显示在最新 turns off (5d-3f). They get
     ///   no 最新 row, so they are not asked for one.
     /// - A section of lists has a row per card (`HomeSection.listCards`), each served as a section
     ///   of its list would be: a card of 最新 a row per library.
@@ -177,7 +177,7 @@ final class HomeModel: ObservableObject {
     }
 
     /// A card's row is told from its section's other cards by its place: two cards of one source
-    /// (趨勢's 今日 and 本月) are two rows.
+    /// (趋势's 今日 and 本月) are two rows.
     static func rowID(section: UUID, card: Int? = nil, source: SourceInstanceKey) -> String {
         let place = card.map { "card\($0)|" } ?? ""
         return "\(section.uuidString)|\(place)\(source.type.rawValue):\(source.id)"
@@ -196,7 +196,7 @@ final class HomeModel: ObservableObject {
         start(row)
     }
 
-    /// The reader tapped 重試 on a failed row.
+    /// The reader tapped 重试 on a failed row.
     func request(_ rowID: String) {
         guard let row = row(rowID) else { return }
         requested.insert(rowID)
@@ -213,7 +213,7 @@ final class HomeModel: ObservableObject {
     }
 
     /// The rows read from this device load again, when the home comes back into view: a book
-    /// read meanwhile moves in 繼續閱讀. Not on every shelf change, which a page turn makes.
+    /// read meanwhile moves in 继续阅读. Not on every shelf change, which a page turn makes.
     /// Each keeps what it showed, nothing too, until the new load replaces it (`fetch`).
     func reloadLocal() {
         for row in rows where row.policy == .local && requested.contains(row.id) && !active.contains(row.id) {

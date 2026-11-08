@@ -18,9 +18,9 @@ enum VideoChapterLinkError: LocalizedError, Equatable {
 
     var errorDescription: String? {
         switch self {
-        case .dashManifest: localized("這一集是 DASH 串流，iOS 無法播放")
-        case .notALink: localized("這一集沒有可播放的影片連結")
-        case .noVideoOnPage: localized("這一集的播放頁沒有找到影片")
+        case .dashManifest: localized("这一集是 DASH 串流，iOS 无法播放")
+        case .notALink: localized("这一集没有可播放的影片连结")
+        case .noVideoOnPage: localized("这一集的播放页没有找到影片")
         }
     }
 }

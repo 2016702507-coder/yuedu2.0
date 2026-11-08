@@ -11,13 +11,13 @@ struct BrowserBookmark: Identifiable, Codable, Equatable {
 
     var host: String { URL(string: url)?.host ?? "" }
 
-    /// Best-effort site icon, the same guess 最近瀏覽 makes.
+    /// Best-effort site icon, the same guess 最近浏览 makes.
     var faviconURL: URL? {
         host.isEmpty ? nil : URL(string: "https://\(host)/favicon.ico")
     }
 }
 
-/// Pages the reader saved from the in-app browser, shown on the 網頁瀏覽 start page
+/// Pages the reader saved from the in-app browser, shown on the 网页浏览 start page
 /// so a site they read from is one tap away.
 @MainActor
 final class BrowserBookmarkStore: ObservableObject {

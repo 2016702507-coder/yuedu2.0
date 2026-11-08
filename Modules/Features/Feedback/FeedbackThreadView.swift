@@ -2,8 +2,8 @@ import AVKit
 import PhotosUI
 import SwiftUI
 
-/// 我的回饋 › one report: the conversation with the AI 助手 and the developer, a reply
-/// composer floating at the bottom (as `AIChatComposer` does), and 標記已解決 while the
+/// 我的回馈 › one report: the conversation with the AI 助手 and the developer, a reply
+/// composer floating at the bottom (as `AIChatComposer` does), and 标记已解决 while the
 /// report is open. Opening it marks the replies read.
 struct FeedbackThreadView: View {
     @State private var thread: FeedbackThread
@@ -37,7 +37,7 @@ struct FeedbackThreadView: View {
                         ProgressView().frame(maxWidth: .infinity)
                     } else if let loadError {
                         ContentUnavailableView {
-                            UnavailableLabel(localized("無法載入對話"), systemImage: "wifi.exclamationmark")
+                            UnavailableLabel(localized("无法载入对话"), systemImage: "wifi.exclamationmark")
                         } description: {
                             Text(loadError).font(DSFont.unavailableDescription).foregroundStyle(DSColor.textSecondary)
                         }
@@ -62,7 +62,7 @@ struct FeedbackThreadView: View {
             }
         }
         .safeAreaInset(edge: .bottom) { composer }
-        // As 我的回饋 under it: the composer has the bottom to itself.
+        // As 我的回馈 under it: the composer has the bottom to itself.
         .hidesRootTabBar()
         .softScrollEdges()
         .themedAppSurface(for: .settings)
@@ -91,7 +91,7 @@ struct FeedbackThreadView: View {
             FeedbackAttachmentViewer(attachment: attachment)
         }
         .alert(
-            localized("傳送失敗"),
+            localized("传送失败"),
             isPresented: Binding(get: { actionError != nil }, set: { if !$0 { actionError = nil } })
         ) {
             Button(localized("好"), role: .cancel) {}
@@ -109,9 +109,9 @@ struct FeedbackThreadView: View {
 
     private var resolvePrompt: some View {
         HStack(spacing: DSSpacing.xs) {
-            Text(localized("問題已經解決了嗎？"))
+            Text(localized("问题已经解决了吗？"))
                 .foregroundStyle(DSColor.textSecondary)
-            Button(localized("標記已解決")) { markResolved() }
+            Button(localized("标记已解决")) { markResolved() }
                 .font(DSFont.subheadline.weight(.semibold))
                 .foregroundStyle(DSColor.textPrimary)
                 .frame(minHeight: DSLayout.minimumTapTarget)
@@ -147,9 +147,9 @@ struct FeedbackThreadView: View {
                         .frame(minWidth: DSLayout.minimumTapTarget, minHeight: DSLayout.minimumTapTarget)
                 }
                 .disabled(draftAttachments.count + preparingCount >= FeedbackFirestoreSchema.attachmentLimit)
-                .accessibilityLabel(localized("新增圖片或影片"))
+                .accessibilityLabel(localized("新增图片或影片"))
 
-                TextField(localized("回覆此回饋…"), text: $draft, axis: .vertical)
+                TextField(localized("回复此回馈…"), text: $draft, axis: .vertical)
                     .font(DSFont.body)
                     .lineLimit(1...5)
                     .focused($composerFocused)
@@ -163,7 +163,7 @@ struct FeedbackThreadView: View {
                         if isSending {
                             ProgressView()
                         } else {
-                            Text(localized("傳送"))
+                            Text(localized("传送"))
                                 .font(DSFont.bodyBold)
                         }
                     }
@@ -328,7 +328,7 @@ struct FeedbackMessageBubble: View {
         switch message.author {
         case .user: localized("我")
         case .assistant: localized("AI 助手")
-        case .developer: localized("開發者")
+        case .developer: localized("开发者")
         }
     }
 
@@ -356,8 +356,8 @@ struct FeedbackMessageBubble: View {
                     FeedbackAttachmentThumbnail(attachment: attachment)
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel(attachment.kind == .video ? localized("影片") : localized("圖片"))
-                .accessibilityHint(localized("點兩下以檢視"))
+                .accessibilityLabel(attachment.kind == .video ? localized("影片") : localized("图片"))
+                .accessibilityHint(localized("点两下以检视"))
             }
         }
     }
@@ -419,12 +419,12 @@ struct FeedbackAttachmentViewer: View {
                     Image(uiImage: image)
                         .resizable()
                         .scaledToFit()
-                        .accessibilityLabel(localized("圖片"))
+                        .accessibilityLabel(localized("图片"))
                 } else if let player {
                     VideoPlayer(player: player)
                 } else if let error {
                     ContentUnavailableView {
-                        UnavailableLabel(localized("無法載入附件"), systemImage: "exclamationmark.triangle")
+                        UnavailableLabel(localized("无法载入附件"), systemImage: "exclamationmark.triangle")
                     } description: {
                         Text(error).font(DSFont.unavailableDescription).foregroundStyle(DSColor.textSecondary)
                     }
@@ -434,12 +434,12 @@ struct FeedbackAttachmentViewer: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(DSColor.background)
-            .navigationTitle(attachment.kind == .video ? localized("影片") : localized("圖片"))
+            .navigationTitle(attachment.kind == .video ? localized("影片") : localized("图片"))
             .toolbarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button { dismiss() } label: { Image(systemName: "xmark") }
-                        .accessibilityLabel(localized("關閉"))
+                        .accessibilityLabel(localized("关闭"))
                 }
             }
         }
@@ -469,7 +469,7 @@ extension FeedbackAttachment: Identifiable {
             id: "preview",
             number: 25743,
             kind: .bug,
-            title: "海報牆資源顯示有問題",
+            title: "海报墙资源显示有问题",
             status: .needsInfo,
             createdAt: Date(),
             updatedAt: Date(),

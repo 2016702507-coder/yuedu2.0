@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Pre-run page (screenshot 1): explains the five validation stages, offers the
-/// Legado check toggles and the bad/slow-source policy under "更多選項", and starts
+/// Legado check toggles and the bad/slow-source policy under "更多选项", and starts
 /// the run. Presented from the source list; the run itself continues in the background
 /// after dismissal.
 struct BookSourceCheckOptionsView: View {
@@ -32,12 +32,12 @@ struct BookSourceCheckOptionsView: View {
                         .foregroundColor(DSColor.accent)
 
                     VStack(spacing: DSSpacing.sm) {
-                        Text(localized("準備驗證"))
+                        Text(localized("准备验证"))
                             .font(DSFont.title2.weight(.bold))
                             .foregroundStyle(DSColor.textPrimary)
                         Text(
                             String(
-                                format: localized("將對 %d 個來源配置進行五階段驗證"), sourceCount)
+                                format: localized("将对 %d 个来源配置进行五阶段验证"), sourceCount)
                         )
                         .font(DSFont.subheadline)
                         .foregroundColor(DSColor.textSecondary)
@@ -53,7 +53,7 @@ struct BookSourceCheckOptionsView: View {
                     } label: {
                         HStack(spacing: DSSpacing.sm) {
                             Image(systemName: "play.fill")
-                            Text(localized("開始驗證"))
+                            Text(localized("开始验证"))
                         }
                         .font(DSFont.bodyBold)
                         .foregroundStyle(DSColor.textOnAccent)
@@ -65,7 +65,7 @@ struct BookSourceCheckOptionsView: View {
                     .buttonStyle(.plain)
                     .disabled(sourceCount == 0)
 
-                    Text(localized("驗證包含網絡請求，可能需要較長時間，請耐心等待"))
+                    Text(localized("验证包含网络请求，可能需要较长时间，请耐心等待"))
                         .font(DSFont.caption)
                         .foregroundColor(DSColor.textSecondary)
                         .multilineTextAlignment(.center)
@@ -75,7 +75,7 @@ struct BookSourceCheckOptionsView: View {
             }
             .softScrollEdges()
             .scrollIndicators(.hidden)
-            .navigationTitle(localized("來源配置驗證"))
+            .navigationTitle(localized("来源配置验证"))
             .toolbarTitleDisplayMode(.inline)
             .themedAppSurface(for: .settings)
             .toolbar {
@@ -85,7 +85,7 @@ struct BookSourceCheckOptionsView: View {
                     } label: {
                         Image(systemName: "xmark")
                     }
-                    .accessibilityLabel(localized("關閉"))
+                    .accessibilityLabel(localized("关闭"))
                 }
             }
         }
@@ -134,11 +134,11 @@ struct BookSourceCheckOptionsView: View {
                 Divider()
 
                 if policy.checkSearch {
-                    TextField(localized("測試關鍵字"), text: $policy.keyword)
+                    TextField(localized("测试关键字"), text: $policy.keyword)
                         .textFieldStyle(.roundedBorder)
                 }
 
-                Picker(localized("超時"), selection: $policy.timeoutSeconds) {
+                Picker(localized("超时"), selection: $policy.timeoutSeconds) {
                     ForEach(BookSourceCheckPolicy.timeoutOptionsSeconds, id: \.self) { seconds in
                         Text(String(format: localized("%d 秒"), seconds)).tag(seconds)
                     }
@@ -147,7 +147,7 @@ struct BookSourceCheckOptionsView: View {
 
                 Divider()
 
-                Picker(localized("失效來源配置處理"), selection: $policy.badAction) {
+                Picker(localized("失效来源配置处理"), selection: $policy.badAction) {
                     ForEach(BookSourceCheckPolicy.BadAction.allCases) { action in
                         Text(action.title).tag(action)
                     }
@@ -155,17 +155,17 @@ struct BookSourceCheckOptionsView: View {
                 .pickerStyle(.segmented)
 
                 if policy.badAction == .delete {
-                    Text(localized("刪除無法復原，請謹慎選擇"))
+                    Text(localized("删除无法复原，请谨慎选择"))
                         .font(DSFont.caption)
                         .foregroundColor(DSColor.destructive)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
 
-                Toggle(localized("停用過慢來源配置"), isOn: $policy.disableSlow)
+                Toggle(localized("停用过慢来源配置"), isOn: $policy.disableSlow)
                     .padding(.trailing, 2)
 
                 if policy.disableSlow {
-                    Picker(localized("過慢閾值"), selection: $policy.slowThresholdMs) {
+                    Picker(localized("过慢阈值"), selection: $policy.slowThresholdMs) {
                         ForEach(BookSourceCheckPolicy.slowOptionsMs, id: \.self) { ms in
                             Text(String(format: localized("%d 秒"), ms / 1000)).tag(ms)
                         }
@@ -175,7 +175,7 @@ struct BookSourceCheckOptionsView: View {
             }
             .padding(.top, DSSpacing.sm)
         } label: {
-            Text(localized("更多選項"))
+            Text(localized("更多选项"))
                 .font(DSFont.subheadline.weight(.semibold))
                 .foregroundColor(DSColor.textPrimary)
         }
@@ -184,16 +184,16 @@ struct BookSourceCheckOptionsView: View {
         .clipShape(RoundedRectangle(cornerRadius: DSRadius.md, style: .continuous))
     }
 
-    /// Legado `CheckSource` toggles: 檢查搜索 / 檢查發現 / 檢查詳情 / 檢查目錄 / 檢查正文.
+    /// Legado `CheckSource` toggles: 检查搜索 / 检查发现 / 检查详情 / 检查目录 / 检查正文.
     /// The checkInfo/checkCategory/checkContent coupling matches Legado exactly
     /// (checkInfo=false skips the whole detail/toc/content chain).
     private var checkToggles: some View {
         VStack(spacing: DSSpacing.sm) {
-            Toggle(localized("檢查搜索"), isOn: $policy.checkSearch)
-            Toggle(localized("檢查發現"), isOn: $policy.checkDiscovery)
-            Toggle(localized("檢查詳情"), isOn: $policy.checkInfo)
-            Toggle(localized("檢查目錄"), isOn: $policy.checkCategory)
-            Toggle(localized("檢查正文"), isOn: $policy.checkContent)
+            Toggle(localized("检查搜索"), isOn: $policy.checkSearch)
+            Toggle(localized("检查发现"), isOn: $policy.checkDiscovery)
+            Toggle(localized("检查详情"), isOn: $policy.checkInfo)
+            Toggle(localized("检查目录"), isOn: $policy.checkCategory)
+            Toggle(localized("检查正文"), isOn: $policy.checkContent)
         }
         .padding(.trailing, 2)
     }

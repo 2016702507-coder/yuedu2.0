@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// 「將「書名」加入書架？」 after a reader closes on a book that is not on the shelf, asked by the
+/// 「将「书名」加入书架？」 after a reader closes on a book that is not on the shelf, asked by the
 /// page the reader closes onto (maintainer, 2026-10-13). Every way out reaches that page — the
 /// close button and a swipe back alike — and a swipe back cannot be stopped to ask, so the
 /// reader itself never asks. Its own prompt had not shown since 2026-10-04 anyway: it asked only
@@ -12,7 +12,7 @@ enum ReaderShelvePrompt {
     /// imported file joins it), and a copy made ahead of reading was never opened.
     @MainActor
     static func copy(_ id: UUID, in store: BookStore) -> ReadingBook? {
-        // A version kept beside a shelf book is that work's already; 換源 puts it on the shelf.
+        // A version kept beside a shelf book is that work's already; 换源 puts it on the shelf.
         guard let book = store.readingBook(id: id), !book.isInBookshelf, book.versionOf == nil,
               book.lastOpenedDate != nil else { return nil }
         return book
@@ -25,10 +25,10 @@ private struct ReaderShelvePromptModifier: ViewModifier {
     let onDecline: (ReadingBook) -> Void
 
     func body(content: Content) -> some View {
-        content.alert(String(format: localized("將「%@」加入書架？"), book?.title ?? ""),
+        content.alert(String(format: localized("将「%@」加入书架？"), book?.title ?? ""),
                       isPresented: Binding(get: { book != nil }, set: { if !$0 { book = nil } }),
                       presenting: book) { book in
-            Button(localized("加入書架")) { onAdd(book) }
+            Button(localized("加入书架")) { onAdd(book) }
             Button(localized("不加入"), role: .cancel) { onDecline(book) }
         }
     }
@@ -42,7 +42,7 @@ extension View {
     }
 }
 
-#Preview("加入書架？") {
+#Preview("加入书架？") {
     @Previewable @State var book: ReadingBook? = ReadingBook(title: "ホノルル", author: "中谷宇吉郎", source: "local_epub",
                                                              contentFilename: "preview.epub")
     Button("Ask") { book = ReadingBook(title: "ホノルル", author: "中谷宇吉郎", source: "local_epub", contentFilename: "preview.epub") }

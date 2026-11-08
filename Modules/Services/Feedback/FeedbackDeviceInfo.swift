@@ -1,7 +1,7 @@
 import Foundation
 import UIKit
 
-/// The 設備資訊 a report carries, shown on the form before it is sent so the person sees
+/// The 设备资讯 a report carries, shown on the form before it is sent so the person sees
 /// exactly what goes with it.
 struct FeedbackDeviceInfo: Equatable, Sendable {
     struct Row: Identifiable, Equatable, Sendable {
@@ -34,15 +34,15 @@ struct FeedbackDeviceInfo: Equatable, Sendable {
         let build = info?["CFBundleVersion"] as? String ?? ""
 
         return FeedbackDeviceInfo(rows: [
-            Row(id: "deviceName", title: localized("裝置名稱"), value: device.name),
-            Row(id: "model", title: localized("設備型號"), value: modelIdentifier()),
-            Row(id: "systemName", title: localized("系統名稱"), value: device.systemName),
-            Row(id: "systemVersion", title: localized("系統版本"), value: device.systemVersion),
-            Row(id: "appVersion", title: localized("應用版本"), value: build.isEmpty ? version : "\(version) (\(build))"),
-            Row(id: "batteryState", title: localized("電池狀態"), value: batteryStateText(batteryState)),
-            Row(id: "batteryLevel", title: localized("電池電量"), value: batteryLevelText(batteryLevel)),
-            Row(id: "memory", title: localized("總記憶體"), value: byteText(Int64(ProcessInfo.processInfo.physicalMemory))),
-            Row(id: "freeDisk", title: localized("可用磁碟空間"), value: freeDiskText()),
+            Row(id: "deviceName", title: localized("装置名称"), value: device.name),
+            Row(id: "model", title: localized("设备型号"), value: modelIdentifier()),
+            Row(id: "systemName", title: localized("系统名称"), value: device.systemName),
+            Row(id: "systemVersion", title: localized("系统版本"), value: device.systemVersion),
+            Row(id: "appVersion", title: localized("应用版本"), value: build.isEmpty ? version : "\(version) (\(build))"),
+            Row(id: "batteryState", title: localized("电池状态"), value: batteryStateText(batteryState)),
+            Row(id: "batteryLevel", title: localized("电池电量"), value: batteryLevelText(batteryLevel)),
+            Row(id: "memory", title: localized("总记忆体"), value: byteText(Int64(ProcessInfo.processInfo.physicalMemory))),
+            Row(id: "freeDisk", title: localized("可用磁碟空间"), value: freeDiskText()),
         ])
     }
 
@@ -62,9 +62,9 @@ struct FeedbackDeviceInfo: Equatable, Sendable {
 
     private static func batteryStateText(_ state: UIDevice.BatteryState) -> String {
         switch state {
-        case .charging: localized("充電中")
-        case .full: localized("已充滿")
-        case .unplugged: localized("未充電")
+        case .charging: localized("充电中")
+        case .full: localized("已充满")
+        case .unplugged: localized("未充电")
         case .unknown: localized("未知")
         @unknown default: localized("未知")
         }

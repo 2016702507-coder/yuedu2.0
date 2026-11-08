@@ -29,13 +29,13 @@ struct BackupSyncView: View {
                         )
                     }
                 } header: {
-                    Text(localized("備份與同步方式"))
+                    Text(localized("备份与同步方式"))
                         .foregroundStyle(DSColor.textSecondary)
                 } 
                 .interfaceSectionSurface()
             }
             .softScrollEdges()
-            .navigationTitle(localized("備份與同步"))
+            .navigationTitle(localized("备份与同步"))
             .toolbarTitleDisplayMode(.inline)
             .themedAppSurface(for: .settings)
             .toolbar {
@@ -45,7 +45,7 @@ struct BackupSyncView: View {
                     } label: {
                         Image(systemName: "xmark")
                     }
-                    .accessibilityLabel(localized("關閉"))
+                    .accessibilityLabel(localized("关闭"))
                 }
             }
             .task {
@@ -56,11 +56,11 @@ struct BackupSyncView: View {
 
     private var webDAVDetail: String {
         if webDAVManager.serverUrl.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return localized("尚未設定伺服器")
+            return localized("尚未设置伺服器")
         }
         return webDAVManager.lastSyncDate == nil
-            ? localized("已設定，尚未同步")
-            : localized("已設定")
+            ? localized("已设置，尚未同步")
+            : localized("已设置")
     }
 
     private func syncRow(icon: String, title: String, detail: String) -> some View {

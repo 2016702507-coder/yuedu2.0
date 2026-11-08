@@ -2,7 +2,7 @@ import Foundation
 
 // Unified library Phase 3: a copy's empty fields fill themselves from the reader's book
 // sources and from Open Library, with no screen to confirm them (maintainer, 2026-10-14:
-// 「全自動的吧」). Plan: docs/superpowers/plans/2026-10-14-metadata-phase-3.md.
+// 「全自动的吧」). Plan: docs/superpowers/plans/2026-10-14-metadata-phase-3.md.
 //
 // - Only empty fields, never title or authors (design §8.1).
 // - Only the sidecar (design §8.2): `ReadingBook` and its sync hash do not change.
@@ -58,7 +58,7 @@ protocol MetadataFillProvider: AnyObject {
     /// provider has no record of the copy.
     func lookUp(_ query: MetadataFillQuery) async throws -> MetadataFillResult
     /// A level-B provider asked for a missing cover all the same. Only the reader's book
-    /// sources (maintainer, 2026-10-17: 「沒封面時補上」): their match is the book the reader
+    /// sources (maintainer, 2026-10-17: 「没封面时补上」): their match is the book the reader
     /// can read, and the copy has no artwork of its own to be wrong about.
     var fillsCoverByTitle: Bool { get }
 }
@@ -211,7 +211,7 @@ final class MetadataFillRunner {
     }
 
     /// What `provider` may be asked of `missing`: a level-B match gives no cover unless it is
-    /// one of the reader's book sources (`fillsCoverByTitle`). The rule AI 推薦's covers are
+    /// one of the reader's book sources (`fillsCoverByTitle`). The rule AI 推荐's covers are
     /// filled by too (`AIRecommendationService`).
     static func wanted(_ missing: Set<MetadataField>, of provider: any MetadataFillProvider) -> Set<MetadataField> {
         var wanted = missing

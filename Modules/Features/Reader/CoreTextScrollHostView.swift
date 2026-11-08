@@ -1,7 +1,7 @@
 import SwiftUI
 import UIKit
 
-/// Lets 自動閱讀 drive the scroll view, and the reader's bars read its pages,
+/// Lets 自动阅读 drive the scroll view, and the reader's bars read its pages,
 /// without the reader holding a UIKit controller. The host fills it in;
 /// `AutoReadController` calls through it once a frame.
 @MainActor
@@ -27,7 +27,7 @@ struct CoreTextScrollHostView: UIViewControllerRepresentable {
     let verticalInset: CGFloat
     let bottomMargin: CGFloat
     /// Vertical axis only: how much of the top and bottom is taken by the two
-    /// fixed bars, and the 上下邊距 inside what is left.
+    /// fixed bars, and the 上下边距 inside what is left.
     var barInsets: ReaderScrollBarInsets = .zero
     var autoScrollHandle: ReaderAutoScrollHandle?
     let backgroundColor: UIColor

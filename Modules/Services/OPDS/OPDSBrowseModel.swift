@@ -54,7 +54,7 @@ final class OPDSBrowseModel: ObservableObject {
             if !query.isEmpty {
                 // Gutenberg searches its own URL; a catalog searches what its root advertised.
                 guard let resolved = try await provider.searchURL(query: query, search: search) else {
-                    loadError = localized("此目錄不支援搜尋")
+                    loadError = localized("此目录不支援搜寻")
                     return
                 }
                 requestURL = resolved

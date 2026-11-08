@@ -2,8 +2,8 @@ import Foundation
 
 /// 封面搜索 — covers looked up on the open web rather than in the user's sources.
 ///
-/// This is Legado's 封面規則 (`BookCover.searchCover`) without the rule plumbing:
-/// its shipped default rule queries 推書君 and 一片書喽 from JavaScript, matches
+/// This is Legado's 封面规则 (`BookCover.searchCover`) without the rule plumbing:
+/// its shipped default rule queries 推书君 and 一片书喽 from JavaScript, matches
 /// the result's title and author against the book, and returns the artwork. The
 /// same two endpoints are queried here directly, because the rule's JS needs a
 /// `data:` search URL and a `com.jayway.jsonpath` binding that our engine has no
@@ -26,8 +26,8 @@ enum OnlineCoverSearchService {
 
         var displayName: String {
             switch self {
-            case .tuishujun: return localized("推書君")
-            case .ypshuo: return localized("一片書喽")
+            case .tuishujun: return localized("推书君")
+            case .ypshuo: return localized("一片书喽")
             }
         }
 

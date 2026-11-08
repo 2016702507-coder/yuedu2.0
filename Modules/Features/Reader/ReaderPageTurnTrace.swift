@@ -50,6 +50,8 @@ final class ReaderPageTurnTrace: NSObject {
         case .curl: style = "curl"
         case .slide: style = "slide"
         case .cover: style = "cover"
+        case .ripple: style = "ripple"
+        case .vertical: style = "vertical"
         case .none: style = "none"
         }
     }

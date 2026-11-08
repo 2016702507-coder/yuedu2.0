@@ -1,7 +1,7 @@
 import Combine
 import Foundation
 
-/// Where a genre under a book-source book's title leads (作品詳情 · Editorial Minimalism,
+/// Where a genre under a book-source book's title leads (作品详情 · Editorial Minimalism,
 /// 2026-10-12): a genre the source also lists as one of its own explore categories opens that
 /// category; any other genre searches the source for it, as legado does for a tapped label.
 enum SourceGenreDestination: Equatable {
@@ -36,8 +36,8 @@ enum SourceGenreMatching {
             .filter { seen.insert(normalized($0.title)).inserted }
     }
 
-    /// The category 同題材 reads (`RelatedCategoryChoiceStore`): the one picked for the book
-    /// from 其他分類 while the source still lists it; else the genre picked latest for the
+    /// The category 同题材 reads (`RelatedCategoryChoiceStore`): the one picked for the book
+    /// from 其他分类 while the source still lists it; else the genre picked latest for the
     /// source among those the book's genres name; else the first of those.
     static func relatedCategory(
         for tags: [String], among items: [DiscoverCardItem], preferred: [String], bookPick: String?
@@ -49,7 +49,7 @@ enum SourceGenreMatching {
         return matched.min { (ranks[normalized($0.title)] ?? .max) < (ranks[normalized($1.title)] ?? .max) }
     }
 
-    /// Case, character width and spacing set aside: 「ＡＢＣ 小說」 names the category 「abc小說」.
+    /// Case, character width and spacing set aside: 「ＡＢＣ 小说」 names the category 「abc小说」.
     static func normalized(_ text: String) -> String {
         text.folding(options: [.caseInsensitive, .widthInsensitive], locale: nil)
             .components(separatedBy: .whitespacesAndNewlines)
@@ -71,7 +71,7 @@ enum SourceGenreMatching {
     }
 }
 
-/// What 同題材's menu offers: the categories the book's genres name, in the genres' order,
+/// What 同题材's menu offers: the categories the book's genres name, in the genres' order,
 /// then the source's other categories, each once.
 struct RelatedCategoryChoices: Equatable {
     var matched: [String]
@@ -96,11 +96,11 @@ struct RelatedCategoryChoices: Equatable {
     var offersChoice: Bool { matched.count + others.count > 1 }
 }
 
-/// One detail page's genre links and its 同題材 section, both read from the book's source.
+/// One detail page's genre links and its 同题材 section, both read from the book's source.
 ///
 /// The source's categories are read through `BookSourceFetcher.discoverItems`, the path its
 /// own discover page reads them by, once per page and source; a genre tapped while they are
-/// still arriving waits for them. 同題材 is the first page of the first genre's category,
+/// still arriving waits for them. 同题材 is the first page of the first genre's category,
 /// through `SectionPageLoader`, the one loader of a category's pages. No cache of its own.
 @MainActor
 final class SourceGenreLinks: ObservableObject {
@@ -123,11 +123,11 @@ final class SourceGenreLinks: ObservableObject {
         }
     }
 
-    /// How many books 同題材 shows.
+    /// How many books 同题材 shows.
     static let relatedLimit = 12
 
     @Published private(set) var related: Related = .hidden
-    /// What the section's menu offers; nil while 同題材 is hidden.
+    /// What the section's menu offers; nil while 同题材 is hidden.
     @Published private(set) var choices: RelatedCategoryChoices?
 
     typealias LoadCategories = @Sendable (BookSource) async throws -> [ModernParserBridge.DiscoverItem]
@@ -173,8 +173,8 @@ final class SourceGenreLinks: ObservableObject {
             do {
                 raw = try await loadCategories(source)
             } catch {
-                // 同題材 has no failure state of its own: a source whose categories cannot be
-                // read offers none, and the reason is in the log. Its own 發現頁 shows the error.
+                // 同题材 has no failure state of its own: a source whose categories cannot be
+                // read offers none, and the reason is in the log. Its own 发现页 shows the error.
                 AppLogger.parse("⟐ genre categories failed", context: [
                     "source": source.bookSourceName,
                     "error": error.localizedDescription,
@@ -191,7 +191,7 @@ final class SourceGenreLinks: ObservableObject {
         return task
     }
 
-    /// Reads `source`'s categories and loads 同題材 for `book`. A page calls it from
+    /// Reads `source`'s categories and loads 同题材 for `book`. A page calls it from
     /// `.task(id: key)`, `key` naming the source, the genres and the book. A load already
     /// finished under `key` is kept, as the page returning from its reader finds it.
     func load(key: String, source: BookSource?, tags: [String], book: OnlineBook) async {
@@ -201,7 +201,7 @@ final class SourceGenreLinks: ObservableObject {
         await loadRelated(key: key, source: source, tags: tags, book: book, switching: false)
     }
 
-    /// Loads 同題材 again after it failed.
+    /// Loads 同题材 again after it failed.
     func retryRelated(key: String, source: BookSource?, tags: [String], book: OnlineBook) async {
         loadedKey = nil
         await loadRelated(key: key, source: source, tags: tags, book: book, switching: true)

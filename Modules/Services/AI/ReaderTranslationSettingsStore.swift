@@ -1,6 +1,6 @@
 import Foundation
 
-/// Each book's 整章翻譯 setting. Kept per book: a reader translating one English novel does
+/// Each book's 整章翻译 setting. Kept per book: a reader translating one English novel does
 /// not want every Chinese web novel on the shelf translated too.
 enum ReaderTranslationSettingsStore {
     private static func key(_ book: UUID) -> String { "yd_reader_translation_\(book.uuidString)" }

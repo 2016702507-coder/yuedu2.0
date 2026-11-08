@@ -1,7 +1,7 @@
 import SwiftUI
 
 extension ReaderView {
-    /// 作品詳情 for the book being read (unified library 5f-4b, decision 32): every book has
+    /// 作品详情 for the book being read (unified library 5f-4b, decision 32): every book has
     /// it, local ones included, and it shows only this copy.
     func openWorkDetail() {
         // Freeze the route at the navigation boundary: the page never re-resolves it from
@@ -48,8 +48,8 @@ extension ReaderView {
         .environmentObject(store)
         .environment(\.appDependencies, dependencies)
         .environment(\.readerNavigator, readerNavigator)
-        // Above 書架's reader the detail gets its own hosting controller, which starts a
-        // new environment; without this it could hide only 書架's tab bar.
+        // Above 书架's reader the detail gets its own hosting controller, which starts a
+        // new environment; without this it could hide only 书架's tab bar.
         .environment(\.rootTabBarVisibility, rootTabBarVisibility)
         .toolbarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(false)

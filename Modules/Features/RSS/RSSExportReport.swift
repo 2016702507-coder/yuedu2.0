@@ -27,8 +27,8 @@ enum RSSExportReport {
 
         AppLogger.error("RSS export failed", error: error, context: ["format": format.logName], level: .error)
         let template = switch format {
-        case .opml: localized("OPML 匯出失敗：%@")
-        case .legadoJSON: localized("Legado JSON 匯出失敗：%@")
+        case .opml: localized("OPML 汇出失败：%@")
+        case .legadoJSON: localized("Legado JSON 汇出失败：%@")
         }
         return String(format: template, error.localizedDescription)
     }

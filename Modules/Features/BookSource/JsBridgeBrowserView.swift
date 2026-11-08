@@ -9,14 +9,14 @@ enum ParagraphReviewBrowserPresentationPolicy {
     static let hidesToolbar = true
 }
 
-/// 段評面板的底。
+/// 段评面板的底。
 ///
-/// 刻意**不用 `Material`**：任何 material 都自帶高斯模糊，opacity 壓到多低，
-/// 底下正文都會被糊成一層「霧」——這正是 0.72 / 0.12 / 0.05 / 0 怎麼調都還有霧的原因，
-/// 霧不是濃度，是材質本身。
+/// 刻意**不用 `Material`**：任何 material 都自带高斯模糊，opacity 压到多低，
+/// 底下正文都会被糊成一层「雾」——这正是 0.72 / 0.12 / 0.05 / 0 怎么调都还有雾的原因，
+/// 雾不是浓度，是材质本身。
 ///
-/// 改成純色蒙版：只做均勻壓暗（深色黑 / 淺色白），不模糊。
-/// 0 就完全不畫，正文原樣透上來；1 是不透明的普通面板。
+/// 改成纯色蒙版：只做均匀压暗（深色黑 / 浅色白），不模糊。
+/// 0 就完全不画，正文原样透上来；1 是不透明的普通面板。
 enum ParagraphReviewVeil {
     static func color(for scheme: ColorScheme, opacity: Double) -> Color {
         let level = min(max(opacity, 0), 1)
@@ -64,18 +64,18 @@ struct SourceBrowserPresentationConfiguration: Equatable {
     }
 }
 
-/// 點面板外收起段評面板，加在**呈現方**（閱讀頁、書詳情、簡介、聽書）上。
+/// 点面板外收起段评面板，加在**呈现方**（阅读页、书详情、简介、听书）上。
 ///
-/// SwiftUI 沒有這個 API：`.presentationBackgroundInteraction` 一開，面板上方的正文就
-/// 變成普通可交互區域，點它只會翻頁，不會關面板（2.0.7 沒開這個修飾符，是系統的遮罩層
-/// 替它關的）。這一層透明點擊區在 sheet 之下、正文之上：面板內的點按由面板自己接收，
-/// 落在面板外的才到這裡，所以不依賴手勢仲裁，也不用算面板矩形。
+/// SwiftUI 没有这个 API：`.presentationBackgroundInteraction` 一开，面板上方的正文就
+/// 变成普通可交互区域，点它只会翻页，不会关面板（2.0.7 没开这个修饰符，是系统的遮罩层
+/// 替它关的）。这一层透明点击区在 sheet 之下、正文之上：面板内的点按由面板自己接收，
+/// 落在面板外的才到这里，所以不依赖手势仲裁，也不用算面板矩形。
 ///
-/// 掛在 window 或 sheet 容器上的手勢都收不到那次點按：閱讀頁的翻頁手勢掛得更深，UIKit
-/// 會把識別機會讓給它（維護者，2026-11-05）。
+/// 挂在 window 或 sheet 容器上的手势都收不到那次点按：阅读页的翻页手势挂得更深，UIKit
+/// 会把识别机会让给它（维护者，2026-11-05）。
 struct SheetOutsideTapDismissOverlay<Item: Identifiable>: ViewModifier {
     @Binding var item: Item?
-    /// 書源把 `isHideable` 設成 false，就是要求必須看完：此時不加這一層。
+    /// 书源把 `isHideable` 设成 false，就是要求必须看完：此时不加这一层。
     var isEnabled: Bool
 
     func body(content: Content) -> some View {
@@ -101,7 +101,7 @@ extension View {
 }
 
 extension ReaderHTMLUtilities.ReviewTarget {
-    /// 面板本身會不會關：書源 `isHideable`。
+    /// 面板本身会不会关：书源 `isHideable`。
     var isReviewSheetHideable: Bool {
         SourceBrowserPresentationConfiguration(
             json: sourceBrowserPage?.configurationJSON ?? ""
@@ -132,7 +132,7 @@ struct JsBridgeBrowserView: View {
     /// Legado's `sourceVerificationEnable` (a page `java.startBrowserAwait` waits for): once
     /// a Cloudflare challenge on the page clears, the page finishes as if ✓ were tapped.
     let finishesWhenChallengeClears: Bool
-    /// 段評面板要透出閱讀器背景：WebView 與頁面底色都清空，改成玻璃底。
+    /// 段评面板要透出阅读器背景：WebView 与页面底色都清空，改成玻璃底。
     let transparentBackground: Bool
 
     init(
@@ -166,7 +166,7 @@ struct JsBridgeBrowserView: View {
     @StateObject private var bridge = JsBridgeBrowserBridge()
     @State private var isSyncing = false
 
-    private var navTitle: String { title.isEmpty ? localized("瀏覽器") : title }
+    private var navTitle: String { title.isEmpty ? localized("浏览器") : title }
 
     var body: some View {
         if hidesToolbar {
@@ -197,24 +197,24 @@ struct JsBridgeBrowserView: View {
                             .disabled(isSyncing)
                         }
                         // The page's own address, after its redirects and the reader's taps:
-                        // what a reader debugging the source's rules pastes into 調試規則.
+                        // what a reader debugging the source's rules pastes into 调试规则.
                         ToolbarItem(placement: .navigationBarTrailing) {
                             Button {
                                 SourceWebPage.copy(bridge.currentURL?.absoluteString ?? urlString)
                             } label: {
-                                Label(localized("複製網址"), systemImage: "doc.on.doc")
+                                Label(localized("复制网址"), systemImage: "doc.on.doc")
                                     .labelStyle(.iconOnly)
                             }
-                            .accessibilityLabel(localized("複製網址"))
+                            .accessibilityLabel(localized("复制网址"))
                         }
                         ToolbarItem(placement: .navigationBarTrailing) {
                             Button {
                                 bridge.reload?()
                             } label: {
-                                Label(localized("網頁：重新整理"), systemImage: "arrow.clockwise")
+                                Label(localized("网页：重新整理"), systemImage: "arrow.clockwise")
                                     .labelStyle(.iconOnly)
                             }
-                            .accessibilityLabel(localized("網頁：重新整理"))
+                            .accessibilityLabel(localized("网页：重新整理"))
                             .disabled(isSyncing)
                         }
                         ToolbarItem(placement: .navigationBarTrailing) {
@@ -265,7 +265,7 @@ struct JsBridgeBrowserView: View {
                 .edgesIgnoringSafeArea(hidesToolbar ? .all : [])
 
             // Full-screen state until the page has drawn its first content. Not lifted at
-            // commit: until the page paints, WebKit shows its own white, which is all a 段評
+            // commit: until the page paints, WebKit shows its own white, which is all a 段评
             // sheet over a dark reader showed while the page's synchronous `java.ajax` ran
             // (#21, #54, #55).
             switch bridge.phase {
@@ -291,7 +291,7 @@ struct JsBridgeBrowserView: View {
 
     // MARK: - Overlays
 
-    /// 透明模式下載入／錯誤層不能蓋一塊不透明底色，否則面板在頁面繪出前仍是白的。
+    /// 透明模式下载入／错误层不能盖一块不透明底色，否则面板在页面绘出前仍是白的。
     private var overlayBackdrop: some View {
         Group {
             if transparentBackground {
@@ -309,7 +309,7 @@ struct JsBridgeBrowserView: View {
             VStack(spacing: DSSpacing.md) {
                 ProgressView()
                     .controlSize(.large)
-                Text(localized("載入中…"))
+                Text(localized("载入中…"))
                     .font(DSFont.subheadline)
                     .foregroundStyle(DSColor.textSecondary)
             }
@@ -324,7 +324,7 @@ struct JsBridgeBrowserView: View {
                 Image(systemName: "wifi.exclamationmark")
                     .font(DSFont.largeTitle)
                     .foregroundStyle(DSColor.textSecondary)
-                Text(localized("載入失敗"))
+                Text(localized("载入失败"))
                     .font(DSFont.headline)
                     .foregroundStyle(DSColor.textPrimary)
                 if let detail = bridge.errorText, !detail.isEmpty {
@@ -333,7 +333,7 @@ struct JsBridgeBrowserView: View {
                         .foregroundStyle(DSColor.textSecondary)
                         .multilineTextAlignment(.center)
                 }
-                Button(localized("重試")) { bridge.reload?() }
+                Button(localized("重试")) { bridge.reload?() }
                     .buttonStyle(.bordered)
                     .tint(DSColor.accent)
             }
@@ -350,7 +350,7 @@ struct LegadoReviewBrowserView: View {
     let target: ReaderHTMLUtilities.ReviewTarget
     let onDismiss: (_ body: String?) -> Void
     @State private var configurationJSON: String
-    /// 面板底色的濃淡由外觀 › 界面效果 的滑桿決定，拖動即時生效。
+    /// 面板底色的浓淡由外观 › 界面效果 的滑杆决定，拖动即时生效。
     private var settings: GlobalSettings { .shared }
     @Environment(\.colorScheme) private var colorScheme
 
@@ -395,8 +395,8 @@ struct LegadoReviewBrowserView: View {
                 )
             }
         }
-        // 面板底：純色蒙版，不用 material。material 的模糊會把下方正文糊成霧，
-        // 濃度再低也去不掉；純色只壓亮度，拖到 0 就徹底透明。
+        // 面板底：纯色蒙版，不用 material。material 的模糊会把下方正文糊成雾，
+        // 浓度再低也去不掉；纯色只压亮度，拖到 0 就彻底透明。
         .background {
             Rectangle()
                 .fill(
@@ -470,8 +470,8 @@ struct JsBridgeBrowserRepresentable: UIViewRepresentable {
 
     static let sourceJavaPromptName = SourceWebUIDelegate.sourceBridgePromptName
 
-    /// 段評面板透出閱讀器背景：頁面底色、以及鋪滿整個視口的「畫布層」一律清空。
-    /// 只清底色，不動字色與卡片內容——頁面自己的文字照樣讀得到。
+    /// 段评面板透出阅读器背景：页面底色、以及铺满整个视口的「画布层」一律清空。
+    /// 只清底色，不动字色与卡片内容——页面自己的文字照样读得到。
     static let transparentBackgroundScript = """
     (function () {
         var STYLE_ID = '__yuedu_transparent__';
@@ -481,20 +481,20 @@ struct JsBridgeBrowserRepresentable: UIViewRepresentable {
             style.id = STYLE_ID;
             style.textContent = [
                 'html,body{background:transparent !important;background-color:transparent !important;}',
-                // 段評頁的白底往往刷在內層容器上（卡片、列表、wrapper div），只清 html/body
-                // 看起來仍是一塊塊實心板。這裡把所有容器的底色與背景圖一併清掉；
-                // 圖片、影片、canvas 這類內容本身不動。
+                // 段评页的白底往往刷在内层容器上（卡片、列表、wrapper div），只清 html/body
+                // 看起来仍是一块块实心板。这里把所有容器的底色与背景图一并清掉；
+                // 图片、影片、canvas 这类内容本身不动。
                 'body *:not(img):not(video):not(canvas):not(svg){background-color:transparent !important;background-image:none !important;}',
-                // 卡片陰影與毛玻璃同樣會擋住底下的正文。
+                // 卡片阴影与毛玻璃同样会挡住底下的正文。
                 '*{box-shadow:none !important;backdrop-filter:none !important;-webkit-backdrop-filter:none !important;}',
-                // 不少段評頁用 ::before / ::after 鋪一層全屏底色，這層也要清。
+                // 不少段评页用 ::before / ::after 铺一层全屏底色，这层也要清。
                 '*::before,*::after{background:transparent !important;background-color:transparent !important;background-image:none !important;}'
             ].join('');
             (document.head || document.documentElement).appendChild(style);
         }
-        // 有些段評頁把白底刷在一個鋪滿視口的 div 上（body 自己反而是透明的），
-        // 只改 html/body 看起來仍舊「不透明」。這裡按幾何判定畫布層：
-        // 佔滿九成以上視口、又沒有背景圖的容器，把它的底色一起清掉。
+        // 有些段评页把白底刷在一个铺满视口的 div 上（body 自己反而是透明的），
+        // 只改 html/body 看起来仍旧「不透明」。这里按几何判定画布层：
+        // 占满九成以上视口、又没有背景图的容器，把它的底色一起清掉。
         function clearCanvasLayers() {
             var root = document.documentElement;
             if (!root || !document.body) return;
@@ -524,7 +524,7 @@ struct JsBridgeBrowserRepresentable: UIViewRepresentable {
             setTimeout(run, 120);
             setTimeout(run, 600);
         });
-        // 段評列表多半是 java.ajax 回來之後才插進 DOM，第一次渲染完再看一遍。
+        // 段评列表多半是 java.ajax 回来之后才插进 DOM，第一次渲染完再看一遍。
         try {
             var observer = new MutationObserver(function () { run(); });
             observer.observe(document.documentElement, { childList: true, subtree: true });
@@ -535,7 +535,7 @@ struct JsBridgeBrowserRepresentable: UIViewRepresentable {
 
     static func sourcePageBootstrap(injectedJavaScript: String) -> String {
         let unavailableMessage = javaScriptStringLiteral(
-            localized("段評執行環境不可用")
+            localized("段评执行环境不可用")
         )
         return """
         window.java = window.java || {};
@@ -605,7 +605,7 @@ struct JsBridgeBrowserRepresentable: UIViewRepresentable {
         NSError(
             domain: "SourcePageJavaBridge",
             code: 1,
-            userInfo: [NSLocalizedDescriptionKey: localized("段評執行環境不可用")]
+            userInfo: [NSLocalizedDescriptionKey: localized("段评执行环境不可用")]
         )
     }
 
@@ -725,7 +725,7 @@ struct JsBridgeBrowserRepresentable: UIViewRepresentable {
 
         let wv = WKWebView(frame: .zero, configuration: config)
         if transparentBackground {
-            // 段評面板蓋在閱讀器上：WebView 自己那层白底不清掉就会整片不透明。
+            // 段评面板盖在阅读器上：WebView 自己那层白底不清掉就会整片不透明。
             wv.isOpaque = false
             wv.backgroundColor = .clear
             wv.layer.isOpaque = false
@@ -871,8 +871,8 @@ struct JsBridgeBrowserRepresentable: UIViewRepresentable {
         ) {
             // Intercept book-source import deep links so WKWebView doesn't try to
             // navigate to them (an unhandled custom scheme fails as "unsupported URL").
-            // We handle our own `yuedu://` scheme (來源配置 and module links) plus Legado's
-            // `legado://import/...`, which most 書源 update pages emit (e.g. the 更新書源
+            // We handle our own `yuedu://` scheme (来源配置 and module links) plus Legado's
+            // `legado://import/...`, which most 书源 update pages emit (e.g. the 更新书源
             // download button).
             guard let url = navigationAction.request.url else {
                 decisionHandler(.allow)
@@ -941,7 +941,7 @@ struct JsBridgeBrowserRepresentable: UIViewRepresentable {
             guard message.name == Self.sourceRunMessageName,
                   let script = message.body as? String,
                   let sourceRunHandler else {
-                replyHandler(nil, localized("段評執行環境不可用"))
+                replyHandler(nil, localized("段评执行环境不可用"))
                 return
             }
             Task {
@@ -1085,7 +1085,7 @@ struct JsBridgeBrowserRepresentable: UIViewRepresentable {
                 return
             }
             guard let sourceURL = Self.onlineImportSourceURL(from: url) else {
-                presentImportResult(localized("無效的來源配置導入連結"), in: webView)
+                presentImportResult(localized("无效的来源配置导入连结"), in: webView)
                 return
             }
 
@@ -1096,7 +1096,7 @@ struct JsBridgeBrowserRepresentable: UIViewRepresentable {
                         return
                     }
                     guard let data else {
-                        self.presentImportResult(localized("無法讀取來源配置資料"), in: webView)
+                        self.presentImportResult(localized("无法读取来源配置资料"), in: webView)
                         return
                     }
                     do {
@@ -1116,7 +1116,7 @@ struct JsBridgeBrowserRepresentable: UIViewRepresentable {
 
         private func presentImportResult(_ message: String, in webView: WKWebView) {
             guard let top = Self.topPresenter(in: webView) else { return }
-            let alert = UIAlertController(title: localized("來源配置導入"), message: message, preferredStyle: .alert)
+            let alert = UIAlertController(title: localized("来源配置导入"), message: message, preferredStyle: .alert)
             alert.addAction(UIAlertAction(title: localized("完成"), style: .default))
             top.present(alert, animated: true)
         }
@@ -1138,7 +1138,7 @@ struct JsBridgeBrowserRepresentable: UIViewRepresentable {
                     onFinish: { [weak self] count in
                         box.controller?.dismiss(animated: true) {
                             self?.presentImportResult(
-                                String(format: localized("成功匯入 %d 個來源配置"), count),
+                                String(format: localized("成功汇入 %d 个来源配置"), count),
                                 in: webView
                             )
                         }
@@ -1217,7 +1217,7 @@ extension WKWebView {
 #Preview {
     JsBridgeBrowserView(
         urlString: "https://example.com",
-        title: "密鑰獲取",
+        title: "密钥获取",
         onDismiss: { _ in }
     )
 }

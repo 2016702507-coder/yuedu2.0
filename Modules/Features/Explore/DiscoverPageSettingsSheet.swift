@@ -1,10 +1,10 @@
 import SwiftUI
 
-/// 發現頁設定, behind the gear on a source's page: the categories the source returns as
+/// 发现页设置, behind the gear on a source's page: the categories the source returns as
 /// chips, a card for each group the source draws (☆ 排行榜 ☆), to pick the ones the page
-/// shows. With none picked the page shows every category; 全部顯示 clears the pick. Under
+/// shows. With none picked the page shows every category; 全部显示 clears the pick. Under
 /// 快捷操作 with it sit the source's own controls — its buttons, inputs and toggles, run
-/// as legado-E and MD3 run them — and its page links. 顯示設定 in its bar holds how every
+/// as legado-E and MD3 run them — and its page links. 显示设置 in its bar holds how every
 /// source's page lays out and loads.
 struct DiscoverPageSettingsSheet: View {
     @ObservedObject var discover: DiscoverViewModel
@@ -19,13 +19,13 @@ struct DiscoverPageSettingsSheet: View {
     @State private var editingInput: DiscoverQuickAction?
     @State private var inputDraft = ""
 
-    /// Whether 快捷操作 has anything besides 全部顯示.
+    /// Whether 快捷操作 has anything besides 全部显示.
     private var hasControls: Bool {
         !discover.quickActions.isEmpty || !pageLinks.isEmpty
     }
 
     private var groups: [DiscoverCategoryGroup] {
-        discover.categoryGroups(defaultTitle: localized("分類"))
+        discover.categoryGroups(defaultTitle: localized("分类"))
     }
 
     private var trimmedQuery: String {
@@ -70,13 +70,13 @@ struct DiscoverPageSettingsSheet: View {
                         ProgressView()
                     } else if discover.exploreError != nil {
                         ContentUnavailableView {
-                            UnavailableLabel(localized("載入失敗"), systemImage: "exclamationmark.triangle")
+                            UnavailableLabel(localized("载入失败"), systemImage: "exclamationmark.triangle")
                         } description: {
                             Text(discover.sourceNotice ?? "")
                         }
                     } else {
                         ContentUnavailableView {
-                            UnavailableLabel(localized("暫無發現內容"), systemImage: "sparkles")
+                            UnavailableLabel(localized("暂无发现内容"), systemImage: "sparkles")
                         }
                     }
                 } else if !trimmedQuery.isEmpty && visibleGroups.isEmpty {
@@ -86,19 +86,19 @@ struct DiscoverPageSettingsSheet: View {
             .softScrollEdges()
             .scrollDismissesKeyboard(.immediately)
             .background(PageBackgroundView(scope: .explore).ignoresSafeArea())
-            .navigationTitle(localized("發現頁設定"))
+            .navigationTitle(localized("发现页设置"))
             .toolbarTitleDisplayMode(.inline)
-            .modifier(SubtitleWhereAvailable(subtitle: localized("選擇想看的分區")))
+            .modifier(SubtitleWhereAvailable(subtitle: localized("选择想看的分区")))
             .pageBackgroundToolbar(for: .explore)
             .searchable(
                 text: $query,
                 placement: .navigationBarDrawer(displayMode: .always),
-                prompt: localized("搜尋發現項目")
+                prompt: localized("搜寻发现项目")
             )
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button { dismiss() } label: {
-                        Label(localized("關閉"), systemImage: "xmark")
+                        Label(localized("关闭"), systemImage: "xmark")
                     }
                 }
                 // How every source's page lays out and loads (decision 31).
@@ -106,7 +106,7 @@ struct DiscoverPageSettingsSheet: View {
                     NavigationLink {
                         DiscoverDisplaySettingsView()
                     } label: {
-                        Label(localized("顯示設定"), systemImage: "slider.horizontal.3")
+                        Label(localized("显示设置"), systemImage: "slider.horizontal.3")
                     }
                     .accessibilityIdentifier("discover.displaySettings")
                 }
@@ -119,9 +119,9 @@ struct DiscoverPageSettingsSheet: View {
                 ),
                 presenting: editingInput
             ) { input in
-                TextField(localized("輸入"), text: $inputDraft)
+                TextField(localized("输入"), text: $inputDraft)
                 Button(localized("取消"), role: .cancel) {}
-                Button(localized("確定")) {
+                Button(localized("确定")) {
                     let text = inputDraft
                     Task { await discover.submitText(text, for: input, presentToast: { Self.presentToast($0) }) }
                 }
@@ -134,12 +134,12 @@ struct DiscoverPageSettingsSheet: View {
         BookSourceFormLoginView.presentToastAlert(message: message)
     }
 
-    /// 全部顯示, picked while no category is, then the source's page links.
+    /// 全部显示, picked while no category is, then the source's page links.
     private var quickActions: some View {
         DiscoverChipCard(title: localized("快捷操作"), minimumChipWidth: chipMinWidth) {
             let showsAll = !discover.hasCustomCategorySelection
             Button { discover.showAllCategories() } label: {
-                DSCapsuleLabel(title: localized("全部顯示"), isSelected: showsAll, fillsWidth: true, onCard: true)
+                DSCapsuleLabel(title: localized("全部显示"), isSelected: showsAll, fillsWidth: true, onCard: true)
             }
             .buttonStyle(.plain)
             .accessibilityAddTraits(showsAll ? .isSelected : [])
@@ -160,7 +160,7 @@ struct DiscoverPageSettingsSheet: View {
                         )
                     }
                     .buttonStyle(.plain)
-                    .accessibilityHint(localized("在瀏覽器中開啟"))
+                    .accessibilityHint(localized("在浏览器中开启"))
                 }
             }
         }
@@ -197,7 +197,7 @@ struct DiscoverPageSettingsSheet: View {
                     title: name,
                     fillsWidth: true,
                     onCard: true,
-                    detail: value.isEmpty ? localized("輸入") : value
+                    detail: value.isEmpty ? localized("输入") : value
                 )
             case .toggle:
                 let current = action.toggleValue(in: discover.quickActionValues)
@@ -242,7 +242,7 @@ private struct SubtitleWhereAvailable: ViewModifier {
 
 #Preview {
     var source = BookSource()
-    source.bookSourceName = "範例來源配置"
+    source.bookSourceName = "范例来源配置"
     source.bookSourceUrl = "https://example.com"
     return DiscoverPageSettingsSheet(discover: DiscoverViewModel(source: source), onOpenPage: { _ in })
 }

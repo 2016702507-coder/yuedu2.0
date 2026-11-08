@@ -2,14 +2,14 @@ import ImageIO
 import os
 import UIKit
 
-/// An episode's still for 選集, and how long the episode runs when the stream said.
+/// An episode's still for 选集, and how long the episode runs when the stream said.
 struct VideoEpisodeStill: Sendable {
     let image: UIImage
     let duration: TimeInterval?
 }
 
 /// Episode stills taken from the episodes themselves (maintainer, 2026-11-01: 「做，只截看得到的
-/// 幾集」): sources give no stills, so a card on screen resolves its episode's link as the player
+/// 几集」): sources give no stills, so a card on screen resolves its episode's link as the player
 /// does (`VideoChapterLinks.stream`) and takes one frame of it (`VideoStillExtractor`).
 ///
 /// The bytes live where network covers do (`CoverImagePipeline`'s memory and `NetworkCovers`
@@ -81,7 +81,7 @@ final class VideoEpisodeStills {
     }
 
     /// 快取管理 cleared 影片: the stills' files are gone and so are the bitmaps behind them.
-    /// This launch's running times and refusals go too, so the next 選集 fills its cards
+    /// This launch's running times and refusals go too, so the next 选集 fills its cards
     /// by taking the stills again rather than trusting what was known about them.
     func forgetClearedStills() {
         pipeline.invalidateVideoStills()

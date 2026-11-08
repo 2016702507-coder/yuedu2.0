@@ -90,7 +90,7 @@ final class GatewayAPIClient: Sendable {
     }
 
     /// Sends a file as the request body, streamed from disk. Uses the transfer
-    /// session: a 50 MB 回饋中心 video from the mainland outlasts the JSON
+    /// session: a 50 MB 回馈中心 video from the mainland outlasts the JSON
     /// session's 60-second resource limit.
     func upload(_ request: GatewayRequest, fromFile fileURL: URL) async throws -> Data {
         let urlRequest = try urlRequest(for: request, idToken: nil)

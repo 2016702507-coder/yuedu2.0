@@ -1,7 +1,7 @@
 import SwiftUI
 
-// Unified library 5d-4: what is asked about a 首頁配置 (Phase 5 plan, decision 22). Since
-// 2026-10-22 首頁配置's own page asks it: 新增首頁配置 from one of its templates asks only the
+// Unified library 5d-4: what is asked about a 首页配置 (Phase 5 plan, decision 22). Since
+// 2026-10-22 首页配置's own page asks it: 新增首页配置 from one of its templates asks only the
 // name (where to start is the template), and deleting one of the reader's own asks first. A
 // name is changed on the configuration's own page.
 
@@ -19,7 +19,7 @@ enum HomeConfigurationPrompt: Identifiable {
 }
 
 extension View {
-    /// 新增首頁配置's name alert and the delete dialog for `prompt`.
+    /// 新增首页配置's name alert and the delete dialog for `prompt`.
     func homeConfigurationPrompts(_ prompt: Binding<HomeConfigurationPrompt?>) -> some View {
         modifier(HomeConfigurationPrompts(prompt: prompt))
     }
@@ -45,30 +45,30 @@ private struct HomeConfigurationPrompts: ViewModifier {
     func body(content: Content) -> some View {
         content
             .alert(
-                localized("新增首頁配置"),
+                localized("新增首页配置"),
                 isPresented: Binding(get: { creating != nil }, set: { if !$0 { prompt = nil } }),
                 presenting: creating
             ) { template in
-                TextField(localized("名稱"), text: $name)
+                TextField(localized("名称"), text: $name)
                 Button(localized("新增")) {
                     if let homeDefaults { store.createConfiguration(named: name, from: template, defaults: homeDefaults) }
                 }
-                // The home's stack, the only one that pushes 首頁配置's page, says whom the
+                // The home's stack, the only one that pushes 首页配置's page, says whom the
                 // defaults are for; a preview has none.
                 .disabled(homeDefaults == nil)
                 Button(localized("取消"), role: .cancel) {}
             }
             .background {
                 Color.clear.confirmationDialog(
-                    String(format: localized("刪除「%@」？"), deleting?.name ?? ""),
+                    String(format: localized("删除「%@」？"), deleting?.name ?? ""),
                     isPresented: Binding(get: { deleting != nil }, set: { if !$0 { prompt = nil } }),
                     titleVisibility: .visible,
                     presenting: deleting
                 ) { configuration in
-                    Button(localized("刪除"), role: .destructive) { store.deleteConfiguration(configuration.id) }
+                    Button(localized("删除"), role: .destructive) { store.deleteConfiguration(configuration.id) }
                     Button(localized("取消"), role: .cancel) {}
                 } message: { _ in
-                    Text(localized("首頁配置裡的欄目會一起刪除。"))
+                    Text(localized("首页配置里的栏目会一起删除。"))
                 }
             }
             .onChange(of: prompt?.id) { _, _ in
@@ -77,7 +77,7 @@ private struct HomeConfigurationPrompts: ViewModifier {
     }
 }
 
-#Preview("新增首頁配置") {
+#Preview("新增首页配置") {
     @Previewable @State var prompt: HomeConfigurationPrompt? = .create(.blank)
     Text(localized("探索"))
         .homeConfigurationPrompts($prompt)
@@ -86,7 +86,7 @@ private struct HomeConfigurationPrompts: ViewModifier {
 }
 
 extension EnvironmentValues {
-    /// Whom the home's defaults are for, set by the home for the pages it pushes: 預設配置
-    /// makes a 首頁配置 from them.
+    /// Whom the home's defaults are for, set by the home for the pages it pushes: 预设配置
+    /// makes a 首页配置 from them.
     @Entry var homeDefaults: HomePageDefaults.Context? = nil
 }

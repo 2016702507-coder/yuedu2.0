@@ -1,17 +1,17 @@
 import SwiftUI
 import UIKit
 
-/// 氣泡設定 › 段評氣泡: the count bubble drawn beside a paragraph that has 段評.
+/// 气泡设置 › 段评气泡: the count bubble drawn beside a paragraph that has 段评.
 struct ReaderParagraphBubbleSettingsView: View {
     @Bindable private var settings = GlobalSettings.shared
-    /// 匯入樣式, handed to the first-level document picker; nil hides it.
+    /// 汇入样式, handed to the first-level document picker; nil hides it.
     var onOpenImporter: (() -> Void)?
     @State private var editorDraft: CommentBubbleStyleDraft?
     @State private var stylePendingDeletion: ReaderCommentBubbleCustomStyle?
 
     var body: some View {
         Form {
-            Section(header: Text(localized("氣泡樣式")).foregroundStyle(DSColor.textSecondary)) {
+            Section(header: Text(localized("气泡样式")).foregroundStyle(DSColor.textSecondary)) {
                 ScrollView(.horizontal, showsIndicators: false) {
                     LazyHStack(spacing: DSSpacing.sm) {
                         ForEach([ReaderCommentBubblePresetMode.builtin, .square]) { mode in
@@ -27,24 +27,24 @@ struct ReaderParagraphBubbleSettingsView: View {
             .interfaceSectionSurface()
 
             Section {
-                Toggle(localized("優先使用選取的氣泡樣式"), isOn: prioritizeSelectedBubbleBinding)
+                Toggle(localized("优先使用选取的气泡样式"), isOn: prioritizeSelectedBubbleBinding)
                     .foregroundStyle(DSColor.textPrimary)
             } header: {
-                Text(localized("顯示偏好"))
+                Text(localized("显示偏好"))
                     .foregroundStyle(DSColor.textSecondary)
             } footer: {
-                Text(localized("開啟後優先使用選取的氣泡樣式；關閉後依來源配置提供的 SVG 顯示。"))
+                Text(localized("开启后优先使用选取的气泡样式；关闭后依来源配置提供的 SVG 显示。"))
                     .dsSectionFooter()
             }
             .interfaceSectionSurface()
 
             Section(header: Text(localized("管理")).foregroundStyle(DSColor.textSecondary)) {
                 Button(action: openNewStyleEditor) {
-                    SettingsRowLabel(localized("新建樣式"), systemImage: "plus.circle", role: .action)
+                    SettingsRowLabel(localized("新建样式"), systemImage: "plus.circle", role: .action)
                 }
                 if let onOpenImporter {
                     Button(action: onOpenImporter) {
-                        SettingsRowLabel(localized("匯入樣式"), systemImage: "square.and.arrow.down", role: .action)
+                        SettingsRowLabel(localized("汇入样式"), systemImage: "square.and.arrow.down", role: .action)
                     }
                 }
                 exportLink
@@ -52,20 +52,20 @@ struct ReaderParagraphBubbleSettingsView: View {
                     Button {
                         openStyleEditor(for: activeCustomStyle)
                     } label: {
-                        SettingsRowLabel(localized("編輯目前樣式"), systemImage: "pencil", role: .action)
+                        SettingsRowLabel(localized("编辑目前样式"), systemImage: "pencil", role: .action)
                     }
                     Button(role: .destructive) {
                         stylePendingDeletion = activeCustomStyle
                     } label: {
-                        SettingsRowLabel(localized("刪除目前樣式"), systemImage: "trash", role: .destructive)
+                        SettingsRowLabel(localized("删除目前样式"), systemImage: "trash", role: .destructive)
                     }
                 }
             }
             .interfaceSectionSurface()
 
-            Section(header: Text(localized("整體大小")).foregroundStyle(DSColor.textSecondary)) {
+            Section(header: Text(localized("整体大小")).foregroundStyle(DSColor.textSecondary)) {
                 SettingsSliderRow(
-                    title: localized("當前樣式大小"),
+                    title: localized("当前样式大小"),
                     systemImage: "arrow.up.left.and.arrow.down.right",
                     valueText: String(format: "%.2f×", settings.commentBubbleScale),
                     value: bubbleScaleBinding,
@@ -76,27 +76,27 @@ struct ReaderParagraphBubbleSettingsView: View {
             .interfaceSectionSurface()
         }
         .softScrollEdges()
-        .navigationTitle(localized("段評氣泡"))
+        .navigationTitle(localized("段评气泡"))
         .toolbarTitleDisplayMode(.inline)
         .themedAppSurface(for: .settings)
         .navigationDestination(item: $editorDraft) { draft in
             CommentBubbleStyleEditorView(draft: draft)
         }
         .alert(
-            localized("刪除目前樣式？"),
+            localized("删除目前样式？"),
             isPresented: Binding(
                 get: { stylePendingDeletion != nil },
                 set: { if !$0 { stylePendingDeletion = nil } }
             ),
             presenting: stylePendingDeletion
         ) { style in
-            Button(localized("刪除目前樣式"), role: .destructive) {
+            Button(localized("删除目前样式"), role: .destructive) {
                 settings.deleteCommentBubbleCustomStyle(id: style.id)
                 stylePendingDeletion = nil
             }
             Button(localized("取消"), role: .cancel) {}
         } message: { style in
-            Text(String(format: localized("「%@」會被永久刪除，此操作無法復原。"), style.name))
+            Text(String(format: localized("「%@」会被永久删除，此操作无法复原。"), style.name))
         }
     }
 
@@ -127,7 +127,7 @@ struct ReaderParagraphBubbleSettingsView: View {
             themeTextColor: .label
         )
         return BubbleStyleTile(
-            title: name.isEmpty ? localized("自訂 SVG") : name,
+            title: name.isEmpty ? localized("自订 SVG") : name,
             preview: Self.previewImage(svg: previewSVG),
             isSelected: settings.commentBubblePresetMode == .custom
                 && settings.commentBubbleSelectedCustomStyleID == style.id
@@ -175,7 +175,7 @@ struct ReaderParagraphBubbleSettingsView: View {
     /// anything else as the SVG.
     @ViewBuilder
     private var exportLink: some View {
-        let label = SettingsRowLabel(localized("匯出當前樣式"), systemImage: "square.and.arrow.up", role: .action)
+        let label = SettingsRowLabel(localized("汇出当前样式"), systemImage: "square.and.arrow.up", role: .action)
         if let style = activeCustomStyle, style.needsPackageToExport, let payload = Self.packageExport(style) {
             ShareLink(item: payload, preview: SharePreview(style.name)) { label }
         } else {
@@ -277,8 +277,8 @@ struct CommentBubbleStyleDraft: Identifiable, Hashable {
     func hash(into hasher: inout Hasher) { hasher.combine(id) }
 }
 
-/// 新建樣式 / 編輯樣式 for a 段評 bubble: its name, SVG and colour slots, with a preview of
-/// "99" in day and in night. Leaving without 儲存 keeps the style as it was.
+/// 新建样式 / 编辑样式 for a 段评 bubble: its name, SVG and colour slots, with a preview of
+/// "99" in day and in night. Leaving without 储存 keeps the style as it was.
 struct CommentBubbleStyleEditorView: View {
     @Environment(\.dismiss) private var dismiss
     @Bindable private var settings = GlobalSettings.shared
@@ -304,12 +304,12 @@ struct CommentBubbleStyleEditorView: View {
 
     var body: some View {
         Form {
-            Section(header: Text(localized("樣式名稱")).foregroundStyle(DSColor.textSecondary)) {
-                TextField(localized("樣式名稱"), text: $name)
+            Section(header: Text(localized("样式名称")).foregroundStyle(DSColor.textSecondary)) {
+                TextField(localized("样式名称"), text: $name)
             }
             .interfaceSectionSurface()
 
-            Section(header: Text(localized("預覽")).foregroundStyle(DSColor.textSecondary)) {
+            Section(header: Text(localized("预览")).foregroundStyle(DSColor.textSecondary)) {
                 HStack(spacing: DSSpacing.sm) {
                     bubblePreview(isNight: false)
                     bubblePreview(isNight: true)
@@ -325,46 +325,46 @@ struct CommentBubbleStyleEditorView: View {
                 Button {
                     if let pasted = UIPasteboard.general.string { svg = pasted }
                 } label: {
-                    SettingsRowLabel(localized("從剪貼簿貼上 SVG"), systemImage: "doc.on.clipboard", role: .action)
+                    SettingsRowLabel(localized("从剪贴簿贴上 SVG"), systemImage: "doc.on.clipboard", role: .action)
                 }
             }
             .interfaceSectionSurface()
 
             Section {
                 OptionalHexColorRows(
-                    toggleTitle: localized("自訂白天一般顏色"),
-                    pickerTitle: localized("白天一般顏色"),
+                    toggleTitle: localized("自订白天一般颜色"),
+                    pickerTitle: localized("白天一般颜色"),
                     hex: $dayNormalColor,
                     initialColor: ReaderTheme.white.uiTextColor
                 )
                 OptionalHexColorRows(
-                    toggleTitle: localized("自訂白天強調顏色"),
-                    pickerTitle: localized("白天強調顏色"),
+                    toggleTitle: localized("自订白天强调颜色"),
+                    pickerTitle: localized("白天强调颜色"),
                     hex: $dayEmphasisColor,
                     initialColor: ReaderTheme.white.uiTextColor
                 )
                 OptionalHexColorRows(
-                    toggleTitle: localized("自訂夜間一般顏色"),
-                    pickerTitle: localized("夜間一般顏色"),
+                    toggleTitle: localized("自订夜间一般颜色"),
+                    pickerTitle: localized("夜间一般颜色"),
                     hex: $nightNormalColor,
                     initialColor: ReaderTheme.night.uiTextColor
                 )
                 OptionalHexColorRows(
-                    toggleTitle: localized("自訂夜間強調顏色"),
-                    pickerTitle: localized("夜間強調顏色"),
+                    toggleTitle: localized("自订夜间强调颜色"),
+                    pickerTitle: localized("夜间强调颜色"),
                     hex: $nightEmphasisColor,
                     initialColor: ReaderTheme.night.uiTextColor
                 )
             } header: {
-                Text(localized("顏色")).foregroundStyle(DSColor.textSecondary)
+                Text(localized("颜色")).foregroundStyle(DSColor.textSecondary)
             } footer: {
-                Text(localized("強調顏色用於 99+ 與 100 以上的數字；未設定時 ${color} 為灰色，__TEXT__ 跟隨閱讀文字顏色。"))
+                Text(localized("强调颜色用于 99+ 与 100 以上的数字；未设置时 ${color} 为灰色，__TEXT__ 跟随阅读文字颜色。"))
                     .dsSectionFooter()
             }
             .interfaceSectionSurface()
         }
         .softScrollEdges()
-        .navigationTitle(localized(draft.style == nil ? "新建樣式" : "編輯樣式"))
+        .navigationTitle(localized(draft.style == nil ? "新建样式" : "编辑样式"))
         .toolbarTitleDisplayMode(.inline)
         .themedAppSurface(for: .settings)
         .toolbar {
@@ -373,28 +373,28 @@ struct CommentBubbleStyleEditorView: View {
                     Image(systemName: "checkmark")
                 }
                 .disabled(svg.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                .accessibilityLabel(localized("儲存"))
+                .accessibilityLabel(localized("储存"))
             }
         }
         .alert(
-            localized("無法儲存樣式"),
+            localized("无法储存样式"),
             isPresented: Binding(
                 get: { validationMessage != nil },
                 set: { if !$0 { validationMessage = nil } }
             )
         ) {
-            Button(localized("確定"), role: .cancel) {}
+            Button(localized("确定"), role: .cancel) {}
         } message: {
             Text(validationMessage ?? "")
         }
     }
 
-    /// The style as the editor holds it now — the same one 儲存 writes and the preview draws.
+    /// The style as the editor holds it now — the same one 储存 writes and the preview draws.
     private var editedStyle: ReaderCommentBubbleCustomStyle {
         let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
         return ReaderCommentBubbleCustomStyle(
             id: draft.style?.id ?? UUID(),
-            name: trimmedName.isEmpty ? localized("自訂 SVG") : trimmedName,
+            name: trimmedName.isEmpty ? localized("自订 SVG") : trimmedName,
             // `TextEditor` hands back `UITextView.text`, an `NSBigMutableString`, and the saved
             // style stays in `GlobalSettings` as that object until relaunch — read by every
             // thread that draws a bubble. Stored native instead (Crashlytics dde5251b).
@@ -435,8 +435,8 @@ struct CommentBubbleStyleEditorView: View {
         .background(Color(uiColor: theme.uiBackgroundColor))
         .clipShape(RoundedRectangle(cornerRadius: DSRadius.md, style: .continuous))
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(localized(isNight ? "夜間預覽" : "白天預覽"))
-        .accessibilityValue(image == nil ? localized("預覽無法繪製。") : "")
+        .accessibilityLabel(localized(isNight ? "夜间预览" : "白天预览"))
+        .accessibilityValue(image == nil ? localized("预览无法绘制。") : "")
     }
 
     private func save() {
@@ -451,7 +451,7 @@ struct CommentBubbleStyleEditorView: View {
     }
 }
 
-#Preview("段評氣泡") {
+#Preview("段评气泡") {
     NavigationStack {
         ReaderParagraphBubbleSettingsView(onOpenImporter: {})
     }

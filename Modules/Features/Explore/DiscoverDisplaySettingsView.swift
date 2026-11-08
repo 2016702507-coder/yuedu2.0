@@ -1,8 +1,8 @@
 import SwiftUI
 
-/// 顯示設定, pushed from 發現頁設定 (Phase 5 plan, decision 31): how a source's discover page
+/// 显示设置, pushed from 发现页设置 (Phase 5 plan, decision 31): how a source's discover page
 /// lays out its categories, which ones are charts, how many books each shows and how far ahead
-/// it loads. 5d-1b deleted them with 探索設定; they are back under the same keys, the same for
+/// it loads. 5d-1b deleted them with 探索设置; they are back under the same keys, the same for
 /// every source's page for now.
 struct DiscoverDisplaySettingsView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -36,7 +36,7 @@ struct DiscoverDisplaySettingsView: View {
         .animation(reduceMotion ? nil : DSAnimation.standard, value: sourcePageLayout)
         .softScrollEdges()
         .themedAppSurface(for: .explore)
-        .navigationTitle(localized("顯示設定"))
+        .navigationTitle(localized("显示设置"))
         .toolbarTitleDisplayMode(.inline)
     }
 
@@ -48,12 +48,12 @@ struct DiscoverDisplaySettingsView: View {
                         .tag(layout)
                 }
             } label: {
-                SettingsRowLabel(localized("佈局"), systemImage: "rectangle.split.2x1")
+                SettingsRowLabel(localized("布局"), systemImage: "rectangle.split.2x1")
             }
             .pickerStyle(.menu)
             .accessibilityIdentifier("discover.display.layout")
         } footer: {
-            Text(localized("列表是上方一排分類、下方所選分類的書；雜誌是每個分類一排書架或一欄榜單。這頁的設定套用到每個來源配置的發現頁。"))
+            Text(localized("列表是上方一排分类、下方所选分类的书；杂志是每个分类一排书架或一栏榜单。这页的设置套用到每个来源配置的发现页。"))
                 .dsSectionFooter()
         }
         .interfaceSectionSurface()
@@ -73,14 +73,14 @@ struct DiscoverDisplaySettingsView: View {
                 Image(systemName: "plus.circle")
                     .foregroundStyle(DSColor.textSecondary)
                     .accessibilityHidden(true)
-                TextField(localized("新增關鍵詞"), text: $newKeyword)
+                TextField(localized("新增关键词"), text: $newKeyword)
                     .submitLabel(.done)
                     .onSubmit(addKeyword)
             }
         } header: {
-            Text(localized("豎排榜單關鍵詞"))
+            Text(localized("竖排榜单关键词"))
         } footer: {
-            Text(localized("標題含任一關鍵詞的分類用豎排序號，其餘用橫滑封面。左滑可刪除。"))
+            Text(localized("标题含任一关键词的分类用竖排序号，其余用横滑封面。左滑可删除。"))
                 .dsSectionFooter()
         }
         .interfaceSectionSurface()
@@ -91,7 +91,7 @@ struct DiscoverDisplaySettingsView: View {
             Button {
                 rankedKeywordsRaw = ExploreSettings.encodeKeywords(ExploreSettings.defaultRankedKeywords)
             } label: {
-                SettingsRowLabel(localized("恢復預設關鍵詞"), systemImage: "arrow.counterclockwise", role: .action)
+                SettingsRowLabel(localized("恢复预设关键词"), systemImage: "arrow.counterclockwise", role: .action)
             }
             .disabled(rankedKeywords == ExploreSettings.defaultRankedKeywords)
         }
@@ -105,7 +105,7 @@ struct DiscoverDisplaySettingsView: View {
                     Text(count.formatted()).tag(count)
                 }
             } label: {
-                SettingsRowLabel(localized("豎排展示數"), systemImage: "list.number")
+                SettingsRowLabel(localized("竖排展示数"), systemImage: "list.number")
             }
             .pickerStyle(.menu)
             Picker(selection: $shelfBookCount) {
@@ -113,11 +113,11 @@ struct DiscoverDisplaySettingsView: View {
                     Text(count == 0 ? localized("全部") : count.formatted()).tag(count)
                 }
             } label: {
-                SettingsRowLabel(localized("橫滑展示數"), systemImage: "rectangle.split.3x1")
+                SettingsRowLabel(localized("横滑展示数"), systemImage: "rectangle.split.3x1")
             }
             .pickerStyle(.menu)
         } header: {
-            Text(localized("榜單展示數量"))
+            Text(localized("榜单展示数量"))
         }
         .interfaceSectionSurface()
     }
@@ -129,13 +129,13 @@ struct DiscoverDisplaySettingsView: View {
                     Text(count.formatted()).tag(count)
                 }
             } label: {
-                SettingsRowLabel(localized("預加載數量"), systemImage: "arrow.down.circle")
+                SettingsRowLabel(localized("预加载数量"), systemImage: "arrow.down.circle")
             }
             .pickerStyle(.menu)
         } header: {
-            Text(localized("預加載"))
+            Text(localized("预加载"))
         } footer: {
-            Text(localized("捲到某個分類時，順便排隊載入後面幾個分類。數字越大越少看到載入中，但排隊的來源配置請求也越多。"))
+            Text(localized("卷到某个分类时，顺便排队载入后面几个分类。数字越大越少看到载入中，但排队的来源配置请求也越多。"))
                 .dsSectionFooter()
         }
         .interfaceSectionSurface()

@@ -2,7 +2,7 @@ import Foundation
 
 @MainActor
 protocol AozoraLibraryDownloading: Sendable {
-    /// 加入書架: the work's copy, made if there is none, on the shelf.
+    /// 加入书架: the work's copy, made if there is none, on the shelf.
     func addToShelf(work: AozoraWork, store: BookStore) async throws -> ReadingBook
     /// The copy the work is read from: the one there is, on the shelf or not, or a new one
     /// off the shelf, which joins it only when the reader adds it.
@@ -13,10 +13,10 @@ enum AozoraLibraryDownloadError: LocalizedError, Equatable {
     case connection, http(Int), notAozoraText, invalidURL
     var errorDescription: String? {
         switch self {
-        case .connection: localized("無法連線到青空文庫網站")
-        case .http(let status): String(format: localized("連線失敗（HTTP %d）"), status)
-        case .notAozoraText: localized("這個檔案不是青空文庫的文字")
-        case .invalidURL: localized("青空文庫下載網址無效")
+        case .connection: localized("无法连线到青空文库网站")
+        case .http(let status): String(format: localized("连线失败（HTTP %d）"), status)
+        case .notAozoraText: localized("这个档案不是青空文库的文字")
+        case .invalidURL: localized("青空文库下载网址无效")
         }
     }
 }
@@ -25,7 +25,7 @@ enum AozoraLibraryDownloadError: LocalizedError, Equatable {
 /// It deliberately has no subscription dependency and never contacts a mirror.
 @MainActor
 final class AozoraLibraryDownloadService: AozoraLibraryDownloading {
-    /// The only host a 青空文庫 book is downloaded from.
+    /// The only host a 青空文库 book is downloaded from.
     nonisolated static let host = "www.aozora.gr.jp"
 
     private let temporaryDirectory: URL
@@ -47,7 +47,7 @@ final class AozoraLibraryDownloadService: AozoraLibraryDownloading {
     }
 
     /// Until 2026-10-13 reading a work put it on the shelf; the maintainer: a book read
-    /// without 加入書架 is not on the shelf, and leaving the reader asks.
+    /// without 加入书架 is not on the shelf, and leaving the reader asks.
     func readingCopy(work: AozoraWork, store: BookStore) async throws -> ReadingBook {
         let copies = store.copyLookup().copies(for: SourceRecord.derived(from: work).key)
         if let book = copies.first(where: \.isInBookshelf) ?? copies.first { return book }

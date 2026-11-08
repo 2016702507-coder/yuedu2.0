@@ -1,16 +1,16 @@
 import SwiftUI
 
-/// 資源庫's 模組, first on the page: the app's own modules, then the ones the reader imported, in
-/// one group (maintainer 2026-10-26: 「官方模組跟匯入的模組匯合在一起，然後就叫模組」). In order:
-/// the app's own (`AppOfficialModule`: AI 推薦, 古騰堡 and 青空文庫), the bundled module files, then
+/// 资源库's 模组, first on the page: the app's own modules, then the ones the reader imported, in
+/// one group (maintainer 2026-10-26: 「官方模组跟汇入的模组汇合在一起，然后就叫模组」). In order:
+/// the app's own (`AppOfficialModule`: AI 推荐, 古腾堡 and 青空文库), the bundled module files, then
 /// each imported module and each folder that could not be read, which can only be removed.
-/// 新增模組 is 設定's (模組's toolbar; maintainer 2026-10-27: 資源庫 lists, 設定 adds).
+/// 新增模组 is 设置's (模组's toolbar; maintainer 2026-10-27: 资源库 lists, 设置 adds).
 struct RuleModuleSection<Libraries: View>: View {
     @ObservedObject var library: RuleModuleLibrary
     @ObservedObject private var availability = PublicLibraryAvailability.shared
-    /// 古騰堡's and 青空文庫's cards, which show what their catalogs hold.
+    /// 古腾堡's and 青空文库's cards, which show what their catalogs hold.
     private let libraries: (SourceInstanceKey, ExploreEntryLabel.Layout) -> Libraries
-    /// 資源庫's paper look, passed down to the section and every card.
+    /// 资源库's paper look, passed down to the section and every card.
     private let paper: Bool
     @State private var pendingRemoval: RuleModuleStore.Failure?
     @State private var removalFailure: String?
@@ -23,14 +23,14 @@ struct RuleModuleSection<Libraries: View>: View {
     }
 
     var body: some View {
-        // Eager, not lazy: when the imported modules were a section of their own below 官方模組,
+        // Eager, not lazy: when the imported modules were a section of their own below 官方模组,
         // its lazy grid stayed in the accessibility tree as an empty, zero-sized element on the
-        // iOS 27 simulator, so VoiceOver never reached 新增模組 (2026-10-15). A reader has a
+        // iOS 27 simulator, so VoiceOver never reached 新增模组 (2026-10-15). A reader has a
         // handful of modules, so laziness buys nothing here.
-        // 在資源庫中展示 and 停用 (M6) leave a module's card out; 設定's 模組 still lists it.
+        // 在资源库中展示 and 停用 (M6) leave a module's card out; 设置's 模组 still lists it.
         let official = library.official.filter { library.isShownInLibrary($0.module.id) }
         let imported = library.imported.filter { library.isShownInLibrary($0.module.id) }
-        LibrarySection(localized("模組"), isLazy: false, symbol: "square.grid.2x2", paper: paper) { layout in
+        LibrarySection(localized("模组"), isLazy: false, symbol: "square.grid.2x2", paper: paper) { layout in
             ForEach(AppOfficialModule.available(librariesAvailable: availability.isAvailable)) { module in
                 switch module {
                 case .aiRecommendations:
@@ -58,13 +58,13 @@ struct RuleModuleSection<Libraries: View>: View {
                         pendingRemoval = failure
                     } label: {
                         ExploreEntryLabel(title: failure.folder, artwork: .neutral("exclamationmark.triangle"), layout: layout,
-                                          subtitle: localized("無法讀取的模組"), detail: localized("檔案損毀，或需要較新版本的閱讀。"),
+                                          subtitle: localized("无法读取的模组"), detail: localized("档案损毁，或需要较新版本的阅读。"),
                                           paper: paper)
                     }
                     .buttonStyle(ExploreTileButtonStyle())
                     .accessibilityLabel(failure.folder)
-                    .accessibilityValue(localized("無法讀取的模組"))
-                    .accessibilityHint(localized("移除模組"))
+                    .accessibilityValue(localized("无法读取的模组"))
+                    .accessibilityHint(localized("移除模组"))
                     .accessibilityIdentifier("library.module.failed.\(failure.folder)")
                 }
             }
@@ -72,15 +72,15 @@ struct RuleModuleSection<Libraries: View>: View {
         .confirmationDialog(pendingRemoval.map { String(format: localized("移除「%@」？"), $0.folder) } ?? "",
                             isPresented: Binding(get: { pendingRemoval != nil }, set: { if !$0 { pendingRemoval = nil } }),
                             titleVisibility: .visible, presenting: pendingRemoval) { failure in
-            Button(localized("移除模組"), role: .destructive) {
+            Button(localized("移除模组"), role: .destructive) {
                 Task { await remove(failure.folder) }
             }
             Button(localized("取消"), role: .cancel) {}
         } message: { _ in
-            Text(localized("它的快取會一起刪除。"))
+            Text(localized("它的快取会一起删除。"))
         }
-        .alert(localized("操作失敗"), isPresented: Binding(get: { removalFailure != nil }, set: { if !$0 { removalFailure = nil } })) {
-            Button(localized("確定"), role: .cancel) {}
+        .alert(localized("操作失败"), isPresented: Binding(get: { removalFailure != nil }, set: { if !$0 { removalFailure = nil } })) {
+            Button(localized("确定"), role: .cancel) {}
         } message: {
             Text(removalFailure ?? "")
         }
@@ -102,7 +102,7 @@ extension RuleModuleSection where Libraries == EmptyView {
     }
 }
 
-/// A module's card in 資源庫: its title, description, version and author; opens its page.
+/// A module's card in 资源库: its title, description, version and author; opens its page.
 struct RuleModuleCard: View {
     let module: RuleModule
     let layout: ExploreEntryLabel.Layout
@@ -136,7 +136,7 @@ struct RuleModuleCard: View {
 #Preview("Two imported") {
     NavigationStack {
         ScrollView {
-            RuleModuleSection(library: RuleModulePreviewData.library(["新書速報", "排行榜"]))
+            RuleModuleSection(library: RuleModulePreviewData.library(["新书速报", "排行榜"]))
                 .padding(DSSpacing.lg)
         }
     }

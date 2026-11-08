@@ -5,9 +5,9 @@ import UIKit
 ///
 /// On iOS 27 there is no inner navigation controller: the reader's `NavigationStack` adopts
 /// the shelf's, so the bar this controller hides for the page is the same bar the reader's
-/// `.toolbar` puts 返回 · 書名 · 封面 in. Each appearance therefore sets it to what the
+/// `.toolbar` puts 返回 · 书名 · 封面 in. Each appearance therefore sets it to what the
 /// reader's chrome is (`showsReaderChrome`), never to hidden outright: forcing it hidden
-/// when the reader came back from 作品詳情 with its chrome up left the bottom bar on
+/// when the reader came back from 作品详情 with its chrome up left the bottom bar on
 /// screen and the top bar gone, and SwiftUI, whose visibility had not changed, never
 /// showed it again — only hiding and re-showing the chrome brought it back. A reader
 /// whose stack built a navigation controller of its own keeps the shelf's bar hidden

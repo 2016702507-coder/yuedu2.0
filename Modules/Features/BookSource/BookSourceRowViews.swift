@@ -5,7 +5,7 @@ import SwiftUI
 // `List` defers a child view's `body`; it does NOT defer construction of the view
 // value a `ForEach` closure returns — and it calls that closure for every element
 // (measured: twice per element). While the source row was built by `@ViewBuilder`
-// methods on `BookSourceListView`, opening 書源管理 therefore constructed all N rows
+// methods on `BookSourceListView`, opening 书源管理 therefore constructed all N rows
 // up front: two `Menu` trees per row (~25 items each), the merged row's rotor
 // actions, a `ShareLink`, and one full-table scan for the group-name submenus.
 // With 3000 imported sources that was ~1.4 s of blocked main thread and 250–345 MB
@@ -25,12 +25,12 @@ import SwiftUI
 // `HostedCollectionList`, and rows and groups carry ids instead of `BookSource` copies.
 
 /// One row group in the management list. Every displayed source belongs to exactly one
-/// group: pinned sources land in the built-in 置頂／置底 groups, the rest use their
-/// `bookSourceGroup` — and sources without one land in the built-in 默認分組 (Legado's
+/// group: pinned sources land in the built-in 置顶／置底 groups, the rest use their
+/// `bookSourceGroup` — and sources without one land in the built-in 默认分组 (Legado's
 /// default group — ungrouped sources are never left flat).
 struct BookSourceRowGroup: Identifiable {
-    /// Sentinel ids for the built-in 置頂／置底 groups — kept distinct from any user group
-    /// name, so a group literally named 置頂 cannot collide with them.
+    /// Sentinel ids for the built-in 置顶／置底 groups — kept distinct from any user group
+    /// name, so a group literally named 置顶 cannot collide with them.
     static let defaultGroupID = "yuedu.default-group"
     static let topPinnedID = "yuedu.pin-group.top"
     static let bottomPinnedID = "yuedu.pin-group.bottom"
@@ -41,7 +41,7 @@ struct BookSourceRowGroup: Identifiable {
     /// used to carry 20,000 copies of every rule string's storage header.
     let sourceIDs: [UUID]
 
-    /// 置頂／置底 are synthetic buckets built from pin state, not from `bookSourceGroup`.
+    /// 置顶／置底 are synthetic buckets built from pin state, not from `bookSourceGroup`.
     /// Renaming, merging, or deleting "the group" is meaningless for them, so their menu
     /// only offers the operations that act on the member sources.
     var isPinGroup: Bool {
@@ -52,14 +52,14 @@ struct BookSourceRowGroup: Identifiable {
     var sourceIds: Set<UUID> { Set(sourceIDs) }
 }
 
-/// Native share row for 匯出 …（儲存到「檔案」／AirDrop／…）. See `BookSourceExportFile` for
+/// Native share row for 汇出 …（储存到「档案」／AirDrop／…）. See `BookSourceExportFile` for
 /// why the payload is a `Transferable` and not a `.fileExporter` document, and
 /// `MenuShareLinkPresentationPolicy` for why the share sheet cannot open from this
 /// menu before iOS 18.
 struct BookSourceExportShareLink: View {
     let label: String
     let filenameLabel: String
-    /// Resolved when the row is chosen, not when the menu is built: 匯出全部 over 50,000
+    /// Resolved when the row is chosen, not when the menu is built: 汇出全部 over 50,000
     /// sources used to copy the whole library into every render of the toolbar menu.
     let sources: () -> [BookSource]
     /// Where the payload goes before iOS 18: the owning screen shows the share sheet
@@ -91,14 +91,14 @@ struct BookSourceRowActions {
     var test: (BookSource) -> Void
     var edit: (BookSource) -> Void
     var copyJSON: (BookSource) -> Void
-    /// 匯出書源檔案 — hands the payload to the list's first-level share sheet before
+    /// 汇出书源档案 — hands the payload to the list's first-level share sheet before
     /// iOS 18. See `MenuShareLinkPresentationPolicy`.
     var export: (PendingShareExport<BookSourceExportFile>) -> Void
     var login: (BookSource) -> Void
     var editVariables: (BookSource) -> Void
     /// Writes a group name to a set of sources; the built-in default group clears the field.
     var applyGroupName: (String, Set<UUID>) -> Void
-    /// Opens 移動到分組 — a searchable group list, not a submenu. See
+    /// Opens 移动到分组 — a searchable group list, not a submenu. See
     /// `BookSourceGroupPickerSheet` for why the submenu is gone.
     var pickGroup: (BookSource) -> Void
     var moveToNewGroup: (BookSource) -> Void
@@ -111,11 +111,11 @@ struct BookSourceRowActions {
 
 /// One VoiceOver element per source.
 ///
-/// The row packs five separate controls (核取方塊 / 啟用開關 / 編輯 / 更多) around three
+/// The row packs five separate controls (核取方块 / 启用开关 / 编辑 / 更多) around three
 /// lines of text, so unmerged it cost eight swipes per source and announced bare SF
 /// Symbol names ("square", "square.and.pencil", "ellipsis") for four of them. Merging
 /// means every control has to come back as a rotor action — see `rotorActions` — and the
-/// 網址 moves to rotor custom content so it isn't re-read on every swipe.
+/// 网址 moves to rotor custom content so it isn't re-read on every swipe.
 /// Rules in `docs/design.md` §7.
 struct BookSourceRow: View {
     let source: BookSource
@@ -126,7 +126,7 @@ struct BookSourceRow: View {
     let defaultGroupName: String
     let actions: BookSourceRowActions
 
-    /// Leading slot for the 置頂／置底 pin icon, matching the old warning bar + checkbox
+    /// Leading slot for the 置顶／置底 pin icon, matching the old warning bar + checkbox
     /// padding so source names keep their horizontal position.
     private let pinSlotWidth = DSSpacing.lg + DSSpacing.xs
 
@@ -137,7 +137,7 @@ struct BookSourceRow: View {
             .accessibilityLabel(accessibilityLabel)
             .accessibilityValue(accessibilityValue)
             .accessibilityAddTraits(accessibilityTraits)
-            .accessibilityHint(localized("點兩下切換啟用狀態"))
+            .accessibilityHint(localized("点两下切换启用状态"))
             .accessibilityAction { actions.toggleEnabled(source.id) }
             .accessibilityActions { rotorActions }
 
@@ -145,7 +145,7 @@ struct BookSourceRow: View {
             row
         } else {
             row.accessibilityCustomContent(
-                Text(localized("網址")),
+                Text(localized("网址")),
                 Text(source.bookSourceUrl)
             )
         }
@@ -170,7 +170,7 @@ struct BookSourceRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {
                     Text(source.bookSourceName.isEmpty
-                        ? localized("未命名來源配置") : source.bookSourceName)
+                        ? localized("未命名来源配置") : source.bookSourceName)
                         .font(DSFont.toolbarIcon)
                         .foregroundColor(source.enabled ? .primary : .secondary)
                         .lineLimit(1)
@@ -221,7 +221,7 @@ struct BookSourceRow: View {
         .opacity(source.enabled ? 1 : 0.6)
     }
 
-    /// 置頂／置底 marker: a pin icon instead of the old warning-colored bar, so only sources
+    /// 置顶／置底 marker: a pin icon instead of the old warning-colored bar, so only sources
     /// the user explicitly pinned carry an indicator (the first unpinned source does not).
     @ViewBuilder
     private var pinIndicator: some View {
@@ -244,30 +244,30 @@ struct BookSourceRow: View {
             Button {
                 actions.showInfo(source)
             } label: {
-                Label(localized("查看詳情"), systemImage: "info.circle")
+                Label(localized("查看详情"), systemImage: "info.circle")
             }
             Button {
                 actions.test(source)
             } label: {
-                Label(localized("測試來源配置"), systemImage: "stethoscope")
+                Label(localized("测试来源配置"), systemImage: "stethoscope")
             }
             Button {
                 actions.edit(source)
             } label: {
-                Label(localized("編輯"), systemImage: "pencil")
+                Label(localized("编辑"), systemImage: "pencil")
             }
             if !source.loginUrl.isEmpty {
                 Button {
                     actions.login(source)
                 } label: {
-                    Label(localized("Cookie 驗證登入"), systemImage: "key.fill")
+                    Label(localized("Cookie 验证登入"), systemImage: "key.fill")
                 }
             }
             Button {
                 actions.toggleSelection(source.id)
             } label: {
                 Label(
-                    localized(isSelected ? "取消選取" : "選取此來源配置"),
+                    localized(isSelected ? "取消选取" : "选取此来源配置"),
                     systemImage: isSelected ? "checkmark.circle.fill" : "checkmark.circle")
             }
             Divider()
@@ -275,44 +275,44 @@ struct BookSourceRow: View {
                 actions.toggleEnabled(source.id)
             } label: {
                 Label(
-                    localized(source.enabled ? "停用" : "動作：啟用"),
+                    localized(source.enabled ? "停用" : "动作：启用"),
                     systemImage: source.enabled ? "pause.circle" : "play.circle")
             }
             Button {
                 actions.pickGroup(source)
             } label: {
-                Label(localized("移動到分組"), systemImage: "folder")
+                Label(localized("移动到分组"), systemImage: "folder")
             }
             Button {
                 actions.editVariables(source)
             } label: {
-                Label(localized("設置源變量"), systemImage: "curlybraces")
+                Label(localized("设置源变量"), systemImage: "curlybraces")
             }
             Divider()
             BookSourceExportShareLink(
-                label: localized("匯出來源配置檔案"),
+                label: localized("汇出来源配置档案"),
                 filenameLabel: source.bookSourceName.isEmpty
-                    ? localized("未命名來源配置") : source.bookSourceName,
+                    ? localized("未命名来源配置") : source.bookSourceName,
                 sources: { [source] },
                 onHandoff: actions.export
             )
             Button {
                 actions.copyJSON(source)
             } label: {
-                Label(localized("複製 JSON"), systemImage: "doc.on.doc")
+                Label(localized("复制 JSON"), systemImage: "doc.on.doc")
             }
             Divider()
             if pin == .top {
                 Button {
-                    actions.unpin(source, localized("已取消置頂"))
+                    actions.unpin(source, localized("已取消置顶"))
                 } label: {
-                    Label(localized("取消置頂"), systemImage: "pin.slash")
+                    Label(localized("取消置顶"), systemImage: "pin.slash")
                 }
             } else {
                 Button {
                     actions.pinToTop(source)
                 } label: {
-                    Label(localized("置頂"), systemImage: "arrow.up.to.line")
+                    Label(localized("置顶"), systemImage: "arrow.up.to.line")
                 }
             }
             if pin == .bottom {
@@ -332,7 +332,7 @@ struct BookSourceRow: View {
             Button(role: .destructive) {
                 actions.delete(source)
             } label: {
-                Label(localized("刪除"), systemImage: "trash")
+                Label(localized("删除"), systemImage: "trash")
             }
         } label: {
             Image(systemName: "ellipsis")
@@ -345,21 +345,21 @@ struct BookSourceRow: View {
 
     // MARK: Accessibility
 
-    /// The row's VoiceOver name: 書源名稱（分組）, matching the first visible line.
+    /// The row's VoiceOver name: 书源名称（分组）, matching the first visible line.
     private var accessibilityLabel: String {
         let name = source.bookSourceName.isEmpty
-            ? localized("未命名來源配置")
+            ? localized("未命名来源配置")
             : source.bookSourceName
         guard !source.bookSourceGroup.isEmpty else { return name }
         return "\(name)（\(source.bookSourceGroup)）"
     }
 
-    /// State the row shows visually: the 啟用 toggle, the pin marker, and the validation badge.
+    /// State the row shows visually: the 启用 toggle, the pin marker, and the validation badge.
     /// Selection is carried by the `.isSelected` trait instead, so it isn't said twice.
     private var accessibilityValue: String {
-        var parts = [localized(source.enabled ? "已啟用" : "已停用")]
+        var parts = [localized(source.enabled ? "已启用" : "已停用")]
         if let pin {
-            parts.append(localized(pin == .top ? "已置頂" : "已置底"))
+            parts.append(localized(pin == .top ? "已置顶" : "已置底"))
         }
         if let health = health?.health {
             parts.append(Self.healthText(health))
@@ -367,8 +367,8 @@ struct BookSourceRow: View {
         return parts.joined(separator: "，")
     }
 
-    /// `.isSelected` is what carries the leading checkbox — VoiceOver says 「已選取」 for it,
-    /// so the value line stays about 啟用 state only.
+    /// `.isSelected` is what carries the leading checkbox — VoiceOver says 「已选取」 for it,
+    /// so the value line stays about 启用 state only.
     private var accessibilityTraits: AccessibilityTraits {
         var traits: AccessibilityTraits = .isButton
         if isSelected {
@@ -380,9 +380,9 @@ struct BookSourceRow: View {
 
     static func healthText(_ health: SourceHealth) -> String {
         switch health {
-        case .passed:       return localized("驗證通過")
-        case .fetchError:   return localized("抓取異常")
-        case .contentError: return localized("正文異常")
+        case .passed:       return localized("验证通过")
+        case .fetchError:   return localized("抓取异常")
+        case .contentError: return localized("正文异常")
         }
     }
 
@@ -391,48 +391,48 @@ struct BookSourceRow: View {
     /// VoiceOver can reach any of them.
     @ViewBuilder
     private var rotorActions: some View {
-        Button(localized(isSelected ? "取消選取" : "選取")) {
+        Button(localized(isSelected ? "取消选取" : "选取")) {
             actions.toggleSelection(source.id)
         }
-        Button(localized("查看詳情")) {
+        Button(localized("查看详情")) {
             actions.showInfo(source)
         }
-        Button(localized("測試來源配置")) {
+        Button(localized("测试来源配置")) {
             actions.test(source)
         }
-        Button(localized("編輯")) {
+        Button(localized("编辑")) {
             actions.edit(source)
         }
-        Button(localized("複製 JSON")) {
+        Button(localized("复制 JSON")) {
             actions.copyJSON(source)
         }
         if !source.loginUrl.isEmpty {
-            Button(localized("Cookie 驗證登入")) {
+            Button(localized("Cookie 验证登入")) {
                 actions.login(source)
             }
         }
-        Button(localized("設置源變量")) {
+        Button(localized("设置源变量")) {
             actions.editVariables(source)
         }
-        // 移動到分組 is now a searchable list rather than a submenu of group names, so the
-        // rotor can reach the real thing. 移動到新分組 stays as the quicker typing path.
-        Button(localized("移動到分組")) {
+        // 移动到分组 is now a searchable list rather than a submenu of group names, so the
+        // rotor can reach the real thing. 移动到新分组 stays as the quicker typing path.
+        Button(localized("移动到分组")) {
             actions.pickGroup(source)
         }
-        Button(localized("移動到新分組")) {
+        Button(localized("移动到新分组")) {
             actions.moveToNewGroup(source)
         }
         if !source.bookSourceGroup.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            Button(localized("移出分組")) {
+            Button(localized("移出分组")) {
                 actions.applyGroupName(defaultGroupName, [source.id])
             }
         }
         if pin == .top {
-            Button(localized("取消置頂")) {
-                actions.unpin(source, localized("已取消置頂"))
+            Button(localized("取消置顶")) {
+                actions.unpin(source, localized("已取消置顶"))
             }
         } else {
-            Button(localized("置頂")) {
+            Button(localized("置顶")) {
                 actions.pinToTop(source)
             }
         }
@@ -445,7 +445,7 @@ struct BookSourceRow: View {
                 actions.pinToBottom(source)
             }
         }
-        Button(localized("刪除"), role: .destructive) {
+        Button(localized("删除"), role: .destructive) {
             actions.delete(source)
         }
     }
@@ -457,19 +457,19 @@ struct BookSourceRow: View {
 struct BookSourceGroupActions {
     var toggleExpansion: (String) -> Void
     var rename: (BookSourceRowGroup) -> Void
-    /// Opens 合併到其他分組 — the same searchable group list the rows use.
+    /// Opens 合并到其他分组 — the same searchable group list the rows use.
     var pickMergeTarget: (BookSourceRowGroup) -> Void
     var setEnabled: (Set<UUID>, Bool) -> Void
     var select: (Set<UUID>) -> Void
     var copyToPasteboard: (BookSourceRowGroup) -> Void
-    /// 匯出該分組 — same first-level share hand-off as `BookSourceRowActions.export`.
+    /// 汇出该分组 — same first-level share hand-off as `BookSourceRowActions.export`.
     var export: (PendingShareExport<BookSourceExportFile>) -> Void
     var delete: (BookSourceRowGroup) -> Void
     /// Looks the members up when an export actually runs.
     var resolveSources: ([UUID]) -> [BookSource]
 }
 
-/// 「› 分組名 12 ⋯」 — the chevron leads the title (Legado's layout) and the whole title
+/// 「› 分组名 12 ⋯」 — the chevron leads the title (Legado's layout) and the whole title
 /// area toggles the group; the trailing menu holds the group-level operations.
 struct BookSourceGroupHeaderRow: View {
     let group: BookSourceRowGroup
@@ -503,35 +503,35 @@ struct BookSourceGroupHeaderRow: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel("\(group.name)，\(group.sourceIDs.count)")
-            .accessibilityValue(localized(expanded ? "已展開" : "已收合"))
-            .accessibilityHint(localized("點兩下展開或收合分組"))
+            .accessibilityValue(localized(expanded ? "已展开" : "已收合"))
+            .accessibilityHint(localized("点两下展开或收合分组"))
             .accessibilityAddTraits(.isHeader)
 
             menu
         }
     }
 
-    /// 分組操作 menu — Legado's group actions. Rename / merge / delete are hidden for the
-    /// synthetic 置頂／置底 buckets, which have no `bookSourceGroup` to act on.
+    /// 分组操作 menu — Legado's group actions. Rename / merge / delete are hidden for the
+    /// synthetic 置顶／置底 buckets, which have no `bookSourceGroup` to act on.
     private var menu: some View {
         Menu {
             if !group.isPinGroup {
                 Button {
                     actions.rename(group)
                 } label: {
-                    Label(localized("重命名分組"), systemImage: "pencil")
+                    Label(localized("重命名分组"), systemImage: "pencil")
                 }
                 Button {
                     actions.pickMergeTarget(group)
                 } label: {
-                    Label(localized("合併到其他分組"), systemImage: "arrow.triangle.merge")
+                    Label(localized("合并到其他分组"), systemImage: "arrow.triangle.merge")
                 }
                 Divider()
             }
             Button {
                 actions.setEnabled(group.sourceIds, true)
             } label: {
-                Label(localized("啟用全部"), systemImage: "play.circle")
+                Label(localized("启用全部"), systemImage: "play.circle")
             }
             Button {
                 actions.setEnabled(group.sourceIds, false)
@@ -542,10 +542,10 @@ struct BookSourceGroupHeaderRow: View {
             Button {
                 actions.select(group.sourceIds)
             } label: {
-                Label(localized("選擇該分組"), systemImage: "checkmark.circle")
+                Label(localized("选择该分组"), systemImage: "checkmark.circle")
             }
             BookSourceExportShareLink(
-                label: localized("匯出該分組"),
+                label: localized("汇出该分组"),
                 filenameLabel: group.name,
                 sources: { actions.resolveSources(group.sourceIDs) },
                 onHandoff: actions.export
@@ -553,14 +553,14 @@ struct BookSourceGroupHeaderRow: View {
             Button {
                 actions.copyToPasteboard(group)
             } label: {
-                Label(localized("複製該分組到剪貼簿"), systemImage: "doc.on.doc")
+                Label(localized("复制该分组到剪贴簿"), systemImage: "doc.on.doc")
             }
             if !group.isPinGroup {
                 Divider()
                 Button(role: .destructive) {
                     actions.delete(group)
                 } label: {
-                    Label(localized("刪除該分組"), systemImage: "trash")
+                    Label(localized("删除该分组"), systemImage: "trash")
                 }
             }
         } label: {
@@ -571,7 +571,7 @@ struct BookSourceGroupHeaderRow: View {
                 .contentShape(Rectangle())
                 .accessibilityHidden(true)
         }
-        .accessibilityLabel(localized("分組操作"))
+        .accessibilityLabel(localized("分组操作"))
     }
 }
 
@@ -595,21 +595,21 @@ private func previewSource(
     pinToBottom: { _ in }, unpin: { _, _ in }, delete: { _ in }
 )
 
-#Preview("來源配置列") {
+#Preview("来源配置列") {
     List {
         BookSourceRow(
-            source: previewSource(name: "示例來源配置", group: "常用"),
-            isSelected: false, pin: nil, health: nil, defaultGroupName: "默認分組",
+            source: previewSource(name: "示例来源配置", group: "常用"),
+            isSelected: false, pin: nil, health: nil, defaultGroupName: "默认分组",
             actions: previewActions
         )
         BookSourceRow(
-            source: previewSource(name: "已選取的源"),
-            isSelected: true, pin: .top, health: nil, defaultGroupName: "默認分組",
+            source: previewSource(name: "已选取的源"),
+            isSelected: true, pin: .top, health: nil, defaultGroupName: "默认分组",
             actions: previewActions
         )
         BookSourceRow(
-            source: previewSource(name: "已停用的源", group: "備用", enabled: false),
-            isSelected: false, pin: .bottom, health: nil, defaultGroupName: "默認分組",
+            source: previewSource(name: "已停用的源", group: "备用", enabled: false),
+            isSelected: false, pin: .bottom, health: nil, defaultGroupName: "默认分组",
             actions: previewActions
         )
     }
@@ -622,7 +622,7 @@ private func previewSource(
     setEnabled: { _, _ in }, select: { _ in }, copyToPasteboard: { _ in },
     export: { _ in }, delete: { _ in }, resolveSources: { _ in [] })
 
-#Preview("分組表頭") {
+#Preview("分组表头") {
     List {
         BookSourceGroupHeaderRow(
             group: BookSourceRowGroup(id: "常用", name: "常用", sourceIDs: [UUID(), UUID()]),
@@ -631,7 +631,7 @@ private func previewSource(
         )
         BookSourceGroupHeaderRow(
             group: BookSourceRowGroup(
-                id: BookSourceRowGroup.topPinnedID, name: "置頂組", sourceIDs: [UUID()]),
+                id: BookSourceRowGroup.topPinnedID, name: "置顶组", sourceIDs: [UUID()]),
             expanded: false,
             actions: previewGroupActions
         )

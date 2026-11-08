@@ -12,17 +12,17 @@ import UIKit
 struct ReaderTransitionSource {
     let bookID: UUID
     let cornerRadius: CGFloat
-    /// 來源書封的全球座標 frame,nil 時 fallback 為置中卡片。
+    /// 来源书封的全球座标 frame,nil 时 fallback 为置中卡片。
     let frame: CGRect?
     /// Latest source frame. Kept MainActor-bound because it reads live SwiftUI
     /// shelf geometry; nil falls back to the tap-time `frame` above.
     private let frameProvider: (@MainActor () -> CGRect?)?
-    /// 書封快照,nil 時用純色卡片。
+    /// 书封快照,nil 时用纯色卡片。
     let snapshot: UIImage?
     /// A sharper rendering of the same artwork, prepared off the main thread after
     /// the tap. Memory lookup only: nil until it is ready, and nobody waits for it.
     private let snapshotUpgrade: (@MainActor () -> UIImage?)?
-    /// 開書方向。
+    /// 开书方向。
     let direction: ReaderBookOpeningDirection
 
     init(

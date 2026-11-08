@@ -58,7 +58,7 @@ final class OnlineChapterContentService: Sendable {
             expectedTOCTitle: ref.title
         ), cached.state == .cached, !cached.content.isEmpty {
             // Content that looks merged is served like any other: deleting it here, after the
-            // fetch had stored it and reported `.ready`, left the reader on a 載入中 page no
+            // fetch had stored it and reported `.ready`, left the reader on a 载入中 page no
             // overlay ever replaced (feedback #89).
             let invalidArtifacts = OnlineChapterCacheWritePolicy.shouldRefetchStrippedRenderArtifacts(
                 package: cached,
@@ -114,7 +114,7 @@ final class OnlineChapterContentService: Sendable {
         )
 
         // `buildNormalizedHTML` ESCAPES its input, so a chapter whose plain text still carries
-        // source markup (同人小说网 keeps `<img src="data:…,{json}">` 段評 bubbles inline) renders
+        // source markup (同人小说网 keeps `<img src="data:…,{json}">` 段评 bubbles inline) renders
         // that markup as literal text. That is only ever correct for genuinely plain content, so
         // log which branch produced the payload — a `fallback` line on a chapter whose package
         // claims a normalized artifact means the artifact is missing from disk, not that the
@@ -147,7 +147,7 @@ final class OnlineChapterContentService: Sendable {
         ref: OnlineChapterRef,
         index: Int
     ) -> ChapterContentPayload {
-        let displayTitle = title(at: index).isEmpty ? localized("作品相關") : title(at: index)
+        let displayTitle = title(at: index).isEmpty ? localized("作品相关") : title(at: index)
         let escaped = ReaderHTMLUtilities.escapeHTML(displayTitle)
         let html = """
         <!DOCTYPE html><html lang="zh-Hant"><head><meta charset="utf-8"></head>

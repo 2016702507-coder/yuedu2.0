@@ -1,6 +1,6 @@
 import Foundation
 
-/// 整章翻譯's translations: one file per book and target language, mapping a paragraph's
+/// 整章翻译's translations: one file per book and target language, mapping a paragraph's
 /// digest (`ReaderTranslationText.storageKey`) to its translation.
 ///
 /// Application Support, not Caches: every translation in here was paid for with a model call.

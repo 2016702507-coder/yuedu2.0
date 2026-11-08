@@ -1,12 +1,12 @@
 import SwiftUI
 
-/// What 作品詳情 pushes. One item, so the page has one destination (iOS 17 guardrail 12).
+/// What 作品详情 pushes. One item, so the page has one destination (iOS 17 guardrail 12).
 private enum WorkDetailPush: Hashable {
-    /// A copy's reader; at a 目錄 entry's anchor when one was picked.
+    /// A copy's reader; at a 目录 entry's anchor when one was picked.
     case reader(UUID, ReaderTOCTarget? = nil)
-    /// A 青空文庫 work not on the shelf yet: the reader imports it under its own 載入中….
+    /// A 青空文库 work not on the shelf yet: the reader imports it under its own 载入中….
     case aozoraReader(AozoraWork)
-    /// 編輯遠端資料, for the version shown.
+    /// 编辑远端资料, for the version shown.
     case editor
     /// A public library's author page, from the author's name or 作者其他作品's 查看全部.
     case author(PublicLibraryAuthorDestination)
@@ -14,31 +14,31 @@ private enum WorkDetailPush: Hashable {
     case work(WorkDetailRoute)
     /// The series page, from the hero's link or 同系列's 查看全部.
     case series(WorkSeriesShelf)
-    /// A 青空文庫 分類's works (依分類's group, by id), from the hero's link.
+    /// A 青空文库 分类's works (依分类's group, by id), from the hero's link.
     case aozoraClassification(String)
 }
 
-/// When 作品詳情 reads its series: for the versions read, again when they change.
+/// When 作品详情 reads its series: for the versions read, again when they change.
 private struct SeriesLoad: Hashable {
     let versions: [SourceItemKey]
 }
 
-/// What 作品詳情's 目錄 is read for: a version in a format, once its library item is known.
+/// What 作品详情's 目录 is read for: a version in a format, once its library item is known.
 private struct TOCLoad: Hashable {
     let version: SourceItemKey
     let formatID: String?
     let hasItem: Bool
 }
 
-/// When 作品詳情 reads its versions: once no action runs, again when asked, and again once
-/// 青空文庫's catalog is read, which a 青空文庫 copy's work comes from.
+/// When 作品详情 reads its versions: once no action runs, again when asked, and again once
+/// 青空文库's catalog is read, which a 青空文库 copy's work comes from.
 private struct VersionsLoad: Hashable {
     let idle: Bool
     let revision: Int
     let hasAozoraCatalog: Bool
 }
 
-/// When 作品詳情 reads the shown copy's sidecar: for each copy, and again after a write to it.
+/// When 作品详情 reads the shown copy's sidecar: for each copy, and again after a write to it.
 private struct SidecarLoad: Hashable {
     let copy: UUID?
     let revision: Int
@@ -52,7 +52,7 @@ private enum GutenbergLoad {
     var isLoading: Bool { if case .loading = self { true } else { false } }
 }
 
-/// 作品詳情 opened from a reader (5f-4b, decision 32): the book being read, and the way back to
+/// 作品详情 opened from a reader (5f-4b, decision 32): the book being read, and the way back to
 /// that same reader. Never a second reader over it.
 struct WorkDetailReaderContext {
     /// The book the reader has open; a book-source page switches this book's source.
@@ -63,18 +63,18 @@ struct WorkDetailReaderContext {
     let removedFromShelf: () -> Void
 }
 
-/// 作品詳情 (unified library 5f, design §14.1): the one page of a work, as Emby has one page
+/// 作品详情 (unified library 5f, design §14.1): the one page of a work, as Emby has one page
 /// per item (Phase 5 plan, decisions 27 and 28). Every Explore card, the bookshelf's ••• and
-/// the remote libraries' lists open it. 來源 switches between the versions this device knows
+/// the remote libraries' lists open it. 来源 switches between the versions this device knows
 /// of the work in place; the buttons, the facts and the description follow the version shown.
 ///
 /// Each version acts through what its source already uses: a library item (OPDS, Calibre,
 /// WebDAV, and a Gutenberg book once its catalog entry is read) through
-/// `RemoteLibraryActionModel`, a 青空文庫 work through `AozoraLibraryDownloading`. A
+/// `RemoteLibraryActionModel`, a 青空文库 work through `AozoraLibraryDownloading`. A
 /// book-source version is that source's own page, drawn here in place (5f-3): its chapter
-/// list, 換源, shelf and reader are `OnlineBookView`'s (or `AudiobookDetailView`'s), with the
-/// work's other versions first in its 換源 sheet. A book-source book on the shelf is that
-/// page too (5f-4): the shelf has no second 書籍詳情.
+/// list, 换源, shelf and reader are `OnlineBookView`'s (or `AudiobookDetailView`'s), with the
+/// work's other versions first in its 换源 sheet. A book-source book on the shelf is that
+/// page too (5f-4): the shelf has no second 书籍详情.
 struct WorkDetailView: View {
     let route: WorkDetailRoute
     /// Takes the page off its stack when the shelf copy it was opened for leaves the shelf
@@ -85,7 +85,7 @@ struct WorkDetailView: View {
     let readerContext: WorkDetailReaderContext?
     /// Set when 搜索 opened the page (5f-4c, unified search 4c-3): each book-source version's
     /// result, by node key, frozen at the tap. Such a version's page keeps its result's origins
-    /// for 換源, as the result's own page did.
+    /// for 换源, as the result's own page did.
     let searchResults: [SourceItemKey: SearchBook]
     /// The work's other members 搜索 found (4c-3), listed with the versions this device knows.
     let searchVersions: [WorkDetailRoute]
@@ -98,7 +98,7 @@ struct WorkDetailView: View {
     @StateObject private var actions = RemoteLibraryActionModel()
     @StateObject private var authorWorks = AuthorWorksModel()
     @StateObject private var toc = WorkTableOfContentsModel()
-    /// 「尋找可用來源」 (7b-2): the books its search found of the work join `versions`. It runs on
+    /// 「寻找可用来源」 (7b-2): the books its search found of the work join `versions`. It runs on
     /// its own once the work's page shows (2026-10-17); a work with nothing to read takes on the
     /// first one found (2026-10-24).
     @StateObject private var finder = WorkSourceFinder()
@@ -110,10 +110,10 @@ struct WorkDetailView: View {
     /// The versions this device knows of the work (`ShelfProvider.versions`).
     @State private var listed: [WorkDetailRoute]
     @State private var versionsLoaded = false
-    /// The version picked from 來源; nil shows the primary one.
+    /// The version picked from 来源; nil shows the primary one.
     @State private var chosen: SourceItemKey?
     @State private var pushed: WorkDetailPush?
-    /// The copy just read without adding, while 「加入書架？」 asks about it.
+    /// The copy just read without adding, while 「加入书架？」 asks about it.
     @State private var shelvePrompt: ReadingBook?
     @State private var introExpanded = false
     /// The sidecar values of the shelf copy shown (`shownCopy`), read again when it is written.
@@ -122,7 +122,7 @@ struct WorkDetailView: View {
     /// open (an import's copy opened at once, or sources imported since).
     @State private var sidecarRevision = 0
     /// Library items by version that are not in the version itself: a Gutenberg book's from
-    /// its catalog entry, and one edited through 編輯遠端資料 as saved.
+    /// its catalog entry, and one edited through 编辑远端资料 as saved.
     @State private var items: [SourceItemKey: RemoteLibraryItem] = [:]
     @State private var gutenbergLoads: [SourceItemKey: GutenbergLoad] = [:]
     /// A Gutenberg book's authors from its catalog entry, by version.
@@ -146,10 +146,10 @@ struct WorkDetailView: View {
         if readerContext != nil { _chosen = State(initialValue: route.nodeKey) }
     }
 
-    /// The versions 來源 lists: those known, then those 「尋找可用來源」 found.
+    /// The versions 来源 lists: those known, then those 「寻找可用来源」 found.
     private var versions: [WorkDetailRoute] { WorkSourceFinder.joined(listed, found: finder.found) }
     private var selected: WorkDetailRoute? { WorkVersions.selected(in: versions, chosen: chosen) }
-    /// 中繼資料語言偏好推薦 on what the source sent (2026-10-25), as the card had it; a shelf
+    /// 中继资料语言偏好推荐 on what the source sent (2026-10-25), as the card had it; a shelf
     /// copy's title and author are the reader's, as they are. The route keeps the text as sent: a
     /// search for a source asks with it.
     private var display: MetadataDisplay? {
@@ -177,13 +177,13 @@ struct WorkDetailView: View {
                 }
                 listed = await ShelfProvider(store: store).versions(of: route, aozora: aozora.catalog, also: searchVersions)
                 versionsLoaded = true
-                // A 青空文庫 copy stands for itself until the catalog is read; reading it changes
+                // A 青空文库 copy stands for itself until the catalog is read; reading it changes
                 // this task's id, and the versions are read again with the work.
                 if aozora.catalog == nil,
                    versions.contains(where: { $0.record.copyID != nil && $0.record.key.instance.type == .aozora }) {
                     await aozora.load()
                 }
-                // A book-source page keeps its place once shown: the copy its 加入書架 makes would
+                // A book-source page keeps its place once shown: the copy its 加入书架 makes would
                 // otherwise come first and take the page from under its reader.
                 if chosen == nil, let shown = selected, onlineBook(of: shown) != nil { chosen = shown.nodeKey }
             }
@@ -214,7 +214,7 @@ struct WorkDetailView: View {
             .onChange(of: scenePhase) { _, phase in finder.setPresentationActive(phase == .active) }
             .onChange(of: finder.found) { _, found in
                 // Nothing listed reads: the first book found is shown at once, its source's own
-                // page as picking it from 來源 makes it (maintainer, 2026-10-24), not left in 來源's menu.
+                // page as picking it from 来源 makes it (maintainer, 2026-10-24), not left in 来源's menu.
                 guard let key = WorkSourceFinder.shownOnFinding(listed: listed, found: found, chosen: chosen) else { return }
                 chosen = key
                 // The whole page changed under VoiceOver's cursor.
@@ -237,7 +237,7 @@ struct WorkDetailView: View {
     private var page: some View {
         if let readerContext, let version = selected, let book = onlineBook(of: version) {
             // The reader's own book as text, as its reader reads it: no page-kind switch, and
-            // 換源 rebinds this copy (`sourceSwitchBookId`), mapping the chapter.
+            // 换源 rebinds this copy (`sourceSwitchBookId`), mapping the chapter.
             OnlineBookView(book: book, sourceSwitchBookId: readerContext.bookId,
                            onRemoveFromShelf: readerContext.removedFromShelf,
                            onContinueReading: { chapterIndex in
@@ -266,8 +266,8 @@ struct WorkDetailView: View {
     }
 
     /// The series fanned behind the cover: the shelf's and libraries' volumes (同系列), else
-    /// those the list's item gave (趨勢's). Every page 作品詳情 shows draws it, a book source's
-    /// too: a 趨勢 work is shown as the first source found, as soon as one is.
+    /// those the list's item gave (趋势's). Every page 作品详情 shows draws it, a book source's
+    /// too: a 趋势 work is shown as the first source found, as soon as one is.
     private var seriesFan: SeriesFan? {
         series.flatMap { SeriesFan($0, store: store) }
             ?? SeriesFan(route.summary, session: HomeCardContent.session(for: route.opening, connections: .shared))
@@ -277,7 +277,7 @@ struct WorkDetailView: View {
         BookDetailScaffold(title: title, compactAction: primaryAction) {
             BookDetailHero(artworkShape: route.record.contentKind == .audio ? .square : .book,
                            cover: cover, title: title, author: author,
-                           // The series a list's item stands for (趨勢's), as its card names it: the
+                           // The series a list's item stands for (趋势's), as its card names it: the
                            // fan behind the cover is silent to VoiceOver. The series link replaces it.
                            meta: route.summary.series.map { display?.text($0) ?? $0 } ?? "",
                            primary: primaryAction, secondary: secondaryAction,
@@ -289,7 +289,7 @@ struct WorkDetailView: View {
                 if let selected, let item = libraryItem(of: selected) {
                     libraryActions(selected, item: item)
                 }
-                // Hero → 簡介 → 作品關聯 → 作品資訊 (maintainer, 2026-10-12): the first half serves
+                // Hero → 简介 → 作品关联 → 作品资讯 (maintainer, 2026-10-12): the first half serves
                 // reading and finding more, the end looking things up. No section without data.
                 if let intro {
                     // Never a book source's own description: a book-source version draws its
@@ -387,7 +387,7 @@ struct WorkDetailView: View {
         }
     }
 
-    // MARK: 目錄
+    // MARK: 目录
 
     /// The chapters of the copy the version is read from, read as the page opens (maintainer,
     /// 2026-10-13), as a book source's page lists its own: the first few, then 查看全部.
@@ -397,17 +397,17 @@ struct WorkDetailView: View {
         let failure: String? = if case .failed(let message) = toc.state { message } else { nil }
         if WorkVersions.primary(in: versions) == nil {
             // No version to read, said where its chapters would be (maintainer, 2026-10-22), not
-            // as a placeholder of its own between 開始閱讀 and 簡介. It loads while the versions
+            // as a placeholder of its own between 开始阅读 and 简介. It loads while the versions
             // are read and the search may still find one (maintainer, 2026-10-24), which is then
             // shown in the page's place.
             BookDetailChapterSection(
-                title: localized("目錄"), chapters: [], isLoading: !versionsLoaded || searchMayFindVersion,
+                title: localized("目录"), chapters: [], isLoading: !versionsLoaded || searchMayFindVersion,
                 errorMessage: nil, latestChapter: "", onRetry: {}, onShowAll: {},
-                emptyText: localized("目前沒有可閱讀的來源")
+                emptyText: localized("目前没有可阅读的来源")
             ) { _, _ in EmptyView() }
         } else if toc.state != .none {
             BookDetailChapterSection(
-                title: localized("目錄"), chapters: chapters, isLoading: toc.state == .loading, errorMessage: failure,
+                title: localized("目录"), chapters: chapters, isLoading: toc.state == .loading, errorMessage: failure,
                 latestChapter: "", onRetry: { reloadTOC() }, onShowAll: { showChapterList = true }
             ) { offset, chapter in
                 BookDetailChapterRow(title: BookDetailChapterTitle.display(chapter, offset: offset), isLocked: false,
@@ -428,7 +428,7 @@ struct WorkDetailView: View {
         }
     }
 
-    /// What 目錄 is read for: the version shown, once the work's versions are known, in its
+    /// What 目录 is read for: the version shown, once the work's versions are known, in its
     /// format, once a Gutenberg book's item is read. None on the page a reader opened.
     private var tocLoad: TOCLoad? {
         guard readerContext == nil, versionsLoaded, let version = selected else { return nil }
@@ -436,7 +436,7 @@ struct WorkDetailView: View {
                        hasItem: libraryItem(of: version) != nil)
     }
 
-    /// The copy the version is read from, as 開始閱讀 reads it; nil for a version with none
+    /// The copy the version is read from, as 开始阅读 reads it; nil for a version with none
     /// (a book source's, drawn by its own page) or a format that does not read.
     private func tocCopy(of version: WorkDetailRoute) -> (() async throws -> ReadingBook)? {
         VersionReadingCopy(store: store, dependencies: dependencies)
@@ -451,7 +451,7 @@ struct WorkDetailView: View {
     }
 
     /// Opens the copy at `chapter`: its spine item's position is saved first so the reader
-    /// restores to it, and the reader then goes on to the entry's anchor as its own 目錄 does.
+    /// restores to it, and the reader then goes on to the entry's anchor as its own 目录 does.
     private func openChapter(_ chapter: OnlineChapterRef) {
         guard case .loaded(let bookID, _) = toc.state else { return }
         let target = WorkTableOfContents.target(of: chapter)
@@ -492,7 +492,7 @@ struct WorkDetailView: View {
         }
     }
 
-    /// Those the hero leaves out, each a row of 作品資訊 by what they did, opening their page.
+    /// Those the hero leaves out, each a row of 作品资讯 by what they did, opening their page.
     private func contributorItems(_ version: WorkDetailRoute) -> [BookDetailInfoItem] {
         switch version.opening {
         case .aozora(let work):
@@ -528,8 +528,8 @@ struct WorkDetailView: View {
         return keys.isEmpty ? nil : SeriesLoad(versions: keys)
     }
 
-    /// The links under the author: a 青空文庫 work's 分類, which open 依分類's list, then the
-    /// series page: 「三體 · 第 2 冊 ›」. Only what the version shown has.
+    /// The links under the author: a 青空文库 work's 分类, which open 依分类's list, then the
+    /// series page: 「三体 · 第 2 册 ›」. Only what the version shown has.
     private var heroLinks: [BookDetailLink] {
         var links: [BookDetailLink] = []
         if let selected, case .aozora(let work) = selected.opening, let index = aozora.catalog {
@@ -540,7 +540,7 @@ struct WorkDetailView: View {
         }
         if let series {
             links.append(BookDetailLink(id: "series", title: series.line, action: { pushed = .series(series) },
-                                        hint: localized("顯示這個系列的作品")))
+                                        hint: localized("显示这个系列的作品")))
         }
         return links
     }
@@ -556,7 +556,7 @@ struct WorkDetailView: View {
         case .gutenberg(let book):
             return gutenbergAuthors[selected.nodeKey]?.mainAuthors.first.map { .gutenberg($0, excluding: book) }
         case .copy, .opdsEntry, .webDAVFile:
-            // The versions known: a book 「尋找可用來源」 found is no shelf work, and each one
+            // The versions known: a book 「寻找可用来源」 found is no shelf work, and each one
             // found would read the author's works again.
             return .shelf(versions: listed)
         case .onlineBook, .moduleBook, .bibliographic:
@@ -574,7 +574,7 @@ struct WorkDetailView: View {
         }
     }
 
-    /// The page of a book-source version: 搜索's result as it was found, with its origins for 換源;
+    /// The page of a book-source version: 搜索's result as it was found, with its origins for 换源;
     /// every other one (a row's book, a shelf copy) as its own book.
     private func onlineEntry(of version: WorkDetailRoute, book: OnlineBook) -> OnlineBookDetailDestination.Entry {
         if let searchResult = searchResults[version.nodeKey] { return .search(searchResult) }
@@ -606,44 +606,44 @@ struct WorkDetailView: View {
 
     private var primaryAction: BookDetailAction {
         guard let version = selected, version.isReadable else {
-            return BookDetailAction(title: localized("開始閱讀"), systemImage: "book", isEnabled: false, action: {})
+            return BookDetailAction(title: localized("开始阅读"), systemImage: "book", isEnabled: false, action: {})
         }
         switch version.opening {
         case .onlineBook, .bibliographic:
             // Drawn by the source's own page instead (see `page`); a bibliographic record is
             // never readable and is caught above.
-            return BookDetailAction(title: localized("開始閱讀"), systemImage: "book", isEnabled: false, action: {})
+            return BookDetailAction(title: localized("开始阅读"), systemImage: "book", isEnabled: false, action: {})
         case .gutenberg where shelfCopy(of: version) != nil:
-            return BookDetailAction(title: localized(hasBeenOpened(version) ? "繼續閱讀" : "開始閱讀"), systemImage: "book",
+            return BookDetailAction(title: localized(hasBeenOpened(version) ? "继续阅读" : "开始阅读"), systemImage: "book",
                                     isEnabled: actions.action == nil,
                                     detail: resumeDetail, action: { read(version) })
         case .opdsEntry, .webDAVFile, .gutenberg:
-            return BookDetailAction(title: localized(libraryCopy?.lastOpenedDate == nil ? "開始閱讀" : "繼續閱讀"),
+            return BookDetailAction(title: localized(libraryCopy?.lastOpenedDate == nil ? "开始阅读" : "继续阅读"),
                                     systemImage: "book",
                                     isBusy: actions.action == .read || gutenbergLoads[version.nodeKey]?.isLoading == true,
                                     isEnabled: canActOnLibraryItem, detail: resumeDetail,
                                     action: { begin(.read) })
         case .copy, .aozora:
-            return BookDetailAction(title: localized(hasBeenOpened(version) ? "繼續閱讀" : "開始閱讀"), systemImage: "book",
+            return BookDetailAction(title: localized(hasBeenOpened(version) ? "继续阅读" : "开始阅读"), systemImage: "book",
                                     isEnabled: actions.action == nil,
                                     detail: resumeDetail, action: { read(version) })
         case .moduleBook:
-            return BookDetailAction(title: localized(hasBeenOpened(version) ? "繼續閱讀" : "開始閱讀"), systemImage: "book",
+            return BookDetailAction(title: localized(hasBeenOpened(version) ? "继续阅读" : "开始阅读"), systemImage: "book",
                                     isBusy: actions.action == .read, isEnabled: actions.action == nil,
                                     detail: resumeDetail, action: { read(version) })
         }
     }
 
-    /// How far the copy 繼續閱讀 opens is read. Every version this page draws itself is a
+    /// How far the copy 继续阅读 opens is read. Every version this page draws itself is a
     /// file (EPUB, TXT, PDF) whose spine items are not its chapters, so it is a share.
     private var resumeDetail: String? {
         BookDetailResume.detail(chapterIndex: nil, progress: readingCopy?.currentPosition)
     }
 
-    /// 加入書架 for the version shown; 已加入書架 once its copy is on the shelf.
+    /// 加入书架 for the version shown; 已加入书架 once its copy is on the shelf.
     private var secondaryAction: BookDetailAction? {
         guard let version = selected else { return nil }
-        let added = BookDetailAction(title: localized("已加入書架"), systemImage: "checkmark", isEnabled: false, action: {})
+        let added = BookDetailAction(title: localized("已加入书架"), systemImage: "checkmark", isEnabled: false, action: {})
         switch version.opening {
         case .copy(let id):
             return copy(id)?.isInBookshelf == true ? added : nil
@@ -653,17 +653,17 @@ struct WorkDetailView: View {
             return added
         case .opdsEntry, .webDAVFile, .gutenberg:
             if libraryCopy?.isInBookshelf == true { return added }
-            return BookDetailAction(title: localized("加入書架"), systemImage: "plus",
+            return BookDetailAction(title: localized("加入书架"), systemImage: "plus",
                                     isBusy: actions.action == .addToShelf, isEnabled: canActOnLibraryItem,
                                     action: { begin(.addToShelf) })
         case .aozora(let work):
             if shelfCopy(of: version) != nil { return added }
-            return BookDetailAction(title: localized("加入書架"), systemImage: "plus",
+            return BookDetailAction(title: localized("加入书架"), systemImage: "plus",
                                     isBusy: actions.action == .addToShelf, isEnabled: actions.action == nil,
                                     action: { addAozoraToShelf(work) })
         case .moduleBook(let book):
             if shelfCopy(of: version) != nil { return added }
-            return BookDetailAction(title: localized("加入書架"), systemImage: "plus",
+            return BookDetailAction(title: localized("加入书架"), systemImage: "plus",
                                     isBusy: actions.action == .addToShelf, isEnabled: actions.action == nil,
                                     action: { addModuleBookToShelf(book) })
         }
@@ -696,7 +696,7 @@ struct WorkDetailView: View {
                 Text(message)
                     .font(DSFont.subheadline)
                     .foregroundStyle(DSColor.destructive)
-                Button(localized("重試")) { Task { await loadGutenberg(book, key: selected.nodeKey) } }
+                Button(localized("重试")) { Task { await loadGutenberg(book, key: selected.nodeKey) } }
             }
             .frame(maxWidth: .infinity)
             .padding(.horizontal, DSSpacing.lg)
@@ -717,16 +717,16 @@ struct WorkDetailView: View {
                         actions.clearMessage()
                     })) : nil))
             if let size = format.size, size > 0 {
-                result.append(BookDetailInfoItem(id: "size", label: localized("檔案大小"),
+                result.append(BookDetailInfoItem(id: "size", label: localized("档案大小"),
                                                  value: ByteCountFormatter.string(fromByteCount: size, countStyle: .file)))
             }
         }
         if case .aozora(let work) = version.opening {
-            // 青空文庫's bibliography, which stood under 簡介 until it moved here (2026-10-12).
+            // 青空文库's bibliography, which stood under 简介 until it moved here (2026-10-12).
             let bibliography: [(id: String, label: String, value: String)] = [
-                ("subtitle", localized("副標題"), work.subtitle), ("yomi", localized("讀音"), work.yomi),
+                ("subtitle", localized("副标题"), work.subtitle), ("yomi", localized("读音"), work.yomi),
                 ("basis", localized("底本"), work.source), ("publisher", localized("出版社"), work.sourcePublisher),
-                ("published", localized("公開日"), work.published), ("kana", localized("文字遣い種別"), work.kanaStyle),
+                ("published", localized("公开日"), work.published), ("kana", localized("文字遣い種別"), work.kanaStyle),
             ]
             result += bibliography.filter { !$0.value.isEmpty }.map {
                 BookDetailInfoItem(id: $0.id, label: $0.label, value: $0.value)
@@ -735,43 +735,43 @@ struct WorkDetailView: View {
         return result
     }
 
-    /// 來源: the version shown, switched in place from its menu when the work has others. The
+    /// 来源: the version shown, switched in place from its menu when the work has others. The
     /// work's own page searches the enabled sources on its own (7b-2) — what it finds joins the
     /// menu, and how the search stands is the row's second line (maintainer, 2026-10-17: one row,
-    /// 「來源」; it is automatic, so no 「尋找可用來源」 of its own). Not on the page a reader opened:
+    /// 「来源」; it is automatic, so no 「寻找可用来源」 of its own). Not on the page a reader opened:
     /// it shows that reader's book only (decision 32).
     private func sourceItem(_ version: WorkDetailRoute) -> BookDetailInfoItem {
         let choice = versionChoice(version)
         guard readerContext == nil else {
-            return BookDetailInfoItem(id: "source", label: localized("來源"), value: sourceName(of: version),
-                                      detail: choice == nil ? nil : localized("換源"), choice: choice,
-                                      accessibilityInputLabels: choice == nil ? [] : [localized("換源")])
+            return BookDetailInfoItem(id: "source", label: localized("来源"), value: sourceName(of: version),
+                                      detail: choice == nil ? nil : localized("换源"), choice: choice,
+                                      accessibilityInputLabels: choice == nil ? [] : [localized("换源")])
         }
         let status = searchStatus
         let followUp: (title: String, action: () -> Void)? = switch finder.state {
-        case .done(more: true): (localized("繼續搜索"), { finder.resume() })
-        case .failed: (localized("重試"), findSources)
+        case .done(more: true): (localized("继续搜索"), { finder.resume() })
+        case .failed: (localized("重试"), findSources)
         case .idle, .searching, .done, .noSources: nil
         }
         if var choice {
             choice.extra = followUp
-            return BookDetailInfoItem(id: "source", label: localized("來源"), value: sourceName(of: version),
-                                      detail: status.isEmpty ? localized("換源") : status, choice: choice,
-                                      accessibilityInputLabels: [localized("換源")], spokenDetail: status.isEmpty ? nil : status)
+            return BookDetailInfoItem(id: "source", label: localized("来源"), value: sourceName(of: version),
+                                      detail: status.isEmpty ? localized("换源") : status, choice: choice,
+                                      accessibilityInputLabels: [localized("换源")], spokenDetail: status.isEmpty ? nil : status)
         }
-        return BookDetailInfoItem(id: "source", label: localized("來源"), value: sourceName(of: version),
+        return BookDetailInfoItem(id: "source", label: localized("来源"), value: sourceName(of: version),
                                   detail: followUp.map { "\(status) · \($0.title)" } ?? (status.isEmpty ? nil : status),
                                   action: followUp?.action, spokenDetail: status.isEmpty ? nil : status)
     }
 
-    /// How the automatic search stands: 「搜尋來源配置中…」, 「找到 2 個來源」, nothing yet.
+    /// How the automatic search stands: 「搜寻来源配置中…」, 「找到 2 个来源」, nothing yet.
     private var searchStatus: String {
         finder.state.findSourcesValue(added: versions.count - listed.count, versionsLoaded: versionsLoaded,
                                       hasReadable: WorkVersions.primary(in: versions) != nil)
     }
 
     /// The work's own page searches once its versions are read: not a reader's page, which shows
-    /// that reader's book only, and not a book source's page, whose 換源 searches for itself.
+    /// that reader's book only, and not a book source's page, whose 换源 searches for itself.
     private var findsOnOpen: Bool {
         guard readerContext == nil, versionsLoaded, let selected else { return false }
         return onlineBook(of: selected) == nil
@@ -792,7 +792,7 @@ struct WorkDetailView: View {
     }
 
     /// The work's versions, `version` selected; nil when it is the only one. A book-source
-    /// version's page lists the others in its 換源 sheet.
+    /// version's page lists the others in its 换源 sheet.
     private func versionChoice(_ version: WorkDetailRoute) -> BookDetailInfoChoice? {
         guard versions.count > 1 else { return nil }
         return BookDetailInfoChoice(
@@ -807,8 +807,8 @@ struct WorkDetailView: View {
         [sourceName(of: version), status(of: version)].compactMap { $0 }.joined(separator: " · ")
     }
 
-    /// What a library item offers besides reading and shelving: 編輯遠端資料, and the library's
-    /// record of where the reader is. 下載供離線閱讀, the library's own web page and the note on
+    /// What a library item offers besides reading and shelving: 编辑远端资料, and the library's
+    /// record of where the reader is. 下载供离线阅读, the library's own web page and the note on
     /// what reading and shelving do were taken off on 2026-10-12 (maintainer: this page is where
     /// the book is read, not the library's control panel).
     /// Nothing at all when the item offers none of them, so no empty gap is left in the page.
@@ -818,18 +818,18 @@ struct WorkDetailView: View {
         let editable = writeCapabilities.map { $0.canEditMetadata || $0.canMove } ?? false
         let syncedCopy: ReadingBook? = if connections.connection(id: item.connectionID)?.syncProgress == true,
                                           selectedFormat(of: version)?.fileExtension == "epub",
-                                          // Not the copy 目錄 made ahead of reading: nothing of it was read.
+                                          // Not the copy 目录 made ahead of reading: nothing of it was read.
                                           let copy = libraryCopy, copy.isInBookshelf || copy.lastOpenedDate != nil { copy } else { nil }
         if unsupported || editable || syncedCopy != nil {
             VStack(alignment: .leading, spacing: 0) {
                 if unsupported {
-                    Label(localized("此格式暫不支援閱讀"), systemImage: "doc.badge.ellipsis")
+                    Label(localized("此格式暂不支援阅读"), systemImage: "doc.badge.ellipsis")
                         .font(DSFont.body)
                         .foregroundStyle(DSColor.textSecondary)
                         .frame(minHeight: DSLayout.minimumTapTarget)
                 }
                 if editable {
-                    WorkDetailActionRow(title: localized("編輯遠端資料"), systemImage: "pencil") { pushed = .editor }
+                    WorkDetailActionRow(title: localized("编辑远端资料"), systemImage: "pencil") { pushed = .editor }
                         .disabled(actions.action != nil)
                 }
                 if let book = syncedCopy {
@@ -843,7 +843,7 @@ struct WorkDetailView: View {
 
     /// The description of the version shown (decision 33): a shelf copy's, by `CopyMetadata`
     /// (the reader's own, its file's, then its library's, the item's newest, as they are; one
-    /// filled from another place in 中繼資料語言偏好推薦's script); else the library item's own,
+    /// filled from another place in 中继资料语言偏好推荐's script); else the library item's own,
     /// else what the card had, in that script, or that it has none in it (2026-10-25).
     private var intro: MetadataDisplay.Blurb? {
         let itemText = selected.flatMap(libraryItem(of:))?.summary
@@ -870,39 +870,39 @@ struct WorkDetailView: View {
         case .opdsEntry(_, let id), .webDAVFile(_, let id):
             connections.connection(id: id)?.name ?? id
         case .gutenberg: localized("Project Gutenberg")
-        case .aozora: localized("青空文庫")
+        case .aozora: localized("青空文库")
         case .moduleBook(let book): moduleTitle(book.reference.moduleID)
         case .onlineBook(let frozen): frozen.book.sourceName
         case .bibliographic: FilledMetadata.providerName(version.record.key.instance)
         }
     }
 
-    /// Where a copy on the shelf came from: 「書架」 names only a book that is the copy alone
+    /// Where a copy on the shelf came from: 「书架」 names only a book that is the copy alone
     /// (an imported file), never one taken from a library or a source (maintainer, 2026-10-12).
     private func copySourceName(_ key: SourceItemKey, copy: ReadingBook?) -> String {
         switch key.instance.type {
-        case .aozora: localized("青空文庫")
+        case .aozora: localized("青空文库")
         case .gutenberg: localized("Project Gutenberg")
-        case .opds, .calibre, .webDAV: connections.connection(id: key.instance.id)?.name ?? localized("書架")
+        case .opds, .calibre, .webDAV: connections.connection(id: key.instance.id)?.name ?? localized("书架")
         case .bookSource:
             copy?.bookSourceId.flatMap { BookSourceStore.shared.source(id: $0)?.bookSourceName }
-                .flatMap { $0.isEmpty ? nil : $0 } ?? localized("書架")
+                .flatMap { $0.isEmpty ? nil : $0 } ?? localized("书架")
         case .module: moduleTitle(key.instance.id)
-        case .library, .bibliographic: localized("書架")
+        case .library, .bibliographic: localized("书架")
         }
     }
 
-    /// A module's title, or 模組 once it was removed.
+    /// A module's title, or 模组 once it was removed.
     private func moduleTitle(_ id: String) -> String {
-        RuleModuleLibrary.shared.installed(id: id)?.module.title ?? localized("模組")
+        RuleModuleLibrary.shared.installed(id: id)?.module.title ?? localized("模组")
     }
 
     private func status(of version: WorkDetailRoute) -> String? {
         if case .copy(let id) = version.opening {
             return copy(id).map(BookshelfAccessibility.readingStatus(for:))
         }
-        if case .bibliographic = version.opening { return localized("只有資料") }
-        if !version.isReadable { return localized("此格式暫不支援閱讀") }
+        if case .bibliographic = version.opening { return localized("只有资料") }
+        if !version.isReadable { return localized("此格式暂不支援阅读") }
         return store.copyLookup().status(for: version.record.key)?.title
     }
 
@@ -916,7 +916,7 @@ struct WorkDetailView: View {
         store.copyLookup().copies(for: .copy(id)).first
     }
 
-    /// The copy 開始閱讀／繼續閱讀 opens for the version shown: its progress is the page's.
+    /// The copy 开始阅读／继续阅读 opens for the version shown: its progress is the page's.
     /// A public library's book has one copy, found by the book alone, so a Gutenberg book's
     /// is read without its catalog entry (offline too); another library's is the copy of the
     /// format shown.
@@ -996,7 +996,7 @@ struct WorkDetailView: View {
         return format.isSupported ? name : name + " · " + localized("不支援")
     }
 
-    /// What showing a version needs first: a Gutenberg book's catalog entry, a 青空文庫 work's
+    /// What showing a version needs first: a Gutenberg book's catalog entry, a 青空文库 work's
     /// catalog for its credits, a library connection's write capabilities.
     private func prepare(_ version: WorkDetailRoute?) async {
         writeCapabilities = nil
@@ -1010,7 +1010,7 @@ struct WorkDetailView: View {
             do {
                 writeCapabilities = try await dependencies.remoteLibraryWriting.capabilities(connectionID: connectionID, directoryURL: nil)
             } catch {
-                // Reading does not wait on it: 編輯遠端資料 is left out, as the library page did.
+                // Reading does not wait on it: 编辑远端资料 is left out, as the library page did.
                 AppLogger.network("Remote library write capabilities failed", error: SourceFailure.loggable(error),
                                   context: ["connection": connectionID])
             }
@@ -1077,14 +1077,14 @@ struct WorkDetailView: View {
     private func addAozoraToShelf(_ work: AozoraWork) {
         actions.begin(.addToShelf) { [dependencies, store] in
             _ = try await dependencies.aozoraLibrary.addToShelf(work: work, store: store)
-            return localized("已加入書架")
+            return localized("已加入书架")
         }
     }
 
     private func addModuleBookToShelf(_ book: ModuleBook) {
         actions.begin(.addToShelf) { [dependencies, store] in
             _ = try await dependencies.moduleBooks.addToShelf(book, store: store)
-            return localized("已加入書架")
+            return localized("已加入书架")
         }
     }
 
@@ -1115,11 +1115,11 @@ struct WorkDetailView: View {
 }
 
 private extension SourceItemKey {
-    /// A `Picker` tag for 來源's menu.
+    /// A `Picker` tag for 来源's menu.
     var pickerID: String { "\(instance.type.rawValue)|\(instance.id)|\(item)" }
 }
 
-/// One of a library item's further actions on its 作品詳情 (編輯遠端資料).
+/// One of a library item's further actions on its 作品详情 (编辑远端资料).
 private struct WorkDetailActionRow: View {
     let title: String
     let systemImage: String
@@ -1136,25 +1136,25 @@ private struct WorkDetailActionRow: View {
 }
 
 extension WorkSourceFinder.State {
-    /// 「尋找可用來源」's value. Before a search, a work with no readable version says so
-    /// (AI 推薦 decision 4), once its versions are read: shelf copies arrive after the page opens.
+    /// 「寻找可用来源」's value. Before a search, a work with no readable version says so
+    /// (AI 推荐 decision 4), once its versions are read: shelf copies arrive after the page opens.
     func findSourcesValue(added: Int, versionsLoaded: Bool, hasReadable: Bool) -> String {
         switch self {
         case .idle:
-            versionsLoaded && !hasReadable ? localized("未找到可用來源") : ""
+            versionsLoaded && !hasReadable ? localized("未找到可用来源") : ""
         case .searching:
-            localized("搜尋來源配置中…")
+            localized("搜寻来源配置中…")
         case .done:
-            added > 0 ? String(format: localized("找到 %d 個來源"), added) : localized("未找到其他來源配置")
+            added > 0 ? String(format: localized("找到 %d 个来源"), added) : localized("未找到其他来源配置")
         case .failed:
-            localized("搜索失敗")
+            localized("搜索失败")
         case .noSources:
-            localized("沒有可用的來源配置，請先啟用來源配置")
+            localized("没有可用的来源配置，请先启用来源配置")
         }
     }
 }
 
-#Preview("作品詳情") {
+#Preview("作品详情") {
     let book = PublicLibraryCollection.chinese.books[0]
     NavigationStack {
         WorkDetailView(route: WorkDetailRoute(.gutenberg(book)))
@@ -1162,24 +1162,24 @@ extension WorkSourceFinder.State {
     .environmentObject(BookStore())
 }
 
-#Preview("作品詳情 · AI 推薦") {
-    // An AI pick Open Library did not match: data only, its reason under 推薦理由.
-    let record = SourceRecord(key: SourceItemKey(instance: AIRecommendationProvider.recordInstance, item: "十二國記"),
-                              title: "十二國記", authors: ["小野不由美"], language: nil, contentKind: .text,
+#Preview("作品详情 · AI 推荐") {
+    // An AI pick Open Library did not match: data only, its reason under 推荐理由.
+    let record = SourceRecord(key: SourceItemKey(instance: AIRecommendationProvider.recordInstance, item: "十二国记"),
+                              title: "十二国记", authors: ["小野不由美"], language: nil, contentKind: .text,
                               identifiers: [], copyID: nil, acquisitions: [.viewOnly])
     NavigationStack {
         WorkDetailView(route: WorkDetailRoute(
             record: record,
-            summary: WorkSummary(title: "十二國記", authors: ["小野不由美"], cover: .generated(seed: "十二國記"),
+            summary: WorkSummary(title: "十二国记", authors: ["小野不由美"], cover: .generated(seed: "十二国记"),
                                  blurb: nil, language: nil, contentKind: .text),
             opening: .bibliographic,
-            recommendationReason: "你最近讀了不少架空奇幻，這部以十二個國家為舞台的群像小說節奏紮實。"))
+            recommendationReason: "你最近读了不少架空奇幻，这部以十二个国家为舞台的群像小说节奏扎实。"))
     }
     .environmentObject(BookStore())
 }
 
-#Preview("作品詳情 · WebDAV") {
-    let entry = WebDAVBrowseClient.Entry(url: URL(string: "https://dav.example.com/books/三體.epub")!, name: "三體.epub",
+#Preview("作品详情 · WebDAV") {
+    let entry = WebDAVBrowseClient.Entry(url: URL(string: "https://dav.example.com/books/三体.epub")!, name: "三体.epub",
                                          isDirectory: false, size: 1_048_576, etag: nil, lastModified: nil)
     NavigationStack {
         if let route = WorkDetailRoute(webDAV: entry, connectionID: "preview", root: URL(string: "https://dav.example.com/books/")!) {
@@ -1189,23 +1189,23 @@ extension WorkSourceFinder.State {
     .environmentObject(BookStore())
 }
 
-#Preview("作品詳情 · 來源") {
-    // 來源 as 作品資訊 shows it while the automatic search runs, after it, and when it failed.
+#Preview("作品详情 · 来源") {
+    // 来源 as 作品资讯 shows it while the automatic search runs, after it, and when it failed.
     @Previewable @State var version = "local"
-    let versions = BookDetailInfoChoice(options: [.init(id: "local", title: "本機"), .init(id: "a", title: "書山聚合 · 可閱讀")],
+    let versions = BookDetailInfoChoice(options: [.init(id: "local", title: "本机"), .init(id: "a", title: "书山聚合 · 可阅读")],
                                         selection: $version)
     ScrollView {
         BookDetailInfoSection(items: [
-            BookDetailInfoItem(id: "searching", label: localized("來源"), value: "本機", detail: localized("搜尋來源配置中…"),
-                               spokenDetail: localized("搜尋來源配置中…")),
-            BookDetailInfoItem(id: "found", label: localized("來源"), value: "本機",
-                               detail: String(format: localized("找到 %d 個來源"), 1), choice: versions,
-                               spokenDetail: String(format: localized("找到 %d 個來源"), 1)),
-            BookDetailInfoItem(id: "unreadable", label: localized("來源"), value: localized("只有資料"),
-                               detail: localized("未找到可用來源"), spokenDetail: localized("未找到可用來源")),
-            BookDetailInfoItem(id: "failed", label: localized("來源"), value: "本機",
-                               detail: "\(localized("搜索失敗")) · \(localized("重試"))", action: {},
-                               spokenDetail: localized("搜索失敗")),
+            BookDetailInfoItem(id: "searching", label: localized("来源"), value: "本机", detail: localized("搜寻来源配置中…"),
+                               spokenDetail: localized("搜寻来源配置中…")),
+            BookDetailInfoItem(id: "found", label: localized("来源"), value: "本机",
+                               detail: String(format: localized("找到 %d 个来源"), 1), choice: versions,
+                               spokenDetail: String(format: localized("找到 %d 个来源"), 1)),
+            BookDetailInfoItem(id: "unreadable", label: localized("来源"), value: localized("只有资料"),
+                               detail: localized("未找到可用来源"), spokenDetail: localized("未找到可用来源")),
+            BookDetailInfoItem(id: "failed", label: localized("来源"), value: "本机",
+                               detail: "\(localized("搜索失败")) · \(localized("重试"))", action: {},
+                               spokenDetail: localized("搜索失败")),
         ])
     }
 }

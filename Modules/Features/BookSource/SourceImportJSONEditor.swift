@@ -3,7 +3,7 @@ import SwiftUI
 // MARK: - SourceImportJSONEditor
 
 /// Edits one row of an import confirmation list before it is written — Legado's `CodeDialog`
-/// reached from each row's 「開啟」.
+/// reached from each row's 「开启」.
 ///
 /// The point is to fix a source *as it arrives*: a pack's entry with a stale domain or a
 /// wrong header can be corrected here instead of being imported and then edited, or skipped
@@ -34,7 +34,7 @@ struct SourceImportJSONEditor: View {
                         Image(systemName: "exclamationmark.triangle.fill")
                             .foregroundColor(DSColor.warning)
                             .accessibilityHidden(true)
-                        Text(localized("這段 JSON 無法解析，請修正後再儲存。"))
+                        Text(localized("这段 JSON 无法解析，请修正后再储存。"))
                             .font(DSFont.caption)
                             .foregroundColor(DSColor.textSecondary)
                     }
@@ -56,7 +56,7 @@ struct SourceImportJSONEditor: View {
                     .background(DSColor.surfaceTertiary)
                     .clipShape(RoundedRectangle(cornerRadius: DSRadius.lg))
                     .padding(DSSpacing.md)
-                    .accessibilityLabel(localized("來源 JSON"))
+                    .accessibilityLabel(localized("来源 JSON"))
             }
             .navigationTitle(title)
             .toolbarTitleDisplayMode(.inline)
@@ -90,10 +90,10 @@ struct SourceImportJSONEditor: View {
 
 #Preview {
     SourceImportJSONEditor(
-        title: "示例來源配置",
+        title: "示例来源配置",
         initialJSON: """
         {
-          "bookSourceName" : "示例來源配置",
+          "bookSourceName" : "示例来源配置",
           "bookSourceUrl" : "https://example.com"
         }
         """,

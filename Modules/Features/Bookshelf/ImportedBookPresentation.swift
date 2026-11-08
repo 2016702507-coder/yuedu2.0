@@ -12,7 +12,7 @@ struct ImportedBookPresentation: UIViewControllerRepresentable {
     var customizationRequest: SharedCustomizationDocument? = nil
     var didPresentCustomization: (UUID) -> Void = { _ in }
     /// Reads a shared customization file into an import plan. `ContentView` routes it
-    /// through the drainer so the 匯入中 indicator is up while it runs.
+    /// through the drainer so the 汇入中 indicator is up while it runs.
     var readCustomization: (SharedCustomizationDocument) async throws -> SharedCustomizationImportService.Plan = {
         try await SharedCustomizationImportService.load($0)
     }

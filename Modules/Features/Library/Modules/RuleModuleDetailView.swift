@@ -2,9 +2,9 @@ import CoreTransferable
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// A module's page (Phase 6e), pushed from 資源庫: what it lists, the sites it sends requests to,
-/// where it came from with 檢查更新, and 移除模組. Since M6 its toolbar has 匯出 and 停用, and
-/// 在資源庫中展示 decides whether its card is in 資源庫.
+/// A module's page (Phase 6e), pushed from 资源库: what it lists, the sites it sends requests to,
+/// where it came from with 检查更新, and 移除模组. Since M6 its toolbar has 汇出 and 停用, and
+/// 在资源库中展示 decides whether its card is in 资源库.
 struct RuleModuleDetailView: View {
     let moduleID: String
     @ObservedObject var library: RuleModuleLibrary
@@ -28,12 +28,12 @@ struct RuleModuleDetailView: View {
             if let installed = library.installed(id: moduleID) {
                 page(installed)
             } else if library.isLoaded {
-                ContentUnavailableView { UnavailableLabel(localized("找不到這個模組。"), systemImage: "puzzlepiece.extension") }
+                ContentUnavailableView { UnavailableLabel(localized("找不到这个模组。"), systemImage: "puzzlepiece.extension") }
             } else {
                 ProgressView()
             }
         }
-        .navigationTitle(library.installed(id: moduleID)?.module.title ?? localized("模組"))
+        .navigationTitle(library.installed(id: moduleID)?.module.title ?? localized("模组"))
         .toolbarTitleDisplayMode(.inline)
         .themedAppSurface(for: .settings)
         .toolbar {
@@ -43,14 +43,14 @@ struct RuleModuleDetailView: View {
                     ToolbarItem(placement: .topBarTrailing) {
                         ShareLink(item: RuleModuleExport(file: file, id: installed.module.id),
                                   preview: SharePreview(installed.module.title)) {
-                            Text(localized("匯出"))
+                            Text(localized("汇出"))
                         }
                         .accessibilityIdentifier("module.export")
                     }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     let enabled = library.isEnabled(moduleID)
-                    Button(localized(enabled ? "停用" : "模組：啟用")) {
+                    Button(localized(enabled ? "停用" : "模组：启用")) {
                         library.setEnabled(!enabled, id: moduleID)
                     }
                     .accessibilityIdentifier("module.enabled")
@@ -67,7 +67,7 @@ struct RuleModuleDetailView: View {
                     Label(localized("已停用"), systemImage: "pause.circle")
                         .foregroundStyle(DSColor.textPrimary)
                 } footer: {
-                    Text(localized("停用時不會用它搜尋或補資料，首頁也不顯示它的欄目；它的書要啟用後才能讀。")).dsSectionFooter()
+                    Text(localized("停用时不会用它搜寻或补资料，首页也不显示它的栏目；它的书要启用后才能读。")).dsSectionFooter()
                 }
                 .interfaceSectionSurface()
             }
@@ -77,7 +77,7 @@ struct RuleModuleDetailView: View {
             Section {
                 Toggle(isOn: Binding(get: { library.isShownInLibrary(moduleID) },
                                      set: { library.setShownInLibrary($0, id: moduleID) })) {
-                    Text(localized("在資源庫中展示")).foregroundStyle(DSColor.textPrimary)
+                    Text(localized("在资源库中展示")).foregroundStyle(DSColor.textPrimary)
                 }
                 .disabled(!library.isEnabled(moduleID))
                 .accessibilityIdentifier("module.showsInLibrary")
@@ -92,19 +92,19 @@ struct RuleModuleDetailView: View {
         }
         .softScrollEdges()
         .sheet(isPresented: $showsUpdate) {
-            RuleModuleImportSheet(model: updates, title: localized("檢查更新"))
+            RuleModuleImportSheet(model: updates, title: localized("检查更新"))
         }
         .confirmationDialog(String(format: localized("移除「%@」？"), installed.module.title),
                             isPresented: $confirmsRemoval, titleVisibility: .visible) {
-            Button(localized("移除模組"), role: .destructive) {
+            Button(localized("移除模组"), role: .destructive) {
                 Task { await remove() }
             }
             Button(localized("取消"), role: .cancel) {}
         } message: {
-            Text(localized("它的快取會一起刪除。"))
+            Text(localized("它的快取会一起删除。"))
         }
-        .alert(localized("操作失敗"), isPresented: Binding(get: { removalFailure != nil }, set: { if !$0 { removalFailure = nil } })) {
-            Button(localized("確定"), role: .cancel) {}
+        .alert(localized("操作失败"), isPresented: Binding(get: { removalFailure != nil }, set: { if !$0 { removalFailure = nil } })) {
+            Button(localized("确定"), role: .cancel) {}
         } message: {
             Text(removalFailure ?? "")
         }
@@ -113,9 +113,9 @@ struct RuleModuleDetailView: View {
     /// Bundled with the app (M2): nothing to update or remove, so the page says how to stop using it.
     private var officialSection: some View {
         Section {
-            Text(localized("官方模組")).foregroundStyle(DSColor.textPrimary)
+            Text(localized("官方模组")).foregroundStyle(DSColor.textPrimary)
         } footer: {
-            Text(localized("隨閱讀一起更新，不能移除；不想用時，在「搜尋來源」和「資料來源」取消勾選。")).dsSectionFooter()
+            Text(localized("随阅读一起更新，不能移除；不想用时，在「搜寻来源」和「资料来源」取消勾选。")).dsSectionFooter()
         }
         .interfaceSectionSurface()
     }
@@ -132,15 +132,15 @@ struct RuleModuleDetailView: View {
                     showsUpdate = true
                     Task { await updates.checkForUpdate(installed) }
                 } label: {
-                    SettingsRowLabel(localized("檢查更新"), systemImage: "arrow.triangle.2.circlepath", role: .action)
+                    SettingsRowLabel(localized("检查更新"), systemImage: "arrow.triangle.2.circlepath", role: .action)
                 }
                 .accessibilityIdentifier("module.checkUpdate")
             }
         } header: {
-            Text(localized("訂閱網址")).foregroundStyle(DSColor.textSecondary)
+            Text(localized("订阅网址")).foregroundStyle(DSColor.textSecondary)
         } footer: {
             if installed.subscriptionURL == nil {
-                Text(localized("從檔案或剪貼簿加入的模組沒有訂閱網址，無法檢查更新。")).dsSectionFooter()
+                Text(localized("从档案或剪贴簿加入的模组没有订阅网址，无法检查更新。")).dsSectionFooter()
             }
         }
         .interfaceSectionSurface()
@@ -149,7 +149,7 @@ struct RuleModuleDetailView: View {
             Button(role: .destructive) {
                 confirmsRemoval = true
             } label: {
-                SettingsRowLabel(localized("移除模組"), systemImage: "trash", role: .destructive)
+                SettingsRowLabel(localized("移除模组"), systemImage: "trash", role: .destructive)
             }
             .accessibilityIdentifier("module.remove")
         }
@@ -169,7 +169,7 @@ struct RuleModuleDetailView: View {
 
 #Preview("A module's page") {
     NavigationStack {
-        RuleModuleDetailView(moduleID: "example.newbooks", library: RuleModulePreviewData.library(["新書速報"]))
+        RuleModuleDetailView(moduleID: "example.newbooks", library: RuleModulePreviewData.library(["新书速报"]))
     }
 }
 
@@ -179,7 +179,7 @@ struct RuleModuleDetailView: View {
     }
 }
 
-/// A module's file as 匯出 sends it: named after the module, not the store's `module.json`.
+/// A module's file as 汇出 sends it: named after the module, not the store's `module.json`.
 struct RuleModuleExport: Transferable {
     let file: URL
     let id: String

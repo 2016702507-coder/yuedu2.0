@@ -4,14 +4,14 @@ import SwiftUI
 
 /// The surface every floating element in the app sits on — the mini player, the
 /// reader's toolbars, control bars and quick panels. One entry point so the two
-/// knobs in 外觀主題 › 界面效果 reach all of them:
+/// knobs in 外观主题 › 界面效果 reach all of them:
 ///
 /// - **毛玻璃** + **透明度** — whether the surface blurs what is behind it, and how
 ///   much of that blur shows through. Transparency 100% leaves the material
 ///   untouched (the app's original look); below that an opaque fill fades in over
 ///   the blur, so the slider is continuous and legibility only improves as it
 ///   drops. With the toggle off the surface is that fill alone.
-/// - **光暈** — a tinted glow bleeding out of the surface's edge, off by default. It
+/// - **光晕** — a tinted glow bleeding out of the surface's edge, off by default. It
 ///   layers on top of whatever drop shadow the caller already has rather than
 ///   replacing it, so a floating element keeps its depth with the glow off.
 extension View {
@@ -23,7 +23,7 @@ extension View {
     ///     毛玻璃 off. Reader chrome passes `readerTheme.barColor`; app chrome
     ///     defaults to `DSColor.surface`.
     ///   - glowTint: Glow color. Defaults to the colour picked in 界面效果, else the
-    ///     active app theme's accent, so the glow follows 外觀主題 without every
+    ///     active app theme's accent, so the glow follows 外观主题 without every
     ///     caller restating it.
     func floatingSurface<SurfaceShape: Shape>(
         in shape: SurfaceShape,
@@ -33,10 +33,10 @@ extension View {
         modifier(FloatingSurfaceModifier(shape: shape, fill: fill, glowTint: glowTint))
     }
 
-    /// The floating surface without the 光暈, for a surface something else clips —
+    /// The floating surface without the 光晕, for a surface something else clips —
     /// a glow drawn behind it could never show past the clip anyway.
     ///
-    /// 現代's book card is the caller: its surface is the popover's, handed over
+    /// 现代's book card is the caller: its surface is the popover's, handed over
     /// through `presentationBackground`, and the popover clips it to its own
     /// rounded shape and cuts the arrow out of it.
     ///
@@ -50,7 +50,7 @@ extension View {
         modifier(InterfaceSurfaceModifier(shape: shape, fill: fill, glassAllowed: true))
     }
 
-    /// The 光暈 alone, for elements that already own their background and only need
+    /// The 光晕 alone, for elements that already own their background and only need
     /// the glow (e.g. chrome painted with an opaque theme color).
     func interfaceGlow<SurfaceShape: Shape>(
         in shape: SurfaceShape,
@@ -63,13 +63,13 @@ extension View {
     /// single row) in place of a hardcoded `DSColor.surface` row background.
     ///
     /// - Parameter fill: The opaque card color — what the section looks like with
-    ///   分組卡片 off, and the fill 透明度 fades in over the glass.
+    ///   分组卡片 off, and the fill 透明度 fades in over the glass.
     func interfaceSectionSurface(fill: Color = DSColor.surface) -> some View {
         modifier(InterfaceSectionSurfaceModifier(fill: fill))
     }
 
     /// The surface a hand-drawn card sits on — settings rows built as buttons or
-    /// stacks rather than list rows, stat cards, detail-page cards, 書架's 接着讀.
+    /// stacks rather than list rows, stat cards, detail-page cards, 书架's 接着读.
     /// Same material as `interfaceSectionSurface()` and always glass, so a page's
     /// cards and its settings rows cannot drift into two different looks; this one
     /// attaches as a background because there is no list row to hand it to.
@@ -101,7 +101,7 @@ private struct InterfaceSurfaceModifier<SurfaceShape: Shape>: ViewModifier {
     let fill: Color
     /// The caller's own gate. Floating chrome passes `true` — it is the functional
     /// layer, where the system design puts glass unconditionally. Content-layer
-    /// cards pass 分組卡片, which is opt-in.
+    /// cards pass 分组卡片, which is opt-in.
     let glassAllowed: Bool
 
     @Bindable private var settings = GlobalSettings.shared
@@ -133,7 +133,7 @@ private struct InterfaceSurfaceModifier<SurfaceShape: Shape>: ViewModifier {
         if usesFrostedGlass {
             // Card artwork is the card's *paint*, not what the card is made of. It used
             // to replace the whole surface, so a pack carrying a plain white card
-            // background (山风 - 春水漾) left 分組卡片 and every floating control opaque
+            // background (山风 - 春水漾) left 分组卡片 and every floating control opaque
             // white no matter how 毛玻璃 and 透明度 were set. The artwork now takes the
             // plain fill's place over the glass and fades with 透明度 the same way.
             if let cardLayer {
@@ -226,10 +226,10 @@ private struct InterfaceCardSurfaceModifier<SurfaceShape: Shape>: ViewModifier {
 
     /// Glass is unconditional, like `interfaceSectionSurface`'s rows.
     ///
-    /// It used to ride 分組卡片, which shipped off by Apple's rule that Liquid Glass belongs
-    /// to the functional layer — so every hand-drawn card in the app (書架's 接着讀, 首頁's
-    /// sheets, 探索's tiles) stayed opaque while 設定's rows were glass. Two surfaces on one
-    /// screen, which is the 不一致 the maintainer called out on 2026-11-07: 書架 also has to be
+    /// It used to ride 分组卡片, which shipped off by Apple's rule that Liquid Glass belongs
+    /// to the functional layer — so every hand-drawn card in the app (书架's 接着读, 首页's
+    /// sheets, 探索's tiles) stayed opaque while 设置's rows were glass. Two surfaces on one
+    /// screen, which is the 不一致 the maintainer called out on 2026-11-07: 书架 also has to be
     /// glass, and every page has to share one structure. Reduce Transparency inside
     /// `InterfaceSurfaceModifier` still wins, so an opaque card is always one system setting
     /// away rather than a per-app toggle.
@@ -244,8 +244,8 @@ private struct InterfaceCardSurfaceModifier<SurfaceShape: Shape>: ViewModifier {
     }
 }
 
-/// Content-layer cards, one pane of glass per row (maintainer, 2026-11-04: 設定 的每一行
-/// 都做成參考稿最右邊那種玻璃卡片).
+/// Content-layer cards, one pane of glass per row (maintainer, 2026-11-04: 设置 的每一行
+/// 都做成参考稿最右边那种玻璃卡片).
 ///
 /// A section's rows used to share one long card: `listRowBackground` painted a plain
 /// rectangle and the list rounded the section as a whole. Now the rectangle is a
@@ -254,7 +254,7 @@ private struct InterfaceCardSurfaceModifier<SurfaceShape: Shape>: ViewModifier {
 /// same reason, they would draw lines across the gaps.
 ///
 /// Glass is unconditional here: the maintainer asked for every settings row to be
-/// glass, not just the ones behind 分組卡片. Reduce Transparency still wins inside
+/// glass, not just the ones behind 分组卡片. Reduce Transparency still wins inside
 /// `InterfaceSurfaceModifier`, which falls back to the opaque fill.
 private struct InterfaceSectionSurfaceModifier: ViewModifier {
     let fill: Color
@@ -384,7 +384,7 @@ private struct InterfaceGlowModifier<SurfaceShape: Shape>: ViewModifier {
     }
 }
 
-#Preview("界面效果 — 浮動表面") {
+#Preview("界面效果 — 浮动表面") {
     ZStack {
         LinearGradient(
             colors: [DSColor.accent.opacity(0.35), DSColor.groupedBackground],
@@ -394,7 +394,7 @@ private struct InterfaceGlowModifier<SurfaceShape: Shape>: ViewModifier {
         .ignoresSafeArea()
 
         VStack(spacing: DSSpacing.xxl) {
-            Text("正文墊在浮動元素後面，檢查毛玻璃是否穿透。")
+            Text("正文垫在浮动元素后面，检查毛玻璃是否穿透。")
                 .font(DSFont.body)
                 .padding(DSSpacing.lg)
 
@@ -404,7 +404,7 @@ private struct InterfaceGlowModifier<SurfaceShape: Shape>: ViewModifier {
                     .frame(width: 48, height: 48)
                     .floatingSurface(in: Circle())
 
-                Text("浮動工具列")
+                Text("浮动工具列")
                     .font(DSFont.subheadline)
                     .padding(.horizontal, DSSpacing.xl)
                     .padding(.vertical, DSSpacing.md)
@@ -415,11 +415,11 @@ private struct InterfaceGlowModifier<SurfaceShape: Shape>: ViewModifier {
 }
 
 /// Both card kinds over a patterned backdrop — a list section and a hand-drawn card,
-/// which must look identical for 分組卡片 to read as one setting. Toggle 界面效果 ›
-/// 分組卡片 in the running app to see the material switch; the preview deliberately
+/// which must look identical for 分组卡片 to read as one setting. Toggle 界面效果 ›
+/// 分组卡片 in the running app to see the material switch; the preview deliberately
 /// reads the live setting rather than forcing it, so what shows here is what the
 /// user's own device shows.
-#Preview("界面效果 — 分組卡片") {
+#Preview("界面效果 — 分组卡片") {
     ZStack {
         LinearGradient(
             colors: [DSColor.accent.opacity(0.35), DSColor.groupedBackground],
@@ -432,18 +432,18 @@ private struct InterfaceGlowModifier<SurfaceShape: Shape>: ViewModifier {
             Section {
                 Text("List section")
                     .font(DSFont.body)
-                Text("第二列，檢查列與列之間的接縫")
+                Text("第二列，检查列与列之间的接缝")
                     .font(DSFont.body)
             } footer: {
-                Text("玻璃取樣的是卡片背後的內容，純色主題下與不透明卡片幾乎無異。")
+                Text("玻璃取样的是卡片背后的内容，纯色主题下与不透明卡片几乎无异。")
                     .dsSectionFooter()
             }
             .interfaceSectionSurface()
 
-            // The 外觀主題 pattern: a card drawn by the view, not by the list. It has
+            // The 外观主题 pattern: a card drawn by the view, not by the list. It has
             // to match the section above at every setting.
             Section {
-                Text("自繪卡片")
+                Text("自绘卡片")
                     .font(DSFont.body)
                     .padding(.horizontal, DSSpacing.lg)
                     .padding(.vertical, DSSpacing.lg)

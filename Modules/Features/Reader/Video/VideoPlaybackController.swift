@@ -17,7 +17,7 @@ final class VideoPlaybackController {
         case loading
         case playing
         case paused
-        /// The last episode of the last 線路 has finished.
+        /// The last episode of the last 线路 has finished.
         case ended
         case failed(String)
     }
@@ -103,7 +103,7 @@ final class VideoPlaybackController {
     /// Opens the saved episode at its saved time.
     func start() {
         guard !guide.isEmpty else {
-            phase = .failed(localized("這部影片沒有可播放的集數"))
+            phase = .failed(localized("这部影片没有可播放的集数"))
             return
         }
         AudioSessionActivator.activate(category: .playback, mode: .moviePlayback)
@@ -261,7 +261,7 @@ final class VideoPlaybackController {
                 load(at: currentTime)
             } else {
                 AppLogger.info("[Video] episode failed to play: \(error ?? "-")", level: .error)
-                phase = .failed(error ?? localized("無法播放這一集"))
+                phase = .failed(error ?? localized("无法播放这一集"))
             }
         default:
             break

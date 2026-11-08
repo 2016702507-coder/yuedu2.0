@@ -1,28 +1,28 @@
 import Foundation
 
-// Unified library 5d-3g: 隱藏已讀 (Phase 5 plan, decision 21), one switch since decision 36,
-// as Emby's "Hide fully played content". The home's sections of books, all but 繼續閱讀, leave
-// out a book read to the end on this device, by any copy of it: read to the end, or 標記為已讀完
-// (progress 1). The test is the one the shelf uses for 已讀完.
+// Unified library 5d-3g: 隐藏已读 (Phase 5 plan, decision 21), one switch since decision 36,
+// as Emby's "Hide fully played content". The home's sections of books, all but 继续阅读, leave
+// out a book read to the end on this device, by any copy of it: read to the end, or 标记为已读完
+// (progress 1). The test is the one the shelf uses for 已读完.
 
 /// Which sections hide read books, and how to tell one.
 struct HomeReadFilter {
-    /// 聚合設定's 隱藏已讀.
+    /// 聚合设置's 隐藏已读.
     var hides: Bool
     /// Whether an entry's book was read to the end.
     let isRead: (CollectionEntry) -> Bool
 
-    /// Every section of books but 繼續閱讀, as Emby's "Hide fully played content" (decision 36).
+    /// Every section of books but 继续阅读, as Emby's "Hide fully played content" (decision 36).
     func hides(in binding: HomeSectionBinding) -> Bool {
         guard hides else { return false }
         switch binding {
         case .latest, .related, .sourceCategories, .opdsFeed, .gutenbergCollection, .gutenbergFeed,
              .gutenbergShelf, .aozoraNew, .module, .aiRecommendations:
             return true
-        // 繼續閱讀 is what is being read. 書架 is the shelf, which keeps a book read to the end.
+        // 继续阅读 is what is being read. 书架 is the shelf, which keeps a book read to the end.
         // 系列下一本 never offers a book read to the end: it offers the one after it. An
-        // article's read state is the RSS tab's. An index's chips and 我的書庫's tiles are not
-        // books, nor are 精選書單's lists. A section of lists hides by each card's own list.
+        // article's read state is the RSS tab's. An index's chips and 我的书库's tiles are not
+        // books, nor are 精选书单's lists. A section of lists hides by each card's own list.
         case .continueReading, .bookshelf, .nextInSeries, .subscriptionArticles, .aozoraIndex, .gutenbergLists, .lists,
              .myLibrary, .unknown:
             return false
@@ -31,7 +31,7 @@ struct HomeReadFilter {
 }
 
 extension ReadingBook {
-    /// 已讀完, as the shelf shows it (`BookshelfAccessibility.readingStatus`).
+    /// 已读完, as the shelf shows it (`BookshelfAccessibility.readingStatus`).
     var isReadToEnd: Bool { currentPosition >= 0.99 }
 }
 

@@ -7,24 +7,24 @@ import Foundation
 // Which side the book's spine is on, so the open animation unfolds toward
 // the correct edge:
 //
-//   - `.leftSpine`  (右開書 / 西式 / LTR): 翻開時左側是書脊,封面從右向左翻
-//     等同於一本裝訂在左側的書,打開時頁面從左往右展開。
-//   - `.rightSpine` (左開書 / 日式直排 / RTL): 書脊在右側,封面從左向右翻,
-//     打開時頁面從右往左展開。
+//   - `.leftSpine`  (右开书 / 西式 / LTR): 翻开时左侧是书脊,封面从右向左翻
+//     等同于一本装订在左侧的书,打开时页面从左往右展开。
+//   - `.rightSpine` (左开书 / 日式直排 / RTL): 书脊在右侧,封面从左向右翻,
+//     打开时页面从右往左展开。
 //
-// 選取依據:直排寫作模式 (verticalRTL) 或 EPUB page-progression rtl 視為
-// 右側書脊;否則左側書脊。
+// 选取依据:直排写作模式 (verticalRTL) 或 EPUB page-progression rtl 视为
+// 右侧书脊;否则左侧书脊。
 
 enum ReaderBookOpeningDirection: Equatable {
     case leftSpine
     case rightSpine
 
-    /// 書由右往左讀（`BookDirection.isRTL`）＝書脊在右。
+    /// 书由右往左读（`BookDirection.isRTL`）＝书脊在右。
     static func resolve(isRTL: Bool) -> ReaderBookOpeningDirection {
         isRTL ? .rightSpine : .leftSpine
     }
 
-    /// 依書本寫作模式與 EPUB 方向決定開書方向。
+    /// 依书本写作模式与 EPUB 方向决定开书方向。
     static func resolve(
         writingMode: ReaderWritingMode,
         pageProgressionIsRTL: Bool
@@ -60,7 +60,7 @@ struct ReaderBookOpeningPose: Equatable {
     let coverShadeOpacity: CGFloat
 
     /// Darkest the cover gets, reached at the peak angle. The maintainer
-    /// chose this from the 2026-10-17 storyboard (Figma "開書卡片轉場").
+    /// chose this from the 2026-10-17 storyboard (Figma "开书卡片转场").
     static let maxCoverShade: CGFloat = 0.38
 
     /// Peak hinge angle (~108°): just past perpendicular, so the cover stays

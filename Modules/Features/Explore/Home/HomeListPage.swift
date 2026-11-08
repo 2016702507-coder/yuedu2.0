@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// A card of a layout of lists whose list has no page of its own (繼續閱讀, 相關, a 書架 group…;
+/// A card of a layout of lists whose list has no page of its own (继续阅读, 相关, a 书架 group…;
 /// `HomeListCards.swift`): the books the card drew, frozen when it was made, as a grid.
 /// A book opens what its card on the home opens (`ExplorePush.card`).
 struct HomeListPage: View {
@@ -19,7 +19,7 @@ struct HomeListPage: View {
             // (`ModuleListPage`). The grid itself is lazy.
             VStack(spacing: DSSpacing.lg) {
                 if cards.isEmpty {
-                    ContentUnavailableView { UnavailableLabel(localized("此目錄沒有內容"), systemImage: "books.vertical") }
+                    ContentUnavailableView { UnavailableLabel(localized("此目录没有内容"), systemImage: "books.vertical") }
                 } else {
                     HomeSectionCards(layout: HomeSectionLayout(style: .coverGrid), cards: cards,
                                      rowID: "home.list.\(route.title)", hasShowAll: false) { card, _ in
@@ -36,17 +36,17 @@ struct HomeListPage: View {
     }
 }
 
-#Preview("卡片的書") {
+#Preview("卡片的书") {
     NavigationStack {
-        HomeListPage(route: HomeListRoute(title: "繼續閱讀", binding: .continueReading,
+        HomeListPage(route: HomeListRoute(title: "继续阅读", binding: .continueReading,
                                           entries: PublicLibraryCollection.all[0].books.prefix(6).map(CollectionEntry.bundledGutenberg)))
     }
     .environmentObject(BookStore())
 }
 
-#Preview("卡片的書：空") {
+#Preview("卡片的书：空") {
     NavigationStack {
-        HomeListPage(route: HomeListRoute(title: "書架", binding: .bookshelf, entries: []))
+        HomeListPage(route: HomeListRoute(title: "书架", binding: .bookshelf, entries: []))
     }
     .environmentObject(BookStore())
 }

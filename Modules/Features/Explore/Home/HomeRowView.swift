@@ -6,27 +6,27 @@ import SwiftUI
 // its own page.
 
 extension HomeSection {
-    /// The section's name, over its row and in 編輯首頁: the one the reader gave it, else its
+    /// The section's name, over its row and in 编辑首页: the one the reader gave it, else its
     /// binding's. `sourceName` names a binding titled by its source (a feed, a category list
     /// with none).
     func displayTitle(sourceName: String) -> String {
         if !title.isEmpty { return title }
         switch binding {
-        case .continueReading: return localized("繼續閱讀")
-        case .bookshelf: return localized("書架")
+        case .continueReading: return localized("继续阅读")
+        case .bookshelf: return localized("书架")
         case .latest: return localized("最新")
-        case .related: return localized("相關")
+        case .related: return localized("相关")
         case .nextInSeries: return localized("系列下一本")
-        case .subscriptionArticles: return localized("訂閱的最新文章")
-        case .aiRecommendations: return localized("AI 推薦")
+        case .subscriptionArticles: return localized("订阅的最新文章")
+        case .aiRecommendations: return localized("AI 推荐")
         // In a layout of lists the cards name their categories: the section is its source's.
         case .sourceCategories(let categories):
             return drawsLists ? sourceName : categories.first?.title ?? sourceName
-        // Lists from one source, by the source; from several, 清單.
-        case .lists: return sourceName.isEmpty ? localized("清單") : sourceName
+        // Lists from one source, by the source; from several, 清单.
+        case .lists: return sourceName.isEmpty ? localized("清单") : sourceName
         case .gutenbergCollection(let id):
             return PublicLibraryCollection.all.first { $0.id == id }.map { localized($0.titleKey) } ?? sourceName
-        case .gutenbergLists: return localized("精選書單")
+        case .gutenbergLists: return localized("精选书单")
         case .gutenbergShelf(let id): return GutenbergShelf.shelf(id: id)?.title ?? sourceName
         case .aozoraNew: return localized(AozoraBrowseMode.newest.titleKey)
         case .aozoraIndex(let kind): return AozoraBrowseMode(rawValue: kind).map { localized($0.titleKey) } ?? sourceName
@@ -36,22 +36,22 @@ extension HomeSection {
 
     /// The line under the name (maintainer, 2026-10-25, after Apple Books' shelves): the one
     /// the reader wrote, else what the binding's books are, for the few whose name does not
-    /// say it. Nil draws none. AI 推薦 says where its books came from itself.
+    /// say it. Nil draws none. AI 推荐 says where its books came from itself.
     var displaySubtitle: String? {
         if !subtitle.isEmpty { return subtitle }
         switch binding {
-        case .nextInSeries: return localized("你讀過的系列，接著讀下一本。")
-        case .related: return localized("書架上同作者、同系列的書。")
-        case .gutenbergLists: return localized("依主題整理的經典名著。")
-        case .gutenbergShelf(let id) where id == "popular": return localized("最多人下載的經典。")
+        case .nextInSeries: return localized("你读过的系列，接著读下一本。")
+        case .related: return localized("书架上同作者、同系列的书。")
+        case .gutenbergLists: return localized("依主题整理的经典名著。")
+        case .gutenbergShelf(let id) where id == "popular": return localized("最多人下载的经典。")
         default: return nil
         }
     }
 }
 
 extension EnvironmentValues {
-    /// The row is the home's 頂部輪播圖 (maintainer, 2026-10-27): its section's books on the band
-    /// at the top of the page, and its long press its own (選擇輪播數據, 關閉輪播圖).
+    /// The row is the home's 顶部轮播图 (maintainer, 2026-10-27): its section's books on the band
+    /// at the top of the page, and its long press its own (选择轮播数据, 关闭轮播图).
     @Entry var homeRowIsCarousel = false
 }
 
@@ -60,9 +60,9 @@ struct HomeRowContent {
     var cards: [HomeCardContent]
     /// Places inside the source (Aozora's index groups, an OPDS navigation feed), as chips.
     var locations: [CollectionLocation]
-    /// 訂閱的最新文章's articles (5g), drawn as articles, not as books.
+    /// 订阅的最新文章's articles (5g), drawn as articles, not as books.
     var articles: [SubscriptionArticle] = []
-    /// 專題集合's lists (decision 37), a card each.
+    /// 专题集合's lists (decision 37), a card each.
     var collections: [CollectionSummary] = []
     /// Each list's own books, by the list's id, for 排行榜's columns (`CollectionSummary.bookEntries`);
     /// made only when asked for.
@@ -70,7 +70,7 @@ struct HomeRowContent {
 
     var isEmpty: Bool { cards.isEmpty && locations.isEmpty && articles.isEmpty && collections.isEmpty }
 
-    /// Books alone: 呈現方式's samples.
+    /// Books alone: 呈现方式's samples.
     init(cards: [HomeCardContent]) {
         self.cards = cards
         locations = []
@@ -122,12 +122,12 @@ struct HomeRowContent {
     }
 }
 
-/// What a section's name offers when long-pressed: the same edits as 編輯首頁 (5d-2), and its
-/// 呈現方式 (5d-3).
+/// What a section's name offers when long-pressed: the same edits as 编辑首页 (5d-2), and its
+/// 呈现方式 (5d-3).
 struct HomeSectionActions {
     let setLayout: (HomeSectionLayout) -> Void
     let hide: () -> Void
-    /// Pushes the section's page in 編輯首頁.
+    /// Pushes the section's page in 编辑首页.
     let openSettings: () -> Void
     /// Asks first.
     let delete: () -> Void
@@ -139,26 +139,26 @@ struct HomeRowView: View {
     let content: HomeRowContent?
     /// The section came into view: its rows load (`HomeModel.load`).
     let load: () -> Void
-    /// 重試: every failed row of the section (`HomeModel.request`).
+    /// 重试: every failed row of the section (`HomeModel.request`).
     let request: () -> Void
     /// Pushes 查看全部; nil when the source has no page for this row.
     var showAll: (() -> Void)?
     /// A card was tapped; the row's other cards come along for the public-library carousel.
     let open: (HomeCardContent, [HomeCardContent]) -> Void
     let openLocation: (CollectionLocation) -> Void
-    /// A list of 專題集合 was tapped; none in a fixture or the form's preview.
+    /// A list of 专题集合 was tapped; none in a fixture or the form's preview.
     var openCollection: (CollectionSummary) -> Void = { _ in }
-    /// An article of 訂閱的最新文章 was tapped (5g); none in a fixture or the form's preview.
+    /// An article of 订阅的最新文章 was tapped (5g); none in a fixture or the form's preview.
     var openArticle: (SubscriptionArticle) -> Void = { _ in }
     /// The section's long press (5d-2, decision 14); none in a fixture.
     var actions: HomeSectionActions?
-    /// A shelf copy's ••• on 精簡閱讀卡片 (5d-3c); none in a fixture.
+    /// A shelf copy's ••• on 精简阅读卡片 (5d-3c); none in a fixture.
     var bookActions: HomeBookActions?
 
     @Environment(\.homeRowIsCarousel) private var isCarousel
     @Environment(\.colorSchemeContrast) private var contrast
     @Environment(\.homeDrawsSideways) private var drawsSideways
-    /// The 頂部輪播圖's colour, its first cover's, once that cover has drawn.
+    /// The 顶部轮播图's colour, its first cover's, once that cover has drawn.
     @State private var bandCover: CoverTint.RGB?
 
     var body: some View {
@@ -171,8 +171,8 @@ struct HomeRowView: View {
                     header.homeRowControl()
                     stateContent
                 }
-                // 色帶書架's covers stand on the band's foot, but for 編輯首頁's row of them; only the
-                // 輪播圖 runs under the bars.
+                // 色带书架's covers stand on the band's foot, but for 编辑首页's row of them; only the
+                // 轮播图 runs under the bars.
                 .modifier(HomeBandGround(cover: bandCover, isActive: drawsBand, isCarousel: isCarousel,
                                          cutsCovers: !isCarousel && !drawsSideways))
             }
@@ -180,8 +180,8 @@ struct HomeRowView: View {
         .task { load() }
     }
 
-    /// The 頂部輪播圖, and 色帶書架, draw their band while their covers load and once they have;
-    /// one that failed, or that holds no books (訂閱的最新文章's articles), is drawn without it.
+    /// The 顶部轮播图, and 色带书架, draw their band while their covers load and once they have;
+    /// one that failed, or that holds no books (订阅的最新文章's articles), is drawn without it.
     private var drawsBand: Bool {
         guard isCarousel || group.section.layout.style == .colorBand else { return false }
         switch group.state {
@@ -237,7 +237,7 @@ struct HomeRowView: View {
                     .font(DSFont.footnote)
                     .foregroundStyle(DSColor.textSecondary)
                     .lineLimit(3)
-                Button(localized("重試"), action: request)
+                Button(localized("重试"), action: request)
                     .buttonStyle(.bordered)
                     .homeRowControl()
                     .accessibilityIdentifier("home.row.retry.\(group.id)")
@@ -275,7 +275,7 @@ struct HomeRowView: View {
         .scrollDisabled(true)
         .allowsHitTesting(false)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(localized("載入中…"))
+        .accessibilityLabel(localized("载入中…"))
     }
 
     private func cards(_ cards: [HomeCardContent]) -> some View {
@@ -303,14 +303,14 @@ struct HomeRowView: View {
 // MARK: - Shared by every row
 
 /// A section's name over its row, in the home's title style; a chevron when it leads to
-/// 查看全部, and a line under it (`HomeSection.displaySubtitle`, or where AI 推薦's books came
+/// 查看全部, and a line under it (`HomeSection.displaySubtitle`, or where AI 推荐's books came
 /// from).
 struct HomeRowTitle: View {
     let title: String
     var subtitle: String? = nil
     var showsChevron = false
-    /// The 頂部輪播圖's header, on the cover's colour: the name and chevron white, the line this
-    /// colour (the cover's hue made light, as 精簡閱讀卡片's kind line).
+    /// The 顶部轮播图's header, on the cover's colour: the name and chevron white, the line this
+    /// colour (the cover's hue made light, as 精简阅读卡片's kind line).
     var bandLine: Color? = nil
 
     var body: some View {
@@ -336,8 +336,8 @@ struct HomeRowTitle: View {
     }
 }
 
-/// A section's own edits: 呈現方式, 隱藏, 設定 and 刪除. The header's long press offers them,
-/// and AI 推薦's ••• after 重新產生.
+/// A section's own edits: 呈现方式, 隐藏, 设置 and 删除. The header's long press offers them,
+/// and AI 推荐's ••• after 重新产生.
 struct HomeSectionActionsMenu: View {
     let section: HomeSection
     let actions: HomeSectionActions
@@ -346,10 +346,10 @@ struct HomeSectionActionsMenu: View {
 
     var body: some View {
         if isCarousel {
-            // The 輪播圖's own, as 編輯首頁's header has them: its layout is the band, and
+            // The 轮播图's own, as 编辑首页's header has them: its layout is the band, and
             // closing it keeps what it shows.
-            Button(localized("選擇輪播數據"), systemImage: "rectangle.stack", action: actions.openSettings)
-            Button(localized("關閉輪播圖"), systemImage: "eye.slash", action: actions.hide)
+            Button(localized("选择轮播数据"), systemImage: "rectangle.stack", action: actions.openSettings)
+            Button(localized("关闭轮播图"), systemImage: "eye.slash", action: actions.hide)
         } else {
             sectionActions
         }
@@ -361,7 +361,7 @@ struct HomeSectionActionsMenu: View {
         let choices = HomeLayoutStyle.choices(for: section.binding)
         if choices.count > 1 {
             Menu {
-                Picker(localized("呈現方式"), selection: Binding(
+                Picker(localized("呈现方式"), selection: Binding(
                     get: { layout.style },
                     set: { actions.setLayout(HomeSectionLayout(style: $0)) })) {
                     ForEach(choices) { style in
@@ -369,18 +369,18 @@ struct HomeSectionActionsMenu: View {
                     }
                 }
             } label: {
-                Label(localized("呈現方式"), systemImage: "rectangle.3.group")
+                Label(localized("呈现方式"), systemImage: "rectangle.3.group")
             }
         }
-        Button(localized("動作：隱藏"), systemImage: "eye.slash", action: actions.hide)
-        Button(localized("設定"), systemImage: "slider.horizontal.3", action: actions.openSettings)
-        Button(localized("刪除"), systemImage: "trash", role: .destructive, action: actions.delete)
+        Button(localized("动作：隐藏"), systemImage: "eye.slash", action: actions.hide)
+        Button(localized("设置"), systemImage: "slider.horizontal.3", action: actions.openSettings)
+        Button(localized("删除"), systemImage: "trash", role: .destructive, action: actions.delete)
     }
 }
 
-// MARK: - 範圍's symbols
+// MARK: - 范围's symbols
 
-/// A library's symbol in 範圍. A book source has none: it is named by its own name.
+/// A library's symbol in 范围. A book source has none: it is named by its own name.
 enum SourceKindSymbol {
     static func symbol(for type: ProviderType) -> String? {
         switch type {

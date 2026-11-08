@@ -1,7 +1,7 @@
 import SwiftUI
 
-// 排行榜 (maintainer, 2026-10-27: 「排行榜也照著圖片1比1復刻」 after Apple Books' Top Charts; it
-// replaced 顯示排名, 「每欄一份排行」「每欄 3 名」): a column per ranking, swiped sideways and the
+// 排行榜 (maintainer, 2026-10-27: 「排行榜也照著图片1比1复刻」 after Apple Books' Top Charts; it
+// replaced 显示排名, 「每栏一份排行」「每栏 3 名」): a column per ranking, swiped sideways and the
 // next one peeking, each its first three places under a rule and between rules. With several
 // rankings each column is headed by its name and a chevron to all of it, as Paid and Free are;
 // with one, the section's header names it and the column takes the page.
@@ -10,7 +10,7 @@ import SwiftUI
 struct HomeChartColumns: View {
     /// The rankings, a column each: what the column's header opens.
     let collections: [CollectionSummary]
-    /// Each ranking's books, or articles (訂閱的最新文章), in order, by its id
+    /// Each ranking's books, or articles (订阅的最新文章), in order, by its id
     /// (`HomeRowContent.lists`); the first `places` are drawn. A ranking with none while the row
     /// loads draws blank places.
     let contents: [String: HomeRowContent]
@@ -144,7 +144,7 @@ private func chartPreviewContent() -> HomeRowContent {
 }
 
 #Preview("排行榜") {
-    let lists = ["小說排行", "漫畫排行"].map { title in
+    let lists = ["小说排行", "漫画排行"].map { title in
         CollectionSummary(id: title, title: title, books: [], languages: [], opening: .gutenbergCollection(id: title))
     }
     ScrollView {

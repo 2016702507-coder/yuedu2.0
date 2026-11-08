@@ -33,9 +33,9 @@ struct SourceValidationBadge: View {
 
     private func label(_ health: SourceHealth) -> String {
         switch health {
-        case .passed:       return localized("驗證通過")
-        case .fetchError:   return localized("抓取異常")
-        case .contentError: return localized("正文異常")
+        case .passed:       return localized("验证通过")
+        case .fetchError:   return localized("抓取异常")
+        case .contentError: return localized("正文异常")
         }
     }
 
@@ -78,15 +78,15 @@ struct SourceValidationListHeader: View {
         VStack(spacing: 0) {
             statRow(
                 icon: "checkmark.circle.fill",
-                title: localized("已啟用"),
+                title: localized("已启用"),
                 value: "\(counts.enabled) / \(counts.total)"
             )
             Divider()
-            statRow(icon: "safari.fill", title: localized("支持發現"), value: "\(counts.discover)")
+            statRow(icon: "safari.fill", title: localized("支持发现"), value: "\(counts.discover)")
         }
         .padding(.horizontal, DSSpacing.md)
         .padding(.vertical, DSSpacing.xs)
-        // The card carries its own surface so it follows 毛玻璃／分組卡片／透明度 like the
+        // The card carries its own surface so it follows 毛玻璃／分组卡片／透明度 like the
         // rows below it. A hardcoded `secondarySystemBackground` here was opaque at every
         // setting, which is what made the header read as a solid slab above a see-through
         // list. `clipShape` stays for the `Divider`, which is content rather than surface.
@@ -110,8 +110,8 @@ struct SourceValidationListHeader: View {
         .padding(.vertical, DSSpacing.sm)
     }
 
-    /// 全部／抓取異常／正文異常 as system glass buttons. Each one is a page: switching
-    /// clears the selection, and the bottom bar's 全選 counts only the page on screen.
+    /// 全部／抓取异常／正文异常 as system glass buttons. Each one is a page: switching
+    /// clears the selection, and the bottom bar's 全选 counts only the page on screen.
     /// The buttons keep their natural width and scroll sideways once a large count
     /// (「全部 50,000」), a longer language or an accessibility text size makes them wider
     /// than the row — instead of wrapping into circles or truncating their counts.
@@ -133,8 +133,8 @@ struct SourceValidationListHeader: View {
     private var pageButtonRow: some View {
         HStack(spacing: DSSpacing.sm) {
             pageButton(.all, label: localized("全部"), count: counts.total)
-            pageButton(.fetchError, label: localized("抓取異常"), count: counts.fetchError)
-            pageButton(.contentError, label: localized("正文異常"), count: counts.contentError)
+            pageButton(.fetchError, label: localized("抓取异常"), count: counts.fetchError)
+            pageButton(.contentError, label: localized("正文异常"), count: counts.contentError)
         }
     }
 
@@ -153,9 +153,9 @@ struct SourceValidationListHeader: View {
                 .accessibilityHidden(true)
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(localized("來源配置排列方式"))
-        .accessibilityValue(localized(grouped ? "分組顯示" : "不分組"))
-        .accessibilityHint(localized("點兩下切換分組與不分組"))
+        .accessibilityLabel(localized("来源配置排列方式"))
+        .accessibilityValue(localized(grouped ? "分组显示" : "不分组"))
+        .accessibilityHint(localized("点两下切换分组与不分组"))
     }
 
     /// A system button with a text label. The label keeps one weight in both states, so
@@ -178,8 +178,8 @@ struct SourceValidationListHeader: View {
 
 // MARK: - Filter buttons
 //
-// One look for the book-source filter choices: 書源管理's 全部／抓取異常／正文異常 pages
-// and 書源驗證's four 失敗類型細分 tiles.
+// One look for the book-source filter choices: 书源管理's 全部／抓取异常／正文异常 pages
+// and 书源验证's four 失败类型细分 tiles.
 
 /// Holds a row of filter buttons. iOS 26 blends neighbouring glass shapes only inside
 /// one container; earlier systems just lay the buttons out.

@@ -2,7 +2,7 @@ import CoreTransferable
 import Foundation
 import UniformTypeIdentifiers
 
-/// The 書源除錯大師 log handed to `ShareLink`.
+/// The 书源除错大师 log handed to `ShareLink`.
 ///
 /// Same shape as `DiagnosticReportBundle`: holds the entries and renders only when a
 /// share actually completes. This view's body re-runs on every appended log entry, so
@@ -51,7 +51,7 @@ struct BookSourceDebugExportFile: Transferable {
         Self.render(entries: entries)
     }
 
-    /// Shared by the share sheet and 複製全部 so the two exports never drift.
+    /// Shared by the share sheet and 复制全部 so the two exports never drift.
     static func render(entries: [WebCrawlerDebugger.LogEntry]) -> String {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "en_US_POSIX")

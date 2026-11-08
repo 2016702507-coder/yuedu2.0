@@ -1,6 +1,6 @@
 import Foundation
 
-/// What 全書搜尋 looks for: the words as typed, or a regular expression.
+/// What 全书搜寻 looks for: the words as typed, or a regular expression.
 struct ReaderBookSearchQuery: Equatable, Sendable {
     let text: String
     let isRegex: Bool
@@ -18,7 +18,7 @@ enum ReaderBookSearchError: Error, Equatable, Sendable {
 }
 
 /// One match, in its chapter's own text as searched: rules applied (or not, as asked) and
-/// converted to the reader's 繁簡 setting, in UTF-16 units.
+/// converted to the reader's 繁简 setting, in UTF-16 units.
 struct ReaderBookSearchHit: Identifiable, Hashable, Sendable {
     let chapterIndex: Int
     let range: NSRange
@@ -161,7 +161,7 @@ enum ReaderBookSearchMatcher {
         // Taken when the alignment above has no map — the two texts differ beyond whitespace
         // and a title, as an EPUB chapter laid out with image placeholders, list markers or
         // ruby its plain text has not. Trusted only when both texts hold the same number of
-        // matches: where they differ (替換規則 off in a chapter a rule changed) the n-th match
+        // matches: where they differ (替换规则 off in a chapter a rule changed) the n-th match
         // on the page is another sentence, and washing it would be a confident wrong answer.
         // Can go once search reads every chapter in laid-out coordinates.
         let inSource: [NSRange], onPage: [NSRange]
@@ -169,11 +169,11 @@ enum ReaderBookSearchMatcher {
             inSource = try Self.ranges(of: query, in: source)
             onPage = try Self.ranges(of: query, in: laidOut)
         } catch {
-            AppLogger.parse("全書搜尋 locate: re-matching chapter \(hit.chapterIndex) failed: \(error)")
+            AppLogger.parse("全书搜寻 locate: re-matching chapter \(hit.chapterIndex) failed: \(error)")
             return nil
         }
         guard inSource.count == onPage.count, onPage.indices.contains(hit.ordinal) else {
-            AppLogger.parse("全書搜尋 locate: chapter \(hit.chapterIndex) has \(inSource.count) matches in its text, \(onPage.count) on the page")
+            AppLogger.parse("全书搜寻 locate: chapter \(hit.chapterIndex) has \(inSource.count) matches in its text, \(onPage.count) on the page")
             return nil
         }
         return onPage[hit.ordinal]

@@ -151,25 +151,25 @@ struct RegexHighlightRule: Codable, Equatable, Identifiable, Sendable {
     static let builtIns: [RegexHighlightRule] = [
         builtIn(
             id: "builtin.curly-double",
-            name: "“對話”",
+            name: "“对话”",
             pattern: "“[^”\\n]*”",
             colorHex: 0xFF8A34
         ),
         builtIn(
             id: "builtin.curly-single",
-            name: "‘對話’",
+            name: "‘对话’",
             pattern: "‘[^’\\n]*’",
             colorHex: 0x3498DB
         ),
         builtIn(
             id: "builtin.corner",
-            name: "「對話」",
+            name: "「对话」",
             pattern: "「[^」\\n]*」",
             colorHex: 0x49B66D
         ),
         builtIn(
             id: "builtin.double-corner",
-            name: "『對話』",
+            name: "『对话』",
             pattern: "『[^』\\n]*』",
             colorHex: 0xAF5BCC
         ),
@@ -404,14 +404,14 @@ extension RegexHighlightConfiguration {
 struct RegexHighlightImportOverlap {
     /// One paragraph each.
     static let probe = [
-        "他問：“你今天怎麼這麼早？”",
-        "她低聲說：‘別出聲。’",
+        "他问：“你今天怎么这么早？”",
+        "她低声说：‘别出声。’",
         "「走吧。」",
-        "『這是誰的書？』",
-        "【系統提示：獲得青銅劍 ×1】",
+        "『这是谁的书？』",
+        "【系统提示：获得青铜剑 ×1】",
         "\"Where are you going?\"",
         "\"Not yet,\" she said, 'not yet.'",
-        "《紅樓夢》（未完）",
+        "《红楼梦》（未完）",
     ].joined(separator: "\n\n")
 
     private let patterns: Set<String>

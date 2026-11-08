@@ -211,7 +211,7 @@ extension WebDAVProvider: HomeSectionProviding {
         return newest.files.map { Self.item(for: $0, root: newest.root, connectionID: connectionID) }
     }
 
-    /// An indexed file as a home item, for 「最新」 and 「相關」 alike.
+    /// An indexed file as a home item, for 「最新」 and 「相关」 alike.
     nonisolated static func item(for file: IndexedFile, root: URL, connectionID: String) -> CollectionEntry {
         let url = WebDAVMetadataFiller.url(of: file, under: root)
         let entry = WebDAVBrowseClient.Entry(url: url, name: url.lastPathComponent, isDirectory: false, size: file.size,

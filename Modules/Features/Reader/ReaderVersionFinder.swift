@@ -1,20 +1,20 @@
 import Foundation
 import Observation
 
-/// 換源's 書庫與模組 (maintainer 2026-10-26: 「所有來源配置、WebDAV、Calibre、模組⋯都是相同地位」):
-/// where else the work being read can be read from. First the versions 作品詳情 lists for it
-/// (`ShelfProvider.versions`: the work index's library files, 青空文庫, Gutenberg), then what the
+/// 换源's 书库与模组 (maintainer 2026-10-26: 「所有来源配置、WebDAV、Calibre、模组⋯都是相同地位」):
+/// where else the work being read can be read from. First the versions 作品详情 lists for it
+/// (`ShelfProvider.versions`: the work index's library files, 青空文库, Gutenberg), then what the
 /// saved libraries and the installed modules find under its title (`LibrarySearch`,
 /// `ModuleSearch`), the same work's only (`WorkOffers.found`).
 ///
-/// Left to the sheet's other lists: a 來源配置's books (其他來源配置), and the copies already
-/// read — the book itself and the versions kept beside it (已知的閱讀來源).
+/// Left to the sheet's other lists: a 来源配置's books (其他来源配置), and the copies already
+/// read — the book itself and the versions kept beside it (已知的阅读来源).
 @Observable
 @MainActor
 final class ReaderVersionFinder {
     struct Found: Identifiable {
         let route: WorkDetailRoute
-        /// The library's or module's name, 青空文庫 or Project Gutenberg.
+        /// The library's or module's name, 青空文库 or Project Gutenberg.
         let place: String
         var id: SourceItemKey { route.nodeKey }
     }

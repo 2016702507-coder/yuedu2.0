@@ -44,7 +44,7 @@ final class RegexHighlightSettingsModel: ObservableObject {
     }
 
     /// Back to the shipped rule set. Keeps the global switch where the user left
-    /// it — 重設所有規則 is about the rules, and silently switching highlighting
+    /// it — 重设所有规则 is about the rules, and silently switching highlighting
     /// back on would be a second, unasked-for change.
     func resetToDefaults() {
         mutate { configuration in
@@ -56,7 +56,7 @@ final class RegexHighlightSettingsModel: ObservableObject {
     /// Returns an isolated draft. The configuration is not mutated until the
     /// rule editor completes its atomic save.
     func makeCustomDraft() -> RegexHighlightRule {
-        RegexHighlightRule.custom(name: localized("新規則"), pattern: "")
+        RegexHighlightRule.custom(name: localized("新规则"), pattern: "")
     }
 
     func copyAsCustom(ruleID: String) {

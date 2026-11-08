@@ -3,7 +3,7 @@ import Foundation
 /// An installed module: the file as written, and where it came from.
 struct InstalledRuleModule: Hashable, Sendable {
     let module: RuleModule
-    /// Where 檢查更新 fetches it again; nil when it was imported from a file.
+    /// Where 检查更新 fetches it again; nil when it was imported from a file.
     let subscriptionURL: URL?
     let installedAt: Date
     let updatedAt: Date
@@ -102,7 +102,7 @@ struct RuleModuleStore: Sendable {
 
     /// A newer version of an installed module, replacing its file. Its cached pages go with the
     /// old rules. `subscriptionURL`, when given, is where the update came from — a repository's
-    /// address for the module (M6) — and becomes the address 檢查更新 reads; nil keeps the old one.
+    /// address for the module (M6) — and becomes the address 检查更新 reads; nil keeps the old one.
     @discardableResult
     func update(id: String, with data: Data, from subscriptionURL: URL? = nil, appVersion: String = RuleModuleVersion.app,
                 now: Date = .now) throws -> InstalledRuleModule {
@@ -177,7 +177,7 @@ struct RuleModuleStore: Sendable {
 
     // MARK: - Helpers
 
-    /// The module's file as it was installed: 匯出 on its page (M6).
+    /// The module's file as it was installed: 汇出 on its page (M6).
     func moduleFile(id: String) -> URL {
         folder(for: id).appendingPathComponent("module.json")
     }

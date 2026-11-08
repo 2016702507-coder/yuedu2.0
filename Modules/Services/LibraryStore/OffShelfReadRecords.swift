@@ -1,10 +1,10 @@
 import Foundation
 
-/// Books read that are no longer on the shelf, kept the way legado keeps its 閱讀記錄,
+/// Books read that are no longer on the shelf, kept the way legado keeps its 阅读记录,
 /// which outlives the book: an online book read or listened to without being added — a
 /// book read stays off the shelf, an audiobook goes once its player closes — and a book
 /// removed from the shelf after it was read. Only the name, author and cover stay behind.
-/// 搜索's 最近閱讀 lists them beside the shelf's books and searches for one by name again,
+/// 搜索's 最近阅读 lists them beside the shelf's books and searches for one by name again,
 /// as legado opens a record whose book is gone.
 ///
 /// Kept on this device in user defaults, where `@AppStorage(OffShelfReadRecords.storageKey)`

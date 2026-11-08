@@ -1,15 +1,15 @@
 import SwiftUI
 
-// The maintainer, 2026-10-27, after an Emby client's home editor: 編輯首頁 opens on the
-// 首頁配置 it edits, in the 頂部輪播圖's place. Its photo, with a camera badge, changes the
-// photo (`HomePhotoPicker`, the form's own); its name pushes 首頁配置's page, where
-// it is switched, added and renamed; 選擇輪播數據 pushes 選擇內容來源 for the 輪播圖 alone; and
-// 關閉輪播圖 hides it, keeping what it shows, or 開啟輪播圖 shows it again.
+// The maintainer, 2026-10-27, after an Emby client's home editor: 编辑首页 opens on the
+// 首页配置 it edits, in the 顶部轮播图's place. Its photo, with a camera badge, changes the
+// photo (`HomePhotoPicker`, the form's own); its name pushes 首页配置's page, where
+// it is switched, added and renamed; 选择轮播数据 pushes 选择内容来源 for the 轮播图 alone; and
+// 关闭轮播图 hides it, keeping what it shows, or 开启轮播图 shows it again.
 
 struct HomeEditorHeader: View {
-    /// Pushes 首頁配置's page.
+    /// Pushes 首页配置's page.
     let openConfigurations: () -> Void
-    /// Pushes 選擇輪播數據.
+    /// Pushes 选择轮播数据.
     let chooseCarousel: () -> Void
 
     @ObservedObject private var pageStore = HomePageStore.shared
@@ -46,12 +46,12 @@ struct HomeEditorHeader: View {
                     .frame(minHeight: DSLayout.minimumTapTarget)
             }
             .buttonStyle(.plain)
-            .accessibilityHint(localized("首頁配置"))
+            .accessibilityHint(localized("首页配置"))
             .accessibilityIdentifier("homeEditor.configuration")
 
             VStack(spacing: DSSpacing.xs) {
                 Button(action: chooseCarousel) {
-                    Text(localized("選擇輪播數據"))
+                    Text(localized("选择轮播数据"))
                         .font(DSFont.body)
                         .foregroundStyle(DSColor.textPrimary)
                         .frame(minHeight: DSLayout.minimumTapTarget)
@@ -63,7 +63,7 @@ struct HomeEditorHeader: View {
                     Button {
                         pageStore.edit { $0.setCarouselShown(!carousel.isEnabled) }
                     } label: {
-                        Text(localized(carousel.isEnabled ? "關閉輪播圖" : "開啟輪播圖"))
+                        Text(localized(carousel.isEnabled ? "关闭轮播图" : "开启轮播图"))
                             .font(DSFont.body)
                             .foregroundStyle(DSColor.textSecondary)
                             .frame(minHeight: DSLayout.minimumTapTarget)
@@ -80,7 +80,7 @@ struct HomeEditorHeader: View {
 }
 
 #if DEBUG
-#Preview("編輯首頁的頂部") {
+#Preview("编辑首页的顶部") {
     NavigationStack {
         ScrollView {
             HomeEditorHeader(openConfigurations: {}, chooseCarousel: {})
@@ -89,7 +89,7 @@ struct HomeEditorHeader: View {
     }
 }
 
-#Preview("編輯首頁的頂部，輔助使用字級") {
+#Preview("编辑首页的顶部，辅助使用字级") {
     NavigationStack {
         ScrollView {
             HomeEditorHeader(openConfigurations: {}, chooseCarousel: {})

@@ -13,14 +13,14 @@ enum CoverImageSource: Hashable, Sendable {
     /// A book's saved cover, `ReadingBook.coverImagePath`, which `StorageLocations`
     /// routes to `Covers` or `CustomCovers` by the filename marker.
     case bookCover(filename: String)
-    /// An image in the user's 預設封面 library.
+    /// An image in the user's 预设封面 library.
     case defaultCover(fileName: String)
     /// A cover another store keeps, by absolute path: the WebDAV index's covers in
     /// `Caches/Works/covers` (unified library 2d), drawn on Explore's home (5c).
     case indexedCover(path: String)
 
-    /// Saved covers in `Covers`, which 設定 → 快取管理 clears of every cover a book can
-    /// download again. Covers the user picked (`CustomCovers`) and the 預設封面 library
+    /// Saved covers in `Covers`, which 设置 → 快取管理 clears of every cover a book can
+    /// download again. Covers the user picked (`CustomCovers`) and the 预设封面 library
     /// are never there.
     var isDownloadedBookCover: Bool {
         guard case .bookCover(let filename) = self else { return false }
@@ -126,7 +126,7 @@ enum CoverInvalidation: Sendable, Equatable {
     case sources(Set<CoverImageSource>)
     /// 快取管理 cleared the saved-cover directory.
     case downloadedBookCovers
-    /// The 預設封面 library changed.
+    /// The 预设封面 library changed.
     case defaultCovers
 
     func affects(_ source: CoverImageSource) -> Bool {
@@ -451,8 +451,8 @@ actor CoverInflightStore {
 final class CoverImagePipeline: @unchecked Sendable {
     static let shared = CoverImagePipeline()
 
-    /// Network covers, saved book covers and 預設封面 bitmaps together. The same
-    /// 128 MB `BookCoverLoader` has always had; 預設封面 used to keep a separate
+    /// Network covers, saved book covers and 预设封面 bitmaps together. The same
+    /// 128 MB `BookCoverLoader` has always had; 预设封面 used to keep a separate
     /// uncosted cache on top of it.
     static let memoryCostLimit = 128 * 1024 * 1024
     static let memoryCountLimit = 600
@@ -486,7 +486,7 @@ final class CoverImagePipeline: @unchecked Sendable {
         /// Only sources invalidated one by one; a directory-wide epoch supersedes them.
         var sourceEpochs: [CoverImageSource: UInt64] = [:]
         var failures: [CoverImageSource: FailureRecord] = [:]
-        /// 預設封面 bitmaps in `memory`, so a library change can drop exactly those.
+        /// 预设封面 bitmaps in `memory`, so a library change can drop exactly those.
         var defaultCoverKeys: Set<String> = []
         /// Episode stills in `memory`, so 快取管理 clearing 影片 can drop exactly those.
         var videoStillKeys: Set<String> = []
@@ -619,8 +619,8 @@ final class CoverImagePipeline: @unchecked Sendable {
     }
 
     /// Blocking variant for the few callers that need a cover right now and are not
-    /// drawing a scrolling list: Now Playing artwork, the reader's 現代 chrome, the
-    /// download Live Activity, the 預設封面 settings grid. Same cache, decoder and
+    /// drawing a scrolling list: Now Playing artwork, the reader's 现代 chrome, the
+    /// download Live Activity, the 预设封面 settings grid. Same cache, decoder and
     /// invalidation as `image(for:)`. Never call it from the bookshelf.
     func loadImmediately(_ request: CoverImageRequest) -> CoverImageResult {
         if let known = recordLookup(request) { return known }
@@ -635,7 +635,7 @@ final class CoverImagePipeline: @unchecked Sendable {
 
     // Network covers share the memory budget and the coalescing, not the versioning.
     // Behind memory sits one file per cache key in `io.networkCovers`, so a cover memory
-    // let go of (a long 探索 or 發現頁 holds more than the budget; a lazy stack
+    // let go of (a long 探索 or 发现页 holds more than the budget; a lazy stack
     // rebuilding a row asks again) comes back from disk, not the network, and still
     // comes back when the source is slow or down. A saved copy is never revalidated
     // against its address, like Legado's (Glide's) disk cache: it goes when 快取管理
@@ -653,7 +653,7 @@ final class CoverImagePipeline: @unchecked Sendable {
     }
 
     /// 快取管理 cleared 影片: the stills' directory is gone, so drop the bitmaps held for
-    /// them. Nothing else in `memory` is a still, and the 選集 cards take theirs again when
+    /// them. Nothing else in `memory` is a still, and the 选集 cards take theirs again when
     /// they next appear.
     func invalidateVideoStills() {
         state.withLock { state in
@@ -802,7 +802,7 @@ final class CoverImagePipeline: @unchecked Sendable {
         broadcast(.downloadedBookCovers)
     }
 
-    /// The 預設封面 library changed.
+    /// The 预设封面 library changed.
     func invalidateDefaultCovers() {
         state.withLock { state in
             state.epoch &+= 1

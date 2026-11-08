@@ -60,19 +60,19 @@ struct CollectionCursor: Hashable, Codable, Sendable {
 enum CollectionEntry: Hashable, Sendable {
     case location(CollectionLocation)
     case item(SourceRecord, WorkSummary, ItemOpening)
-    /// An RSS article (訂閱的最新文章, unified library 5g): not a work, so it has no record,
-    /// no summary and no 作品詳情 (design §13.8: articles are never made `Book`s).
+    /// An RSS article (订阅的最新文章, unified library 5g): not a work, so it has no record,
+    /// no summary and no 作品详情 (design §13.8: articles are never made `Book`s).
     case article(SubscriptionArticle)
-    /// A list offered whole, a card of 專題集合 (Phase 5 plan, decision 37).
+    /// A list offered whole, a card of 专题集合 (Phase 5 plan, decision 37).
     case collection(CollectionSummary)
 }
 
-/// A list a source offers whole, for 專題集合 (decision 37): its name, the first books its
+/// A list a source offers whole, for 专题集合 (decision 37): its name, the first books its
 /// artwork is made of, and the list it opens. Bounded when made: at most five books.
 struct CollectionSummary: Hashable, Sendable, Identifiable {
-    /// 專題集合, 分類卡片 and 大圖卡片 show the first three covers, as the storefront's 精選書單 does.
+    /// 专题集合, 分类卡片 and 大图卡片 show the first three covers, as the storefront's 精选书单 does.
     static let artworkLimit = 3
-    /// 拼貼卡片 shows five, as Apple Books Japan's ピックアップ does (maintainer, 2026-10-27): as
+    /// 拼贴卡片 shows five, as Apple Books Japan's ピックアップ does (maintainer, 2026-10-27): as
     /// many as a summary keeps.
     static let collageLimit = 5
 
@@ -81,13 +81,13 @@ struct CollectionSummary: Hashable, Sendable, Identifiable {
     /// The first books, in the list's order, at most `collageLimit`.
     let books: [WorkSummary]
     let bookCount: Int
-    /// Every language the list's books are in, so 偏好閱讀語言 can place the list.
+    /// Every language the list's books are in, so 偏好阅读语言 can place the list.
     let languages: [String]
     let opening: CollectionOpening
-    /// The source 大圖卡片 names over the list; nil names it by where the list opens
-    /// (`CollectionOpening.sourceName`). 呈現方式's sample lists name where their covers are from.
+    /// The source 大图卡片 names over the list; nil names it by where the list opens
+    /// (`CollectionOpening.sourceName`). 呈现方式's sample lists name where their covers are from.
     let sourceName: String?
-    /// The photo the reader gave the card that drew it, for 大圖卡片 (`HomeListCardPhotos`); nil
+    /// The photo the reader gave the card that drew it, for 大图卡片 (`HomeListCardPhotos`); nil
     /// for a list no card of a section drew.
     var photoID: HomeListCardPhotoID?
 
@@ -109,7 +109,7 @@ struct CollectionSummary: Hashable, Sendable, Identifiable {
     }
 }
 
-/// Where a 專題集合 card leads: the whole list.
+/// Where a 专题集合 card leads: the whole list.
 enum CollectionOpening: Hashable, Sendable {
     /// One of Gutenberg's bundled lists (`PublicLibraryCollection`).
     case gutenbergCollection(id: String)
@@ -124,9 +124,9 @@ enum CollectionOpening: Hashable, Sendable {
 enum ItemOpening: Hashable, Sendable {
     /// A copy on the shelf.
     case copy(UUID)
-    /// An OPDS or Calibre entry; 作品詳情 reads it as `RemoteLibraryBookRoute(entry:connectionID:).item`.
+    /// An OPDS or Calibre entry; 作品详情 reads it as `RemoteLibraryBookRoute(entry:connectionID:).item`.
     case opdsEntry(OPDSEntry, connectionID: String)
-    /// A WebDAV file; 作品詳情 reads it as `RemoteLibraryBookRoute(entry:connectionID:).item`.
+    /// A WebDAV file; 作品详情 reads it as `RemoteLibraryBookRoute(entry:connectionID:).item`.
     case webDAVFile(WebDAVBrowseClient.Entry, connectionID: String)
     case gutenberg(GutenbergBook)
     case aozora(AozoraWork)
@@ -136,7 +136,7 @@ enum ItemOpening: Hashable, Sendable {
     /// A book-source result: `ExploreNavigationRoute.book`.
     case onlineBook(FrozenOnlineBook)
     /// A bibliographic database's record (Open Library, unified search 4b-3): data only, with
-    /// nothing to open; 作品詳情 offers 尋找可用來源.
+    /// nothing to open; 作品详情 offers 寻找可用来源.
     case bibliographic
 }
 
@@ -174,12 +174,12 @@ struct WorkSummary: Hashable, Sendable {
     var contentKind: ContentKind
     /// The source's own category, when it names one (decision 37: never made up).
     var category: String?
-    /// The series the item stands for: 趨勢 lists a series once, under its first book
+    /// The series the item stands for: 趋势 lists a series once, under its first book
     /// (maintainer, 2026-10-22), and names it under the author.
     var series: String?
     /// The covers of the series' other volumes, in series order after this one, which stands for
-    /// the series: 作品詳情 fans them behind its cover. An item that is the whole series gives
-    /// them without a `series` (趨勢's 華語 and 日本 works, maintainer 2026-10-27): its title is
+    /// the series: 作品详情 fans them behind its cover. An item that is the whole series gives
+    /// them without a `series` (趋势's 华语 and 日本 works, maintainer 2026-10-27): its title is
     /// the series' name, which the author line would only repeat.
     var seriesCovers: [CoverReference]
 
@@ -189,7 +189,7 @@ struct WorkSummary: Hashable, Sendable {
     static let blurbLimit = 300
     static let categoryLimit = 40
     static let seriesLimit = 100
-    /// 作品詳情's fan shows two volumes a side.
+    /// 作品详情's fan shows two volumes a side.
     static let seriesCoverLimit = 4
 
     /// `blurb` and `category` must already be plain text; `OPDSClient.plainMetadata` turns HTML
@@ -257,7 +257,7 @@ struct SourceFailure: Error, LocalizedError {
 
     /// A connection the reader has removed.
     static var connectionRemoved: SourceFailure {
-        SourceFailure(kind: .connectionRemoved, underlying: Message(text: localized("書庫連線已移除，請重新加入伺服器。")))
+        SourceFailure(kind: .connectionRemoved, underlying: Message(text: localized("书库连线已移除，请重新加入伺服器。")))
     }
 
     /// Classifies `error`. Cancellation is rethrown as it is: callers' cancellation guards

@@ -18,9 +18,9 @@ enum ReaderCommentCardKind: String, Codable, CaseIterable, Identifiable, Sendabl
 
     var titleKey: String {
         switch self {
-        case .chapterSay: return "本章說"
-        case .authorSay: return "作者說"
-        case .hotComment: return "神評論"
+        case .chapterSay: return "本章说"
+        case .authorSay: return "作者说"
+        case .hotComment: return "神评论"
         }
     }
 

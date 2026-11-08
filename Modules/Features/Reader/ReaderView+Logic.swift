@@ -3,10 +3,10 @@ import SwiftUI
 import UIKit
 import YueduCoreText
 
-// MARK: - 筆記路由
+// MARK: - 笔记路由
 
-/// 開著的筆記編輯頁。`bookmarkID` 指向筆記真正要寫進去的那一條標註書籤——
-/// 合併後的範圍可能比使用者選的大，所以不能用選取範圍當鍵。
+/// 开著的笔记编辑页。`bookmarkID` 指向笔记真正要写进去的那一条标注书签——
+/// 合并后的范围可能比使用者选的大，所以不能用选取范围当键。
 struct ReaderNoteEditorRoute: Identifiable {
     let id = UUID()
     let bookmarkID: UUID
@@ -17,11 +17,11 @@ struct ReaderNoteEditorRoute: Identifiable {
     let date: Date
     let style: AnnotationStyle
     let color: AnnotationColor
-    /// Pro 過期又已經有筆記時為 false：內容讀得到，但不能改。
+    /// Pro 过期又已经有笔记时为 false：内容读得到，但不能改。
     let isEditable: Bool
 }
 
-/// 待使用者確認的筆記刪除。
+/// 待使用者确认的笔记删除。
 struct ReaderNoteDeleteRoute: Identifiable {
     let id = UUID()
     let position: CoreTextReadingPosition
@@ -30,8 +30,8 @@ struct ReaderNoteDeleteRoute: Identifiable {
     let color: AnnotationColor
 }
 
-/// 筆記編輯頁關掉之後才能做的事。iOS 17 上 sheet 還在收的時候彈 alert／sheet 會被吃掉，
-/// 所以一律等它真的 dismiss（見 Technotes/iOS17MenuModalPresentation.md）。
+/// 笔记编辑页关掉之后才能做的事。iOS 17 上 sheet 还在收的时候弹 alert／sheet 会被吃掉，
+/// 所以一律等它真的 dismiss（见 Technotes/iOS17MenuModalPresentation.md）。
 enum ReaderNoteEditorFollowUp {
     case confirmDelete(ReaderNoteDeleteRoute)
     case paywall
@@ -39,10 +39,10 @@ enum ReaderNoteEditorFollowUp {
 
 extension ReaderView {
 
-    // MARK: - 筆記
+    // MARK: - 笔记
 
-    /// 預設的筆記標註樣式：黃色螢光筆。使用者之後可在選字選單改成其他顏色或下劃線，
-    /// 筆記會跟著標註走。
+    /// 预设的笔记标注样式：黄色萤光笔。使用者之后可在选字选单改成其他颜色或下划线，
+    /// 笔记会跟著标注走。
     private static let defaultNoteAnnotationStyle = AnnotationStyle.highlight
     private static let defaultNoteAnnotationColor = AnnotationColor.yellow
 
@@ -50,11 +50,11 @@ extension ReaderView {
         ReaderPremiumVisibilityPolicy(isProActive: subscriptionStore.isProActive)
     }
 
-    /// 開啟筆記編輯頁。選取範圍上還沒有標註時先補一條預設標註——「有筆記的段落一定有標註」
-    /// 是圓圈標記能畫出來的前提。
+    /// 开启笔记编辑页。选取范围上还没有标注时先补一条预设标注——「有笔记的段落一定有标注」
+    /// 是圆圈标记能画出来的前提。
     ///
-    /// Pro 的分流全部收在這裡（引擎層只送請求）：沒訂閱時**新增**筆記直接導向付費牆，
-    /// 已經寫過的筆記則照常打開、只是唯讀。
+    /// Pro 的分流全部收在这里（引擎层只送请求）：没订阅时**新增**笔记直接导向付费墙，
+    /// 已经写过的笔记则照常打开、只是唯读。
     func openNoteEditor(_ request: CoreTextNoteEditRequest) {
         let position = request.position
         guard spineChapters.indices.contains(position.spineIndex), request.length > 0 else { return }
@@ -93,7 +93,7 @@ extension ReaderView {
             spineIndex: position.spineIndex,
             range: range
         ) else {
-            AppLogger.cache("筆記：新增標註後找不到對應書籤 spine=\(position.spineIndex) range=\(range)")
+            AppLogger.cache("笔记：新增标注后找不到对应书签 spine=\(position.spineIndex) range=\(range)")
             return
         }
 
@@ -121,7 +121,7 @@ extension ReaderView {
         noteEditorRoute = nil
     }
 
-    /// `removesAnnotation` 為 true 時連標註一起刪；false 只清掉筆記，高亮留著。
+    /// `removesAnnotation` 为 true 时连标注一起删；false 只清掉笔记，高亮留著。
     func deleteNote(_ route: ReaderNoteDeleteRoute, removesAnnotation: Bool) {
         defer { noteDeleteRoute = nil }
         if removesAnnotation {
@@ -187,7 +187,7 @@ extension ReaderView {
         jumpToChapter(position.spineIndex, charOffset: position.charOffset)
     }
 
-    /// 標註所在章節內的頁碼（1-based）；CoreText 引擎不可用時回傳 nil。
+    /// 标注所在章节内的页码（1-based）；CoreText 引擎不可用时回传 nil。
     func inChapterPageNumber(for bookmark: Bookmark) -> Int? {
         guard usesCoreTextEPUB, let engine = epubRenderer.engine else { return nil }
         let position = bookmark.position
@@ -197,11 +197,11 @@ extension ReaderView {
         ) {
             return pagination.localPageIndex + 1
         }
-        // 章節尚未排版：用引擎相同的保守估算（~400 字/頁）。
+        // 章节尚未排版：用引擎相同的保守估算（~400 字/页）。
         return max(0, position.charOffset / 400) + 1
     }
 
-    /// 從清單刪除一筆書籤或標註；標註需同步重繪 overlay。
+    /// 从清单删除一笔书签或标注；标注需同步重绘 overlay。
     func deleteBookmarkEntry(_ bookmark: Bookmark) {
         store.removeBookmark(bookId: bookId, bookmarkId: bookmark.id)
         if bookmark.kind == .underline || bookmark.kind == .highlight {
@@ -256,7 +256,7 @@ extension ReaderView {
             .eraseToAnyPublisher()
     }
 
-    /// Scroll mode: a chapter entered the scroll window. The 目錄 entry waiting at its spine
+    /// Scroll mode: a chapter entered the scroll window. The 目录 entry waiting at its spine
     /// item's start goes on to its anchor once that is laid out — once.
     func resolvePendingScrollTOCEntry() {
         guard let pending = pendingScrollTOCEntry else { return }
@@ -280,7 +280,7 @@ extension ReaderView {
             + "anchors=\(anchorCount ?? -1)")
     }
 
-    /// The opening restore has put the reader on `restoredSpine`: 作品詳情's 目錄 entry, if it
+    /// The opening restore has put the reader on `restoredSpine`: 作品详情's 目录 entry, if it
     /// opened the reader, is reached from there, once.
     func openAtOpeningTOCTarget(restoredSpine: Int) {
         guard let target = pendingOpeningTOCTarget else { return }
@@ -670,7 +670,7 @@ extension ReaderView {
     var currentSourceName: String {
         guard let id = book?.bookSourceId,
               let source = BookSourceStore.shared.source(id: id),
-              !source.bookSourceName.isEmpty else { return localized("未知來源配置") }
+              !source.bookSourceName.isEmpty else { return localized("未知来源配置") }
         return source.bookSourceName
     }
 

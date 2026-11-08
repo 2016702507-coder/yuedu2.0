@@ -1,21 +1,21 @@
 import SwiftUI
 
-/// 書籤加入／移除之後跳出來的提示。
+/// 书签加入／移除之后跳出来的提示。
 ///
-/// 頂部書籤鈕、觸控區、翻頁模式的下拉三種方式都走 `toggleCurrentPageBookmark()`，
-/// 提示就只在那裡發一次，每一種方式得到的回饋都一樣。
+/// 顶部书签钮、触控区、翻页模式的下拉三种方式都走 `toggleCurrentPageBookmark()`，
+/// 提示就只在那里发一次，每一种方式得到的回馈都一样。
 struct ReaderBookmarkToast: Equatable, Identifiable {
     let id = UUID()
     let isAdded: Bool
 
-    /// 提示本身的壽命——它就是一段時間，不是在等什麼狀態穩定。
+    /// 提示本身的寿命——它就是一段时间，不是在等什么状态稳定。
     static let displayDuration: Duration = .milliseconds(1400)
 
-    var titleKey: String { isAdded ? "已加入書籤" : "已移除書籤" }
+    var titleKey: String { isAdded ? "已加入书签" : "已移除书签" }
     var systemImage: String { isAdded ? "bookmark.fill" : "bookmark.slash" }
 }
 
-/// 一顆不擋手的膠囊，貼在畫面頂端、動態島正下方。
+/// 一颗不挡手的胶囊，贴在画面顶端、动态岛正下方。
 struct ReaderBookmarkToastView: View {
     let toast: ReaderBookmarkToast
     /// The reader theme's scheme, not the system's: a night page under a light

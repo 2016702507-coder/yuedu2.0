@@ -1,16 +1,16 @@
 import UIKit
 
-/// 頁面右上角的書籤緞帶：這一頁有書籤，這一頁就掛著它——不管書籤是從頂部按鈕、
-/// 觸控區還是下拉加的。
+/// 页面右上角的书签缎带：这一页有书签，这一页就挂著它——不管书签是从顶部按钮、
+/// 触控区还是下拉加的。
 ///
-/// 形狀只有一份（`frame(in:)` + `path(in:)`），畫法有兩條：
-/// - **快照**走 Core Graphics，由 `ReaderPageBars.draw` 跟頁眉頁腳一起畫進頁面。
-///   仿真翻頁的背面、覆蓋翻頁的截圖、自動閱讀的揭幕圖都是 `renderPage` 畫出來的
-///   圖，不是活的 view；緞帶只有畫在這裡，才會在每一種翻頁動畫裡跟著頁走。
-/// - **螢幕上那一頁**用 `ReaderBookmarkRibbonView`，因為它得動：加書籤時從頁頂
-///   慢慢長出來、移除時縮回去，下拉時跟著手指走。為這個重畫整頁（整頁 CTFrameDraw）
-///   每一幀都做不起。
-/// 所以活的頁面畫 bars 時要先 `removingBookmarkRibbon()`，不然會兩條各畫一次。
+/// 形状只有一份（`frame(in:)` + `path(in:)`），画法有两条：
+/// - **快照**走 Core Graphics，由 `ReaderPageBars.draw` 跟页眉页脚一起画进页面。
+///   仿真翻页的背面、覆盖翻页的截图、自动阅读的揭幕图都是 `renderPage` 画出来的
+///   图，不是活的 view；缎带只有画在这里，才会在每一种翻页动画里跟著页走。
+/// - **萤幕上那一页**用 `ReaderBookmarkRibbonView`，因为它得动：加书签时从页顶
+///   慢慢长出来、移除时缩回去，下拉时跟著手指走。为这个重画整页（整页 CTFrameDraw）
+///   每一帧都做不起。
+/// 所以活的页面画 bars 时要先 `removingBookmarkRibbon()`，不然会两条各画一次。
 enum ReaderBookmarkRibbon {
     static let width: CGFloat = 16
     /// Page top edge → the tips of the notch. Ends above the header line, whose

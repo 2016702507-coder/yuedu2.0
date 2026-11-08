@@ -1,14 +1,14 @@
 import Foundation
 
-// Unified library 5d-2: 編輯首頁's edits (Phase 5 plan, 5d-2 and decision 14). The editor and a
+// Unified library 5d-2: 编辑首页's edits (Phase 5 plan, 5d-2 and decision 14). The editor and a
 // section name's long press change the page only through these, so both keep the same rules:
-// - 編輯首頁 lists the sections a home draws. 我的書庫 (not drawn since 5d-1) and a later
+// - 编辑首页 lists the sections a home draws. 我的书库 (not drawn since 5d-1) and a later
 //   build's sections are not listed; reordering moves the listed ones among the places they
 //   held, so the others keep theirs.
 // - A hidden section keeps its place and settings; a removed one is gone.
 
 extension HomeSection {
-    /// Whether 編輯首頁 lists it.
+    /// Whether 编辑首页 lists it.
     var isEditable: Bool {
         binding.isKnown && binding != .myLibrary
     }
@@ -17,14 +17,14 @@ extension HomeSection {
 extension HomeSection {
     /// Whether a row of this section loads what a row of `other` loads: the title and the
     /// layout change only how it is drawn, except that a layout of lists loads lists where a
-    /// layout of books loads books (the 書架's groups, `HomeSection.listCards`).
+    /// layout of books loads books (the 书架's groups, `HomeSection.listCards`).
     func loadsSameContent(as other: HomeSection) -> Bool {
         parameters == other.parameters && binding == other.binding && drawsLists == other.drawsLists
     }
 }
 
 extension HomePage {
-    /// The sections 編輯首頁 lists, in the page's order: not the 頂部輪播圖, which its header sets.
+    /// The sections 编辑首页 lists, in the page's order: not the 顶部轮播图, which its header sets.
     var editableSections: [HomeSection] {
         let carousel = carouselSection?.id
         return sections.filter { $0.isEditable && $0.id != carousel }
@@ -47,7 +47,7 @@ extension HomePage {
         sections[index].isEnabled = isEnabled
     }
 
-    /// 呈現方式 (5d-3).
+    /// 呈现方式 (5d-3).
     mutating func setLayout(_ layout: HomeSectionLayout, section id: UUID) {
         guard let index = sections.firstIndex(where: { $0.id == id }) else { return }
         sections[index].layout = layout
@@ -58,7 +58,7 @@ extension HomePage {
     }
 }
 
-// Unified library 5d-5: the section form (Phase 5 plan, decision 23). 新增欄目 adds its section
+// Unified library 5d-5: the section form (Phase 5 plan, decision 23). 新增栏目 adds its section
 // at the end; the form of a section already there writes it back in its place.
 extension HomePage {
     mutating func appendSection(_ section: HomeSection) {
@@ -72,17 +72,17 @@ extension HomePage {
     }
 }
 
-// The maintainer, 2026-10-27: 色帶書架 at the top of the home, as an Emby client's 輪播圖, set
-// from 編輯首頁's header (選擇輪播數據, 關閉輪播圖) as that client's editor sets it. The page's
-// first band is the 輪播圖, shown or hidden; where it stands among the sections changes nothing.
+// The maintainer, 2026-10-27: 色带书架 at the top of the home, as an Emby client's 轮播图, set
+// from 编辑首页's header (选择轮播数据, 关闭轮播图) as that client's editor sets it. The page's
+// first band is the 轮播图, shown or hidden; where it stands among the sections changes nothing.
 // The defaults and their 2026-10-25 migration already give the band to the list it belongs on.
 extension HomePage {
-    /// The 頂部輪播圖: the first band, drawn at the top while it is enabled.
+    /// The 顶部轮播图: the first band, drawn at the top while it is enabled.
     var carouselSection: HomeSection? {
         sections.first { $0.layout == .band && $0.isEditable }
     }
 
-    /// 選擇輪播數據: the 輪播圖 shows `binding`, under that binding's own name. A page without one
+    /// 选择轮播数据: the 轮播图 shows `binding`, under that binding's own name. A page without one
     /// gets one, shown, before its first section.
     mutating func setCarousel(_ binding: HomeSectionBinding, parameters: [String: String] = [:], title: String = "") {
         if let index = sections.firstIndex(where: { $0.id == carouselSection?.id }) {
@@ -96,7 +96,7 @@ extension HomePage {
         }
     }
 
-    /// 關閉輪播圖 and 開啟輪播圖: the 輪播圖 keeps what it shows while it is hidden.
+    /// 关闭轮播图 and 开启轮播图: the 轮播图 keeps what it shows while it is hidden.
     mutating func setCarouselShown(_ isShown: Bool) {
         guard let id = carouselSection?.id else { return }
         setEnabled(isShown, section: id)

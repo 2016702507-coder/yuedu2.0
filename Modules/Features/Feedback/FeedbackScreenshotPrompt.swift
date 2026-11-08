@@ -1,8 +1,8 @@
 import SwiftUI
 import UIKit
 
-/// 截圖後顯示意見回饋入口: after a screenshot, a 問題回報 capsule floats over the bottom of the
-/// screen, and opens 回饋與改進 with the screen already attached.
+/// 截图后显示意见回馈入口: after a screenshot, a 问题回报 capsule floats over the bottom of the
+/// screen, and opens 回馈与改进 with the screen already attached.
 ///
 /// The capsule lives in a window of its own and the form is presented from the topmost view
 /// controller, so both appear over every screen, the full-screen reader included. Reading
@@ -81,7 +81,7 @@ final class FeedbackScreenshotPrompt {
         window.isHidden = false
         self.window = window
         self.anchor = anchor
-        UIAccessibility.post(notification: .announcement, argument: localized("已截圖。可以回報這個畫面的問題。"))
+        UIAccessibility.post(notification: .announcement, argument: localized("已截图。可以回报这个画面的问题。"))
 
         hideTask = Task { [weak self] in
             try? await Task.sleep(for: Self.visibleDuration)
@@ -161,7 +161,7 @@ final class FeedbackScreenshotPrompt {
 /// The form as presented by the prompt, recognisable so a screenshot of it is ignored.
 final class FeedbackComposeHostingController: UIHostingController<AnyView> {}
 
-/// The capsule: an info mark and 問題回報. Tapping anywhere on it reports; it goes away by
+/// The capsule: an info mark and 问题回报. Tapping anywhere on it reports; it goes away by
 /// itself, or with VoiceOver's escape gesture.
 /// Fills the app's window, behind its content, so the capsule's window — which nothing in the
 /// app contains — hears when the space it sits in changes size or safe area.
@@ -201,7 +201,7 @@ private struct FeedbackScreenshotCapsule: View {
                     .frame(width: DSLayout.feedbackScreenshotPromptIconSide, height: DSLayout.feedbackScreenshotPromptIconSide)
                     .background(DSColor.accent, in: Circle())
                     .accessibilityHidden(true)
-                Text(localized("問題回報"))
+                Text(localized("问题回报"))
                     .font(DSFont.title3)
                     .foregroundStyle(DSColor.textPrimary)
             }
@@ -212,7 +212,7 @@ private struct FeedbackScreenshotCapsule: View {
         }
         .buttonStyle(.plain)
         .floatingSurfaceBackground(in: Capsule())
-        .accessibilityHint(localized("以這張截圖開啟回饋與改進"))
+        .accessibilityHint(localized("以这张截图开启回馈与改进"))
         .accessibilityAction(.escape, onClose)
         .accessibilityIdentifier("feedback_screenshot_prompt")
         .padding(DSSpacing.lg)

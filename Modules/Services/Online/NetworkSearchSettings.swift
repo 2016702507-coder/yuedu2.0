@@ -5,7 +5,7 @@ enum NetworkSearchSettings {
         min(30, max(1, value))
     }
 
-    /// Ceiling for offline downloads, which read the same 網路設定 → 並發數 knob as search.
+    /// Ceiling for offline downloads, which read the same 网路设置 → 并发数 knob as search.
     /// A search spreads its N requests over N different sites; a download aims all N at the
     /// ONE host the book's source lives on, so the same number is far less polite there.
     /// Legado drives both from a single `threadCount` (default 16), but its MD3 fork clamps
@@ -18,14 +18,14 @@ enum NetworkSearchSettings {
     }
 }
 
-/// 網路設定 →「自動暫停」. `0` means never pause, whatever the number of sources: the settings
-/// page promises「0不暫停」, and a hidden "10 once you have 300+ sources" override made 換源 stop
+/// 网路设置 →「自动暂停」. `0` means never pause, whatever the number of sources: the settings
+/// page promises「0不暂停」, and a hidden "10 once you have 300+ sources" override made 换源 stop
 /// after ten results for a shelf of 1559 sources (feedback #16, maintainer 2026-10-18). Heat and
-/// data use are bounded by 並發數 (and 搜索's thermal / low-power `SearchDevicePacing`), not here.
+/// data use are bounded by 并发数 (and 搜索's thermal / low-power `SearchDevicePacing`), not here.
 struct SearchAutoPausePolicy {
     let exactThreshold: Int
 
-    /// The policy the user configured in 網路設定 — the one way every search reads it.
+    /// The policy the user configured in 网路设置 — the one way every search reads it.
     @MainActor
     static var configured: SearchAutoPausePolicy {
         SearchAutoPausePolicy(count: GlobalSettings.shared.searchAutoPauseCount)

@@ -4,7 +4,7 @@ import SwiftUI
 /// a ring that fills as the sources answer, with a pause glyph inside. A tap pauses the
 /// search and the glyph turns to play; another carries on with the sources not yet
 /// asked. Beside it, how many sources have answered, and any that failed, timed out or
-/// were skipped — 「18/27 · 失敗 4」.
+/// were skipped — 「18/27 · 失败 4」.
 ///
 /// The 搜索 page shows it at the end of its source-scope row while a search runs or is
 /// paused, and takes it away when the search is done.
@@ -23,7 +23,7 @@ struct SearchProgressControl: View {
                 SearchProgressRing(fraction: progress.fraction, isPaused: isPaused)
             }
             .buttonStyle(.borderless)
-            .accessibilityLabel(isPaused ? localized("繼續搜索") : localized("暫停搜索"))
+            .accessibilityLabel(isPaused ? localized("继续搜索") : localized("暂停搜索"))
             .accessibilityValue(progress.total > 0 ? "\(progress.completed)/\(progress.total)" : "")
         }
     }
@@ -32,17 +32,17 @@ struct SearchProgressControl: View {
         var text = Text("\(progress.completed)/\(progress.total)")
         if progress.timedOut > 0 {
             text = text + Self.separator
-                + Text(String(format: localized("超時 %d"), progress.timedOut))
+                + Text(String(format: localized("超时 %d"), progress.timedOut))
                     .foregroundStyle(DSColor.warning)
         }
         if progress.failed > 0 {
             text = text + Self.separator
-                + Text(String(format: localized("失敗 %d"), progress.failed))
+                + Text(String(format: localized("失败 %d"), progress.failed))
                     .foregroundStyle(DSColor.destructive)
         }
         if progress.skipped > 0 {
             text = text + Self.separator
-                + Text(String(format: localized("暫跳 %d"), progress.skipped))
+                + Text(String(format: localized("暂跳 %d"), progress.skipped))
         }
         return text
             .font(DSFont.footnote)
@@ -86,7 +86,7 @@ private struct SearchProgressRing: View {
     }
 }
 
-#Preview("搜索進度") {
+#Preview("搜索进度") {
     VStack(spacing: DSSpacing.lg) {
         SearchProgressControl(
             progress: SearchAggregator.SearchProgress(total: 27, completed: 18, failed: 4),

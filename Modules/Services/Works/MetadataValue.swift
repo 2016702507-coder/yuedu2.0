@@ -33,7 +33,7 @@ struct ImportedMetadata: Hashable, Codable, Sendable {
 
     var schemaVersion: Int = Self.currentSchemaVersion
     var copyID: UUID
-    /// The record of the copy's source at import, so a value's place survives a later 換源.
+    /// The record of the copy's source at import, so a value's place survives a later 换源.
     var sourceItem: SourceItemKey
     var identifiers: [ExternalIdentifier]
     var values: [MetadataValue]

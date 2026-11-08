@@ -181,7 +181,7 @@ extension ReaderView {
         issuePageTurn(.backward, showing: previousReaderPage(before: currentPage))
     }
 
-    /// 自動閱讀's page advance: instant, and it reports the end of the book so the
+    /// 自动阅读's page advance: instant, and it reports the end of the book so the
     /// mode can end itself.
     @discardableResult
     func advanceAutoReadPage() -> Bool {
@@ -215,8 +215,8 @@ extension ReaderView {
     ///   the tap. It is display state only — the executor never reads it, and the
     ///   page that settles is published back over it.
     /// - Parameter animated: overrides the reader's own page-turn animation.
-    ///   自動閱讀 passes `false`: its curtain *is* the animation, and running the
-    ///   reader's 仿真／覆蓋／滑動 underneath it would be two transitions at once —
+    ///   自动阅读 passes `false`: its curtain *is* the animation, and running the
+    ///   reader's 仿真／覆盖／滑动 underneath it would be two transitions at once —
     ///   legado bypasses its `PageDelegate` for the same reason.
     func issuePageTurn(_ step: ReaderPageTurnCommand.Step, showing page: Int, animated: Bool? = nil) {
         currentPage = page

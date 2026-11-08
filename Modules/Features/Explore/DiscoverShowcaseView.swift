@@ -2,9 +2,9 @@ import SwiftUI
 
 // MARK: - Discover Showcase
 
-/// The redesigned 發現 (Discover) showcase. Renders the *book source's own*
+/// The redesigned 发现 (Discover) showcase. Renders the *book source's own*
 /// explore categories as stacked ranking sections — a horizontal cover carousel
-/// for 推薦/精選 categories and a numbered list for 榜單/排行 categories.
+/// for 推荐/精选 categories and a numbered list for 榜单/排行 categories.
 ///
 /// The source owns the feed; this view only presents it faithfully (see
 /// `docs/design.md` §10 — Discover archetype).
@@ -95,22 +95,22 @@ private struct DiscoverEmptyState: View {
         // copy would hide the one instruction the user needs.
         ContentUnavailableView {
             if discover.exploreError != nil {
-                UnavailableLabel(localized("載入失敗"), systemImage: "exclamationmark.triangle")
+                UnavailableLabel(localized("载入失败"), systemImage: "exclamationmark.triangle")
             } else {
-                UnavailableLabel(localized("暫無發現內容"), systemImage: "sparkles")
+                UnavailableLabel(localized("暂无发现内容"), systemImage: "sparkles")
             }
         } description: {
             Text(
                 discover.sourceNotice
-                    ?? localized("此來源配置未回傳發現內容，可下拉重新整理或切換來源配置")
+                    ?? localized("此来源配置未回传发现内容，可下拉重新整理或切换来源配置")
             ).font(DSFont.unavailableDescription).foregroundStyle(DSColor.textSecondary)
         } actions: {
             UnavailableActions {
                 // The source asked for a device id and got none. The toggle that fixes
-                // it lives in 書源編輯 → 基本, which nobody looking at an empty 發現頁
+                // it lives in 书源编辑 → 基本, which nobody looking at an empty 发现页
                 // will find — so offer it here. See `AndroidIdentityRecovery`.
                 if discover.androidIdentityRepairSource != nil {
-                    Button(localized("提供裝置識別碼並重試")) {
+                    Button(localized("提供装置识别码并重试")) {
                         discover.enableAndroidIdentityAndReload()
                     }
                     .buttonStyle(.onAccentProminent)
@@ -144,7 +144,7 @@ private struct DiscoverControlsRow: View {
                         DSCapsuleLabel(title: item.title, trailingSystemImage: "arrow.up.right")
                     }
                     .buttonStyle(.plain)
-                    .accessibilityHint(localized("在瀏覽器中開啟"))
+                    .accessibilityHint(localized("在浏览器中开启"))
                 }
             }
             .padding(.horizontal, DSSpacing.lg)
@@ -153,7 +153,7 @@ private struct DiscoverControlsRow: View {
         .scrollIndicators(.hidden)
     }
 
-    /// Each filter reads 「線路：<chosen line>」, its name and its value together; one
+    /// Each filter reads 「线路：<chosen line>」, its name and its value together; one
     /// changed from its first option takes the accent, so the active filters stand out.
     private func filterMenu(_ filter: DiscoverFilter) -> some View {
         let isActive = filter.selected != filter.options.first
@@ -183,9 +183,9 @@ private struct DiscoverControlsRow: View {
 
     static func filterTitle(_ title: String) -> String {
         switch title {
-        case "线路", "線路": localized("線路")
-        case "类型", "類型": localized("類型")
-        case "频道", "頻道": localized("頻道")
+        case "线路", "线路": localized("线路")
+        case "类型", "类型": localized("类型")
+        case "频道", "频道": localized("频道")
         case "平台": localized("平台")
         default: title
         }
@@ -273,7 +273,7 @@ struct DiscoverSectionPlaceholder: View {
         case .failed:
             Button(action: onRetry) {
                 VStack(spacing: DSSpacing.xs) {
-                    Label(localized("載入失敗，點按重試"), systemImage: "arrow.clockwise")
+                    Label(localized("载入失败，点按重试"), systemImage: "arrow.clockwise")
                         .font(DSFont.subheadline)
                         .foregroundStyle(DSColor.accent)
                     if let reason = section.errorReason, !reason.isEmpty {
@@ -289,7 +289,7 @@ struct DiscoverSectionPlaceholder: View {
             }
             .buttonStyle(.plain)
         case .loaded:
-            Text(localized("暫無發現內容"))
+            Text(localized("暂无发现内容"))
                 .font(DSFont.footnote)
                 .foregroundStyle(DSColor.textSecondary)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -302,7 +302,7 @@ struct DiscoverSectionPlaceholder: View {
 
 // MARK: - Featured shelf
 
-/// A 推薦／精選 category as one of Apple Books' store shelves: a horizontal row of
+/// A 推荐／精选 category as one of Apple Books' store shelves: a horizontal row of
 /// covers with title and author, snapping to the cover edges. Loads its books lazily
 /// the first time it scrolls on.
 struct DiscoverSectionView: View {
@@ -311,7 +311,7 @@ struct DiscoverSectionView: View {
     let onAppearLoad: () -> Void
     let onRetry: () -> Void
 
-    /// 發現頁顯示設定's 橫滑展示數; 0 shows the whole first page.
+    /// 发现页显示设置's 横滑展示数; 0 shows the whole first page.
     @AppStorage(ExploreSettings.shelfBookCountKey)
     private var shelfBookCount = ExploreSettings.defaultShelfBookCount
 
@@ -360,7 +360,7 @@ struct DiscoverSectionView: View {
 
 // MARK: - Charts
 
-/// Every 榜單／排行 category as one row of chart columns, paged sideways like Apple
+/// Every 榜单／排行 category as one row of chart columns, paged sideways like Apple
 /// Books' Top Charts: each column is one ranking with its title and top entries,
 /// and the next column peeks in from the edge.
 private struct DiscoverRankedSectionsCarousel: View {
@@ -408,10 +408,10 @@ private struct DiscoverChartColumn: View {
     ///
     /// The columns sit in a `LazyHStack` with `scrollClipDisabled`, so the row's
     /// height tracks only the columns built so far AND anything taller draws outside
-    /// it: a full column next to an empty 「暫無發現內容」 one once rendered straight
+    /// it: a full column next to an empty 「暂无发现内容」 one once rendered straight
     /// over the section below. Every column must therefore be the same height —
-    /// `prefix` and the reserved height stay driven by this one value — 發現頁顯示設定's
-    /// 豎排展示數, the same for every column.
+    /// `prefix` and the reserved height stay driven by this one value — 发现页显示设置's
+    /// 竖排展示数, the same for every column.
     @AppStorage(ExploreSettings.chartBookCountKey)
     private var reservedRows = ExploreSettings.defaultChartBookCount
 
@@ -464,8 +464,8 @@ private struct DiscoverChartColumn: View {
 /// Rows read only precomputed `DiscoverBookDisplay` fields — no HTML stripping,
 /// audiobook inference, or source lookups in `body` (each visible row re-renders
 /// every time any section finishes loading; see `DiscoverBookDisplay`).
-/// Whether a 探索 card may fall back to the user's 預設封面 library, and under
-/// which key. Gated on 外觀主題 → 介面 → 預設封面 → 探索頁啟用預設封面, so the
+/// Whether a 探索 card may fall back to the user's 预设封面 library, and under
+/// which key. Gated on 外观主题 → 介面 → 预设封面 → 探索页启用预设封面, so the
 /// bookshelf can use default covers without the discover page changing.
 enum DiscoverDefaultCoverSeed {
     @MainActor
@@ -632,7 +632,7 @@ struct DiscoverCategoryView: View {
                         Menu {
                             AddToHomeConfigurationItems(reference: reference)
                         } label: {
-                            Label(localized("加入首頁配置"), systemImage: "rectangle.stack.badge.plus")
+                            Label(localized("加入首页配置"), systemImage: "rectangle.stack.badge.plus")
                                 .labelStyle(.iconOnly)
                         }
                     }
@@ -704,7 +704,7 @@ struct DiscoverCategoryBookList: View {
         .overlay {
             if books.isEmpty, !paging.hasMore, !paging.isLoading, paging.errorReason == nil {
                 ContentUnavailableView {
-                    UnavailableLabel(localized("暫無發現內容"), systemImage: "books.vertical")
+                    UnavailableLabel(localized("暂无发现内容"), systemImage: "books.vertical")
                 }
             }
         }
@@ -738,7 +738,7 @@ struct DiscoverCategoryBookList: View {
                 loadMoreIfNeeded()
             } label: {
                 VStack(spacing: DSSpacing.xs) {
-                    Label(localized("載入失敗，點按重試"), systemImage: "arrow.clockwise")
+                    Label(localized("载入失败，点按重试"), systemImage: "arrow.clockwise")
                         .font(DSFont.subheadline)
                         .foregroundStyle(DSColor.accent)
 
@@ -778,7 +778,7 @@ struct DiscoverCategoryBookList: View {
 
 // MARK: - List layout
 
-/// A source's page as Legado lays it out (發現頁顯示設定 › 佈局 › 列表): its filters and
+/// A source's page as Legado lays it out (发现页显示设置 › 布局 › 列表): its filters and
 /// page links, its categories as chips along the top, and the chosen category's books as
 /// a list of cards below.
 struct DiscoverListLayoutView: View {
@@ -854,7 +854,7 @@ struct DiscoverListLayoutView: View {
 
 #Preview {
     var source = BookSource()
-    source.bookSourceName = "範例來源配置"
+    source.bookSourceName = "范例来源配置"
     source.bookSourceUrl = "https://example.com"
     return NavigationStack {
         DiscoverShowcaseView(discover: DiscoverViewModel(source: source))

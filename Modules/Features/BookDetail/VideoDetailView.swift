@@ -22,9 +22,9 @@ private enum VideoPlayerRequest: Identifiable {
 }
 
 /// A video's detail page, laid out as a media centre lays out a series (maintainer, 2026-11-01:
-/// 「視頻的詳情頁就是按照emby播放器，別共用一個詳情頁」「就是什麼海報牆之類的」, then 「去看
-/// infuse、rex、senplayer、vidhub…的詳情頁」): the poster across the top, fading into the page
-/// (`VideoDetailHero`), the title and a row of buttons led by play, then 選集 — the 線路
+/// 「视频的详情页就是按照emby播放器，别共用一个详情页」「就是什么海报墙之类的」, then 「去看
+/// infuse、rex、senplayer、vidhub…的详情页」): the poster across the top, fading into the page
+/// (`VideoDetailHero`), the title and a row of buttons led by play, then 选集 — the 线路
 /// picked as a season is, its episodes as tiles — and a poster wall of the source's other works
 /// in the same genre. Videos only: books keep Editorial Minimalism.
 ///
@@ -54,7 +54,7 @@ struct VideoDetailView: View {
     private var source: BookSource? { BookSourceStore.shared.source(id: currentBook.sourceId) }
 
     @State private var chapters: [OnlineChapterRef] = []
-    /// The 線路 and episodes `chapters` holds, read once per list.
+    /// The 线路 and episodes `chapters` holds, read once per list.
     @State private var guide = VideoEpisodeGuide(chapters: [])
     @State private var loading = false
     @State private var loadError: String?
@@ -66,7 +66,7 @@ struct VideoDetailView: View {
     @State private var alreadyInShelf = false
     @State private var player: VideoPlayerRequest?
     @State private var routeID = 0
-    /// The episode at the leading edge of 選集's row: where it scrolls to, and which run of
+    /// The episode at the leading edge of 选集's row: where it scrolls to, and which run of
     /// episodes the bar under it marks.
     @State private var leadingEpisode: Int?
     @State private var showsEpisodes = false
@@ -128,7 +128,7 @@ struct VideoDetailView: View {
     private var displayName: String {
         if let d = detailInfo?.name.trimmingCharacters(in: .whitespacesAndNewlines), !d.isEmpty { return d }
         let b = currentBook.name.trimmingCharacters(in: .whitespacesAndNewlines)
-        return b.isEmpty ? localized("未知書名") : b
+        return b.isEmpty ? localized("未知书名") : b
     }
 
     private var displayAuthor: String {
@@ -154,7 +154,7 @@ struct VideoDetailView: View {
         let name = currentBook.sourceName.trimmingCharacters(in: .whitespacesAndNewlines)
         if !name.isEmpty { return name }
         if let s = source?.bookSourceName, !s.isEmpty { return s }
-        return localized("未知來源配置")
+        return localized("未知来源配置")
     }
 
     private var resolvedTOCURL: String? {
@@ -261,7 +261,7 @@ struct VideoDetailView: View {
         .fullScreenCover(item: $player) { request in
             switch request {
             case .shelf(let id):
-                // The reader entry moves the book to the front of 繼續閱讀, as the audiobook
+                // The reader entry moves the book to the front of 继续阅读, as the audiobook
                 // page's does. Never the shelf's card driver: its close would go to the shelf,
                 // not this cover.
                 BookReaderView(bookId: id)
@@ -343,8 +343,8 @@ struct VideoDetailView: View {
     }
 
     /// VidHub's action row: the play button, then the page's other actions together in one
-    /// glass capsule as tall as it (maintainer, 2026-11-01: 「那三個按鈕包在一個膠囊裡面」,
-    /// 「我要的是這樣的玻璃膠囊」); the capsule goes under it when the text is too large for
+    /// glass capsule as tall as it (maintainer, 2026-11-01: 「那三个按钮包在一个胶囊里面」,
+    /// 「我要的是这样的玻璃胶囊」); the capsule goes under it when the text is too large for
     /// one line.
     private func heroActions(_ guide: VideoEpisodeGuide) -> some View {
         ViewThatFits(in: .horizontal) {
@@ -369,12 +369,12 @@ struct VideoDetailView: View {
             .modifier(CardButtonGlass())
     }
 
-    /// 繼續播放 at the saved episode, else 開始播放 at the first; either names the episode.
+    /// 继续播放 at the saved episode, else 开始播放 at the first; either names the episode.
     private func playAction(_ guide: VideoEpisodeGuide) -> BookDetailAction {
         let resume = resumeEpisode
         let episode = resume ?? guide.firstEpisode
         return BookDetailAction(
-            title: resume != nil ? localized("繼續播放") : localized("開始播放"),
+            title: resume != nil ? localized("继续播放") : localized("开始播放"),
             systemImage: "play.fill",
             isBusy: false,
             isEnabled: !guide.isEmpty && !addingToShelf,
@@ -384,7 +384,7 @@ struct VideoDetailView: View {
     }
 
     /// The white capsule plezy, Infuse and VidHub lead with, in light and dark alike
-    /// (maintainer, 2026-11-01: 「給我調成白色吧，白天模式下」): its title, and the episode
+    /// (maintainer, 2026-11-01: 「给我调成白色吧，白天模式下」): its title, and the episode
     /// it plays on a second line under it.
     private func playButton(_ guide: VideoEpisodeGuide) -> some View {
         let action = playAction(guide)
@@ -431,20 +431,20 @@ struct VideoDetailView: View {
             .modifier(VideoHeroCapsuleIcon())
         }
         .disabled(chapters.isEmpty || addingToShelf)
-        .accessibilityLabel(alreadyInShelf ? localized("移除書架") : localized("加入書架"))
+        .accessibilityLabel(alreadyInShelf ? localized("移除书架") : localized("加入书架"))
         if !guide.isEmpty {
             Button { showsEpisodes = true } label: {
                 Image(systemName: "list.bullet").modifier(VideoHeroCapsuleIcon())
             }
-            .accessibilityLabel(localized("選集"))
+            .accessibilityLabel(localized("选集"))
         }
         Button { showSourcePicker = true } label: {
             Image(systemName: "arrow.triangle.2.circlepath").modifier(VideoHeroCapsuleIcon())
         }
-        .accessibilityLabel(localized("換源"))
+        .accessibilityLabel(localized("换源"))
     }
 
-    // MARK: 選集
+    // MARK: 选集
 
     @ViewBuilder
     private func episodesSection(_ guide: VideoEpisodeGuide) -> some View {
@@ -463,9 +463,9 @@ struct VideoDetailView: View {
                 }
                 .buttonStyle(.plain)
                 .padding(.horizontal, DSLayout.videoDetailMargin)
-                .accessibilityHint(localized("載入失敗，點按重試"))
+                .accessibilityHint(localized("载入失败，点按重试"))
             } else if guide.isEmpty {
-                Text(localized("這部影片沒有可播放的集數"))
+                Text(localized("这部影片没有可播放的集数"))
                     .font(DSFont.subheadline)
                     .foregroundStyle(DSColor.textSecondary)
                     .frame(maxWidth: .infinity, minHeight: DSLayout.videoEpisodeCardHeight)
@@ -475,14 +475,14 @@ struct VideoDetailView: View {
         }
     }
 
-    /// VidHub's season header (「第 1 季 ⌄」): the 線路 menu itself when there are several,
-    /// else 選集. The whole list opens from the capsule's 選集 button.
+    /// VidHub's season header (「第 1 季 ⌄」): the 线路 menu itself when there are several,
+    /// else 选集. The whole list opens from the capsule's 选集 button.
     @ViewBuilder
     private func episodesHeader(_ guide: VideoEpisodeGuide) -> some View {
         if guide.routes.count > 1 {
             routeMenu(guide)
         } else {
-            Text(localized("選集"))
+            Text(localized("选集"))
                 .font(DSFont.headline.weight(.bold))
                 .foregroundStyle(DSColor.textPrimary)
                 .accessibilityAddTraits(.isHeader)
@@ -492,7 +492,7 @@ struct VideoDetailView: View {
     private func routeMenu(_ guide: VideoEpisodeGuide) -> some View {
         let current = guide.routes.first { $0.id == routeID } ?? guide.routes[0]
         return Menu {
-            Picker(localized("線路"), selection: $routeID) {
+            Picker(localized("线路"), selection: $routeID) {
                 ForEach(guide.routes) { route in
                     Text(VideoEpisodeNaming.routeName(route)).tag(route.id)
                 }
@@ -510,12 +510,12 @@ struct VideoDetailView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(localized("線路"))
+        .accessibilityLabel(localized("线路"))
         .accessibilityValue(VideoEpisodeNaming.routeName(current))
     }
 
-    /// The 線路's episodes as VidHub's episode stills (`VideoEpisodeCard`), scrolled to the one
-    /// 繼續播放 resumes, and under them its runs of episodes and the way to its last
+    /// The 线路's episodes as VidHub's episode stills (`VideoEpisodeCard`), scrolled to the one
+    /// 继续播放 resumes, and under them its runs of episodes and the way to its last
     /// (`VideoEpisodeRangeBar`).
     private func episodeCards(_ guide: VideoEpisodeGuide) -> some View {
         let route = guide.routes.first { $0.id == routeID } ?? guide.routes[0]
@@ -583,10 +583,10 @@ struct VideoDetailView: View {
         var items: [BookDetailInfoItem] = []
         let count = guide.routes.reduce(0) { $0 + $1.episodes.count }
         if count > 0 {
-            items.append(BookDetailInfoItem(id: "episodes", label: localized("集數"), value: count.formatted()))
+            items.append(BookDetailInfoItem(id: "episodes", label: localized("集数"), value: count.formatted()))
         }
         if guide.routes.count > 1 {
-            items.append(BookDetailInfoItem(id: "routes", label: localized("線路"),
+            items.append(BookDetailInfoItem(id: "routes", label: localized("线路"),
                                             value: guide.routes.count.formatted()))
         }
         items.append(.source(name: sourceName) { showSourcePicker = true })
@@ -742,7 +742,7 @@ struct VideoDetailView: View {
     }
 
     private func load() {
-        guard let source else { loadError = localized("來源配置已被刪除"); return }
+        guard let source else { loadError = localized("来源配置已被删除"); return }
         loading = true
         loadError = nil
         loadedRuntimeVariables = nil
@@ -862,7 +862,7 @@ struct VideoDetailView: View {
         return book
     }
 
-    /// Plays an episode. Only 加入書架 shelves the book; a book not on the shelf plays with
+    /// Plays an episode. Only 加入书架 shelves the book; a book not on the shelf plays with
     /// its position kept in memory, as an unshelved audiobook does.
     private func play(chapterIndex: Int) {
         guard !chapters.isEmpty, let source else { return }
@@ -882,7 +882,7 @@ struct VideoDetailView: View {
             var book = unshelvedBook(source: source)
             book.audioChapterIndex = chapterIndex
             player = .transient(book)
-            // Watched without being shelved: only its name stays, for 搜索's 最近閱讀.
+            // Watched without being shelved: only its name stays, for 搜索's 最近阅读.
             OffShelfReadRecords.record(title: book.title, author: book.author, coverUrl: displayCoverUrl)
         }
     }
@@ -900,24 +900,24 @@ private struct VideoHeroCapsuleIcon: ViewModifier {
 #Preview {
     NavigationStack {
         VideoDetailView(book: OnlineBook(
-            name: "示範短劇",
+            name: "示范短剧",
             author: "",
-            intro: "一部用來預覽影片詳情頁的短劇。",
+            intro: "一部用来预览影片详情页的短剧。",
             coverUrl: "",
             bookUrl: "https://example.com/vod/1",
             tocUrl: "https://example.com/vod/1/toc",
             wordCount: "",
             lastChapter: "第 80 集",
-            kind: "都市,短劇",
+            kind: "都市,短剧",
             sourceId: UUID(),
-            sourceName: "示範影視來源"))
+            sourceName: "示范影视来源"))
         .environmentObject(BookStore())
     }
 }
 
 extension UUID {
     /// An unshelved video's id, the same on every visit: the links its episodes resolve —
-    /// for 選集's stills, then for 播放 — are cached under one directory per work instead of
+    /// for 选集's stills, then for 播放 — are cached under one directory per work instead of
     /// one per visit or per tap, which nothing but 快取管理 would ever reclaim. A link cached
     /// long ago and since expired is resolved again once, by the player and by the stills alike.
     static func unshelvedVideoID(sourceId: UUID, bookURL: String) -> UUID {

@@ -1,33 +1,33 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// What a 匯入 control on 閱讀設定 or one of its sub-pages asked for.
+/// What a 汇入 control on 阅读设置 or one of its sub-pages asked for.
 enum ReaderStyleImportRoute: String, Identifiable, Sendable {
-    /// 匯入閱讀設定 — the whole bundle, or the legado `readConfig.json` / `.zip`
+    /// 汇入阅读设置 — the whole bundle, or the legado `readConfig.json` / `.zip`
     /// the app has always accepted.
     case readerSettings
-    /// The 正則高亮 page's own 匯入 — applies only the rules, even if the picked
+    /// The 正则高亮 page's own 汇入 — applies only the rules, even if the picked
     /// file happens to carry more.
     case regexHighlights
-    /// The 章節標題樣式 page's own 匯入.
+    /// The 章节标题样式 page's own 汇入.
     case chapterTitleStyle
-    /// The 對話氣泡 page's own 匯入 — accepts the script-based bubble files and
+    /// The 对话气泡 page's own 汇入 — accepts the script-based bubble files and
     /// keeps only their settings.
     case dialogueBubble
-    /// 氣泡設定's 段評氣泡 page: a bubble SVG or `bubble.json`.
+    /// 气泡设置's 段评气泡 page: a bubble SVG or `bubble.json`.
     case commentBubble
-    /// 氣泡設定's 本章說 / 作者說 / 神評論 pages: a card template, bare or packaged.
+    /// 气泡设置's 本章说 / 作者说 / 神评论 pages: a card template, bare or packaged.
     case chapterSayCard
     case authorSayCard
     case hotCommentCard
-    /// 字體's 匯入字體…: a font file, made the reader's font. It shares this picker because
+    /// 字体's 汇入字体…: a font file, made the reader's font. It shares this picker because
     /// SwiftUI presents only one of two `.fileImporter`s on a view: a font importer of its
     /// own beside this one never opened (feedback #61).
     case readerFont
 
     var id: String { rawValue }
 
-    /// The 氣泡設定 page this route imports for, or nil for a reading-settings file.
+    /// The 气泡设置 page this route imports for, or nil for a reading-settings file.
     var commentStyleTarget: ReaderCommentStyleImporter.Target? {
         switch self {
         case .readerSettings, .regexHighlights, .chapterTitleStyle, .dialogueBubble, .readerFont: nil
@@ -46,7 +46,7 @@ enum ReaderStyleImportRoute: String, Identifiable, Sendable {
         }
     }
 
-    /// Accepted types for the font importer. Shared with 全局字體: the picker greys a file
+    /// Accepted types for the font importer. Shared with 全局字体: the picker greys a file
     /// out before the importer ever sees it, so both entry points must list the same types
     /// or `.ttc` becomes unselectable no matter what the storage layer allows.
     static let fontContentTypes: [UTType] = [
@@ -73,11 +73,11 @@ enum ReaderStyleImportRoute: String, Identifiable, Sendable {
 
     /// The title of the alert a failed import shows.
     var failureTitleKey: String {
-        self == .readerFont ? "字體匯入失敗" : "匯入失敗"
+        self == .readerFont ? "字体汇入失败" : "汇入失败"
     }
 
-    /// Narrows a parsed file to what this entry point promised to change. 匯入
-    /// on the 正則高亮 page must not quietly resize the user's type because the
+    /// Narrows a parsed file to what this entry point promised to change. 汇入
+    /// on the 正则高亮 page must not quietly resize the user's type because the
     /// file also contained layout parameters.
     func scoped(_ plan: ReaderSettingsImportPlan) -> ReaderSettingsImportPlan {
         switch self {
@@ -137,8 +137,8 @@ extension View {
     /// reports the result.
     ///
     /// Attached by whoever owns the **first-level** presenter: `ReaderView` on
-    /// iOS 17, where 閱讀設定 is a presented sheet that iOS 17 can drop a picker
-    /// presentation across, and 閱讀設定 itself on iOS 18+. It is the only
+    /// iOS 17, where 阅读设置 is a presented sheet that iOS 17 can drop a picker
+    /// presentation across, and 阅读设置 itself on iOS 18+. It is the only
     /// `.fileImporter` either one attaches: SwiftUI presents one of two on a view. See
     /// `Technotes/iOS17MenuModalPresentation.md`.
     func readerStyleImportPresentation(
@@ -159,7 +159,7 @@ private struct ReaderStyleImportPresentationModifier: ViewModifier {
     @State private var activeRoute: ReaderStyleImportRoute?
     @State private var pendingPlan: PendingPlan?
     @State private var alert: ReaderStyleImportAlert?
-    /// The 匯入完成 sheet: what the file changed and where it landed.
+    /// The 汇入完成 sheet: what the file changed and where it landed.
     @State private var importProgress: CustomizationImportProgress?
 
     func body(content: Content) -> some View {
@@ -183,7 +183,7 @@ private struct ReaderStyleImportPresentationModifier: ViewModifier {
                 Alert(
                     title: Text(localized(alert.titleKey)),
                     message: Text(alert.message),
-                    dismissButton: .default(Text(localized("確定")))
+                    dismissButton: .default(Text(localized("确定")))
                 )
             }
             .sheet(item: $importProgress) { progress in
@@ -203,13 +203,13 @@ private struct ReaderStyleImportPresentationModifier: ViewModifier {
                 defer { if accessing { url.stopAccessingSecurityScopedResource() } }
 
                 if scope == .readerFont {
-                    // The new font is selected; the 字體 row and the preview show it.
+                    // The new font is selected; the 字体 row and the preview show it.
                     try GlobalSettings.shared.importReaderFont(from: url)
                     return
                 }
                 if let target = scope.commentStyleTarget {
                     let message = try ReaderCommentStyleImporter.importFile(at: url, into: target)
-                    alert = ReaderStyleImportAlert(titleKey: "SVG 匯入成功", message: message)
+                    alert = ReaderStyleImportAlert(titleKey: "SVG 汇入成功", message: message)
                     return
                 }
 
@@ -221,7 +221,7 @@ private struct ReaderStyleImportPresentationModifier: ViewModifier {
                 }
                 // A layout replaces the whole reading setup — type, spacing, margins,
                 // page turn, header/footer — so it is confirmed first, in words that say
-                // so. A page's own 匯入 (章節標題、正則高亮、對話氣泡) never carries one and
+                // so. A page's own 汇入 (章节标题、正则高亮、对话气泡) never carries one and
                 // changes only what that page is about.
                 guard plan.layout != nil else {
                     apply(plan)
@@ -258,7 +258,7 @@ private struct ReaderStyleImportPresentationModifier: ViewModifier {
             ))
         } catch {
             alert = ReaderStyleImportAlert(
-                titleKey: "匯入失敗",
+                titleKey: "汇入失败",
                 message: error.localizedDescription
             )
         }

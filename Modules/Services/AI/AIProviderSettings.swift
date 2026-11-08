@@ -141,9 +141,9 @@ enum AIProviderAssembly {
         var message: String {
             switch self {
             case .noAPIKey: return localized("尚未填入 API Key")
-            case .notConfigured: return localized("尚未設定 AI 服務")
-            case .corruptedConfiguration: return localized("AI 設定已損毀，請重新填寫")
-            case .invalidEndpoint: return localized("API 位址無效")
+            case .notConfigured: return localized("尚未设置 AI 服务")
+            case .corruptedConfiguration: return localized("AI 设置已损毁，请重新填写")
+            case .invalidEndpoint: return localized("API 位址无效")
             }
         }
     }
@@ -166,12 +166,12 @@ enum AIProviderAssembly {
         var model: String { provider.defaultModel }
     }
 
-    /// Background jobs — 全書摘要, 整章翻譯, 書架整理 — run on the default service and model;
+    /// Background jobs — 全书摘要, 整章翻译, 书架整理 — run on the default service and model;
     /// only the assistant's composer picks per conversation.
     static func activeService() -> Result<ActiveService, Unavailable> {
         #if DEBUG
         // `-debug-ai-endpoint <url>`: an OpenAI-compatible fixture stands in for the reader's
-        // service (AI 推薦 8f, `scripts/ai_recommendation_fixture.py`), as `-debug-force-pro`
+        // service (AI 推荐 8f, `scripts/ai_recommendation_fixture.py`), as `-debug-force-pro`
         // stands in for Pro. Nothing the reader configured is read or changed. Debug builds only.
         let arguments = ProcessInfo.processInfo.arguments
         if let index = arguments.firstIndex(of: "-debug-ai-endpoint"), arguments.indices.contains(index + 1) {
@@ -232,7 +232,7 @@ struct AIServiceProfile: Identifiable, Codable, Equatable, Sendable {
 extension AIProviderStore {
     enum PersistenceFailure: LocalizedError {
         case keychain
-        var errorDescription: String? { localized("無法儲存 API Key，原設定未變更。") }
+        var errorDescription: String? { localized("无法储存 API Key，原设置未变更。") }
     }
 
     var hasConfiguredProfile: Bool {

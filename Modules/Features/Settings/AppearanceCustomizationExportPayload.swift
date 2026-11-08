@@ -2,7 +2,7 @@ import CoreTransferable
 import Foundation
 import UniformTypeIdentifiers
 
-/// The whole customised look as one `.yuedustyle` for 導出主題's `ShareLink`: themes,
+/// The whole customised look as one `.yuedustyle` for 导出主题's `ShareLink`: themes,
 /// page backgrounds, bottom-tab icons, launch images and the reading backgrounds,
 /// every image embedded — see `AppearanceCustomizationBundle`.
 ///
@@ -33,7 +33,7 @@ struct AppearanceCustomizationExportPayload: Transferable {
         }
     }
 
-    /// The theme's name as a filename — what 導出主題 names the file after. Names are
+    /// The theme's name as a filename — what 导出主题 names the file after. Names are
     /// user-entered and can arrive in an imported pack, so path separators and newlines
     /// are replaced.
     static func filename(for label: String) -> String {

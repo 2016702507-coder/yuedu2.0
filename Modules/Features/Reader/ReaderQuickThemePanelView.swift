@@ -1,10 +1,18 @@
 import SwiftUI
 import UIKit
 
+/// 浮层里「翻页」一排可选的样式，用短词挤进一行 chip（超出可横滑）：
+/// 「上下滚动」在竖排书里就是「右往左」，由 `pageTurnTitleKey(for:)` 换掉。
+/// 注意「上下翻」（vertical）与「上下滚动」（scroll）不是一回事：前者一屏一页、
+/// 松手吸附，后者是连续滚动。
 enum ReaderQuickPageTurnOption: String, CaseIterable, Identifiable, Hashable {
     case slide
     case cover
     case curl
+    /// 波纹：波前从按下的位置扩散，扫过的地方换成下一页。
+    case ripple
+    /// 上下翻页：整页跟手上下平移，一屏一页。
+    case vertical
     case fastFade
     case scroll
 
@@ -12,11 +20,13 @@ enum ReaderQuickPageTurnOption: String, CaseIterable, Identifiable, Hashable {
 
     var titleKey: String {
         switch self {
-        case .slide: return "Slide"
-        case .cover: return "覆蓋翻頁"
-        case .curl: return "Curl"
-        case .fastFade: return "Fast Fade"
-        case .scroll: return "Scroll"
+        case .slide: return "平移"
+        case .cover: return "覆盖"
+        case .curl: return "仿真"
+        case .ripple: return "波纹"
+        case .vertical: return "上下翻"
+        case .fastFade: return "无动画"
+        case .scroll: return "上下滚动"
         }
     }
 
@@ -25,6 +35,8 @@ enum ReaderQuickPageTurnOption: String, CaseIterable, Identifiable, Hashable {
         case .slide: return "arrow.left.square"
         case .cover: return "square.on.square"
         case .curl: return "doc"
+        case .ripple: return "water.waves"
+        case .vertical: return "chevron.up.chevron.down"
         case .fastFade: return "bolt.square"
         case .scroll: return "doc.plaintext"
         }
@@ -42,6 +54,10 @@ enum ReaderBackgroundEditorRoute: Hashable {
     }
 }
 
+/// The panel a reader gets on a tap in the middle of the page: type size, background,
+/// page turn, and four actions. Everything else lives behind 更多设置, which is a grid of
+/// the same sections the full settings sheet has — one tap per subject instead of one
+/// long form to scroll.
 struct ReaderQuickThemePanelView: View {
     @Binding var fontSize: CGFloat
     @Binding var readerTheme: ReaderTheme
@@ -51,15 +67,26 @@ struct ReaderQuickThemePanelView: View {
     /// Enters auto-read mode and puts every surface away. It is only an entry:
     /// once running, the footer pill is the single route to the speed and the exit.
     let onStartAutoRead: () -> Void
+    /// The whole settings sheet, preview panel and all. Kept as the second way in:
+    /// 更多设置 answers one question, this one answers all of them at once.
     let onCustomize: () -> Void
     /// A locked control asked for the paywall. The reader closes this sheet and presents
-    /// it from its own `onDismiss`, as it does for 自訂 — never a sheet on top of this one.
+    /// it from its own `onDismiss`, as it does for 自定义 — never a sheet on top of this one.
     var onOpenPaywall: ((PremiumFeature) -> Void)? = nil
+    /// 听书: the reader closes the panel and raises its own TTS sheet.
+    var onOpenTTS: (() -> Void)? = nil
+    /// A grid cell was picked. The reader closes this panel and opens that section as a
+    /// half-height card, so the page underneath stays visible while it is adjusted.
+    var onOpenSection: ((Set<ReaderSettingsSection>) -> Void)? = nil
+    /// EPUB 的预设字体就是书自己的字体，那一格不该说「系统字体」。
+    var usesPublicationFontDefault = false
 
     @Bindable private var settings = GlobalSettings.shared
     @Environment(\.colorScheme) private var colorScheme
     /// The saved-background page pushed in this panel's own navigation.
     @State private var backgroundEditor: ReaderBackgroundEditorRoute?
+    /// The 更多设置 grid, pushed in this panel's own navigation.
+    @State private var showingSectionGrid = false
     /// Measured height of the panel's own content, so the sheet is exactly as tall
     /// as what it holds. A fixed detent left a band of dead space under the last
     /// row whenever the content came out shorter than the constant.
@@ -77,16 +104,16 @@ struct ReaderQuickThemePanelView: View {
             // sizes that content is taller than any detent.
             ScrollView {
                 VStack(alignment: .leading, spacing: DSSpacing.lg) {
-                    typeAndPageTurnRow
-                    brightnessSlider
+                    typeRow
                     readingBackgroundRow
-                        .padding(.bottom, DSSpacing.lg)
-                    // Only under 綁定閱讀主題: without it the reader follows the device by
+                    pageTurnChips
+                    actionGrid
+                    // Only under 绑定阅读主题: without it the reader follows the device by
                     // itself and there is nothing to switch (the user's call, 2026-09-30).
+                    // It stays where it was; 更多设置 did not take it over.
                     if settings.appearanceBindReaderTheme {
                         followSystemAppearanceToggle
                     }
-                    quickActionRow
                 }
                 .padding(.horizontal, DSSpacing.xl)
                 .padding(.top, DSSpacing.xl)
@@ -131,6 +158,11 @@ struct ReaderQuickThemePanelView: View {
                     onRequestPaywall: { onOpenPaywall?($0) }
                 )
             }
+            .navigationDestination(isPresented: $showingSectionGrid) {
+                ReaderQuickPanelSectionGrid(onOpenSection: { sections in
+                    onOpenSection?(sections)
+                })
+            }
         }
         .background {
             GeometryReader { proxy in
@@ -147,32 +179,37 @@ struct ReaderQuickThemePanelView: View {
         // sheet must stay draggable and the indicator visible.
         // A height detent excludes the bottom safe area, which UIKit adds back.
         // Our measurement already includes the panel's complete bottom padding.
-        // The saved-background page is a whole form, not a row of controls: the panel
-        // opens to full height while it is up, and goes back to fitting its content.
-        .presentationDetents(backgroundEditor == nil
-            ? [.height(max(DSLayout.minimumTapTarget, contentHeight - bottomSafeAreaInset))]
-            : [.large])
+        // 更多设置 is a half sheet like this one — only the saved-background editor, which
+        // is a whole form, takes the full height.
+        .presentationDetents(panelDetents)
+        .presentationBackground(.ultraThinMaterial)
         .presentationDragIndicator(.visible)
     }
 
-    // MARK: - 字級 + 翻頁
+    private var panelDetents: Set<PresentationDetent> {
+        if backgroundEditor != nil { return [.large] }
+        if showingSectionGrid { return [.medium] }
+        return [.height(max(DSLayout.minimumTapTarget, contentHeight - bottomSafeAreaInset))]
+    }
 
-    /// One row for the two things a reader reaches for mid-page. They used to sit
-    /// apart with the page-turn style behind an icon-only `Menu` — a glyph that
-    /// never said which style was active.
-    private var typeAndPageTurnRow: some View {
+    // MARK: - 字级 + 字体
+
+    /// The two things a reader reaches for mid-page, in one row. The size never leaves
+    /// the panel — it is the one setting worth stepping with the page in sight — while
+    /// 字体 hands over to 字体与大小, where the full list lives.
+    private var typeRow: some View {
         HStack(spacing: DSSpacing.md) {
             fontSizeStepper
-            pageTurnMenu
+            fontMenu
                 .frame(width: DSLayout.readerQuickPanelTopMenuWidth)
         }
     }
 
-    /// 小 A ── 現在的字級 ── 大 A, in one capsule.
+    /// 小 A ── 现在的字级 ── 大 A, in one capsule.
     ///
     /// The size used to be reported by a row of dots under this control that
-    /// faded out after 1.8 seconds — it was gone by the time anyone looked for it,
-    /// and its appearing and disappearing made the panel change height. The number
+    /// faded out after 1.8 seconds — it was gone by the time anyone looked for
+    /// it, and its appearing and disappearing made the panel change height. The number
     /// now sits between the two buttons that change it and never moves.
     ///
     /// Both ends keep `.buttonRepeatBehavior(.enabled)`, so press-and-hold keeps
@@ -182,7 +219,7 @@ struct ReaderQuickThemePanelView: View {
             fontSizeStepButton(
                 -1,
                 textFont: DSFont.body.weight(.semibold),
-                accessibilityKey: "縮小字體"
+                accessibilityKey: "缩小字体"
             )
 
             Text("\(Int(fontSize))")
@@ -197,7 +234,7 @@ struct ReaderQuickThemePanelView: View {
             fontSizeStepButton(
                 1,
                 textFont: DSFont.title2.weight(.semibold),
-                accessibilityKey: "放大字體"
+                accessibilityKey: "放大字体"
             )
         }
         .frame(maxWidth: .infinity, minHeight: DSLayout.readerQuickPanelTopControlHeight)
@@ -205,35 +242,18 @@ struct ReaderQuickThemePanelView: View {
         .shadow(color: DSColor.shadow, radius: 6, y: 1)
     }
 
-    /// A `Menu` behind a capsule button.
-    ///
-    /// The menu is the stock control for picking one of several styles; what
-    /// changed from the icon-only version is the label — it now says which style
-    /// is active, so the reader does not have to open it to find out.
-    private var pageTurnMenu: some View {
-        Menu {
-            Picker(
-                localized("翻頁"),
-                selection: Binding(
-                    get: { pageTurnOption },
-                    set: { onSelectPageTurnOption($0) }
-                )
-            ) {
-                ForEach(ReaderQuickPageTurnOption.allCases) { option in
-                    Label(
-                        localized(pageTurnTitleKey(for: option)),
-                        systemImage: option.iconName
-                    )
-                    .font(DSFont.body)
-                    .tag(option)
-                }
-            }
+    /// The font itself, named. Like the size, it says which one is worn instead of
+    /// making the reader open something to find out; picking goes to the section page
+    /// because the list is long and each row previews its own face.
+    private var fontMenu: some View {
+        Button {
+            onOpenSection?([.text])
         } label: {
             HStack(spacing: DSSpacing.xs) {
-                Text(localized(pageTurnTitleKey(for: pageTurnOption)))
+                Text(currentFontName)
                     .lineLimit(1)
-                    .minimumScaleFactor(0.8)
-                Image(systemName: "chevron.down")
+                    .minimumScaleFactor(0.75)
+                Image(systemName: "chevron.right")
                     .font(DSFont.footnote)
                     .accessibilityHidden(true)
             }
@@ -245,8 +265,19 @@ struct ReaderQuickThemePanelView: View {
             .shadow(color: DSColor.shadow, radius: 6, y: 1)
             .contentShape(Capsule())
         }
-        .accessibilityLabel(localized("翻頁"))
-        .accessibilityValue(localized(pageTurnTitleKey(for: pageTurnOption)))
+        .buttonStyle(.plain)
+        .accessibilityLabel(localized("字体"))
+        .accessibilityValue(currentFontName)
+    }
+
+    private var currentFontName: String {
+        if usesPublicationFontDefault, settings.selectedReaderFontPostScript == nil {
+            return localized("书籍字体")
+        }
+        guard let selected = settings.selectedReaderFontPostScript else {
+            return localized("系统字体")
+        }
+        return settings.userFonts.first { $0.postScriptName == selected }?.displayName ?? selected
     }
 
     /// One half of the A / A stepper. `.buttonRepeatBehavior(.enabled)` makes
@@ -266,39 +297,14 @@ struct ReaderQuickThemePanelView: View {
         .accessibilityLabel(localized(accessibilityKey))
     }
 
-    // MARK: - Brightness
-
-    private var brightnessSlider: some View {
-        HStack(spacing: DSSpacing.md) {
-            Image(systemName: "sun.min.fill")
-                .font(DSFont.body)
-            Slider(
-                value: Binding(
-                    get: { CGFloat(settings.readerBrightness) },
-                    // `ReaderView` puts it on the screen the reader is on.
-                    set: { value in
-                        settings.followSystemBrightness = false
-                        settings.readerBrightness = Double(value)
-                    }
-                ),
-                in: 0.05...1.0
-            )
-            .tint(DSColor.textPrimary)
-            Image(systemName: "sun.max.fill")
-                .font(DSFont.body)
-        }
-        .frame(minHeight: DSLayout.minimumTapTarget)
-        .foregroundStyle(DSColor.textPrimary)
-    }
-
     // MARK: - Reading backgrounds
 
     /// One scrolling row, not the 3×2 paged grid this replaced: the four built-in
-    /// backgrounds, then every saved one, each by name, then 自定義 to make another.
+    /// backgrounds, then every saved one, each by name, then 自定义 to make another.
     private var readingBackgroundRow: some View {
         let resolution = settings.readerBackgroundResolution(mode: settings.readerMode, wornTheme: readerTheme)
         return VStack(alignment: .leading, spacing: DSSpacing.sm) {
-            Text(localized("閱讀背景"))
+            Text(localized("阅读背景"))
                 .font(DSFont.footnote)
                 .foregroundStyle(DSColor.textSecondary)
 
@@ -321,26 +327,11 @@ struct ReaderQuickThemePanelView: View {
         }
     }
 
-    /// Whether the reader's dark mode keeps to the device's appearance, where the two
-    /// picks of 綁定閱讀主題 are worn. Off to start with; switching the reader against
-    /// the device by hand turns it back off, since the two cannot both hold.
-    private var followSystemAppearanceToggle: some View {
-        Toggle(
-            localized("跟隨裝置深淺色"),
-            isOn: Binding(
-                get: { settings.readerFollowSystemTheme },
-                set: { applyFollowSystemAppearance($0) }
-            )
-        )
-        .font(DSFont.body)
-        .foregroundStyle(DSColor.textPrimary)
-    }
-
     private func readingBackgroundButton(
         _ background: ReaderTheme,
         resolution: ReaderBackgroundResolution
     ) -> some View {
-        // While the page is painted by 跟隨外觀主題 or by a saved background — a dark one
+        // While the page is painted by 跟随外观主题 or by a saved background — a dark one
         // sits on 黑色 — no built-in one is the one in effect.
         let selected = !resolution.paintsWithAppearanceTheme
             && resolution.customBackground == nil
@@ -392,21 +383,21 @@ struct ReaderQuickThemePanelView: View {
             Button {
                 backgroundEditor = .edit(background.id)
             } label: {
-                Label(localized("編輯"), systemImage: "slider.horizontal.3")
+                Label(localized("编辑"), systemImage: "slider.horizontal.3")
             }
             Menu {
                 Button(role: .destructive) {
                     settings.deleteReaderCustomBackground(id: background.id)
                 } label: {
-                    Label(String(format: localized("刪除「%@」"), background.name), systemImage: "trash")
+                    Label(String(format: localized("删除「%@」"), background.name), systemImage: "trash")
                 }
             } label: {
-                Label(localized("刪除"), systemImage: "trash")
+                Label(localized("删除"), systemImage: "trash")
             }
         }
         .accessibilityLabel(background.name)
         .accessibilityAddTraits(selected ? .isSelected : [])
-        .accessibilityAction(named: localized("編輯")) {
+        .accessibilityAction(named: localized("编辑")) {
             backgroundEditor = .edit(background.id)
         }
     }
@@ -422,7 +413,7 @@ struct ReaderQuickThemePanelView: View {
                     Image(systemName: "plus")
                         .font(DSFont.title2.weight(.semibold))
                         .accessibilityHidden(true)
-                    Text(localized("自定義"))
+                    Text(localized("自定义"))
                         .font(DSFont.subheadline)
                 }
                 .foregroundStyle(DSColor.textPrimary)
@@ -435,27 +426,113 @@ struct ReaderQuickThemePanelView: View {
             .shadow(color: DSColor.shadow, radius: 6, y: 1)
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(localized("自定義"))
+        .accessibilityLabel(localized("自定义"))
     }
 
-    // MARK: - 快捷動作
+    /// Whether the reader's dark mode keeps to the device's appearance, where the two
+    /// picks of 绑定阅读主题 are worn. Off to start with; switching the reader against
+    /// the device by hand turns it back off, since the two cannot both hold.
+    private var followSystemAppearanceToggle: some View {
+        Toggle(
+            localized("跟随装置深浅色"),
+            isOn: Binding(
+                get: { settings.readerFollowSystemTheme },
+                set: { applyFollowSystemAppearance($0) }
+            )
+        )
+        .font(DSFont.body)
+        .foregroundStyle(DSColor.textPrimary)
+    }
 
-    /// The space the background pager gave back.
-    ///
-    /// 自動閱讀 comes first — that is where every reader that ships this feature
-    /// puts it, and until now this app had no entry for it at all: the controller
-    /// and its panel were both complete, but nothing ever set `showAutoReadPanel`.
-    private var quickActionRow: some View {
-        HStack(spacing: DSSpacing.md) {
+    // MARK: - 翻页
+    /// Every style as a chip, all visible at once. They used to be a `Menu` behind a
+    /// capsule that said which one was on: two taps to change, and the list hid the fact
+    /// that there were five. A chip row is one tap and the whole set in view — it now
+    /// scrolls horizontally, which is why adding 上下翻 costs no layout work.
+    private var pageTurnChips: some View {
+        VStack(alignment: .leading, spacing: DSSpacing.sm) {
+            Text(localized("翻页"))
+                .font(DSFont.footnote)
+                .foregroundStyle(DSColor.textSecondary)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: DSSpacing.sm) {
+                    ForEach(ReaderQuickPageTurnOption.allCases) { option in
+                        pageTurnChip(option)
+                    }
+                }
+                .padding(.vertical, DSSpacing.xs)
+                .padding(.horizontal, 2)
+            }
+        }
+    }
+
+    private func pageTurnChip(_ option: ReaderQuickPageTurnOption) -> some View {
+        let selected = option == pageTurnOption
+        return Button {
+            onSelectPageTurnOption(option)
+        } label: {
+            HStack(spacing: DSSpacing.xs) {
+                Image(systemName: option.iconName)
+                    .font(DSFont.caption)
+                    .accessibilityHidden(true)
+                Text(localized(pageTurnTitleKey(for: option)))
+                    .font(DSFont.subheadline)
+                    .lineLimit(1)
+            }
+            .foregroundStyle(selected ? DSColor.textOnAccent : DSColor.textPrimary)
+            .padding(.horizontal, DSSpacing.md)
+            .frame(minHeight: DSLayout.minimumTapTarget)
+            .background(
+                selected ? AnyShapeStyle(DSColor.accent) : AnyShapeStyle(DSColor.neutralControlFill),
+                in: Capsule()
+            )
+            .overlay(
+                Capsule()
+                    .stroke(selected ? Color.clear : DSColor.separator, lineWidth: 1)
+            )
+            .shadow(color: DSColor.shadow, radius: 6, y: 1)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(localized(pageTurnTitleKey(for: option)))
+        .accessibilityAddTraits(selected ? .isSelected : [])
+    }
+
+    // MARK: - 动作
+
+    /// Four actions, two by two. 自动阅读 comes first — that is where every reader that
+    /// ships this feature puts it, and until now this app had no entry for it at all.
+    private var actionGrid: some View {
+        LazyVGrid(
+            columns: [
+                GridItem(.flexible(), spacing: DSSpacing.md),
+                GridItem(.flexible(), spacing: DSSpacing.md)
+            ],
+            spacing: DSSpacing.md
+        ) {
             Button {
                 onStartAutoRead()
             } label: {
-                Label(localized("自動閱讀"), systemImage: "play.fill")
+                Label(localized("自动阅读"), systemImage: "play.fill")
+            }
+            .buttonStyle(QuickPanelActionButtonStyle())
+
+            Button {
+                onOpenTTS?()
+            } label: {
+                Label(localized("听书"), systemImage: "headphones")
+            }
+            .buttonStyle(QuickPanelActionButtonStyle())
+
+            Button {
+                showingSectionGrid = true
+            } label: {
+                Label(localized("更多设置"), systemImage: "slider.horizontal.3")
             }
             .buttonStyle(QuickPanelActionButtonStyle())
 
             Button(action: onCustomize) {
-                Label(localized("Customize"), systemImage: "gear")
+                Label(localized("自定义"), systemImage: "paintbrush")
             }
             .buttonStyle(QuickPanelActionButtonStyle())
         }
@@ -485,8 +562,58 @@ struct ReaderQuickThemePanelView: View {
     private func pageTurnTitleKey(for option: ReaderQuickPageTurnOption) -> String {
         option == .scroll && isVerticalWritingMode ? "右往左" : option.titleKey
     }
+}
 
+/// 更多设置：the settings sheet's nine subjects as a grid. Each cell is one page,
+/// half-height and see-through, so a change is made with the paragraph still in view.
+private struct ReaderQuickPanelSectionGrid: View {
+    let onOpenSection: (Set<ReaderSettingsSection>) -> Void
 
+    private let columns = [
+        GridItem(.flexible(), spacing: DSSpacing.md),
+        GridItem(.flexible(), spacing: DSSpacing.md),
+        GridItem(.flexible(), spacing: DSSpacing.md)
+    ]
+
+    var body: some View {
+        ScrollView {
+            LazyVGrid(columns: columns, spacing: DSSpacing.md) {
+                ForEach(ReaderSettingsSection.allCases, id: \.self) { section in
+                    Button {
+                        onOpenSection([section])
+                    } label: {
+                        VStack(spacing: DSSpacing.sm) {
+                            Image(systemName: section.systemImage)
+                                .font(DSFont.title3)
+                                .accessibilityHidden(true)
+                            Text(localized(section.titleKey))
+                                .font(DSFont.caption)
+                                .multilineTextAlignment(.center)
+                                .lineLimit(2)
+                                .minimumScaleFactor(0.8)
+                        }
+                        .foregroundStyle(DSColor.textPrimary)
+                        .frame(maxWidth: .infinity, minHeight: 84)
+                        .padding(.horizontal, DSSpacing.xs)
+                        .background(DSColor.neutralControlFill, in: RoundedRectangle(cornerRadius: DSRadius.xl, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: DSRadius.xl, style: .continuous)
+                                .stroke(DSColor.separator, lineWidth: 1)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, DSSpacing.xl)
+            .padding(.top, DSSpacing.md)
+            .padding(.bottom, DSSpacing.xxl)
+        }
+        .toolbar(.visible, for: .navigationBar)
+        // 玻璃卡片上不该再压一条不透明的导览列底色。
+        .toolbarBackground(.hidden, for: .navigationBar)
+        .navigationTitle(localized("更多设置"))
+        .toolbarTitleDisplayMode(.inline)
+    }
 }
 
 /// One background's tile: its colour or picture, its name, and the selection ring.

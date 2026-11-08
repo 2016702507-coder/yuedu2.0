@@ -1,9 +1,9 @@
 import SwiftUI
 
-// 首頁配置's own page (maintainer, 2026-10-22, after Rex's 管理配置), from its button on the
-// home, where ••• had a submenu until then. Every 首頁配置 with the photo the reader gave it; a
-// tap switches to it and stays here. 編輯 reorders them all, 預設 among the reader's own
-// (maintainer, 2026-10-23), deletes any but the last one left, 預設 too (2026-10-25: 預設配置
+// 首页配置's own page (maintainer, 2026-10-22, after Rex's 管理配置), from its button on the
+// home, where ••• had a submenu until then. Every 首页配置 with the photo the reader gave it; a
+// tap switches to it and stays here. 编辑 reorders them all, 预设 among the reader's own
+// (maintainer, 2026-10-23), deletes any but the last one left, 预设 too (2026-10-25: 预设配置
 // makes it again), and opens a configuration's photo and name, as its swipe does. New ones
 // come from the two templates under the list.
 
@@ -21,24 +21,24 @@ struct HomeConfigurationsPage: View {
             Section {
                 ForEach(listings) { row($0, deletable: listings.count > 1) }
                     .onMove { store.moveConfigurations(fromOffsets: $0, toOffset: $1) }
-                    // 編輯's delete asks first, as the swipe's does: the sections go with it.
+                    // 编辑's delete asks first, as the swipe's does: the sections go with it.
                     .onDelete { offsets in
                         if let first = offsets.first, listings.count > 1 { prompt = .delete(listings[first]) }
                     }
             } header: {
                 Text(localized("配置列表"))
             } footer: {
-                Text(localized("點一下切換設定；進入編輯模式可調整順序。"))
+                Text(localized("点一下切换设置；进入编辑模式可调整顺序。"))
                     .dsSectionFooter()
             }
-            Section(localized("從設定範本新增")) {
-                template(.blank, title: localized("空白模板"), subtitle: localized("沒有欄目，之後自行新增"),
+            Section(localized("从设置范本新增")) {
+                template(.blank, title: localized("空白模板"), subtitle: localized("没有栏目，之后自行新增"),
                          systemImage: "rectangle.dashed")
-                template(.defaults, title: localized("預設配置"), subtitle: localized("從預設的欄目開始"),
+                template(.defaults, title: localized("预设配置"), subtitle: localized("从预设的栏目开始"),
                          systemImage: "square.stack")
             }
         }
-        .navigationTitle(localized("首頁配置"))
+        .navigationTitle(localized("首页配置"))
         .toolbarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) { EditButton() }
@@ -86,12 +86,12 @@ struct HomeConfigurationsPage: View {
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
-        // 編輯 folds the delete control into the row (「移除、名稱」), so what a double tap does
+        // 编辑 folds the delete control into the row (「移除、名称」), so what a double tap does
         // there is the list's: the photo and name are an action instead, as the swipe's are outside it.
-        .accessibilityHint(editMode.isEditing || isSelected ? "" : localized("點兩下切換到這個首頁配置"))
+        .accessibilityHint(editMode.isEditing || isSelected ? "" : localized("点两下切换到这个首页配置"))
         .accessibilityActions {
             if editMode.isEditing {
-                Button(localized("編輯")) { opened = configuration.id }
+                Button(localized("编辑")) { opened = configuration.id }
             }
         }
         .accessibilityIdentifier("homeConfigurations.row.\(configuration.id.rawValue)")
@@ -100,19 +100,19 @@ struct HomeConfigurationsPage: View {
             // No destructive role: that takes the row away before the dialog has asked.
             if deletable {
                 Button { prompt = .delete(configuration) } label: {
-                    Label(localized("刪除"), systemImage: "trash")
+                    Label(localized("删除"), systemImage: "trash")
                 }
                 .tint(DSColor.destructive)
             }
             Button { opened = configuration.id } label: {
-                Label(localized("編輯"), systemImage: "pencil")
+                Label(localized("编辑"), systemImage: "pencil")
             }
         }
     }
 
-    /// 預設 says what it is, as Rex's 默認 does; the reader's own are their name.
+    /// 预设 says what it is, as Rex's 默认 does; the reader's own are their name.
     private func subtitle(of id: HomeConfigurationID) -> String? {
-        id == .defaults ? localized("內建的完整探索首頁") : nil
+        id == .defaults ? localized("内建的完整探索首页") : nil
     }
 
     /// A new one from `start`, once it is named.
@@ -143,7 +143,7 @@ struct HomeConfigurationsPage: View {
     }
 }
 
-/// A 首頁配置's photo, round; without one, the first letter of its name. Decorative: the name
+/// A 首页配置's photo, round; without one, the first letter of its name. Decorative: the name
 /// is beside it.
 struct HomeConfigurationPhoto: View {
     let name: String
@@ -170,8 +170,8 @@ struct HomeConfigurationPhoto: View {
     }
 }
 
-/// Changes a photo of the home's, from 相簿 or 檔案, and removes it once it has one: the one
-/// way a 首頁配置's is changed, from its form and from 編輯首頁's header, and a 大圖卡片 card's,
+/// Changes a photo of the home's, from 相簿 or 档案, and removes it once it has one: the one
+/// way a 首页配置's is changed, from its form and from 编辑首页's header, and a 大图卡片 card's,
 /// from its section's form. `label` is what the reader taps.
 struct HomePhotoPicker<ID: RawRepresentable & Hashable & Sendable, Label: View>: View where ID.RawValue == String {
     @ObservedObject var photos: HomePhotoFolder<ID>
@@ -182,7 +182,7 @@ struct HomePhotoPicker<ID: RawRepresentable & Hashable & Sendable, Label: View>:
     var body: some View {
         let hasPhoto = photos.images[id] != nil
         ImageSourcePickerButton(
-            accessibilityTitle: localized(hasPhoto ? "更換照片" : "加入照片"),
+            accessibilityTitle: localized(hasPhoto ? "更换照片" : "加入照片"),
             extraActions: hasPhoto ? [
                 ImageSourcePickerAction(title: localized("移除照片"), systemImage: "trash", isDestructive: true) {
                     photos.removePhoto(for: id)
@@ -193,10 +193,10 @@ struct HomePhotoPicker<ID: RawRepresentable & Hashable & Sendable, Label: View>:
         )
         .onAppear { photos.loadIfNeeded() }
         .alert(
-            localized("無法加入照片"),
+            localized("无法加入照片"),
             isPresented: Binding(get: { photoFailure != nil }, set: { if !$0 { photoFailure = nil } })
         ) {
-            Button(localized("確定"), role: .cancel) {}
+            Button(localized("确定"), role: .cancel) {}
         } message: {
             Text(photoFailure ?? "")
         }
@@ -212,7 +212,7 @@ struct HomePhotoPicker<ID: RawRepresentable & Hashable & Sendable, Label: View>:
                 data = try Data(contentsOf: url)
             } catch {
                 AppLogger.cache("⟐ home photo file could not be read", error: error, context: ["file": url.lastPathComponent])
-                photoFailure = localized("無法讀取圖片。")
+                photoFailure = localized("无法读取图片。")
                 return
             }
         case .failure(let error):
@@ -225,13 +225,13 @@ struct HomePhotoPicker<ID: RawRepresentable & Hashable & Sendable, Label: View>:
                 try await photos.setPhoto(data, for: id)
             } catch {
                 AppLogger.cache("⟐ home photo not saved", error: error, context: ["photo": id.rawValue])
-                photoFailure = localized("無法讀取圖片。")
+                photoFailure = localized("无法读取图片。")
             }
         }
     }
 }
 
-/// A 首頁配置's photo, from 相簿 or 檔案, and for the reader's own its name.
+/// A 首页配置's photo, from 相簿 or 档案, and for the reader's own its name.
 struct HomeConfigurationForm: View {
     let configurationID: HomeConfigurationID
     @ObservedObject private var store = HomePageStore.shared
@@ -251,7 +251,7 @@ struct HomeConfigurationForm: View {
                     HomeConfigurationPhoto(name: listing?.name ?? "", image: photo,
                                            size: DSLayout.homeConfigurationFormPhotoSize)
                     HomePhotoPicker(photos: photos, id: configurationID) {
-                        Text(localized(photo == nil ? "加入照片" : "更換照片"))
+                        Text(localized(photo == nil ? "加入照片" : "更换照片"))
                             .font(DSFont.body)
                     }
                     .accessibilityIdentifier("homeConfigurationForm.photo")
@@ -259,8 +259,8 @@ struct HomeConfigurationForm: View {
                 .frame(maxWidth: .infinity)
             }
             if !configurationID.isBuiltIn {
-                Section(localized("名稱")) {
-                    TextField(localized("名稱"), text: $name)
+                Section(localized("名称")) {
+                    TextField(localized("名称"), text: $name)
                         .submitLabel(.done)
                         .onSubmit(saveName)
                         .accessibilityIdentifier("homeConfigurationForm.name")
@@ -284,7 +284,7 @@ struct HomeConfigurationForm: View {
     }
 }
 
-#Preview("首頁配置") {
+#Preview("首页配置") {
     NavigationStack {
         HomeConfigurationsPage()
     }
@@ -292,14 +292,14 @@ struct HomeConfigurationForm: View {
                                                           languages: ["zh"]))
 }
 
-#Preview("照片，沒有照片時") {
+#Preview("照片，没有照片时") {
     HStack(spacing: DSSpacing.lg) {
-        HomeConfigurationPhoto(name: localized("預設"), image: nil, size: DSLayout.homeConfigurationRowPhotoSize)
-        HomeConfigurationPhoto(name: "短劇", image: nil, size: DSLayout.homeConfigurationFormPhotoSize)
+        HomeConfigurationPhoto(name: localized("预设"), image: nil, size: DSLayout.homeConfigurationRowPhotoSize)
+        HomeConfigurationPhoto(name: "短剧", image: nil, size: DSLayout.homeConfigurationFormPhotoSize)
     }
 }
 
-#Preview("照片與名稱") {
+#Preview("照片与名称") {
     NavigationStack {
         HomeConfigurationForm(configurationID: .defaults)
     }

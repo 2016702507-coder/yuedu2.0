@@ -162,7 +162,7 @@ struct ChapterFetcher {
         // Rewrite Legado iOS paragraph-review markers into anchors before parsing, so the
         // markers survive the SwiftSoup round-trip regardless of how <comment> is handled.
         // Then, if the content is newline-separated plain-text paragraphs with only inline runs
-        // (no block tags) — e.g. 段評-injected content joins paragraphs with "\n" + inline bubble
+        // (no block tags) — e.g. 段评-injected content joins paragraphs with "\n" + inline bubble
         // <img>s — wrap each line in <p> so SwiftSoup doesn't collapse the breaks into one block.
         let rawHTMLContent = ReaderHTMLUtilities.wrapNewlineParagraphsIfNeeded(
             ReaderHTMLUtilities.rewriteReviewComments(cleanedRawHTML)
@@ -180,7 +180,7 @@ struct ChapterFetcher {
         ])
 
         // SwiftSoup.parse is CPU-intensive synchronous work AND degrades to a hang on the ~275KB
-        // of inline base64 SVG a 段評-heavy 起点 chapter carries (96 bubbles). The base64 payloads
+        // of inline base64 SVG a 段评-heavy 起点 chapter carries (96 bubbles). The base64 payloads
         // are opaque to structural parsing, so lift them out, parse the slimmed (~few-KB) HTML,
         // then restore — keeps SwiftSoup's cleaning behavior without feeding it the bloat.
         // Run in a detached task to avoid blocking the cooperative thread pool.
@@ -252,7 +252,7 @@ struct ChapterFetcher {
             // `<br>`-separated prose becomes real paragraphs here, on the parsed tree, so the
             // decision is per containing block instead of per chapter — one stray `<div>`/`<h2>`/
             // notice `<p>` used to cancel it for the whole chapter, leaving every paragraph after
-            // the first flush against the margin. Runs before the review repair so a 段評 bubble
+            // the first flush against the margin. Runs before the review repair so a 段评 bubble
             // ends up inside the paragraph it belongs to.
             let promotedParagraphs = ReaderHTMLUtilities.promoteBreakSeparatedParagraphs(in: body)
             let reviewRepair = SourcePerfTrace.span("chapter.reviewRepair") {
@@ -314,8 +314,8 @@ struct ChapterFetcher {
         }
 
         // A chapter title may carry a 本章说 comment bubble appended as a bare `data:image/...` URI
-        // (起點: `titleRow = title + Bubble`). `splitTitleBubble` above peeled the text off; the
-        // bubble is rendered as the source's image (text-sized, like body 段評), not literal text.
+        // (起点: `titleRow = title + Bubble`). `splitTitleBubble` above peeled the text off; the
+        // bubble is rendered as the source's image (text-sized, like body 段评), not literal text.
         let resolvedTitleBubbleHTML = titleBubbleHTML ?? leadingTitleBubbleHTML
         let escapedTitle = ReaderHTMLUtilities.escapeHTML(trimmedTitle.isEmpty ? "Untitled" : trimmedTitle)
         let heading = (trimmedTitle.isEmpty && resolvedTitleBubbleHTML == nil)
@@ -347,7 +347,7 @@ struct ChapterFetcher {
     }
 
     /// Splits a chapter title into its text part and an optional comment-bubble `<img>` HTML.
-    /// 起點 appends a 本章说 bubble to the title as a bare `data:image/...,{clickconfig}` URI; we
+    /// 起点 appends a 本章说 bubble to the title as a bare `data:image/...,{clickconfig}` URI; we
     /// wrap that into an `<img>` and run it through the same sanitizer as body bubbles (strips the
     /// click-config suffix, adds the review anchor + text-size marker). Returns `(title, nil)` when
     /// no bubble is present.
@@ -418,9 +418,9 @@ struct ChapterFetcher {
         ]
 
         // Every SwiftSoup sibling query below walks the whole parent's child list, and in a
-        // 段評 chapter that parent is <body> with every prose <p> and bubble as its children:
+        // 段评 chapter that parent is <body> with every prose <p> and bubble as its children:
         // asked once per bubble, the repair was quadratic in the chapter (MetricKit
-        // cpu-exception d32f7c57; 1572 KB of 段評 HTML took 17.9 s in Debug, all of it here).
+        // cpu-exception d32f7c57; 1572 KB of 段评 HTML took 17.9 s in Debug, all of it here).
         //
         // The answer is memoised per element. It cannot go stale: the loop only ever moves an
         // `<a>` (not a block) or removes an empty wrapper block whose block sibling `previous`
@@ -715,7 +715,7 @@ struct ChapterFetcher {
         var content = Self.sanitizeResolvedContent(parsed.content, title: chapterTitle)
 
         if content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && parsed.isPay {
-            content = "[付費章節]"
+            content = "[付费章节]"
         }
 
         content = Self.normalizeLegadoContent(content)
@@ -754,7 +754,7 @@ struct ChapterFetcher {
     }
 
     private static func normalizeLegadoContent(_ text: String) -> String {
-        // Runs three times per chapter on a document a 段評 source makes hundreds of KB; the
+        // Runs three times per chapter on a document a 段评 source makes hundreds of KB; the
         // carriage-return replaces are a full copy each, so only pay for them when there is one.
         var output = text.containsMarker("\r")
             ? text.replacingOccurrences(of: "\r\n", with: "\n").replacingOccurrences(of: "\r", with: "\n")
@@ -783,7 +783,7 @@ struct ChapterFetcher {
     }
 
     /// Content that is not text: an image, a video, an audio or an `<iframe>` page. A chapter
-    /// made of nothing else is still a chapter — 起点读书qm（行內影片）'s 彩蛋 is its player page
+    /// made of nothing else is still a chapter — 起点读书qm（行内影片）'s 彩蛋 is its player page
     /// alone — so these keep their markup instead of being stripped to an empty string.
     private static func containsContentMediaTag(_ text: String) -> Bool {
         text.range(
@@ -859,13 +859,13 @@ struct ChapterFetcher {
         let isIISRuntimeError =
             (
                 contains("应用程序中的服务器错误")
-                    || contains("應用程式中的伺服器錯誤")
+                    || contains("应用程式中的伺服器错误")
                     || contains("servererrorin'/'application")
                     || contains("servererrorin/application")
             )
             && (
                 contains("运行时错误")
-                    || contains("運行時錯誤")
+                    || contains("运行时错误")
                     || contains("runtimeerror")
                     || contains("web.config")
                     || contains("defaultredirect")
@@ -879,15 +879,15 @@ struct ChapterFetcher {
             contains("如遇到章节错误")
             && (
                 contains("关闭浏览器的阅读/畅读/小说模式")
-                    || contains("關閉瀏覽器的閱讀/暢讀/小說模式")
+                    || contains("关闭浏览器的阅读/畅读/小说模式")
                     || (
                         contains("阅读/畅读/小说模式")
-                            || contains("閱讀/暢讀/小說模式")
+                            || contains("阅读/畅读/小说模式")
                     )
             )
             && (
                 contains("关闭广告屏蔽过滤功能")
-                    || contains("關閉廣告屏蔽過濾功能")
+                    || contains("关闭广告屏蔽过滤功能")
             )
 
         if isReadModeHint {
@@ -904,14 +904,14 @@ struct ChapterFetcher {
         // "cloudflare" alone is insufficient; require additional verification keywords
         let hasCloudflareMention = contains("cloudflare")
         let hasChallengeKeyword =
-            contains("人机验证") || contains("人機驗證")
+            contains("人机验证") || contains("人机验证")
             || contains("checkyourbrowser") || contains("ddos")
 
         let isHumanVerification =
             isCloudflareChallenge
             || (hasCloudflareMention && hasChallengeKeyword)
             || (contains("访问异常") && contains("验证"))
-            || (contains("訪問異常") && contains("驗證"))
+            || (contains("访问异常") && contains("验证"))
 
         if isHumanVerification {
             return true
