@@ -147,13 +147,14 @@ struct ChapterTitleStyle: Codable, Equatable, Sendable {
         weight: .bold,
         alignment: .left,
         followsBodyFont: true,
-        // Off by default: an untouched install renders the title exactly as
-        // before (single line). Two-line split is opt-in on the settings page.
+        // On by default (per product decision): an untouched install, a reset,
+        // and every theme import that builds from `.default` now renders the
+        // title through the HTML/CSS template instead of the plain single line.
         splitEnabled: false,
         numberRelativeSize: 0.55,
         numberFontPostScript: nil,
         nameFontPostScript: nil,
-        advancedCSSEnabled: false,
+        advancedCSSEnabled: true,
         lightTemplate: ChapterTitleStyle.defaultLightTemplate,
         darkTemplate: ChapterTitleStyle.defaultDarkTemplate
     )
