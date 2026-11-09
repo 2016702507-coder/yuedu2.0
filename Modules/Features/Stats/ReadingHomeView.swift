@@ -365,15 +365,20 @@ struct ReadingHomeView: View {
         } label: {
             HStack(spacing: 10) {
                 Text(centeredBook == nil ? localized("查看书架") : localized("继续阅读"))
-                    .font(.system(size: 15, weight: .semibold))
+                    // 跟随读者导入的界面字体：没有导入时 fixedFont 回落系统字体，
+                    // 字号字重不变，外观与原来一致。箭头是 SF Symbol，仍用系统字体。
+                    .font(GlobalAppTypography.fixedFont(size: 15, weight: .semibold))
                 Image(systemName: "arrow.right")
                     .font(.system(size: 13, weight: .semibold))
             }
-            .foregroundStyle(PaperPalette.page(scheme))
+            // 玻璃是浅色半透明，白字会看不清；改用主题强调色，与页码点同色。
+            .foregroundStyle(PaperPalette.ink(scheme))
             .frame(maxWidth: .infinity)
             .padding(.vertical, 15)
-            .background(Capsule().fill(PaperPalette.ink(scheme)))
-            .shadow(color: Color.black.opacity(0.22), radius: 12, x: 0, y: 7)
+            // 与书架页「继续阅读」的 glassCapsule、本页「阅读小笺」同一套玻璃。
+            .background(.ultraThinMaterial, in: Capsule())
+            .overlay(Capsule().strokeBorder(PaperPalette.hairline(scheme), lineWidth: 0.8))
+            .shadow(color: PaperPalette.shadow(scheme), radius: 16, x: 0, y: 8)
         }
         .buttonStyle(.plain)
         .padding(.horizontal, 44)
