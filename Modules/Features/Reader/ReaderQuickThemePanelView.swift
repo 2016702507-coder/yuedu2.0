@@ -558,11 +558,16 @@ struct ReaderQuickThemePanelView: View {
                     performQuickPanelTile(tile.kind)
                 } label: {
                     VStack(spacing: DSSpacing.xs) {
-                        Image(systemName: tile.systemImage)
-                            .font(DSFont.body)
-                            .accessibilityHidden(true)
+                        // 带副标题的两格（大小 / 格式）按参考图只画纯文字两行：
+                        // 大字标题 + 小字副标题。再叠一个图标会把标题顶成第三行，
+                        // 视觉上就成了「大小 / 大小 / 显示设置」的重复（反馈：两字重复）。
+                        if tile.subtitleKey == nil {
+                            Image(systemName: tile.systemImage)
+                                .font(DSFont.body)
+                                .accessibilityHidden(true)
+                        }
                         Text(localized(tile.titleKey))
-                            .font(DSFont.caption)
+                            .font(tile.subtitleKey == nil ? DSFont.caption : DSFont.body)
                             .lineLimit(1)
                             .minimumScaleFactor(0.7)
                         if let subtitleKey = tile.subtitleKey {
