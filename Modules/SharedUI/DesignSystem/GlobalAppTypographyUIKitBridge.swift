@@ -89,6 +89,15 @@ enum GlobalAppTypographyUIKitBridge {
             tabItem.setTitleTextAttributes(nil, for: .normal)
             tabItem.setTitleTextAttributes(nil, for: .selected)
         }
+
+        // 底部导航栏完全透明（参考待改清单第 11 条）：把系统默认灰底/毛玻璃与阴影清掉，
+        // 让背后山影与正文直接透出。只清背景，图标与文字的选中态不动。
+        let tabBarAppearance = UITabBarAppearance()
+        tabBarAppearance.configureWithTransparentBackground()
+        tabBarAppearance.backgroundEffect = nil
+        let tabBar = UITabBar.appearance()
+        tabBar.standardAppearance = tabBarAppearance
+        tabBar.scrollEdgeAppearance = tabBarAppearance
     }
 
     private static func apply(
@@ -230,6 +239,13 @@ enum GlobalAppTypographyUIKitBridge {
                 into: itemAppearance.selected.titleTextAttributes
             )
         }
+        // 底部导航栏完全透明：去掉系统默认的灰底、毛玻璃与阴影，让背后山影/正文直接透出，
+        // 与藏书页「继续阅读」按钮、分类标签栏同一套透明玻璃语言（参考待改清单第 7、10 条）。
+        // 只清背景，不动图标/文字的选中态（选中项仍以红色文字+彩色图标表明当前页）。
+        copy.backgroundColor = .clear
+        copy.backgroundEffect = nil
+        copy.shadowColor = nil
+        copy.backgroundImage = nil
         return copy
     }
 
