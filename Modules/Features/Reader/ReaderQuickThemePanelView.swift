@@ -667,13 +667,18 @@ struct ReaderQuickThemePanelView: View {
 ///
 /// 不直接用 `.presentationBackground(.ultraThinMaterial)`：iOS 17 的浅色书页上那一层
 /// 材料糊得太狠，采样后的米色页面被抹成均匀近白，后面的正文一个字都透不出来，
-/// 看起来就是一块实色板（反馈 #3「不是玻璃的」）。这里把材料压到 45% 不透明度，
-/// 原内容以 55% 直接透上来，文字于是半清半糊地浮在玻璃后面 —— 就是参考图里那块
-/// 看得见正文的磨砂玻璃。再叠一层极淡的 tint，只给玻璃一点厚度，保证上面的控件
-/// 文字仍有对比。它不随 外观主题 › 界面效果 的开关变化：这些浮层恒为玻璃。
+/// 看起来就是一块实色板（反馈 #3「不是玻璃的」）。这里把材料的 opacity 压低，让
+/// 背后的原内容以更高的比例清晰透上来，文字于是半清半糊地浮在玻璃后面 —— 就是
+/// 参考图里那块看得见正文的磨砂玻璃。再叠一层极淡的 tint，只给玻璃一点厚度，
+/// 保证上面的控件文字仍有对比。它不随 外观主题 › 界面效果 的开关变化：恒为玻璃。
+///
+/// iOS 的 material 磨砂半径由系统固定，没有单独的模糊旋钮 —— 想让正文更清楚，
+/// 唯一的旋钮就是这层材料的 opacity：越淡，清晰原内容占比越高、越不糊。
 ///
 /// 2026-11-09 追加反馈「两张都把透明度拉高一点点」：材料由 0.55 → 0.45、
 /// tint 由 0.18/0.10 → 0.13/0.07，主面板与九宫格共用这一块玻璃，一起变透。
+/// 2026-11-10 追加反馈「再透一点吧还是模糊」：材料 0.45 → 0.30（清晰原内容
+/// 占比 55% → 70%），tint 0.13/0.07 → 0.09/0.05。仍是同一块共用玻璃。
 struct ReaderGlassSheetBackground: View {
     @Environment(\.colorScheme) private var colorScheme
 
@@ -681,9 +686,9 @@ struct ReaderGlassSheetBackground: View {
         ZStack {
             Rectangle()
                 .fill(.ultraThinMaterial)
-                .opacity(0.45)
+                .opacity(0.30)
             (colorScheme == .dark ? Color.black : Color.white)
-                .opacity(colorScheme == .dark ? 0.13 : 0.07)
+                .opacity(colorScheme == .dark ? 0.09 : 0.05)
         }
         .ignoresSafeArea()
     }
