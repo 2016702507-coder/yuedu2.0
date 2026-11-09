@@ -305,9 +305,17 @@ final class ReaderRipplePageTurnRenderer: NSObject, MTKViewDelegate {
         buffer.commit()
     }
 
-    /// Draws the image into a BGRA buffer whose first row is the image's top row —
-    /// CoreGraphics would otherwise hand back the bottom row first and every page
-    /// would come out upside down.
+    /// Draws the image into a BGRA buffer for Metal.
+    ///
+    /// 实测（1.3 build 1 真机录屏）：下面这一对 `translateBy / scaleBy` 会让波纹
+    /// 浮层渲染出来的整页**上下颠倒** —— 文字倒着、页脚跑到屏幕顶上；浮层一
+    /// 撤掉露出真实页面又正过来。去掉这次翻转即等价于把上传的纹理上下镜像
+    /// 一次，整页摆正。
+    ///
+    /// 只改纹理上传方向，shader 一个字节不动：波形、波前、振幅 `0.036`、
+    /// 带宽 `0.25R`、时长 `0.42s` 全部保持定稿值。左右翻页的 `direction` 恒为
+    /// (±1, 0)，`bump.y == 0`，所以水波的形态与手感完全不受影响。
+    /// 不要再按 CoreGraphics/Metal 坐标系的纸面推理把这两行加回来。
     private static func texture(from image: UIImage, device: MTLDevice, reusing existing: MTLTexture?) -> MTLTexture? {
         guard let cgImage = image.cgImage else { return nil }
         let width = cgImage.width
@@ -325,8 +333,7 @@ final class ReaderRipplePageTurnRenderer: NSObject, MTKViewDelegate {
             bitmapInfo: CGImageAlphaInfo.premultipliedFirst.rawValue | CGBitmapInfo.byteOrder32Little.rawValue
         ) else { return nil }
 
-        context.translateBy(x: 0, y: CGFloat(height))
-        context.scaleBy(x: 1, y: -1)
+        // 方向：见上方注释。此处刻意不做 translateBy/scaleBy 翻转。
         context.interpolationQuality = .high
         context.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
         guard let data = context.data else { return nil }

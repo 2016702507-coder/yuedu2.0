@@ -93,6 +93,8 @@ struct ChangeCoverView: View {
     let title: String
     let author: String
     let onSelect: (CoverCandidate) -> Void
+    /// 与 封面搜索 相同的「导入封面」入口；由调用方落盘。
+    var onImportImage: ((Data) -> Void)? = nil
 
     @StateObject private var model = ChangeCoverViewModel()
     @Environment(\.dismiss) private var dismiss
@@ -104,12 +106,18 @@ struct ChangeCoverView: View {
                 candidates: model.candidates,
                 isSearching: model.isSearching,
                 hasSearched: model.hasSearched,
-                emptyHint: localized("可以改用「封面搜索」上网找，或从相簿选一张图片。")
-            ) { candidate in
-                model.stop()
-                onSelect(candidate)
-                dismiss()
-            }
+                emptyHint: localized("可以改用「封面搜索」上网找，或从相簿选一张图片。"),
+                onSelect: { candidate in
+                    model.stop()
+                    onSelect(candidate)
+                    dismiss()
+                },
+                onImportImage: onImportImage == nil ? nil : { data in
+                    model.stop()
+                    onImportImage?(data)
+                    dismiss()
+                }
+            )
         }
         .navigationTitle(localized("换封面"))
         // Pushed page: the back button is the way out (this screen is entered

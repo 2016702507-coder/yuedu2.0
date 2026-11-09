@@ -159,9 +159,13 @@ struct ReaderQuickThemePanelView: View {
                 )
             }
             .navigationDestination(isPresented: $showingSectionGrid) {
-                ReaderQuickPanelSectionGrid(onOpenSection: { sections in
-                    onOpenSection?(sections)
-                })
+                ReaderQuickPanelSectionGrid(
+                    onOpenSection: { sections in
+                        onOpenSection?(sections)
+                    },
+                    onStartAutoRead: onStartAutoRead,
+                    onCustomize: onCustomize
+                )
             }
         }
         .background {
@@ -182,13 +186,14 @@ struct ReaderQuickThemePanelView: View {
         // 更多设置 is a half sheet like this one — only the saved-background editor, which
         // is a whole form, takes the full height.
         .presentationDetents(panelDetents)
-        .presentationBackground(.ultraThinMaterial)
+        .presentationBackground { ReaderGlassSheetBackground() }
         .presentationDragIndicator(.visible)
     }
 
     private var panelDetents: Set<PresentationDetent> {
         if backgroundEditor != nil { return [.large] }
-        if showingSectionGrid { return [.medium] }
+        // 九宫格多了两格动作，半屏看不全时可以往上拖；默认仍停在半屏（反馈 #5）。
+        if showingSectionGrid { return [.medium, .large] }
         return [.height(max(DSLayout.minimumTapTarget, contentHeight - bottomSafeAreaInset))]
     }
 
@@ -238,7 +243,7 @@ struct ReaderQuickThemePanelView: View {
             )
         }
         .frame(maxWidth: .infinity, minHeight: DSLayout.readerQuickPanelTopControlHeight)
-        .background(DSColor.neutralControlFill, in: Capsule())
+        .background(DSColor.neutralControlFill.opacity(0.62), in: Capsule())
         .shadow(color: DSColor.shadow, radius: 6, y: 1)
     }
 
@@ -261,7 +266,7 @@ struct ReaderQuickThemePanelView: View {
             .foregroundStyle(DSColor.textPrimary)
             .padding(.horizontal, DSSpacing.sm)
             .frame(maxWidth: .infinity, minHeight: DSLayout.readerQuickPanelTopControlHeight)
-            .background(DSColor.neutralControlFill, in: Capsule())
+            .background(DSColor.neutralControlFill.opacity(0.62), in: Capsule())
             .shadow(color: DSColor.shadow, radius: 6, y: 1)
             .contentShape(Capsule())
         }
@@ -408,7 +413,7 @@ struct ReaderQuickThemePanelView: View {
         } label: {
             ZStack {
                 RoundedRectangle(cornerRadius: DSRadius.xxl, style: .continuous)
-                    .fill(DSColor.neutralControlFill)
+                    .fill(DSColor.neutralControlFill.opacity(0.62))
                 VStack(spacing: DSSpacing.xs) {
                     Image(systemName: "plus")
                         .font(DSFont.title2.weight(.semibold))
@@ -486,7 +491,7 @@ struct ReaderQuickThemePanelView: View {
             .padding(.horizontal, DSSpacing.md)
             .frame(minHeight: DSLayout.minimumTapTarget)
             .background(
-                selected ? AnyShapeStyle(DSColor.accent) : AnyShapeStyle(DSColor.neutralControlFill),
+                selected ? AnyShapeStyle(DSColor.accent) : AnyShapeStyle(DSColor.neutralControlFill.opacity(0.62)),
                 in: Capsule()
             )
             .overlay(
@@ -502,41 +507,95 @@ struct ReaderQuickThemePanelView: View {
 
     // MARK: - 动作
 
-    /// Four actions, two by two. 自动阅读 comes first — that is where every reader that
-    /// ships this feature puts it, and until now this app had no entry for it at all.
+    /// One tile of the four-by-two grid at the bottom of the panel. The title and the
+    /// optional second line both come from localizable keys, so a tile stays one tap wide
+    /// even where the reference picture stacked two words (大小 / 显示设置).
+    private struct QuickPanelTile: Identifiable {
+        let id: String
+        let titleKey: String
+        let subtitleKey: String?
+        let systemImage: String
+        let kind: Kind
+
+        enum Kind {
+            case section(ReaderSettingsSection)
+            case tts
+            case more
+        }
+    }
+
+    /// 主面板底部四列两行、共八格：把原先藏在「自定义 / 更多设置」里的常用设置直接
+    /// 平铺出来（反馈 #4，对齐参考图）。自动阅读、听书、自定义不再各占一格 —— 听书
+    /// 就是「朗读设置」，另外两个挪到「更多设置」九宫格末尾，功能一个不丢。
     private var actionGrid: some View {
-        LazyVGrid(
-            columns: [
-                GridItem(.flexible(), spacing: DSSpacing.md),
-                GridItem(.flexible(), spacing: DSSpacing.md)
-            ],
-            spacing: DSSpacing.md
+        let tiles: [QuickPanelTile] = [
+            .init(id: "size", titleKey: "大小", subtitleKey: "显示设置",
+                  systemImage: "textformat.size", kind: .section(.text)),
+            .init(id: "spacing", titleKey: "间距设置", subtitleKey: nil,
+                  systemImage: "text.alignleft", kind: .section(.layout)),
+            .init(id: "tts", titleKey: "朗读设置", subtitleKey: nil,
+                  systemImage: "speaker.wave.2", kind: .tts),
+            .init(id: "highlight", titleKey: "高亮设置", subtitleKey: nil,
+                  systemImage: "highlighter", kind: .section(.decoration)),
+            .init(id: "bubble", titleKey: "气泡设置", subtitleKey: nil,
+                  systemImage: "bubble.left.and.bubble.right", kind: .section(.decoration)),
+            .init(id: "format", titleKey: "格式", subtitleKey: "标题样式",
+                  systemImage: "textformat", kind: .section(.format)),
+            .init(id: "headerFooter", titleKey: "页眉页脚", subtitleKey: nil,
+                  systemImage: "rectangle.topthird.inset.filled", kind: .section(.headerFooter)),
+            .init(id: "more", titleKey: "更多设置", subtitleKey: nil,
+                  systemImage: "ellipsis", kind: .more)
+        ]
+        return LazyVGrid(
+            columns: Array(
+                repeating: GridItem(.flexible(), spacing: DSSpacing.sm),
+                count: 4
+            ),
+            spacing: DSSpacing.sm
         ) {
-            Button {
-                onStartAutoRead()
-            } label: {
-                Label(localized("自动阅读"), systemImage: "play.fill")
+            ForEach(tiles) { tile in
+                Button {
+                    performQuickPanelTile(tile.kind)
+                } label: {
+                    VStack(spacing: DSSpacing.xs) {
+                        Image(systemName: tile.systemImage)
+                            .font(DSFont.body)
+                            .accessibilityHidden(true)
+                        Text(localized(tile.titleKey))
+                            .font(DSFont.caption)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.7)
+                        if let subtitleKey = tile.subtitleKey {
+                            Text(localized(subtitleKey))
+                                .font(DSFont.caption)
+                                .foregroundStyle(DSColor.textSecondary)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.7)
+                        }
+                    }
+                    // 半透明玻璃格：底下的书页还能透上来，不再是一排实色药丸。
+                    .foregroundStyle(DSColor.textPrimary)
+                    .frame(maxWidth: .infinity, minHeight: 64)
+                    .padding(.horizontal, 2)
+                    .background(
+                        DSColor.neutralControlFill.opacity(0.55),
+                        in: RoundedRectangle(cornerRadius: DSRadius.lg, style: .continuous)
+                    )
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(localized(tile.titleKey))
             }
-            .buttonStyle(QuickPanelActionButtonStyle())
+        }
+    }
 
-            Button {
-                onOpenTTS?()
-            } label: {
-                Label(localized("听书"), systemImage: "headphones")
-            }
-            .buttonStyle(QuickPanelActionButtonStyle())
-
-            Button {
-                showingSectionGrid = true
-            } label: {
-                Label(localized("更多设置"), systemImage: "slider.horizontal.3")
-            }
-            .buttonStyle(QuickPanelActionButtonStyle())
-
-            Button(action: onCustomize) {
-                Label(localized("自定义"), systemImage: "paintbrush")
-            }
-            .buttonStyle(QuickPanelActionButtonStyle())
+    private func performQuickPanelTile(_ kind: QuickPanelTile.Kind) {
+        switch kind {
+        case .section(let section):
+            onOpenSection?([section])
+        case .tts:
+            onOpenTTS?()
+        case .more:
+            showingSectionGrid = true
         }
     }
 
@@ -566,10 +625,41 @@ struct ReaderQuickThemePanelView: View {
     }
 }
 
-/// 更多设置：the settings sheet's nine subjects as a grid. Each cell is one page,
-/// half-height and see-through, so a change is made with the paragraph still in view.
+// MARK: - 阅读设置浮层共用玻璃底
+
+/// 阅读器设置浮层共用的透明玻璃底：快速面板自己用，`ReaderView.swift` 的整份设置、
+/// 分区卡片也用，所以是 internal 而不是 private。
+///
+/// 不直接用 `.presentationBackground(.ultraThinMaterial)`：iOS 17 的浅色书页上那一层
+/// 材料糊得太狠，采样后的米色页面被抹成均匀近白，后面的正文一个字都透不出来，
+/// 看起来就是一块实色板（反馈 #3「不是玻璃的」）。这里把材料本身压到 55% 不透明度，
+/// 原内容以 45% 直接透上来，文字于是半清半糊地浮在玻璃后面 —— 就是参考图里那块
+/// 看得见正文的磨砂玻璃。再叠一层极淡的 tint，只给玻璃一点厚度，保证上面的控件
+/// 文字仍有对比。它不随 外观主题 › 界面效果 的开关变化：这些浮层恒为玻璃。
+struct ReaderGlassSheetBackground: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        ZStack {
+            Rectangle()
+                .fill(.ultraThinMaterial)
+                .opacity(0.55)
+            (colorScheme == .dark ? Color.black : Color.white)
+                .opacity(colorScheme == .dark ? 0.18 : 0.10)
+        }
+        .ignoresSafeArea()
+    }
+}
+
+/// 更多设置：the settings sheet's nine subjects as a grid, plus the two actions that
+/// used to sit on the panel itself. Each cell is one page, half-height and see-through,
+/// so a change is made with the paragraph still in view.
 private struct ReaderQuickPanelSectionGrid: View {
     let onOpenSection: (Set<ReaderSettingsSection>) -> Void
+    /// 主面板换成参考图的四列两行之后，自动阅读与自定义不再各占一格；它们挪到这里，
+    /// 入口一个不丢（反馈 #4）。
+    var onStartAutoRead: (() -> Void)? = nil
+    var onCustomize: (() -> Void)? = nil
 
     private let columns = [
         GridItem(.flexible(), spacing: DSSpacing.md),
@@ -581,29 +671,15 @@ private struct ReaderQuickPanelSectionGrid: View {
         ScrollView {
             LazyVGrid(columns: columns, spacing: DSSpacing.md) {
                 ForEach(ReaderSettingsSection.allCases, id: \.self) { section in
-                    Button {
+                    gridCell(title: localized(section.titleKey), systemImage: section.systemImage) {
                         onOpenSection([section])
-                    } label: {
-                        VStack(spacing: DSSpacing.sm) {
-                            Image(systemName: section.systemImage)
-                                .font(DSFont.title3)
-                                .accessibilityHidden(true)
-                            Text(localized(section.titleKey))
-                                .font(DSFont.caption)
-                                .multilineTextAlignment(.center)
-                                .lineLimit(2)
-                                .minimumScaleFactor(0.8)
-                        }
-                        .foregroundStyle(DSColor.textPrimary)
-                        .frame(maxWidth: .infinity, minHeight: 84)
-                        .padding(.horizontal, DSSpacing.xs)
-                        .background(DSColor.neutralControlFill, in: RoundedRectangle(cornerRadius: DSRadius.xl, style: .continuous))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: DSRadius.xl, style: .continuous)
-                                .stroke(DSColor.separator, lineWidth: 1)
-                        )
                     }
-                    .buttonStyle(.plain)
+                }
+                gridCell(title: localized("自动阅读"), systemImage: "play.fill") {
+                    onStartAutoRead?()
+                }
+                gridCell(title: localized("自定义"), systemImage: "paintbrush") {
+                    onCustomize?()
                 }
             }
             .padding(.horizontal, DSSpacing.xl)
@@ -615,6 +691,40 @@ private struct ReaderQuickPanelSectionGrid: View {
         .toolbarBackground(.hidden, for: .navigationBar)
         .navigationTitle(localized("更多设置"))
         .toolbarTitleDisplayMode(.inline)
+    }
+
+    @ViewBuilder
+    private func gridCell(
+        title: String,
+        systemImage: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            VStack(spacing: DSSpacing.sm) {
+                Image(systemName: systemImage)
+                    .font(DSFont.title3)
+                    .accessibilityHidden(true)
+                Text(title)
+                    .font(DSFont.caption)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.8)
+            }
+            .foregroundStyle(DSColor.textPrimary)
+            .frame(maxWidth: .infinity, minHeight: 84)
+            .padding(.horizontal, DSSpacing.xs)
+            // 半透明玻璃格：整张九宫格透出后面的书页，格子不再是实色灰块（反馈 #5）。
+            .background(
+                DSColor.neutralControlFill.opacity(0.55),
+                in: RoundedRectangle(cornerRadius: DSRadius.xl, style: .continuous)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: DSRadius.xl, style: .continuous)
+                    .stroke(DSColor.separator.opacity(0.7), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(title)
     }
 }
 

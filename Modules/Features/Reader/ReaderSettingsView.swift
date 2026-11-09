@@ -268,7 +268,7 @@ struct ReaderSettingsView: View {
             .padding(.top, 16)
             .frame(maxWidth: .infinity, minHeight: 118, maxHeight: 118, alignment: .topLeading)
             .clipped()
-            .background(theme.backgroundColor)
+            .background(theme.backgroundColor.opacity(0.55))
             .accessibilityHidden(true)
     }
 
@@ -1099,7 +1099,7 @@ struct ReaderSettingsView: View {
         .frame(maxWidth: .infinity, minHeight: previewTextHeight, maxHeight: previewTextHeight, alignment: .topLeading)
         .clipped()
         .foregroundStyle(theme.textColor)
-        .background(theme.backgroundColor)
+        .background(theme.backgroundColor.opacity(0.55))
     }
 
     // MARK: - Fonts

@@ -1608,10 +1608,14 @@ struct EditBookSheet: View {
             NavigationLink {
                 OnlineCoverSearchView(
                     title: liveBook.title,
-                    author: liveBook.author
-                ) { candidate in
-                    applyCover(url: candidate.coverUrl, sourceId: candidate.sourceId)
-                }
+                    author: liveBook.author,
+                    onSelect: { candidate in
+                        applyCover(url: candidate.coverUrl, sourceId: candidate.sourceId)
+                    },
+                    onImportImage: { data in
+                        storePickedCover(data)
+                    }
+                )
             } label: {
                 SettingsRowLabel(localized("封面搜索"), systemImage: "globe")
             }

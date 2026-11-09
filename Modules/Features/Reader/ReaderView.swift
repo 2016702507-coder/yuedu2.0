@@ -2721,8 +2721,10 @@ struct ReaderView: View {
             AdaptiveSheetContainer(maxWidth: DSLayout.readableListWidth) {
                 readerSettingsContent(sections: nil)
             }
-            // 整頁設定也是玻璃：後面是正在讀的那一頁，改之前先看見它。
-            .presentationBackground(.ultraThinMaterial)
+            // 「自定义」整份设置：半屏 + 透明玻璃，后面的正文透得上来（反馈 #3、#5）。
+            .presentationDetents([.medium, .large])
+            .presentationBackground { ReaderGlassSheetBackground() }
+            .presentationDragIndicator(.visible)
         }
         // 浮层的格子推进来的一页。单独一张半屏卡，不是把整份设置再推高，
         // 这样后面的正文留在原地，拖滑杆时看得见行距在动。
@@ -2732,7 +2734,7 @@ struct ReaderView: View {
             }
             // 半屏、半透明：后面的书页不盖掉，拖滑杆时看得见正文在动。
             .presentationDetents([.medium, .large])
-            .presentationBackground(.ultraThinMaterial)
+            .presentationBackground { ReaderGlassSheetBackground() }
             .presentationDragIndicator(.visible)
         }
         .sheet(isPresented: $showQuickThemePanel, onDismiss: presentDeferredQuickPanelRoute) {

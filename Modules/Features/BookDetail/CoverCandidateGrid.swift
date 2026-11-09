@@ -1,3 +1,4 @@
+import PhotosUI
 import SwiftUI
 
 /// One cover offered by 封面搜索 / 换封面.
@@ -33,6 +34,9 @@ struct CoverCandidateGrid: View {
     /// next steps.
     let emptyHint: String
     let onSelect: (CoverCandidate) -> Void
+    /// 直接从相簿 / 档案选一张图当封面。之前空状态只写「或从相簿选一张图片」
+    /// 却不给按钮，用户点不到（反馈 2026-11-09）。留空即不显示。
+    var onImportImage: ((Data) -> Void)? = nil
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
@@ -42,6 +46,12 @@ struct CoverCandidateGrid: View {
 
     var body: some View {
         ScrollView {
+            if let onImportImage {
+                importCoverButton(onImportImage: onImportImage)
+                    .padding(.horizontal, DSSpacing.lg)
+                    .padding(.top, DSSpacing.lg)
+            }
+
             LazyVGrid(
                 columns: Array(
                     repeating: GridItem(.flexible(), spacing: DSSpacing.md),
@@ -60,6 +70,46 @@ struct CoverCandidateGrid: View {
                 .padding(.bottom, DSSpacing.xxl)
         }
         .softScrollEdges()
+    }
+
+    /// 常驻在网格最上方的「导入封面」：不依赖搜索结果，找不到封面时也能用。
+    /// 复用全 App 统一的 `ImageSourcePickerButton`（相簿 + 档案两条来源，
+    /// iOS 17 的选单时序问题也已在组件里处理），不另造一套选择器。
+    private func importCoverButton(onImportImage: @escaping (Data) -> Void) -> some View {
+        ImageSourcePickerButton(
+            accessibilityTitle: localized("导入封面")
+        ) { result in
+            switch result {
+            case .success(.data(let data)):
+                onImportImage(data)
+            case .success(.file(let url)):
+                // fileImporter 的安全域只在回调期间有效，必须在这里读完。
+                if let data = try? Data(contentsOf: url) {
+                    onImportImage(data)
+                }
+            case .failure:
+                break
+            }
+        } label: {
+            HStack(spacing: DSSpacing.sm) {
+                Image(systemName: "square.and.arrow.down")
+                    .font(DSFont.body.weight(.medium))
+                Text(localized("导入封面"))
+                    .font(DSFont.subheadline.weight(.medium))
+                Spacer(minLength: 0)
+                Text(localized("选择图片"))
+                    .font(DSFont.caption)
+                    .foregroundStyle(DSColor.textSecondary)
+            }
+            .foregroundStyle(DSColor.accent)
+            .padding(.horizontal, DSSpacing.lg)
+            .frame(minHeight: DSLayout.minimumTapTarget)
+            .background(DSColor.accent.opacity(0.10), in: RoundedRectangle(cornerRadius: DSRadius.lg, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: DSRadius.lg, style: .continuous)
+                    .stroke(DSColor.accent.opacity(0.35), lineWidth: 1)
+            )
+        }
     }
 
     @ViewBuilder

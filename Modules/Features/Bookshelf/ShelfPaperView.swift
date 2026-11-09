@@ -123,10 +123,14 @@ struct ShelfPaperView: View {
             NavigationStack {
                 OnlineCoverSearchView(
                     title: book.title,
-                    author: book.author
-                ) { candidate in
-                    applyCover(candidate, to: book)
-                }
+                    author: book.author,
+                    onSelect: { candidate in
+                        applyCover(candidate, to: book)
+                    },
+                    onImportImage: { data in
+                        applyImportedCover(data, to: book)
+                    }
+                )
                 .toolbar {
                     ToolbarItem(placement: .topBarLeading) {
                         Button(localized("取消")) { coverSearchBook = nil }
@@ -703,6 +707,18 @@ struct ShelfPaperView: View {
                     : localized("无法下载这张封面，请换一张或检查网络。")
             )
         }
+    }
+
+    /// 「导入封面」：把相簿/档案里选的图片直接设成封面。走 BookStore 里与
+    /// 书籍资讯相同的 `applyCustomCover(bookId:imageData:)`，所以降采样、备份
+    /// 原封面、「重设封面」可还原都一致。
+    private func applyImportedCover(_ data: Data, to book: ReadingBook) {
+        let applied = store.applyCustomCover(bookId: book.id, imageData: data)
+        BookSourceFormLoginView.presentToastAlert(
+            message: applied
+                ? localized("封面已更新")
+                : localized("无法读取图片。")
+        )
     }
 }
 

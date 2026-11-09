@@ -48,6 +48,10 @@ struct OnlineCoverSearchView: View {
     let title: String
     let author: String
     let onSelect: (CoverCandidate) -> Void
+    /// 从相簿/档案导入的图片数据。调用方持有该书的 id 与 store，由它落盘并提示；
+    /// 这一页不引入 EnvironmentObject，避免调用链上漏注入时崩溃。
+    /// 不传就不显示「导入封面」按钮。
+    var onImportImage: ((Data) -> Void)? = nil
 
     @StateObject private var model = OnlineCoverSearchViewModel()
     @Environment(\.dismiss) private var dismiss
@@ -59,12 +63,14 @@ struct OnlineCoverSearchView: View {
                 candidates: model.candidates,
                 isSearching: model.isSearching,
                 hasSearched: model.hasSearched,
-                emptyHint: localized("可以改用「换封面」在来源配置里找，或从相簿选一张图片。")
-            ) { candidate in
-                model.stop()
-                onSelect(candidate)
-                dismiss()
-            }
+                emptyHint: localized("可以改用「换封面」在来源配置里找，或从相簿选一张图片。"),
+                onSelect: { candidate in
+                    model.stop()
+                    onSelect(candidate)
+                    dismiss()
+                },
+                onImportImage: onImportImage
+            )
         }
         .navigationTitle(localized("封面搜索"))
         .toolbarTitleDisplayMode(.inline)
