@@ -9,6 +9,10 @@
 </p>
 
 <p align="center">
+  原始碼來自 <a href="https://github.com/CHANG-JUI-LIN/Yuedu-reader">CHANG-JUI-LIN 的「閱讀」(Yuedu)</a>
+</p>
+
+<p align="center">
   <a href="README.zh-Hans.md">简体中文</a> ·
   <a href="README.zh-Hant.md">繁體中文</a> ·
   <a href="README.md">English</a>
