@@ -106,6 +106,15 @@ enum GlobalAppTypographyUIKitBridge {
         tabBar.scrollEdgeAppearance = tabBarAppearance
         // 强制走半透明通道，杜绝任何不透明兜底背景
         tabBar.isTranslucent = true
+        // 连每个标签项（含选中态）背后的高亮药丸底/背景图也清掉，只保留红字+彩图标的选中态
+        for layout in [tabBarAppearance.stackedLayoutAppearance,
+                       tabBarAppearance.inlineLayoutAppearance,
+                       tabBarAppearance.compactInlineLayoutAppearance] {
+            layout.normal.backgroundColor = .clear
+            layout.normal.backgroundImage = nil
+            layout.selected.backgroundColor = .clear
+            layout.selected.backgroundImage = nil
+        }
     }
 
     private static func apply(
@@ -247,6 +256,12 @@ enum GlobalAppTypographyUIKitBridge {
                 font: font,
                 into: itemAppearance.selected.titleTextAttributes
             )
+            // 最透：连每个标签项（含选中态）背后的高亮药丸底/背景图也清掉，
+            // 只保留红字+彩图标的选中态，不残留任何不透明块（参考待改清单第 11 条）。
+            itemAppearance.normal.backgroundColor = .clear
+            itemAppearance.normal.backgroundImage = nil
+            itemAppearance.selected.backgroundColor = .clear
+            itemAppearance.selected.backgroundImage = nil
         }
         // 底部导航栏完全透明：去掉系统默认的灰底、毛玻璃与阴影，让背后山影/正文直接透出，
         // 与藏书页「继续阅读」按钮、分类标签栏同一套透明玻璃语言（参考待改清单第 7、10 条）。
