@@ -85,7 +85,7 @@ struct ReaderQuickThemePanelView: View {
     @Environment(\.colorScheme) private var colorScheme
     /// The saved-background page pushed in this panel's own navigation.
     @State private var backgroundEditor: ReaderBackgroundEditorRoute?
-    /// The 更多设置 grid, pushed in this panel's own navigation.
+    /// The 更多设置 grid, shown in place of the main panel (same glass, no push).
     @State private var showingSectionGrid = false
     /// Measured height of the panel's own content, so the sheet is exactly as tall
     /// as what it holds. A fixed detent left a band of dead space under the last
@@ -98,50 +98,22 @@ struct ReaderQuickThemePanelView: View {
 
     var body: some View {
         NavigationStack {
-            // Scrolls rather than clips. The panel is no longer a fixed 508pt of
-            // which 214 went to a background pager that only ever had one page, so
-            // its height follows its content — and at the largest Dynamic Type
-            // sizes that content is taller than any detent.
-            ScrollView {
-                VStack(alignment: .leading, spacing: DSSpacing.lg) {
-                    typeRow
-                    readingBackgroundRow
-                    pageTurnChips
-                    actionGrid
-                    // Only under 绑定阅读主题: without it the reader follows the device by
-                    // itself and there is nothing to switch (the user's call, 2026-09-30).
-                    // It stays where it was; 更多设置 did not take it over.
-                    if settings.appearanceBindReaderTheme {
-                        followSystemAppearanceToggle
-                    }
+            // 主面板与「更多设置」九宫格同处一个视图层级，共用 sheet 的
+            // presentationBackground 玻璃底。以前九宫格是 navigationDestination，
+            // 那一层的宿主视图带系统白底，把玻璃整个盖住了（真机截图里九宫格是纯白，
+            // 主面板却能透出正文）。改成条件视图后两层都能透，也顺带避免 push 时的
+            // 档位切换带来的上下位移。
+            Group {
+                if showingSectionGrid {
+                    sectionGridPage
+                        .transition(.move(edge: .trailing))
+                } else {
+                    mainPanelPage
+                        .transition(.move(edge: .leading))
                 }
-                .padding(.horizontal, DSSpacing.xl)
-                .padding(.top, DSSpacing.xl)
-                .padding(.bottom, DSSpacing.xl)
-                .background(
-                    GeometryReader { proxy in
-                        Color.clear.preference(
-                            key: ReaderQuickPanelContentHeightKey.self,
-                            value: proxy.size.height
-                        )
-                    }
-                )
             }
-            .softScrollEdges()
-            .onPreferenceChange(ReaderQuickPanelContentHeightKey.self) { height in
-                guard height > 0 else { return }
-                contentHeight = height
-            }
-            .scrollBounceBehavior(.basedOnSize)
-            // This panel supplies its own bottom padding. Let the scroll viewport
-            // use the whole sheet instead of reserving another home-indicator band.
-            .ignoresSafeArea(.container, edges: .bottom)
-            .frame(maxWidth: DSLayout.readableCompactWidth, alignment: .topLeading)
-            .frame(maxWidth: .infinity, alignment: .top)
-            .pageBackgroundToolbar(for: .settings)
             // No title bar and no close button: the panel is a short sheet the
-            // reader flicks away, and a navigation chrome on top of it ate height
-            // the controls could use.
+            // reader flicks away; 更多设置 自己画返回按钮。
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(item: $backgroundEditor) { route in
                 ReaderCustomBackgroundEditorView(
@@ -156,15 +128,6 @@ struct ReaderQuickThemePanelView: View {
                     },
                     onDelete: { backgroundEditor = nil },
                     onRequestPaywall: { onOpenPaywall?($0) }
-                )
-            }
-            .navigationDestination(isPresented: $showingSectionGrid) {
-                ReaderQuickPanelSectionGrid(
-                    onOpenSection: { sections in
-                        onOpenSection?(sections)
-                    },
-                    onStartAutoRead: onStartAutoRead,
-                    onCustomize: onCustomize
                 )
             }
         }
@@ -190,13 +153,75 @@ struct ReaderQuickThemePanelView: View {
         .presentationDragIndicator(.visible)
     }
 
+    // MARK: - 两层内容（共用同一块玻璃）
+
+    /// 主面板：字号、阅读背景、翻页、四列两行功能格、跟随系统。
+    /// 高度跟着内容走，不用固定的 508pt 留一条死区。
+    private var mainPanelPage: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: DSSpacing.lg) {
+                typeRow
+                readingBackgroundRow
+                pageTurnChips
+                actionGrid
+                // Only under 绑定阅读主题: without it the reader follows the device by
+                // itself and there is nothing to switch (the user's call, 2026-09-30).
+                if settings.appearanceBindReaderTheme {
+                    followSystemAppearanceToggle
+                }
+            }
+            .padding(.horizontal, DSSpacing.xl)
+            .padding(.top, DSSpacing.xl)
+            .padding(.bottom, DSSpacing.xl)
+            .background(
+                GeometryReader { proxy in
+                    Color.clear.preference(
+                        key: ReaderQuickPanelContentHeightKey.self,
+                        value: proxy.size.height
+                    )
+                }
+            )
+        }
+        .softScrollEdges()
+        .onPreferenceChange(ReaderQuickPanelContentHeightKey.self) { height in
+            guard height > 0 else { return }
+            contentHeight = height
+        }
+        .scrollBounceBehavior(.basedOnSize)
+        // 面板自带底部 padding，让滚动视口用满整张 sheet。
+        .ignoresSafeArea(.container, edges: .bottom)
+        .frame(maxWidth: DSLayout.readableCompactWidth, alignment: .topLeading)
+        .frame(maxWidth: .infinity, alignment: .top)
+        .pageBackgroundToolbar(for: .settings)
+    }
+
+    /// 更多设置九宫格：与主面板同层级，共用 sheet 的玻璃底，不再走 navigation push。
+    private var sectionGridPage: some View {
+        ReaderQuickPanelSectionGrid(
+            onOpenSection: { sections in
+                // 外层会 dismiss 本 sheet；先把状态收回主面板，避免下次打开直接落在九宫格。
+                showingSectionGrid = false
+                onOpenSection?(sections)
+            },
+            onStartAutoRead: onStartAutoRead,
+            onCustomize: onCustomize,
+            onBack: {
+                withAnimation(.easeInOut(duration: 0.28)) {
+                    showingSectionGrid = false
+                }
+            }
+        )
+        .frame(maxWidth: DSLayout.readableCompactWidth, alignment: .top)
+        .frame(maxWidth: .infinity, alignment: .top)
+        .ignoresSafeArea(.container, edges: .bottom)
+    }
+
     private var panelDetents: Set<PresentationDetent> {
         if backgroundEditor != nil { return [.large] }
-        // 主面板和「更多设置」九宫格必须共用同一组档位。以前 push 九宫格时把档位
+        // 主面板和「更多设置」九宫格必须共用同一组档位。以前切到九宫格时把档位
         // 换成 [.medium, .large]，而主面板的 .height(contentHeight) 比 .medium 高约
-        // 34pt，sheet 随之变矮、顶边往下掉一截（真机录屏实测）。现在档位集合在导航
-        // 前后完全不变，push 时面板不会上下跳动；九宫格内容比主面板矮，这个高度装得下，
-        // 仍保持半屏（反馈 #5）。
+        // 34pt，sheet 随之变矮、顶边往下掉一截（真机录屏实测）。现在档位集合恒定，
+        // 切换时面板不会上下跳动；九宫格内容比主面板矮，这个高度装得下，仍是半屏。
         return [.height(max(DSLayout.minimumTapTarget, contentHeight - bottomSafeAreaInset))]
     }
 
@@ -603,7 +628,9 @@ struct ReaderQuickThemePanelView: View {
         case .tts:
             onOpenTTS?()
         case .more:
-            showingSectionGrid = true
+            withAnimation(.easeInOut(duration: 0.28)) {
+                showingSectionGrid = true
+            }
         }
     }
 
@@ -640,10 +667,13 @@ struct ReaderQuickThemePanelView: View {
 ///
 /// 不直接用 `.presentationBackground(.ultraThinMaterial)`：iOS 17 的浅色书页上那一层
 /// 材料糊得太狠，采样后的米色页面被抹成均匀近白，后面的正文一个字都透不出来，
-/// 看起来就是一块实色板（反馈 #3「不是玻璃的」）。这里把材料本身压到 55% 不透明度，
-/// 原内容以 45% 直接透上来，文字于是半清半糊地浮在玻璃后面 —— 就是参考图里那块
+/// 看起来就是一块实色板（反馈 #3「不是玻璃的」）。这里把材料压到 45% 不透明度，
+/// 原内容以 55% 直接透上来，文字于是半清半糊地浮在玻璃后面 —— 就是参考图里那块
 /// 看得见正文的磨砂玻璃。再叠一层极淡的 tint，只给玻璃一点厚度，保证上面的控件
 /// 文字仍有对比。它不随 外观主题 › 界面效果 的开关变化：这些浮层恒为玻璃。
+///
+/// 2026-11-09 追加反馈「两张都把透明度拉高一点点」：材料由 0.55 → 0.45、
+/// tint 由 0.18/0.10 → 0.13/0.07，主面板与九宫格共用这一块玻璃，一起变透。
 struct ReaderGlassSheetBackground: View {
     @Environment(\.colorScheme) private var colorScheme
 
@@ -651,9 +681,9 @@ struct ReaderGlassSheetBackground: View {
         ZStack {
             Rectangle()
                 .fill(.ultraThinMaterial)
-                .opacity(0.55)
+                .opacity(0.45)
             (colorScheme == .dark ? Color.black : Color.white)
-                .opacity(colorScheme == .dark ? 0.18 : 0.10)
+                .opacity(colorScheme == .dark ? 0.13 : 0.07)
         }
         .ignoresSafeArea()
     }
@@ -668,6 +698,8 @@ private struct ReaderQuickPanelSectionGrid: View {
     /// 入口一个不丢（反馈 #4）。
     var onStartAutoRead: (() -> Void)? = nil
     var onCustomize: (() -> Void)? = nil
+    /// 不再是 navigation destination，返回按钮由本页自己画。
+    var onBack: (() -> Void)? = nil
 
     private let columns = [
         GridItem(.flexible(), spacing: DSSpacing.md),
@@ -677,28 +709,53 @@ private struct ReaderQuickPanelSectionGrid: View {
 
     var body: some View {
         ScrollView {
-            LazyVGrid(columns: columns, spacing: DSSpacing.md) {
-                ForEach(ReaderSettingsSection.allCases, id: \.self) { section in
-                    gridCell(title: localized(section.titleKey), systemImage: section.systemImage) {
-                        onOpenSection([section])
+            VStack(spacing: DSSpacing.lg) {
+                gridHeader
+                LazyVGrid(columns: columns, spacing: DSSpacing.md) {
+                    ForEach(ReaderSettingsSection.allCases, id: \.self) { section in
+                        gridCell(title: localized(section.titleKey), systemImage: section.systemImage) {
+                            onOpenSection([section])
+                        }
                     }
-                }
-                gridCell(title: localized("自动阅读"), systemImage: "play.fill") {
-                    onStartAutoRead?()
-                }
-                gridCell(title: localized("自定义"), systemImage: "paintbrush") {
-                    onCustomize?()
+                    gridCell(title: localized("自动阅读"), systemImage: "play.fill") {
+                        onStartAutoRead?()
+                    }
+                    gridCell(title: localized("自定义"), systemImage: "paintbrush") {
+                        onCustomize?()
+                    }
                 }
             }
             .padding(.horizontal, DSSpacing.xl)
             .padding(.top, DSSpacing.md)
             .padding(.bottom, DSSpacing.xxl)
         }
-        .toolbar(.visible, for: .navigationBar)
-        // 玻璃卡片上不该再压一条不透明的导览列底色。
-        .toolbarBackground(.hidden, for: .navigationBar)
-        .navigationTitle(localized("更多设置"))
-        .toolbarTitleDisplayMode(.inline)
+        .scrollBounceBehavior(.basedOnSize)
+    }
+
+    /// 系统导航栏的白底会盖住玻璃，所以整页隐藏它，返回键与标题自己画，
+    /// 保持真机截图里那颗白色圆形返回键 + 居中标题的样子。
+    private var gridHeader: some View {
+        ZStack {
+            Text(localized("更多设置"))
+                .font(DSFont.headline)
+                .foregroundStyle(DSColor.textPrimary)
+            HStack {
+                Button {
+                    onBack?()
+                } label: {
+                    Image(systemName: "chevron.left")
+                        .font(DSFont.bodyBold)
+                        .foregroundStyle(DSColor.textPrimary)
+                        .frame(width: 36, height: 36)
+                        .background(.regularMaterial, in: Circle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(localized("返回"))
+                Spacer(minLength: 0)
+            }
+            // ZStack 默认把子视图按自身尺寸居中；撑满宽度才能让返回键贴左、标题居中。
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
     }
 
     @ViewBuilder
