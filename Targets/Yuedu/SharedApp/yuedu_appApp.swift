@@ -371,7 +371,14 @@ struct yuedu_appApp: App {
                 }
                 // Inactive, not only background: the app switcher kills the app
                 // while it is inactive, before a debounced shelf save has run.
-                if newPhase != .active { bookStore.flushPendingMetadataSave() }
+                if newPhase != .active {
+                    bookStore.flushPendingMetadataSave()
+                    // 探索页 edited sections are saved as they are made, on a serial queue.
+                    // Without this the last edit can still be in flight when the app is
+                    // suspended, and the next launch reads the old home (individual readers
+                    // reported their 探索 layout reverting after reopening the app).
+                    HomePageStore.shared.flushPendingWrites()
+                }
                 // Pick up sources shared while the app was backgrounded.
                 if newPhase == .active {
                     Task { await subscriptionStore.refreshAllEntitlements() }

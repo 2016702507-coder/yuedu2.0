@@ -255,6 +255,46 @@ private struct ExploreHomeRoot: View {
 
     // MARK: 全部
 
+    /// Shown only when the home cannot be written. A read-only file or a failed write used to
+    /// look like a successful edit and silently reverted on the next launch; the reader now
+    /// sees why, and can rebuild (keeping the old file aside) or retry the same save.
+    @ViewBuilder
+    private var saveIssueBanner: some View {
+        if let issue = pageStore.saveIssue {
+            VStack(alignment: .leading, spacing: DSSpacing.sm) {
+                Label {
+                    Text(localized("探索页编辑无法保存"))
+                        .font(DSFont.subheadline)
+                } icon: {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(DSColor.warning)
+                }
+                Text(localized("探索页设置暂时无法写入，本次编辑不会被保存。原文件会保留备份。"))
+                    .font(DSFont.footnote)
+                    .foregroundStyle(DSColor.textSecondary)
+                Button {
+                    if issue == .writeFailed {
+                        pageStore.retrySave()
+                    } else {
+                        pageStore.recoverFromReadOnly()
+                    }
+                } label: {
+                    Text(localized(issue == .writeFailed ? "重试保存" : "重建首页"))
+                        .font(DSFont.subheadline)
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .accessibilityIdentifier(issue == .writeFailed ? "home.saveIssue.retry" : "home.saveIssue.rebuild")
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(DSSpacing.lg)
+            .interfaceCardSurface(in: RoundedRectangle(cornerRadius: DSRadius.lg, style: .continuous))
+            .padding(.horizontal, DSSpacing.lg)
+            .padding(.top, DSSpacing.md)
+            .accessibilityIdentifier("home.saveIssue")
+        }
+    }
+
     private var home: some View {
         ScrollViewReader { proxy in
         ScrollView {
@@ -262,6 +302,7 @@ private struct ExploreHomeRoot: View {
             // home or only the editor gives it room.
             VStack(alignment: .leading, spacing: 0) {
                 Color.clear.frame(height: 0).id(Self.top)
+                saveIssueBanner
                 top
                 VStack(alignment: .leading, spacing: 0) {
                     LazyVStack(alignment: .leading, spacing: 0) {

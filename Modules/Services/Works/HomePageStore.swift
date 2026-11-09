@@ -1,6 +1,20 @@
 import Combine
 import Foundation
 
+/// Why the home cannot be written this launch. The file's protection (an unreadable or
+/// newer-build file is never overwritten) stays; the reader is now told about it instead
+/// of editing a home that silently reverts on the next launch.
+enum HomeSaveIssue: String, Sendable {
+    /// `Data(contentsOf:)` failed: permissions, a directory where the file should be, I/O.
+    case unreadable
+    /// The file came from a build whose schema this one cannot name.
+    case newerBuild
+    /// The file decoded neither strictly nor leniently.
+    case corrupt
+    /// The atomic write itself threw (full storage, I/O, protection).
+    case writeFailed
+}
+
 /// Unified library 5a: the Explore home, `explore_home.json`; since 5d-4 every 首页配置 in it
 /// (`HomeConfigurations`, Phase 5 plan, decision 22).
 ///
@@ -50,6 +64,10 @@ final class HomePageStore: ObservableObject {
     /// Whether saves stay in memory this launch, because the file could not be read or comes
     /// from a newer build.
     private(set) var isReadOnly = false
+
+    /// Why saving is unavailable, published so the home can show it. Kept separate from
+    /// `isReadOnly`: a write that fails later is not read-only, but the reader must still know.
+    @Published private(set) var saveIssue: HomeSaveIssue?
 
     /// The 最新 sections' 排除的来源 the file still holds from before 5d-3f, which
     /// `AggregationSettingsStore` adopts as 显示在最新. Read once, with the file.
@@ -204,7 +222,15 @@ final class HomePageStore: ObservableObject {
             return
         }
         let url = fileURL
-        queue.async {
+        // An edit is saved as soon as it is made. The queue write is asynchronous, so a reader
+        // who edits and immediately leaves the app may be suspended (or killed from the app
+        // switcher) while the bytes are still in flight — the next launch then reads the old
+        // file and the edit is gone. A background task keeps the process alive until this
+        // write has landed, mirroring `BookSourceStore.flushPendingWrites()`.
+        let hold = BackgroundTaskHold(name: "exploreHome.persist")
+        queue.async { [weak self] in
+            defer { hold.release() }
+            var failed = false
             do {
                 let encoder = JSONEncoder()
                 encoder.outputFormatting = [.sortedKeys]
@@ -212,10 +238,59 @@ final class HomePageStore: ObservableObject {
                 try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
                 try data.write(to: url, options: .atomic)
             } catch {
+                failed = true
                 AppLogger.cache("⟐ explore home could not be saved", error: error,
                                 context: ["sections": "\(home.sections.count)"])
             }
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                if failed {
+                    self.saveIssue = .writeFailed
+                } else if self.saveIssue == .writeFailed {
+                    // A later edit saved fine: the warning has served its purpose.
+                    self.saveIssue = nil
+                }
+            }
         }
+    }
+
+    /// Drains queued writes under a background task before the app can be suspended. Called
+    /// from the scene phase as it leaves `.active`; the book sources and shelf metadata have
+    /// the same guard, and the home's edits are user data too.
+    func flushPendingWrites() {
+        let hold = BackgroundTaskHold(name: "exploreHome.flush")
+        queue.async { hold.release() }
+    }
+
+    /// After the reader chooses to rebuild: move the old file aside, lift the read-only guard
+    /// and let `pageOrDefaults` make and save a fresh home. Moving needs no read, so even a
+    /// file this build cannot decode or open is kept rather than overwritten. If the move
+    /// fails the home stays read-only — never write over bytes we could not preserve.
+    func recoverFromReadOnly() {
+        guard isReadOnly else { return }
+        if FileManager.default.fileExists(atPath: fileURL.path) {
+            let backup = fileURL.deletingLastPathComponent()
+                .appendingPathComponent("explore_home.rebuild-\(Int(Date().timeIntervalSince1970)).json")
+            do {
+                try FileManager.default.moveItem(at: fileURL, to: backup)
+                AppLogger.cache("⟐ explore home kept aside before a rebuild",
+                                context: ["backup": backup.lastPathComponent])
+            } catch {
+                AppLogger.cache("⟐ explore home could not be kept aside; it stays read-only", error: error)
+                return
+            }
+        }
+        isReadOnly = false
+        saveIssue = nil
+        home = nil
+    }
+
+    /// A failed write is not read-only: the in-memory home is intact, so try the same save
+    /// again once the reader asks (for example after freeing storage).
+    func retrySave() {
+        guard saveIssue == .writeFailed else { return }
+        saveIssue = nil
+        write()
     }
 
     #if DEBUG
@@ -392,6 +467,7 @@ final class HomePageStore: ObservableObject {
         } catch {
             AppLogger.cache("⟐ explore home could not be read; it will not be written over", error: error)
             isReadOnly = true
+            saveIssue = .unreadable
             return
         }
         do {
@@ -400,6 +476,7 @@ final class HomePageStore: ObservableObject {
                 let lenient = try JSONDecoder().decode(LenientPage.self, from: data)
                 home = HomeConfigurations(sections: lenient.sections)
                 isReadOnly = true
+                saveIssue = .newerBuild
                 AppLogger.cache("⟐ explore home comes from a newer build; reading it without writing", context: [
                     "schemaVersion": "\(version)", "sections": "\(lenient.sections.count)", "skipped": "\(lenient.skipped)",
                 ])
@@ -432,6 +509,9 @@ final class HomePageStore: ObservableObject {
         } catch {
             AppLogger.cache("⟐ explore home could not be decoded", error: error)
             isReadOnly = !keepAside(data)
+            // `keepAside` saved the bytes, so a rebuild is safe; still show why the home
+            // came back empty rather than silently reverting on every launch.
+            if isReadOnly { saveIssue = .corrupt }
         }
     }
 

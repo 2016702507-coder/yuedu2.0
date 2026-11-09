@@ -4477,3 +4477,10 @@
 
 /* 显示系统状态栏（阅读器常显系统状态栏开关） */
 "显示系统状态栏" = "Show System Status Bar";
+
+
+/* 探索页编辑保存异常提示（重进还原修复） */
+"探索页编辑无法保存" = "Explore layout can't be saved";
+"探索页设置暂时无法写入，本次编辑不会被保存。原文件会保留备份。" = "Your Explore layout can't be written right now, so this edit won't be saved. The original file is kept as a backup.";
+"重试保存" = "Retry Save";
+"重建首页" = "Rebuild Home";
