@@ -2166,14 +2166,20 @@ struct ReaderView: View {
             .zIndex(50)
 
             if let toast = bookmarkToast {
-                // A banner at the top, just under the Dynamic Island: the status bar
-                // is hidden while reading, so that band is free. With the chrome up it
-                // sits over the top bar's empty middle, clear of its buttons.
+                // A banner at the top, just under the Dynamic Island. That band is
+                // free only while the status bar is hidden; with 顯示系統狀態欄 on,
+                // drop the banner below the top safe area so it never sits under the
+                // clock. With the chrome up it clears the top bar's middle buttons.
                 ReaderBookmarkToastView(
                     toast: toast,
                     colorScheme: readerTheme == .night ? .dark : .light
                 )
-                .padding(.top, DSSpacing.sm)
+                .padding(
+                    .top,
+                    settings.readerShowsStatusBar
+                        ? readerSafeAreaTop + DSSpacing.sm
+                        : DSSpacing.sm
+                )
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                 .allowsHitTesting(false)
                 .transition(
@@ -2247,8 +2253,18 @@ struct ReaderView: View {
         .statusBarHidden(
             ReaderOverlayPresentationPolicy.hidesStatusBar(
                 showsReaderChrome: showBars,
-                isEditing: false
+                isEditing: false,
+                alwaysShowsStatusBar: settings.readerShowsStatusBar
             )
+        )
+        // A status bar drawn over a night page needs light text. The reader paints
+        // its own background from the theme rather than the system colour scheme,
+        // so only while the switch is on do we tie the status bar's appearance to
+        // the reading theme. `nil` leaves the app's existing scheme untouched.
+        .preferredColorScheme(
+            settings.readerShowsStatusBar
+                ? (readerTheme == .night ? .dark : .light)
+                : nil
         )
         // The home indicator is the other half of the system chrome the immersive
         // page has to shed. `.hidden` is an auto-hide request, so the indicator

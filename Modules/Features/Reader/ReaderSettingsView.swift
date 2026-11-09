@@ -963,6 +963,13 @@ struct ReaderSettingsView: View {
             Toggle(isOn: $settings.readerKeepsScreenAwake) {
                 SettingsRowLabel(localized("阅读时萤幕常亮"), systemImage: "lock.open.display")
             }
+
+            // 显示系统状态栏: same screen-level, per-device family as 萤幕常亮.
+            // Sits in 亮度 so the quick panel's 亮度 tile reaches it without a new
+            // section or another grid cell.
+            Toggle(isOn: $settings.readerShowsStatusBar) {
+                SettingsRowLabel(localized("显示系统状态栏"), systemImage: "clock")
+            }
         } header: {
             Text(localized("亮度"))
                 .foregroundStyle(DSColor.textSecondary)

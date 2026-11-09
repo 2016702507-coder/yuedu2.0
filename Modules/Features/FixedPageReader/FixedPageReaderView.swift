@@ -165,7 +165,16 @@ struct FixedPageReaderView: View {
         // bar does not, and iOS 17 draws its bars transparent over the page).
         .toolbarBackground(.visible, for: .navigationBar, .bottomBar)
         .toolbarColorScheme(.dark, for: .navigationBar, .bottomBar)
-        .statusBarHidden(!state.showControls)
+        .statusBarHidden(
+            ReaderOverlayPresentationPolicy.hidesStatusBar(
+                showsReaderChrome: state.showControls,
+                isEditing: false,
+                alwaysShowsStatusBar: globalSettings.readerShowsStatusBar
+            )
+        )
+        // The fixed-layout page is black in either appearance, so a visible status
+        // bar needs the dark scheme or its text would be black on black.
+        .preferredColorScheme(globalSettings.readerShowsStatusBar ? .dark : nil)
         // Same immersive rule as the flowing reader: the home indicator fades with
         // the controls and comes back with them.
         .persistentSystemOverlays(

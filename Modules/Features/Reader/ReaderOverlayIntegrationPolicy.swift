@@ -34,18 +34,28 @@ enum ReaderOverlayPresentationPolicy {
         )
     }
 
+    /// `alwaysShowsStatusBar` is the user-facing 顯示系統狀態欄 switch: when it is on
+    /// the clock, signal and battery stay on the reading page even with the reader's
+    /// own bars hidden. Editing still takes priority — the touch-zone editor is a
+    /// full-screen surface with its own controls. Callers that do not pass it keep
+    /// the original immersive rule, which is what `hidesHomeIndicator` wants: the
+    /// indicator keeps following the chrome regardless of this switch.
     static func hidesStatusBar(
         showsReaderChrome: Bool,
-        isEditing: Bool
+        isEditing: Bool,
+        alwaysShowsStatusBar: Bool = false
     ) -> Bool {
-        isEditing || !showsReaderChrome
+        if isEditing { return true }
+        if alwaysShowsStatusBar { return false }
+        return !showsReaderChrome
     }
 
-    /// The home indicator follows the status bar: both are system chrome that has
-    /// to clear out of the immersive reading page and come back together with the
-    /// reader's own bars. It gets its own entry point (rather than the call site
-    /// reusing `hidesStatusBar`) so the two can diverge later without the reader
-    /// reading a status-bar rule to decide a home-indicator question.
+    /// The home indicator keeps following the reader's own bars, independently of
+    /// 顯示系統狀態欄: turning that switch on pins the status bar but leaves the
+    /// indicator fading with the chrome — the two now diverge by design. Its own
+    /// entry point keeps the call site from reading a status-bar rule to decide a
+    /// home-indicator question, and the two-argument `hidesStatusBar` call below
+    /// uses that function's default, i.e. the original immersive rule.
     static func hidesHomeIndicator(
         showsReaderChrome: Bool,
         isEditing: Bool

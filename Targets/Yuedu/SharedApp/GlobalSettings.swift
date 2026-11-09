@@ -628,6 +628,7 @@ class GlobalSettings {
     private static let ttsKeepsScreenAwakeKey = "yd_tts_keeps_screen_awake"
     private static let readerKeepsScreenAwakeKey = "yd_reader_keeps_screen_awake"
     private static let readerKeepsScreenAwakeSyncClockKey = "yd_reader_keeps_screen_awake_sync_clock"
+    private static let readerShowsStatusBarKey = "yd_reader_shows_status_bar"
     private static let ttsSystemVoiceIdentifiersKey = "yd_tts_system_voice_ids"
     private static let ttsMultiRoleEnabledKey = "yd_tts_multi_role_enabled"
     private static let ttsRoleVoicesKey = "yd_tts_role_voices"
@@ -782,6 +783,16 @@ class GlobalSettings {
         didSet {
             UserDefaults.standard.set(readerKeepsScreenAwake, forKey: Self.readerKeepsScreenAwakeKey)
             readerKeepsScreenAwakeSyncClock = Date()
+        }
+    }
+    /// 顯示系統狀態欄: keep the clock, signal and battery visible on the reading page
+    /// even when the reader's own bars are hidden. Off by default, so the immersive
+    /// page still clears the status bar together with its chrome. Like 螢幕常亮 this is
+    /// about the screen, not the page — no theme carries it and no iCloud record follows
+    /// it; it stays a per-device display preference.
+    var readerShowsStatusBar: Bool {
+        didSet {
+            UserDefaults.standard.set(readerShowsStatusBar, forKey: Self.readerShowsStatusBarKey)
         }
     }
     /// Merge clock for the iCloud-synced 閱讀時螢幕常亮. Advances when the user flips it
@@ -2059,6 +2070,7 @@ class GlobalSettings {
             followSystemBrightness = UserDefaults.standard.bool(forKey: "yd_follow_sys_brightness")
         }
         readerKeepsScreenAwake = UserDefaults.standard.bool(forKey: Self.readerKeepsScreenAwakeKey)
+        readerShowsStatusBar = UserDefaults.standard.bool(forKey: Self.readerShowsStatusBarKey)
         readerKeepsScreenAwakeSyncClock =
             UserDefaults.standard.object(forKey: Self.readerKeepsScreenAwakeSyncClockKey) as? Date
         letterSpacing =

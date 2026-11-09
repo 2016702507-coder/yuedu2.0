@@ -253,6 +253,7 @@ private struct ReaderPreparingSurface: View {
     var onRetry: () -> Void
     var onClose: () -> Void
     @State private var showsChrome = false
+    @Bindable private var settings = GlobalSettings.shared
 
     /// A failure page has its own way out, so a tap raises nothing over it, as in the reader.
     private var chromeIsShown: Bool { showsChrome && error == nil }
@@ -297,7 +298,17 @@ private struct ReaderPreparingSurface: View {
             // Inside the stack, where the reader applies them too: that layer reaches the
             // hosting controller through the stack.
             .statusBarHidden(
-                ReaderOverlayPresentationPolicy.hidesStatusBar(showsReaderChrome: chromeIsShown, isEditing: false)
+                ReaderOverlayPresentationPolicy.hidesStatusBar(
+                    showsReaderChrome: chromeIsShown,
+                    isEditing: false,
+                    alwaysShowsStatusBar: settings.readerShowsStatusBar
+                )
+            )
+            // Keep the status bar legible on the themed loading page too.
+            .preferredColorScheme(
+                settings.readerShowsStatusBar
+                    ? (theme == .night ? .dark : .light)
+                    : nil
             )
             .persistentSystemOverlays(
                 ReaderOverlayPresentationPolicy.hidesHomeIndicator(showsReaderChrome: chromeIsShown, isEditing: false)
