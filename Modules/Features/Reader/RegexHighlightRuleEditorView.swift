@@ -78,7 +78,7 @@ struct RegexHighlightRuleEditorView: View {
             }
         }
         .softScrollEdges()
-        .themedAppSurface(for: .settings)
+        .readerGlassSettingsSurface()
         .navigationTitle(localized("编辑规则"))
         .toolbarTitleDisplayMode(.inline)
         .toolbar {

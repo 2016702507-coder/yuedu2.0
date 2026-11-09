@@ -202,8 +202,9 @@ struct ReaderSettingsView: View {
 
                     readerSettingsBackupSection
                 }
-                // 卡片自帶 surface，Form 的不透明底要讓開，玻璃才透得上來。
-                .scrollContentBackground(.hidden)
+                // 与所有设置页共用同一块玻璃：清掉 Form 底与导航栏材质，
+                // 让 sheet 根部那块 ReaderGlassSheetBackground 透上来。
+                .readerGlassSettingsSurface()
                 .softScrollEdges()
             }
             .navigationTitle(localized("阅读设置"))
@@ -298,9 +299,9 @@ struct ReaderSettingsView: View {
 
             if shown.contains(.backup) { readerSettingsBackupSection }
         }
-        // 卡面由每个分区的 `interfaceSectionSurface()` 提供，Form 自己的底要让开，
-        // 否则一整块不透明灰会盖住后面的书页。
-        .scrollContentBackground(.hidden)
+        // 与所有设置页共用同一块玻璃：清掉 Form 底与导航栏材质，
+        // 让 sheet 根部那块 ReaderGlassSheetBackground 透上来。
+        .readerGlassSettingsSurface()
         .softScrollEdges()
     }
 

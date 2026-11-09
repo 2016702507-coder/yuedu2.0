@@ -50,8 +50,7 @@ struct ReaderBarLayoutEditorView: View {
         }
         .softScrollEdges()
         .listStyle(.insetGrouped)
-        .scrollContentBackground(.hidden)
-        .background(DSColor.groupedBackground)
+        .readerGlassSettingsSurface()
         .navigationTitle(localized("页首页尾"))
         .toolbarTitleDisplayMode(.inline)
         .alert(localized("无法储存页首页尾设置"), isPresented: $saveFailed) {
@@ -154,8 +153,7 @@ struct ReaderBarLayoutEditorView: View {
         }
         .softScrollEdges()
         .listStyle(.insetGrouped)
-        .scrollContentBackground(.hidden)
-        .background(DSColor.groupedBackground)
+        .readerGlassSettingsSurface()
         .navigationTitle(localized(slot.titleKey))
         .toolbarTitleDisplayMode(.inline)
     }

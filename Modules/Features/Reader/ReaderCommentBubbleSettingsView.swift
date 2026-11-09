@@ -46,7 +46,7 @@ struct ReaderCommentBubbleSettingsView: View {
         .softScrollEdges()
         .navigationTitle(localized("气泡设置"))
         .toolbarTitleDisplayMode(.inline)
-        .themedAppSurface(for: .settings)
+        .readerGlassSettingsSurface()
     }
 
     private var bubbleValue: String {

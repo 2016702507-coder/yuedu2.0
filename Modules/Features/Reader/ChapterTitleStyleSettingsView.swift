@@ -50,7 +50,7 @@ struct ChapterTitleStyleSettingsView: View {
         .softScrollEdges()
         .navigationTitle(localized("章节标题样式"))
         .toolbarTitleDisplayMode(.inline)
-        .themedAppSurface(for: .settings)
+        .readerGlassSettingsSurface()
         .onDisappear {
             // ReaderView observes the immutable render-settings snapshot and
             // submits the refresh after any title-style mutation.

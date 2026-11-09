@@ -56,7 +56,7 @@ struct RegexHighlightSettingsView: View {
             actionSection
         }
         .softScrollEdges()
-        .themedAppSurface(for: .settings)
+        .readerGlassSettingsSurface()
         .navigationTitle(localized("正则高亮"))
         .toolbarTitleDisplayMode(.inline)
         .toolbar {

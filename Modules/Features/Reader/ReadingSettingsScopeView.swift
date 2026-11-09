@@ -83,7 +83,7 @@ struct ReadingSettingsScopeView: View {
             .interfaceSectionSurface()
         }
         .softScrollEdges()
-        .themedAppSurface(for: .settings)
+        .readerGlassSettingsSurface()
         .navigationTitle(localized("排版生效范围"))
         .toolbarTitleDisplayMode(.inline)
     }

@@ -694,6 +694,38 @@ struct ReaderGlassSheetBackground: View {
     }
 }
 
+/// Every page inside the reader's settings sheets — the root Form and every page a
+/// `NavigationLink` pushes — uses this surface. A sheet owns ONE glass layer: the
+/// `presentationBackground { ReaderGlassSheetBackground() }` on its root. `presentationBackground`
+/// covers the whole `NavigationStack`, so a pushed page only has to clear its own opaque
+/// layers (the Form/List background via `scrollContentBackground(.hidden)` and the nav
+/// bar material via `toolbarBackground(.hidden, ...)`) for that SAME glass to show through.
+///
+/// Giving each pushed page its own glass would stack two materials and turn the text muddy
+/// (the exact "还是模糊" feedback). That is why this modifier paints NO background of its
+/// own: it just gets out of the way. The glass parameters stay in one place —
+/// `ReaderGlassSheetBackground` (material 0.30, tint 0.09/0.05).
+///
+/// The reader's theme-pack page background is intentionally NOT painted here: a settings
+/// sheet floats over the book page, and an opaque themed layer would cover the glass.
+/// `themedAppSurface(for: .settings)` (used by the app-wide settings pages, AI panels,
+/// book-source editors, etc.) still paints it; it is deliberately left untouched so this
+/// change cannot affect anything outside the reader's settings sheets.
+struct ReaderGlassSettingsSurface: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .scrollContentBackground(.hidden)
+            .toolbarBackground(.hidden, for: .navigationBar)
+    }
+}
+
+extension View {
+    /// Apply on the `Form`/`List` of any page shown inside a reader settings sheet.
+    func readerGlassSettingsSurface() -> some View {
+        modifier(ReaderGlassSettingsSurface())
+    }
+}
+
 /// 更多设置：the settings sheet's nine subjects as a grid, plus the two actions that
 /// used to sit on the panel itself. Each cell is one page, half-height and see-through,
 /// so a change is made with the paragraph still in view.

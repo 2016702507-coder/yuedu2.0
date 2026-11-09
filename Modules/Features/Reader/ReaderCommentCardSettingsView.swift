@@ -74,7 +74,7 @@ struct ReaderCommentCardSettingsView: View {
         .softScrollEdges()
         .navigationTitle(kind.localizedTitle)
         .toolbarTitleDisplayMode(.inline)
-        .themedAppSurface(for: .settings)
+        .readerGlassSettingsSurface()
         .navigationDestination(item: $editorDraft) { draft in
             CommentCardStyleEditorView(draft: draft)
         }
@@ -255,7 +255,7 @@ struct CommentCardStyleEditorView: View {
         .softScrollEdges()
         .navigationTitle(localized(draft.style == nil ? "新建样式" : "编辑样式"))
         .toolbarTitleDisplayMode(.inline)
-        .themedAppSurface(for: .settings)
+        .readerGlassSettingsSurface()
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
                 Button(action: save) {

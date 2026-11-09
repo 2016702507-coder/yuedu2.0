@@ -39,7 +39,7 @@ struct ReaderDialogueBubbleSettingsView: View {
             }
         }
         .softScrollEdges()
-        .themedAppSurface(for: .settings)
+        .readerGlassSettingsSurface()
         .navigationTitle(localized("对话气泡"))
         .toolbarTitleDisplayMode(.inline)
         .sheet(item: $avatarPickerSide) { side in

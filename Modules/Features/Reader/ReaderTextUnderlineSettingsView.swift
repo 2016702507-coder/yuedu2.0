@@ -56,7 +56,7 @@ struct ReaderTextUnderlineSettingsView: View {
             }
         }
         .softScrollEdges()
-        .themedAppSurface(for: .settings)
+        .readerGlassSettingsSurface()
         .navigationTitle(localized("文字底线"))
         .toolbarTitleDisplayMode(.inline)
         .animation(reduceMotion ? nil : DSAnimation.standard, value: settings.readerTextUnderlineDecorationEnabled)

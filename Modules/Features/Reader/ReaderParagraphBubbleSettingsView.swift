@@ -78,7 +78,7 @@ struct ReaderParagraphBubbleSettingsView: View {
         .softScrollEdges()
         .navigationTitle(localized("段评气泡"))
         .toolbarTitleDisplayMode(.inline)
-        .themedAppSurface(for: .settings)
+        .readerGlassSettingsSurface()
         .navigationDestination(item: $editorDraft) { draft in
             CommentBubbleStyleEditorView(draft: draft)
         }
@@ -366,7 +366,7 @@ struct CommentBubbleStyleEditorView: View {
         .softScrollEdges()
         .navigationTitle(localized(draft.style == nil ? "新建样式" : "编辑样式"))
         .toolbarTitleDisplayMode(.inline)
-        .themedAppSurface(for: .settings)
+        .readerGlassSettingsSurface()
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
                 Button(action: save) {

@@ -124,8 +124,7 @@ struct ReaderCustomBackgroundEditorView: View {
             }
         }
         .softScrollEdges()
-        .scrollContentBackground(.hidden)
-        .background(DSColor.groupedBackground)
+        .readerGlassSettingsSurface()
         .navigationTitle(localized("自定义阅读背景"))
         .toolbarTitleDisplayMode(.inline)
         .toolbar {
