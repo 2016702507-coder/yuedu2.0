@@ -91,13 +91,21 @@ enum GlobalAppTypographyUIKitBridge {
         }
 
         // 底部导航栏完全透明（参考待改清单第 11 条）：把系统默认灰底/毛玻璃与阴影清掉，
-        // 让背后山影与正文直接透出。只清背景，图标与文字的选中态不动。
+        // 让背后山影与正文直接透出，毫无雾感。只清背景，图标与文字的选中态不动。
+        // 注意 iOS 26 的 UITabBar 默认是「液态玻璃」材质，光清 backgroundColor 不够，
+        // 必须把 backgroundEffect（磨砂层）一并置 nil，否则 bar 自身仍残留一层雾。
         let tabBarAppearance = UITabBarAppearance()
         tabBarAppearance.configureWithTransparentBackground()
         tabBarAppearance.backgroundEffect = nil
+        tabBarAppearance.backgroundColor = .clear
+        tabBarAppearance.shadowColor = nil
+        tabBarAppearance.shadowImage = nil
+        tabBarAppearance.backgroundImage = nil
         let tabBar = UITabBar.appearance()
         tabBar.standardAppearance = tabBarAppearance
         tabBar.scrollEdgeAppearance = tabBarAppearance
+        // 强制走半透明通道，杜绝任何不透明兜底背景
+        tabBar.isTranslucent = true
     }
 
     private static func apply(
@@ -217,7 +225,8 @@ enum GlobalAppTypographyUIKitBridge {
         // standard, causing white/transparent flicker on scroll.
         let scrollSource = tabBar.scrollEdgeAppearance ?? newStandard
         tabBar.scrollEdgeAppearance = tabAppearance(scrollSource, font: font)
-    }
+        // 彻底透明：强制半透明通道，杜绝任何不透明兜底背景与残留磨砂（参考待改清单第 11 条）。
+        tabBar.isTranslucent = true
 
     private static func tabAppearance(
         _ source: UITabBarAppearance,
@@ -242,9 +251,11 @@ enum GlobalAppTypographyUIKitBridge {
         // 底部导航栏完全透明：去掉系统默认的灰底、毛玻璃与阴影，让背后山影/正文直接透出，
         // 与藏书页「继续阅读」按钮、分类标签栏同一套透明玻璃语言（参考待改清单第 7、10 条）。
         // 只清背景，不动图标/文字的选中态（选中项仍以红色文字+彩色图标表明当前页）。
+        // 关键：backgroundEffect = nil 把 iOS 26 液态玻璃那层磨砂彻底拿掉，否则仍有一层雾。
         copy.backgroundColor = .clear
         copy.backgroundEffect = nil
         copy.shadowColor = nil
+        copy.shadowImage = nil
         copy.backgroundImage = nil
         return copy
     }
