@@ -192,8 +192,11 @@ struct ReaderQuickThemePanelView: View {
 
     private var panelDetents: Set<PresentationDetent> {
         if backgroundEditor != nil { return [.large] }
-        // 九宫格多了两格动作，半屏看不全时可以往上拖；默认仍停在半屏（反馈 #5）。
-        if showingSectionGrid { return [.medium, .large] }
+        // 主面板和「更多设置」九宫格必须共用同一组档位。以前 push 九宫格时把档位
+        // 换成 [.medium, .large]，而主面板的 .height(contentHeight) 比 .medium 高约
+        // 34pt，sheet 随之变矮、顶边往下掉一截（真机录屏实测）。现在档位集合在导航
+        // 前后完全不变，push 时面板不会上下跳动；九宫格内容比主面板矮，这个高度装得下，
+        // 仍保持半屏（反馈 #5）。
         return [.height(max(DSLayout.minimumTapTarget, contentHeight - bottomSafeAreaInset))]
     }
 
