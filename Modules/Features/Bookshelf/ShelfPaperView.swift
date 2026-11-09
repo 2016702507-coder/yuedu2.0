@@ -299,10 +299,10 @@ struct ShelfPaperView: View {
                             // 而不是主题色块。
                             .background {
                                 Capsule().fill(
-                                    Color.primary.opacity(scheme == .dark ? 0.16 : 0.07)
+                                    Color.primary.opacity(scheme == .dark ? 0.12 : 0.05)
                                 )
                             }
-                            .overlay(Capsule().strokeBorder(PaperPalette.hairline(scheme), lineWidth: 0.6))
+                            .overlay(Capsule().strokeBorder(PaperPalette.hairline(scheme), lineWidth: 0.5))
                         }
                         .buttonStyle(.plain)
                     }
