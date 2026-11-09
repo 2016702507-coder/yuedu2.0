@@ -293,13 +293,16 @@ struct ShelfPaperView: View {
                             .foregroundStyle(ShelfInk.strong(scheme))
                             .padding(.horizontal, 16)
                             .padding(.vertical, 9)
-                            // 主题色染的实底，不是又一层玻璃：卡片本身已经是玻璃，里面
-                            // 再套一层玻璃，iOS 26 的两层 glassEffect 会互相采样，糊成一团。
+                            // 与首页「继续阅读」按钮同一套玻璃语言：卡片本身已经是玻璃，
+                            // 里面不能再叠 .ultraThinMaterial（两层 glassEffect 会互采、
+                            // 糊成一团），所以用「单层中性半透明填充」——读起来是透明玻璃，
+                            // 而不是主题色块。
                             .background {
                                 Capsule().fill(
-                                    DSColor.accent.opacity(scheme == .dark ? 0.26 : 0.14)
+                                    Color.primary.opacity(scheme == .dark ? 0.16 : 0.07)
                                 )
                             }
+                            .overlay(Capsule().strokeBorder(PaperPalette.hairline(scheme), lineWidth: 0.6))
                         }
                         .buttonStyle(.plain)
                     }
@@ -387,7 +390,9 @@ struct ShelfPaperView: View {
             .padding(4)
         }
         .scrollIndicators(.hidden)
-        .interfaceCardSurface(in: Capsule(), fill: PaperPalette.card(scheme))
+        // 透明玻璃：与首页「继续阅读」按钮同一套玻璃语言，不再受「毛玻璃」开关影响，
+        // 始终透出背后正文/山影。横向 ScrollView 保留，分类多了可左右滑动。
+        .background(.ultraThinMaterial, in: Capsule())
         .overlay(Capsule().strokeBorder(PaperPalette.hairline(scheme).opacity(0.55), lineWidth: 0.6))
         .padding(.top, 18)
     }
