@@ -228,7 +228,13 @@ extension ReaderSettingsImportPlan {
             // `ChapterTitleStyle`, and those keys survive solely as a one-time migration
             // source (`GlobalSettings.loadChapterTitleStyle`).
         }
-        reading.chapterTitleStyle = chapterTitleStyle
+        // Every import lands here, so this is the one place to keep 高级 CSS 样式
+        // on. Older exported files carry an explicit `advancedCSSEnabled: false`
+        // that the decoder honours; without this they switch CSS rendering off
+        // and the user has to re-enable the toggle after each import. The scoped
+        // plans (章节标题样式 / 取代目前设置) and the import preview read this
+        // same property, so preview and result stay in sync.
+        reading.chapterTitleStyle = chapterTitleStyle?.importedWithAdvancedCSS()
         reading.regexHighlights = regexHighlights
         reading.dialogueBubbleStyle = dialogueBubbleStyle
         return reading

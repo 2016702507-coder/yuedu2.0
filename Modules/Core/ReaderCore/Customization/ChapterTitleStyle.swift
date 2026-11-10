@@ -192,6 +192,25 @@ struct ChapterTitleStyle: Codable, Equatable, Sendable {
         return copy
     }
 
+    /// Import policy: 高级 CSS 样式 stays on after a title style is imported.
+    ///
+    /// `encode(to:)` always writes `advancedCSSEnabled`, so files exported by
+    /// older builds — or exported while the toggle was off — carry an explicit
+    /// `false`. `init(from:)` honours that value, which made every import turn
+    /// CSS rendering back off and forced a manual re-enable. Fixing the default
+    /// alone only covers importers that start from `.default`; decoded files
+    /// still arrive with `false`.
+    ///
+    /// Deliberately NOT applied inside `init(from:)`: that decoder also reads
+    /// the locally saved style, where a user's own off-toggle must survive.
+    /// Only the import plan (the single route to `writeReadingSettings`) calls
+    /// this, so local settings and manual toggles are untouched.
+    func importedWithAdvancedCSS() -> ChapterTitleStyle {
+        var copy = self
+        copy.advancedCSSEnabled = true
+        return copy.sanitized()
+    }
+
     private static func clamp(_ value: CGFloat, to range: ClosedRange<CGFloat>, fallback: CGFloat) -> CGFloat {
         guard value.isFinite else { return fallback }
         return min(max(value, range.lowerBound), range.upperBound)
