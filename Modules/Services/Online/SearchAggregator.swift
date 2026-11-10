@@ -414,6 +414,11 @@ class SearchAggregator: ObservableObject {
         var completed: Int = 0
         var failed: Int = 0
         var timedOut: Int = 0
+        /// Sources skipped this search. 上游 3.0.1 取消了 cooldown 跳过机制（每个源都会问到），
+        /// 因此这里恒为 0；保留该字段是因为功能层 SearchProgressControl / WorkSourceFinder
+        /// 仍在读取它（「暂跳 N」角标与完成日志的 skipped= 字段）。值为 0 时角标不显示，
+        /// 与上游新行为完全一致。
+        var skipped: Int = 0
         /// Of `completed`, the sources whose fetch failed and that are shown as no results
         /// (Phase 0b), so a caller can tell 「沒有找到」 from a search no source answered.
         var failedAsEmpty: Int = 0
