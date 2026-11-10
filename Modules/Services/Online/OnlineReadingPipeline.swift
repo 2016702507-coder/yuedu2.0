@@ -4,9 +4,9 @@ import os
 
 extension Notification.Name {
     static let onlineChapterCacheDidUpdate = Notification.Name("onlineChapterCacheDidUpdate")
-    /// Every cached chapter of a book was deleted (移除下载). `userInfo["bookId"]` carries the
+    /// Every cached chapter of a book was deleted (移除下載). `userInfo["bookId"]` carries the
     /// book. An open reader holds `.ready` load states for chapters that no longer exist on
-    /// disk, and it reads that pair as 资料不一致 — so whoever empties the cache has to say so.
+    /// disk, and it reads that pair as 資料不一致 — so whoever empties the cache has to say so.
     static let onlineChapterCacheDidClear = Notification.Name("onlineChapterCacheDidClear")
 }
 
@@ -26,7 +26,7 @@ enum OnlineChapterCacheWritePolicy {
     }
 
     /// Rejects normalized source render artifacts that cannot preserve current
-    /// HTML-only semantics (such as 段评 badges). This includes the legacy
+    /// HTML-only semantics (such as 段評 badges). This includes the legacy
     /// normalized-without-raw shape and artifacts written before the current
     /// marker conversion version. A refetch writes the current version once.
     static func shouldRefetchStrippedRenderArtifacts(
@@ -87,11 +87,13 @@ enum ChapterFetchPriority: Int {
 }
 
 actor ChapterFetchManager {
-    // Safe: always first accessed from @MainActor context (AppDependencies.live or @MainActor tests).
-    static let shared = ChapterFetchManager(webViewFetcher: MainActor.assumeIsolated { WebViewFetcher.shared })
+    /// The one chapter fetch manager: the reader's coordinator (`AppDependencies.live`) and every
+    /// other caller (TTS, AI, video, browser) share its in-flight dedup, priorities, generation
+    /// tokens and quarantine counts. Built without the main actor — its first touch can come from
+    /// any executor (Crashlytics f71d7b80: `OnlineChapterContentService.payload` on a worker).
+    static let shared = ChapterFetchManager()
 
     private let bookSourceFetcher: BookSourceFetcher
-    private let webViewFetcher: WebViewFetcher
     private let moduleReader: ModuleBookReader
     private var tasks: [String: Task<ChapterPackage, Error>] = [:]
     private var states: [String: OnlineChapterLoadState] = [:]
@@ -110,11 +112,9 @@ actor ChapterFetchManager {
 
     init(
         bookSourceFetcher: BookSourceFetcher = .shared,
-        webViewFetcher: WebViewFetcher,
         moduleReader: ModuleBookReader = .live
     ) {
         self.bookSourceFetcher = bookSourceFetcher
-        self.webViewFetcher = webViewFetcher
         self.moduleReader = moduleReader
     }
 
@@ -129,7 +129,7 @@ actor ChapterFetchManager {
     /// Whether chapter content looks like several chapters merged into one, or runs far longer
     /// than any one chapter.
     ///
-    /// A diagnostic and 校验书源's verdict on a source's content — never a reason to refuse a
+    /// A diagnostic and 校驗書源's verdict on a source's content — never a reason to refuse a
     /// chapter. It used to reject cached chapters to force a refetch, but a refetch from the same
     /// source returns the same bytes: the refusal deleted the only copy on every open and the
     /// chapter never loaded (feedback #89, on every source the user tried). See
@@ -148,10 +148,10 @@ actor ChapterFetchManager {
     // Text a heading must open before the next heading for it to count as a chapter of its own
     private static let minMergedChapterBodyLength = 500
     private static let chapterHeadingRegex = try! NSRegularExpression(
-        pattern: #"第\s*[\d零一二三四五六七八九十百千万万]+\s*[章回卷节节篇部]"#
+        pattern: #"第\s*[\d零一二三四五六七八九十百千萬万]+\s*[章回卷節节篇部]"#
     )
     private static let chapterHeadingLineRegex = try! NSRegularExpression(
-        pattern: #"^第\s*([\d零一二三四五六七八九十百千万万]+)\s*([章回卷节节篇部])"#
+        pattern: #"^第\s*([\d零一二三四五六七八九十百千萬万]+)\s*([章回卷節节篇部])"#
     )
     private static let lineBreakMarkupRegex = try! NSRegularExpression(
         pattern: #"<br\s*/?>|</?(?:p|div|h[1-6]|li|section|article)\b[^>]*>"#,
@@ -163,7 +163,7 @@ actor ChapterFetchManager {
     )
 
     static func isSuspiciousChapterContent(_ content: String) -> Bool {
-        // Measure prose only: 段评-heavy chapters embed 100s of KB of legitimate base64 SVG bubbles
+        // Measure prose only: 段評-heavy chapters embed 100s of KB of legitimate base64 SVG bubbles
         // (a 起点 大热章节 is 260KB+, ~all bubbles). Counting that bulk flagged them as merges.
         let proseLength = ReaderHTMLUtilities.lengthExcludingBase64Payloads(content)
         if proseLength > suspiciousContentLengthThreshold {
@@ -187,7 +187,7 @@ actor ChapterFetchManager {
     /// chapter: #89's ~3,000-character chapter had five such citations, and counting every match
     /// against a threshold of 3 flagged it on every source. In a merge, each chapter opens with
     /// its heading on a line of its own and runs a chapter's length before the next. A title that
-    /// every page of one chapter restates, or chapter links listed back to back (最新章节), is not
+    /// every page of one chapter restates, or chapter links listed back to back (最新章節), is not
     /// a merge.
     private static func mergedChapterHeadingCount(in content: String) -> Int {
         var headings = Set<String>()
@@ -212,7 +212,7 @@ actor ChapterFetchManager {
     }
 
     /// The chapter's non-empty lines: HTML paragraph and line breaks become line breaks, other
-    /// markup — 段评 bubbles and their base64 payloads included — is dropped.
+    /// markup — 段評 bubbles and their base64 payloads included — is dropped.
     private static func chapterLines(_ content: String) -> [String] {
         var text = content
         if text.contains("<") || text.contains("&") {
@@ -226,7 +226,7 @@ actor ChapterFetchManager {
             .filter { !$0.isEmpty }
     }
 
-    /// 「一百二十章」 for the line 「第一百二十章 旧稿」; nil for a line that does not open with a heading.
+    /// 「一百二十章」 for the line 「第一百二十章 舊稿」; nil for a line that does not open with a heading.
     private static func chapterHeadingKey(_ line: String) -> String? {
         let ns = line as NSString
         guard let match = chapterHeadingLineRegex.firstMatch(
@@ -251,7 +251,7 @@ actor ChapterFetchManager {
             return .cached
         }
         // Disk is the truth — the same rule legado applies with `BookHelp.hasContent`. A
-        // stored `.cached` that the probe above just contradicted is stale: 移除下载 deletes
+        // stored `.cached` that the probe above just contradicted is stale: 移除下載 deletes
         // the files without telling this map, and `prefetchChapters` skips anything that is
         // not `.missing`/`.failed`, so believing it killed prefetch for the entire book until
         // the next relaunch.
@@ -259,7 +259,7 @@ actor ChapterFetchManager {
         return stored == .cached ? .missing : stored
     }
 
-    /// The chapters of `book` that need the network to be read — what 目录 marks. One listing
+    /// The chapters of `book` that need the network to be read — what 目錄 marks. One listing
     /// of the book's cache rather than `isChapterCached(book:chapterIndex:)` per row, and off
     /// this actor: it reads files and none of the actor's state. A volume heading has nothing
     /// to fetch, so it is never one of them.
@@ -349,7 +349,7 @@ actor ChapterFetchManager {
         guard let refs = book.onlineChapters, refs.indices.contains(chapterIndex) else {
             throw NSError(
                 domain: "OnlineReadingPipeline", code: -1,
-                userInfo: [NSLocalizedDescriptionKey: "找不到章节"])
+                userInfo: [NSLocalizedDescriptionKey: "找不到章節"])
         }
 
         // Clean up HTML fragment URLs that may remain from old caches (e.g. <a href="...">Chapter 1</a>)
@@ -433,7 +433,7 @@ actor ChapterFetchManager {
                     // Someone else's task was torn down. This caller was not cancelled and
                     // learned nothing about the chapter, yet inheriting that error made it
                     // report a load failure for a fetch it never owned — the spurious
-                    // 章节载入失败 that a refresh always cleared. Run our own request instead.
+                    // 章節載入失敗 that a refresh always cleared. Run our own request instead.
                     guard !Task.isCancelled else { throw CancellationError() }
                     AppLogger.parse("⟐ chapterFetch shared task cancelled, restarting", context: [
                         "index": chapterIndex,
@@ -459,7 +459,7 @@ actor ChapterFetchManager {
         // WKWebView slots". It was a workaround for contention the pool already handles —
         // `acquireWebView` has a waiting queue on top of poolSize × overflowMultiplier
         // leases — and it was the main manufacturer of cancellations in this pipeline:
-        // every preempted sibling surfaced as 章节载入失败 on a chapter that fetched fine
+        // every preempted sibling surfaced as 章節載入失敗 on a chapter that fetched fine
         // when asked again, and stopped narration outright at a chapter boundary. Chapter
         // fetches are few (the visible chapter plus its neighbours), so queuing is the
         // correct way to express "wait your turn". Do not reintroduce preemption here.
@@ -515,7 +515,7 @@ actor ChapterFetchManager {
                 else {
                     throw NSError(
                         domain: "OnlineReadingPipeline", code: -2,
-                        userInfo: [NSLocalizedDescriptionKey: "找不到来源配置"])
+                        userInfo: [NSLocalizedDescriptionKey: "找不到來源配置"])
                 }
                 return try await bookSourceFetcher.fetchChapterPackage(
                     ref: ref,
@@ -658,7 +658,7 @@ actor ChapterFetchManager {
             // -999 from a URLSession task or a WKWebView navigation torn down mid-flight
             // means exactly what the case above means. Letting it fall through to the
             // generic handler was worse than a mislabelled state: `handleFetchFailure`
-            // persists a failure artifact, so the cache went on answering 章节载入失败 for
+            // persists a failure artifact, so the cache went on answering 章節載入失敗 for
             // a chapter that was never actually tried — and it counted against the book's
             // failure budget. Normalise to `CancellationError` so callers classify it once.
             AppLogger.parse("⟐ chapterFetch cancelled mid-flight", context: [
@@ -702,9 +702,9 @@ actor ChapterFetchManager {
     ///
     /// `bookFailureCounts` only ever fell back to zero on a *successful* fetch, and five
     /// cumulative failures quarantine the book (`AppConfig.chapterFetchQuarantineThreshold`).
-    /// Cancelling a download cancels many chapters at once, so one 移除下载 could push a book
-    /// over the line — and `.quarantined` is persisted with nothing to lift it, not 移除下载
-    /// and not 换源. Deleting and re-adding the book was the only cure.
+    /// Cancelling a download cancels many chapters at once, so one 移除下載 could push a book
+    /// over the line — and `.quarantined` is persisted with nothing to lift it, not 移除下載
+    /// and not 換源. Deleting and re-adding the book was the only cure.
     func resetFailureBudget(for bookId: UUID) {
         bookFailureCounts[bookId] = 0
     }
@@ -774,7 +774,7 @@ actor ChapterFetchManager {
         // rejects, which is exactly what "no metadata at all" already does, and every reader
         // of it (`validationState`, `fetchChapter`) treats the two identically. What it did
         // buy was a bug — `saveFailureMarker` called `createDirectory(withIntermediateDirectories:)`
-        // first, so a fetch failing just after 移除下载 re-created the directory that removal
+        // first, so a fetch failing just after 移除下載 re-created the directory that removal
         // had deleted and refilled it. Failures now live in memory only, like legado's
         // `errorDownloadMap`.
         _ = sourceURL
@@ -858,8 +858,8 @@ actor ChapterFetchManager {
 
             // A Cloudflare page ends up here as `cloudflareChallengeRequired`, like any other
             // failure: nothing opens a verification page by itself (Legado never does). The
-            // reader passes the check from the reading menu's 开启网页.
-            let result = try await webViewFetcher.fetchContentWithNextPage(
+            // reader passes the check from the reading menu's 開啟網頁.
+            let result = try await WebViewFetcher.shared.fetchContentWithNextPage(
                 url: url,
                 headers: headers,
                 timeout: AppConfig.webViewFetchTimeout,
@@ -914,7 +914,7 @@ final class OnlineBookCoordinator: Sendable {
         self.webViewFetcher = webViewFetcher
     }
 
-    private static let chapterPlaceholderBody = "载入章节中…"
+    private static let chapterPlaceholderBody = "載入章節中…"
 
     /// Per-book stable basePath. Avoids regenerating a new UUID directory on each
     /// buildPackage call, which would cause reloadWithUpdatedPackage to detect a
@@ -943,7 +943,7 @@ final class OnlineBookCoordinator: Sendable {
 
     private static func makePlaceholderPackage(for book: ReadingBook) throws -> BookPackage {
         let displayBookTitle = ReaderHTMLUtilities.displayText(fromHTMLFragment: book.title)
-        let title = displayBookTitle.isEmpty ? "网页书籍" : displayBookTitle
+        let title = displayBookTitle.isEmpty ? "網頁書籍" : displayBookTitle
         let converted = try XHTMLBookBuilder.convert(
             xhtmlChapters: [
                 XHTMLBookBuilder.XHTMLChapterInput(
@@ -1155,24 +1155,30 @@ final class OnlineBookCoordinator: Sendable {
         }
     }
 
+    /// The chapters worth having before the reader reaches them, nearest first: N+1, N+2 at
+    /// `.prefetch` (readers mostly go forward), N-1, N-2 at `.background` (back-navigation).
+    /// The reader's own prefetch (`ReaderViewModel.prefetchAround`) and this coordinator's
+    /// share it, so the two can never disagree about what "around" means.
+    static func adjacentPrefetchWindow(
+        center: Int,
+        chapterCount: Int
+    ) -> [(index: Int, priority: ChapterFetchPriority)] {
+        let valid = 0..<chapterCount
+        let forward = [center + 1, center + 2].filter(valid.contains)
+            .map { (index: $0, priority: ChapterFetchPriority.prefetch) }
+        let backward = [center - 1, center - 2].filter(valid.contains)
+            .map { (index: $0, priority: ChapterFetchPriority.background) }
+        return forward + backward
+    }
+
     func prefetchAround(book: ReadingBook, center: Int, store: BookStore?) async {
         guard let refs = book.onlineChapters, !refs.isEmpty else { return }
-        let last = refs.count - 1
-
-        // Forward priority: N+1, N+2 use prefetch (user is far more likely to read forward)
-        let forwardIndices = [center + 1, center + 2]
-            .filter { $0 >= 0 && $0 <= last }
-        // Backward fallback: N-1, N-2 use background (preserve back-navigation)
-        let backwardIndices = [center - 1, center - 2]
-            .filter { $0 >= 0 && $0 <= last }
-
-        if !forwardIndices.isEmpty {
+        let window = Self.adjacentPrefetchWindow(center: center, chapterCount: refs.count)
+        for priority in [ChapterFetchPriority.prefetch, .background] {
+            let indices = window.filter { $0.priority == priority }.map(\.index)
+            guard !indices.isEmpty else { continue }
             await chapterFetchManager.prefetchChapters(
-                book: book, indices: forwardIndices, priority: .prefetch, store: store)
-        }
-        if !backwardIndices.isEmpty {
-            await chapterFetchManager.prefetchChapters(
-                book: book, indices: backwardIndices, priority: .background, store: store)
+                book: book, indices: indices, priority: priority, store: store)
         }
     }
 
@@ -1186,7 +1192,7 @@ final class OnlineBookCoordinator: Sendable {
     /// (supports Chinese numerals + Arabic numerals).
     private static let chapterHeadingRegex: NSRegularExpression? = {
         try? NSRegularExpression(
-            pattern: #"^第\s*[\d零一二三四五六七八九十百千万万]+\s*[章回卷节节篇部]"#,
+            pattern: #"^第\s*[\d零一二三四五六七八九十百千萬万]+\s*[章回卷節节篇部]"#,
             options: .anchorsMatchLines
         )
     }()
@@ -1194,9 +1200,9 @@ final class OnlineBookCoordinator: Sendable {
     private static func failurePlaceholder(for title: String, reason: String?) -> String {
         let suffix: String
         if let reason, !reason.isEmpty {
-            suffix = "章节载入失败（\(reason)）\n请下拉刷新或重新进入本章。"
+            suffix = "章節載入失敗（\(reason)）\n請下拉刷新或重新進入本章。"
         } else {
-            suffix = "章节载入失败\n请下拉刷新或重新进入本章。"
+            suffix = "章節載入失敗\n請下拉刷新或重新進入本章。"
         }
         return "\(title)\n\n\(suffix)"
     }

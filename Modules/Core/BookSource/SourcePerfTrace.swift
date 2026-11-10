@@ -37,6 +37,9 @@ import Foundation
 ///     the frame taken from its stream)
 ///   home.sync / home.groups / home.rowContent  (the 探索 home's main-thread parts: building its
 ///     rows, its sections, a section's cards)
+///   library.tab.appear / library.tab.firstFrame  (a tap on 資源庫's tab to its root appearing,
+///     and to the main run loop going idle after drawing it — `LibraryTabTiming`)
+///   library.sourceGroups  (資源庫's discover sources and their groups, worked out on a change)
 ///   module.entries  (a module list's items made into entries, off the main actor; wall clock:
 ///     lists landing together wait on ICU's transliterator lock in `WorkMatchKey`, so it reads
 ///     more than the work)
@@ -141,20 +144,14 @@ enum SourcePerfTrace {
 
     /// Measure an async span. Runs in the caller's isolation, so `body` stays in the
     /// caller's region and is never sent to another executor.
-    ///
-    /// `thresholdMilliseconds` is an `Int`, not a `Double`: Xcode 26.3's swift-frontend
-    /// aborts while emitting IR for this generic's thunk when the first parameter is `Double`
-    /// (`SdScA_pSgIeAghyg_SdIeAghn_TR`, IRGen `SmallVector grow_pod`). The value is still
-    /// compared as milliseconds, so callers see the same cut-off.
     @discardableResult
     static func spanAsync<T>(
         _ stage: String,
         _ detail: @autoclosure () -> String = "",
-        thresholdMilliseconds: Int = 1,
+        thresholdMs: Double = 1,
         isolation: isolated (any Actor)? = #isolation,
         _ body: () async throws -> T
     ) async rethrows -> T {
-        let thresholdMs = Double(thresholdMilliseconds)
         let t0 = ProcessInfo.processInfo.systemUptime
         // An async span suspends rather than blocking whichever thread records it, so it is
         // never a main-thread stall and leaves no breadcrumb.

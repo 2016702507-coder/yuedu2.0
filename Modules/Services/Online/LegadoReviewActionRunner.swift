@@ -1,7 +1,7 @@
 import Foundation
 import CryptoKit
 
-/// Resolves a 段评 bubble whose review page only exists once the source's own JS has run.
+/// Resolves a 段評 bubble whose review page only exists once the source's own JS has run.
 ///
 /// Legado's model for an image click-config is simply "evaluate the `click` JS in the source
 /// runtime and let the source decide what to open". Most sources open a URL we can derive
@@ -24,10 +24,10 @@ actor LegadoReviewActionRunner {
         var errorDescription: String? {
             switch self {
             case .sourceUnavailable:
-                return localized("找不到这则段评所属的来源配置，可能已被删除。")
+                return localized("找不到這則段評所屬的來源配置，可能已被刪除。")
             case .noDestination(let sourceName):
                 return String(
-                    format: localized("「%@」没有回应这则段评，可能需要先在来源配置设置填写 Token。"),
+                    format: localized("「%@」沒有回應這則段評，可能需要先在來源配置設定填寫 Token。"),
                     sourceName
                 )
             }
@@ -190,12 +190,12 @@ private final class BrowserRequestSink: @unchecked Sendable {
     }
 }
 
-// MARK: - 简介 buttons and images
+// MARK: - 簡介 buttons and images
 
-/// What a 简介 button's or image's script did that the book detail page has to show.
+/// What a 簡介 button's or image's script did that the book detail page has to show.
 struct BookIntroActionOutcome: Sendable {
     /// A page the script built itself with `java.showBrowser(url, html, js, config)`, shown
-    /// the way the reader shows a 段评 page.
+    /// the way the reader shows a 段評 page.
     var page: ReaderHTMLUtilities.ReviewTarget?
     /// The script called `java.refreshBookInfo()` or `java.refreshBookToc()`.
     var refreshesBook = false
@@ -204,7 +204,7 @@ struct BookIntroActionOutcome: Sendable {
 }
 
 extension ReaderHTMLUtilities.LegadoSourceActionContext.BookSnapshot {
-    /// The book as a detail page knows it, for a 简介 script's `book`. Reading progress and
+    /// The book as a detail page knows it, for a 簡介 script's `book`. Reading progress and
     /// type come from the book's runtime variables when its source recorded them.
     static func detailPage(
         name: String,
@@ -233,7 +233,7 @@ extension ReaderHTMLUtilities.LegadoSourceActionContext.BookSnapshot {
 
 extension LegadoReviewActionRunner {
     /// Legado's `BookInfoViewModel.onButtonClick` (legado-E) and `runIntroJs` (MD3): runs a
-    /// 简介 button's or image's script in the book's source with `book` bound and no
+    /// 簡介 button's or image's script in the book's source with `book` bound and no
     /// `result`, under the extensions Legado's login pages get (`SourceLoginJsExtensions`).
     ///
     /// Pages the script opens are shown as it asks: `startBrowser` and the two-argument
@@ -271,7 +271,7 @@ extension LegadoReviewActionRunner {
     }
 
     /// legado-E / MD3 `SourceCallBack`: runs the source's `ruleContent.callBackJs` with `event`,
-    /// `result`, `book` and `chapter` bound, under the same extensions a 简介 script gets
+    /// `result`, `book` and `chapter` bound, under the same extensions a 簡介 script gets
     /// (toasts, browser pages) — legado hands button events its login-page `java`.
     ///
     /// `handled` follows legado's `String.isTrue()`: anything but blank, `null`, `false`, `no`,
@@ -304,7 +304,7 @@ extension LegadoReviewActionRunner {
             presentToast: presentToast
         )
         let failed = run.outcome.errorMessage != nil
-        let handled = !failed && Self.legadoIsTrue(run.value, nilIsTrue: false)
+        let handled = !failed && LegadoTruth.isTrue(run.value)
         AppLogger.parse("⟐ callBackJs", context: [
             "source": source.bookSourceName,
             "event": event.rawValue,
@@ -320,17 +320,8 @@ extension LegadoReviewActionRunner {
         return SourceCallBackOutcome(handled: handled, failed: failed, page: run.outcome.page, value: run.value)
     }
 
-    /// legado `String?.isTrue(nullIsTrue)`.
-    static func legadoIsTrue(_ value: String?, nilIsTrue: Bool) -> Bool {
-        guard let value, !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, value != "null" else {
-            return nilIsTrue
-        }
-        let falsy: Set<String> = ["false", "no", "not", "0", "0.0"]
-        return !falsy.contains(value.trimmingCharacters(in: .whitespaces).lowercased())
-    }
-
-    /// One book-scoped source script (简介 button or image, `callBackJs`), on the source's
-    /// shared session with the 简介 extensions installed for its duration.
+    /// One book-scoped source script (簡介 button or image, `callBackJs`), on the source's
+    /// shared session with the 簡介 extensions installed for its duration.
     private func runBookScript(
         _ script: String,
         displayName: String,
@@ -426,7 +417,7 @@ struct SourceCallBackOutcome: Sendable {
     var value: String? = nil
 }
 
-/// Collects what one 简介 script asked of the detail page. The bridge calls in from the
+/// Collects what one 簡介 script asked of the detail page. The bridge calls in from the
 /// JS engine's queue, so access is locked.
 private final class IntroActionSink: @unchecked Sendable {
     private let lock = NSLock()

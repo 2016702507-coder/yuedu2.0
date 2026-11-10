@@ -49,7 +49,7 @@ struct ChapterCacheRepository: Sendable {
             return nil
         }
         let url = chapterNormalizedHTMLPath(bookId: bookId, chapterIndex: chapterIndex)
-        return try? String(contentsOf: url, encoding: .utf8)
+        return try? cachedText(at: url)
     }
 
     func isChapterCached(
@@ -75,7 +75,7 @@ struct ChapterCacheRepository: Sendable {
     }
 
     /// Which of `refs` have a cached body that is still theirs: the whole-list form of
-    /// `isChapterCached(bookId:chapterIndex:expectedSourceURL:expectedTOCTitle:)`, for 目录's
+    /// `isChapterCached(bookId:chapterIndex:expectedSourceURL:expectedTOCTitle:)`, for 目錄's
     /// marks. One directory listing finds the bodies (`<index>.txt`, only ever written with
     /// content), and only those have their metadata compared — a refresh that moves a chapter
     /// leaves its file at the old index (`OfflineChapterStore.reconcileBook`,
@@ -313,7 +313,7 @@ struct ChapterCacheRepository: Sendable {
         let bodyURL = cachePath(bookId: bookId, chapterIndex: chapterIndex)
         let artifactData = try? Data(contentsOf: packageURL)
         let artifact = artifactData.flatMap { try? JSONDecoder().decode(ChapterPackageArtifact.self, from: $0) }
-        let body = (try? String(contentsOf: bodyURL, encoding: .utf8)) ?? ""
+        let body = (try? cachedText(at: bodyURL)) ?? ""
         let cachedTitle = metadata.extractedTitle ?? metadata.tocTitle ?? ""
 
         if metadata.state == .cached {
@@ -327,7 +327,7 @@ struct ChapterCacheRepository: Sendable {
                 ])
                 return nil
             }
-            if ChapterFetcher.shared.isRejectedChapterContent(body, title: cachedTitle) {
+            if ChapterFetcher.shared.isRejectedChapterContent(body) {
                 AppLogger.cache("⟐ chapterPackage miss", context: [
                     "index": chapterIndex,
                     "reason": "contentRejected",
@@ -443,6 +443,14 @@ struct ChapterCacheRepository: Sendable {
             .lowercased()
     }
 
+    /// A cache file's text exactly as it was written. `String(contentsOf:encoding: .utf8)`
+    /// drops a leading U+FEFF, so a chapter whose text starts with one never matched its own
+    /// checksum and failed verification on every save: 笔趣阁 (apibi.cc, YCK1329／1330)
+    /// decrypts to "\u{FEFF}<br><br>第1章…", saved at 1817 characters and read back at 1816.
+    private func cachedText(at url: URL) throws -> String {
+        String(decoding: try Data(contentsOf: url), as: UTF8.self)
+    }
+
     private func cacheChecksum(for content: String) -> String {
         let digest = SHA256.hash(data: Data(content.utf8))
         return digest.compactMap { String(format: "%02x", $0) }.joined()
@@ -459,7 +467,7 @@ struct ChapterCacheRepository: Sendable {
 
         let bodyURL = cachePath(bookId: bookId, chapterIndex: chapterIndex)
         guard
-            let body = try? String(contentsOf: bodyURL, encoding: .utf8),
+            let body = try? cachedText(at: bodyURL),
             !body.isEmpty,
             let metadata = loadCachedChapterMetadataSync(bookId: bookId, chapterIndex: chapterIndex),
             metadata.state == .cached || metadata.state == nil

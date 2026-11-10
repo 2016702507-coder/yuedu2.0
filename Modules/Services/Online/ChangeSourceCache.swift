@@ -1,8 +1,8 @@
 import Foundation
 
-/// Persists 换源 (in-book source switch) search results per book so reopening the
+/// Persists 換源 (in-book source switch) search results per book so reopening the
 /// sheet doesn't re-run a full cross-source search every time. Honors
-/// 网路设置 →「搜索结果快取天数」(`GlobalSettings.searchCacheDays`): `<= 0` disables
+/// 網路設定 →「搜索結果快取天數」(`GlobalSettings.searchCacheDays`): `<= 0` disables
 /// the cache, otherwise results within that window are reused.
 ///
 /// Also remembers which origins failed to switch (TOC fetch threw) so the list
@@ -15,12 +15,21 @@ final class ChangeSourceCache: Sendable {
         var failedKeys: [String]
         var timestamp: Date
         /// True only when every source answered or timed out. A search cut short by
-        /// 自动暂停 is kept (so its failure flags survive) but never served as the book's
+        /// 自動暫停 is kept (so its failure flags survive) but never served as the book's
         /// list. Optional so entries written before this field decode as `nil` = not
         /// known complete: those include the 10-result lists the hidden large-pack pause
         /// cached for 5 days (feedback #16), which must be searched again once.
         var isComplete: Bool?
+        /// Which matching rules found `origins` (`currentSearchRules`). Nil for every entry
+        /// written before 換源 followed Legado's (name only, 60 s a source): those lists left
+        /// out the sources that write the author differently or answer after 20 s, and are
+        /// searched again once instead of being served for the rest of their 快取天數.
+        var searchRules: Int?
     }
+
+    /// Bump when a change makes 換源 find different origins, so lists found the old way are
+    /// searched again. 1: name only and 60 s a source, as Legado (2026-11-07).
+    static let currentSearchRules = 1
 
     private let queue = DispatchQueue(label: "com.yuedu.changeSourceCache")
 
@@ -49,6 +58,7 @@ final class ChangeSourceCache: Sendable {
     /// (days <= 0 = disabled).
     func freshEntry(for bookId: UUID, days: Int) -> Entry? {
         guard days > 0, let entry = entry(for: bookId), entry.isComplete == true,
+              entry.searchRules == Self.currentSearchRules,
               !entry.origins.isEmpty else { return nil }
         let maxAge = TimeInterval(days) * 86_400
         guard Date().timeIntervalSince(entry.timestamp) < maxAge else { return nil }
@@ -71,7 +81,8 @@ final class ChangeSourceCache: Sendable {
             origins: origins,
             failedKeys: isComplete ? previousFailed.filter { validKeys.contains($0) } : previousFailed,
             timestamp: Date(),
-            isComplete: isComplete
+            isComplete: isComplete,
+            searchRules: Self.currentSearchRules
         )
         write(entry, for: bookId)
     }
@@ -88,7 +99,7 @@ final class ChangeSourceCache: Sendable {
     }
 
     /// Clear a failure flag after that origin switched successfully. Without this a source
-    /// that failed once stayed badged 载入失败 forever, including in every later session,
+    /// that failed once stayed badged 載入失敗 forever, including in every later session,
     /// because `markFailed` only ever appended.
     func clearFailure(originKeys: [String], for bookId: UUID) {
         let keys = Set(originKeys.filter { !$0.isEmpty })

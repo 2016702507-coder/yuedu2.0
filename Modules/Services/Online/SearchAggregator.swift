@@ -19,9 +19,12 @@ struct BookOrigin: Identifiable, Codable, Sendable {
     /// (`BookOriginSearchService`), for the metadata filler to tell one author from two; it
     /// is not saved with cached origins.
     var author: String = ""
+    /// The result's `OnlineBook.infoHtml` — its list page was its own page — carried to the
+    /// detail book `OnlineBook(detailOrigin:…)` rebuilds. Not saved with cached origins.
+    var infoHtml: String? = nil
 
     // `id` is a fresh UUID per instance and is intentionally excluded so cached
-    // origins (换源 results) round-trip without persisting a meaningless identity.
+    // origins (換源 results) round-trip without persisting a meaningless identity.
     private enum CodingKeys: String, CodingKey {
         case sourceId, sourceName, bookUrl, tocUrl, coverUrl, intro
         case lastChapter, wordCount, kind, runtimeVariables
@@ -95,10 +98,10 @@ final class SearchBook: Identifiable {
             ?? s.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    /// Heuristic "same book" test used for 换源, 换封面 and 寻找可用来源.
+    /// Heuristic "same book" test used for 換源, 換封面 and 尋找可用來源.
     ///
     /// Titles compare by `WorkMatchKey` (unified search 4d, maintainer 2026-10-14), so
-    /// 三体／三体／三体！ are one book. The folded title must be an **exact** match:
+    /// 三體／三体／三體！ are one book. The folded title must be an **exact** match:
     /// containment is deliberately *not* allowed, since a substring rule matches sequels and
     /// spin-offs (e.g. "斗罗大陆" vs "斗罗大陆3" / "斗罗大陆之笔"), which would offer the wrong
     /// book as an alternative source.
@@ -340,7 +343,7 @@ final class SearchBook: Identifiable {
             displayName = preparedOrigins[primaryIntroIndex]
                 .presentation.introTitleCandidate
         } else {
-            displayName = name.isEmpty ? "未知书名" : cleanedName
+            displayName = name.isEmpty ? "未知書名" : cleanedName
         }
 
         let displayIntro = primaryIntroIndex.map {
@@ -365,7 +368,7 @@ final class SearchBook: Identifiable {
 // 4. Publishes result-list snapshots through a bounded scene-aware cadence
 
 /// Where a search was started, recorded on its `search.firstResult` span so the 搜索 tab's
-/// numbers are not mixed with 换源's.
+/// numbers are not mixed with 換源's.
 enum SearchOrigin: String, Sendable {
     case searchTab
     case changeSource
@@ -374,10 +377,10 @@ enum SearchOrigin: String, Sendable {
 /// How one search tells its books apart.
 enum SearchMergeRule: Sendable {
     /// 搜索 (unified search 4c-1, maintainer's decision 1): `WorkMatchKey` titles, so
-    /// 三体／三体／三体！ are one row; a title merges only when both sides name compatible
+    /// 三體／三体／三體！ are one row; a title merges only when both sides name compatible
     /// authors (a result without one is its own row) and the content kind is the same.
     case work
-    /// 换源 and 寻找可用来源 (4d, maintainer 2026-10-14): the same `WorkMatchKey` titles, but
+    /// 換源 and 尋找可用來源 (4d, maintainer 2026-10-14): the same `WorkMatchKey` titles, but
     /// an empty author merges with any (`SearchBook.isLikelySameBook`) and kinds are not
     /// compared.
     case changeSource
@@ -411,10 +414,8 @@ class SearchAggregator: ObservableObject {
         var completed: Int = 0
         var failed: Int = 0
         var timedOut: Int = 0
-        /// Sources skipped this search because they are in a timeout cooldown.
-        var skipped: Int = 0
         /// Of `completed`, the sources whose fetch failed and that are shown as no results
-        /// (Phase 0b), so a caller can tell 「没有找到」 from a search no source answered.
+        /// (Phase 0b), so a caller can tell 「沒有找到」 from a search no source answered.
         var failedAsEmpty: Int = 0
 
         var fraction: Double {
@@ -424,26 +425,26 @@ class SearchAggregator: ObservableObject {
     }
 
     /// Concurrency limit (max simultaneous requests) — lower reduces timeouts/failures.
-    /// User-configurable via `GlobalSettings.searchConcurrency` (网路设置 → 并发数);
+    /// User-configurable via `GlobalSettings.searchConcurrency` (網路設定 → 並發數);
     /// resolved per search so changes take effect on the next search.
     private var maxConcurrency: Int {
         NetworkSearchSettings.clampedConcurrency(GlobalSettings.shared.searchConcurrency)
     }
 
-    /// Timeout seconds per book source. Kept tight so dead/unreachable hosts
-    /// free their concurrency slot quickly (fail-fast) instead of stalling the
-    /// whole search; repeat offenders are then skipped via `SourceHealthStore`.
-    private let perSourceTimeout: UInt64 = 12
-
-    /// Longer budget for JS-driven (`<js>`/`@js:`) search sources. Aggregate
-    /// sources (光遇/大灰狼…) fan out to dozens of sub-sites server-side and take
-    /// ~12–15s to return; the tight per-source timeout would cut them off and the
-    /// search would look broken even when the cloud is aggregating correctly.
-    private let perAggregateSourceTimeout: UInt64 = 30
+    /// Seconds per book source, as Legado gives them: 30 for 搜索 (`SearchModel`), 60 for 換源
+    /// and 尋找可用來源 (`ChangeBookSourceViewModel`). A plain template source used to get 12 s,
+    /// and a slow site that Legado searches was cut off. A dead host holds its slot for the
+    /// whole time, as there: Legado skips no source for having failed before.
+    private var perSourceTimeout: UInt64 {
+        switch mergeRule {
+        case .work: NetworkSearchSettings.searchSecondsPerSource
+        case .changeSource: NetworkSearchSettings.changeSourceSecondsPerSource
+        }
+    }
 
     private func fanOut(concurrency: Int) -> BookSourceSearchFanOut {
         BookSourceSearchFanOut(
-            concurrency: concurrency, timeout: perSourceTimeout, aggregateTimeout: perAggregateSourceTimeout,
+            concurrency: concurrency, timeout: perSourceTimeout,
             fetcher: fetcher
         )
     }
@@ -493,7 +494,7 @@ class SearchAggregator: ObservableObject {
     private var allSources: [BookSource] = []
     private var completedSourceIds: Set<UUID> = []
     private var currentQuery = ""
-    /// The current search's rule: 搜索's work rule, or 换源's (set per search).
+    /// The current search's rule: 搜索's work rule, or 換源's (set per search).
     private var mergeRule = SearchMergeRule.work
     private var autoPausePolicy = SearchAutoPausePolicy(count: 0)
 
@@ -510,7 +511,7 @@ class SearchAggregator: ObservableObject {
     private var searchPage = 1
     private var pagedSourceIds: Set<UUID> = []
     private var exhaustedSourceIds: Set<UUID> = []
-    /// 搜索 pages on; 换源 and 寻找可用来源 never did and still stop at page 1.
+    /// 搜索 pages on; 換源 and 尋找可用來源 never did and still stop at page 1.
     private var pagesLaterPages = false
     /// Upper bound on rounds (maintainer, 2026-10-15: 10), so a misbehaving source that
     /// returns new books on every page cannot drive unbounded fan-outs.
@@ -552,19 +553,10 @@ class SearchAggregator: ObservableObject {
         // Cancel previous search
         searchTask?.cancel()
 
-        // Skip sources cooling down from repeated timeouts — but only when
-        // searching across many sources. An explicitly chosen single source is
-        // always attempted (respect the user's pick).
-        let activeSources: [BookSource]
-        let skippedCount: Int
-        if sources.count > 1 {
-            let split = SourceHealthStore.shared.partition(sources)
-            activeSources = split.active
-            skippedCount = split.skipped.count
-        } else {
-            activeSources = sources
-            skippedCount = 0
-        }
+        // Every source is asked, as in Legado's `SearchModel`, however it answered before. A
+        // cooldown used to skip a source for 5–60 min after three timeouts or failures in a
+        // row, and readers saw a search, or a 換源, reach only part of their sources.
+        let activeSources = sources
 
         // Reset state for a brand-new query.
         resultsPublicationTask?.cancel()
@@ -577,10 +569,7 @@ class SearchAggregator: ObservableObject {
         publicationMetrics = ResultPublicationMetrics()
         internalResults = []
         resultsNeedSort = false
-        internalProgress = SearchProgress(
-            total: activeSources.count,
-            skipped: skippedCount
-        )
+        internalProgress = SearchProgress(total: activeSources.count)
         requestResultsPublication(force: true, reason: "reset")
         deduplicationMap = [:]
         answerTally = SourceAnswerTally()
@@ -664,18 +653,14 @@ class SearchAggregator: ObservableObject {
                     if answer.outcome == .results { self.pagedSourceIds.insert(sourceId) }
                     self.answerTally.count(answer.outcome)
                     if answer.outcome == .failedAsEmpty { self.internalProgress.failedAsEmpty += 1 }
-                    // Phase 0b: a failure the fetcher reported as "no results" still
-                    // counts as a success here. Counting it in SourceHealthStore (cooldown)
-                    // is design §17 item 9, not yet decided.
+                    // The round-trip feeds 換源's fastest-first order (`SourceHealthStore`).
                     SourceHealthStore.shared.recordSuccess(sourceId, responseMs: answer.elapsedMs)
                 case .timedOut:
                     self.internalProgress.timedOut += 1
                     self.completedSourceIds.insert(sourceId)
-                    SourceHealthStore.shared.recordFailure(sourceId)
                 case .failed:
                     self.internalProgress.failed += 1
                     self.completedSourceIds.insert(sourceId)
-                    SourceHealthStore.shared.recordFailure(sourceId)
                 }
                 self.requestResultsPublication(force: false, reason: "progress")
 
@@ -769,8 +754,7 @@ class SearchAggregator: ObservableObject {
     }
 
     /// Merges a source's later page. A page that adds nothing new, or that the source says is
-    /// its last, exhausts the source; a failed or timed-out later page stops paging it without
-    /// striking its health, since its page 1 succeeded.
+    /// its last, exhausts the source; a failed or timed-out later page stops paging it.
     private func mergeLaterPage(_ answer: BookSourceSearchFanOut.Answer, source: BookSource, query q: String) async {
         let sourceId = source.id
         guard answer.outcome.answered else {
@@ -972,7 +956,7 @@ class SearchAggregator: ObservableObject {
         // Count source hits (origins), not deduplicated titles. A single-title
         // search collapses every source into one `SearchBook`, so counting books
         // would stay at ~1 and the threshold would never be reached — that was
-        // why auto-pause appeared to do nothing ("自动暂停不生效").
+        // why auto-pause appeared to do nothing ("自動暫停不生效").
         for result in internalResults {
             let hits = result.origins.count
             if Self.matchScore(normalizedName: rowKey(result), query: normalizedQuery) == 3 {
@@ -995,7 +979,7 @@ class SearchAggregator: ObservableObject {
     /// Returns how many books were newly merged (new titles or new origins) —
     /// the paging loop uses 0 to mark a source as exhausted.
     @discardableResult
-    /// - Parameter generation: the search this batch belongs to; nil for 载入更多 pages,
+    /// - Parameter generation: the search this batch belongs to; nil for 載入更多 pages,
     ///   which never end a `search.firstResult` span.
     private func mergeBatch(
         _ books: [OnlineBook],
@@ -1143,7 +1127,7 @@ class SearchAggregator: ObservableObject {
     }
 
     /// The query as titles are compared: folded by `WorkMatchKey`, so a Simplified query
-    /// finds and ranks a Traditional title (搜索 since 4c-1, 换源 since 4d).
+    /// finds and ranks a Traditional title (搜索 since 4c-1, 換源 since 4d).
     private func queryKey(_ query: String) -> String {
         WorkMatchKey.title(LegadoSearchKeyword.matchingTitle(from: query))
     }

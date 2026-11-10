@@ -10,7 +10,7 @@ struct ModuleChapter: Hashable, Sendable {
 
 /// Reading a module's book (module ecosystem M5, format 3.0 `reading`): its table of contents
 /// from the book's page, and a chapter's text through `ChapterFetcher.buildChapterPackage`, the
-/// path a 来源配置's chapter takes, so the cache, the normalizer and the reader are one.
+/// path a 來源配置's chapter takes, so the cache, the normalizer and the reader are one.
 /// Every page is a request of the module's (`send`): its hosts, its `rateLimit`.
 extension RuleModuleClient {
     /// A list longer than this many pages is cut there: 300 pages of なろう's 100 is 30,000
@@ -83,10 +83,11 @@ extension RuleModuleClient {
         return try await ChapterFetcher.shared.buildChapterPackage(
             bookId: bookId, chapterIndex: chapterIndex, sourceURL: chapter.url, tocTitle: chapter.title,
             initialHTML: first.text, initialURL: firstURL, initialBaseURL: first.baseURL,
-            parsePage: { html, baseURL in Self.parse(html, baseURL: baseURL, content: content) },
-            extractNextURLs: { html, baseURL in Self.nextPages(html, baseURL: baseURL, content: content) },
-            fetchNextPageHTML: { url in
-                try await client.send(url.absoluteString, headers: headers, charset: reading.charset, in: module).text
+            parsePage: { html, baseURL, _ in Self.parse(html, baseURL: baseURL, content: content) },
+            extractNextURLs: { html, baseURL, _ in Self.nextPages(html, baseURL: baseURL, content: content) },
+            fetchNextPageHTML: { link in
+                guard let url = AnalyzeUrl.requestURL(link) else { throw FetchError.invalidURL(link) }
+                return try await client.send(url.absoluteString, headers: headers, charset: reading.charset, in: module).text
             })
     }
 

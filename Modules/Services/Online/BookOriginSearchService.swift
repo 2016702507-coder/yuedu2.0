@@ -2,7 +2,7 @@ import Foundation
 
 /// The single cross-source "find this exact book in every enabled source" fan-out.
 ///
-/// 换源 and 封面搜索 ask the same question of the same sources — Legado runs both
+/// 換源 and 封面搜索 ask the same question of the same sources — Legado runs both
 /// through `WebBook.searchBookAwait` for the same reason — so the search lives
 /// here and each screen only decides what to do with the origins it receives.
 /// A second copy of this loop is how the two would drift apart on matching,
@@ -14,7 +14,7 @@ import Foundation
 enum BookOriginSearchService {
 
     /// How a fan-out ended. Only `.completed` saw every source: a result cut short by
-    /// `shouldStop` (搜索自动暂停) or by cancellation is partial and must not be cached as
+    /// `shouldStop` (搜索自動暫停) or by cancellation is partial and must not be cached as
     /// the book's full origin list (feedback #16: a 10-result pause was reused for 5 days).
     enum Outcome: Equatable {
         case completed
@@ -23,13 +23,22 @@ enum BookOriginSearchService {
     }
 
     /// Runs the fan-out until every source has answered, `shouldStop` reports that
-    /// enough matches are in (搜索自动暂停), or the surrounding task is cancelled.
+    /// enough matches are in (搜索自動暫停), or the surrounding task is cancelled.
     ///
     /// - Parameters:
     ///   - title: the book's title; also the search query, as Legado does.
-    ///   - author: used for same-book matching only.
-    ///   - concurrency: active sources at a time (网路设置 → 搜索并发数).
-    ///   - excludingOriginKey: an origin to hide — 换源 excludes the one in use.
+    ///   - author: used for same-book matching only, and only when `matchesAuthor`.
+    ///   - matchesAuthor: keep only results whose author is compatible with `author`
+    ///     (`SearchBook.isLikelySameBook`). Off for 換源: Legado's `ChangeBookSourceViewModel`
+    ///     keeps every result with the book's name and compares the author only when the
+    ///     reader turns on 校验作者, which is off by default. 換源 used to compare it always,
+    ///     and a source that writes the author differently was never offered. On for
+    ///     封面搜索 (Legado's `ChangeCoverViewModel` requires name and author) and the
+    ///     metadata filler.
+    ///   - secondsPerSource: how long one source may take; Legado gives 換源 and 封面搜索
+    ///     60 s each (`NetworkSearchSettings.changeSourceSecondsPerSource`).
+    ///   - concurrency: active sources at a time (網路設定 → 搜索並發數).
+    ///   - excludingOriginKey: an origin to hide — 換源 excludes the one in use.
     ///   - sourceFilter: decides whether a source is worth querying at all;
     ///     封面搜索 skips sources whose search rule has no cover field.
     ///   - requiresAuthor: keep only results whose source gave an author, so title and author
@@ -38,6 +47,8 @@ enum BookOriginSearchService {
     ///   - onBatch: one source's matches, already deduped, on the main actor.
     ///   - onSourceAnswered: called for each source that answered within its time, matches
     ///     or not, so a caller can tell "nobody has it" from "nobody answered".
+    ///   - onSourceFinished: called for each source that is done, answered, timed out or
+    ///     failed alike — Legado's 换源 progress counts every finished source.
     @discardableResult
     static func stream(
         title: String,
@@ -47,9 +58,12 @@ enum BookOriginSearchService {
         fetcher: BookSourceFetching,
         excludingOriginKey: String? = nil,
         sourceFilter: ((BookSource) -> Bool)? = nil,
+        matchesAuthor: Bool = false,
+        secondsPerSource: UInt64 = NetworkSearchSettings.changeSourceSecondsPerSource,
         requiresAuthor: Bool = false,
         shouldStop: (Int) -> Bool = { _ in false },
         onSourceAnswered: () -> Void = {},
+        onSourceFinished: () -> Void = {},
         onBatch: ([BookOrigin]) -> Void
     ) async -> Outcome {
         let queried = sourceFilter.map { filter in sources.filter(filter) } ?? sources
@@ -75,8 +89,10 @@ enum BookOriginSearchService {
                         query: title,
                         bookTitle: title,
                         bookAuthor: author,
+                        matchesAuthor: matchesAuthor,
                         source: source,
-                        bookSourceFetcher: fetcher
+                        bookSourceFetcher: fetcher,
+                        seconds: secondsPerSource
                     )
                 }
             }
@@ -87,6 +103,7 @@ enum BookOriginSearchService {
 
             while let list = await group.next() {
                 if Task.isCancelled { break }
+                onSourceFinished()
                 guard let list else {
                     // Timed out or failed: its slot goes to the next source.
                     enqueueNextSource()
@@ -100,8 +117,9 @@ enum BookOriginSearchService {
                 var batchOrigins: [BookOrigin] = []
                 for ob in list {
                     if requiresAuthor && ob.author.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { continue }
-                    guard SearchBook.isLikelySameBook(
-                        target, SearchWorkKeys(name: ob.name, author: ob.author)
+                    guard isSameBook(
+                        target, SearchWorkKeys(name: ob.name, author: ob.author),
+                        matchesAuthor: matchesAuthor
                     ) else { continue }
                     // Dedup only the same source + URL. Aggregation channels from
                     // different sources may share a URL but remain distinct rules.
@@ -123,7 +141,8 @@ enum BookOriginSearchService {
                             wordCount: ob.wordCount,
                             kind: ob.kind,
                             runtimeVariables: ob.runtimeVariables,
-                            author: ob.author
+                            author: ob.author,
+                            infoHtml: ob.infoHtml
                         )
                     )
                     if shouldStop(emittedCount + batchOrigins.count) {
@@ -151,15 +170,26 @@ enum BookOriginSearchService {
         return Task.isCancelled ? .cancelled : .completed
     }
 
+    /// The book's name, compared folded (`SearchWorkKeys`: 三體／三体 are one name), and with
+    /// `matchesAuthor` its author too. Legado compares the name as written; folding it keeps a
+    /// source that writes the other script, which Legado would miss.
+    nonisolated static func isSameBook(
+        _ target: SearchWorkKeys, _ candidate: SearchWorkKeys, matchesAuthor: Bool
+    ) -> Bool {
+        guard matchesAuthor else { return !target.title.isEmpty && target.title == candidate.title }
+        return SearchBook.isLikelySameBook(target, candidate)
+    }
+
     /// One source's search, abandoned after `seconds`. A source that never answers
     /// must not hold an active slot for the whole session.
     nonisolated static func searchSourceWithTimeout(
         query: String,
         bookTitle: String,
         bookAuthor: String,
+        matchesAuthor: Bool,
         source: BookSource,
         bookSourceFetcher: BookSourceFetching,
-        seconds: UInt64 = 20
+        seconds: UInt64
     ) async -> [OnlineBook]? {
         let startedAt = ProcessInfo.processInfo.systemUptime
         // Folded once per source, off the main actor; the filter runs per parsed item.
@@ -175,7 +205,10 @@ enum BookOriginSearchService {
                         query: query,
                         in: source,
                         earlyFilter: { name, author in
-                            SearchBook.isLikelySameBook(target, SearchWorkKeys(name: name, author: author))
+                            isSameBook(
+                                target, SearchWorkKeys(name: name, author: author),
+                                matchesAuthor: matchesAuthor
+                            )
                         }
                     )
                 } catch {
@@ -201,7 +234,7 @@ enum BookOriginSearchService {
             return first
         }
         if books != nil {
-            // Feed the response-time EMA so the 换源 list can rank fast sources first.
+            // Feed the response-time EMA so the 換源 list can rank fast sources first.
             let elapsedMs = (ProcessInfo.processInfo.systemUptime - startedAt) * 1000
             let sourceId = source.id
             await MainActor.run {

@@ -497,11 +497,33 @@ class BookSourceStore: @MainActor ObservableObject {
     /// **entire** source file, and republished the whole `@Published` array — three
     /// thousand times. One pass, one save.
     func setRespondTimes(_ times: [UUID: Int64]) {
-        guard !times.isEmpty else { return }
+        recordCheckResults(respondTimes: times, marks: [:])
+    }
+
+    /// The results of the sources a 書源驗證 has finished so far: respond times, and the groups
+    /// and `// Error:` comment Legado writes onto a checked source (`BookSourceCheckMarks`).
+    /// One change and one save, with no `lastUpdateTime` bump, like `setRespondTimes`.
+    func recordCheckResults(respondTimes: [UUID: Int64], marks: [UUID: BookSourceCheckMarks]) {
+        guard !respondTimes.isEmpty || !marks.isEmpty else { return }
         var updated = sources
-        guard Self.applyRespondTimes(times, to: &updated) else { return }
+        let timed = Self.applyRespondTimes(respondTimes, to: &updated)
+        let marked = Self.applyCheckMarks(marks, to: &updated)
+        guard timed || marked else { return }
         replaceSources(updated)
-        save(reason: "respondTimes")
+        save(reason: "checkResults")
+    }
+
+    private static func applyCheckMarks(
+        _ marks: [UUID: BookSourceCheckMarks],
+        to sources: inout [BookSource]
+    ) -> Bool {
+        guard !marks.isEmpty else { return false }
+        var changed = false
+        for idx in sources.indices {
+            guard let mark = marks[sources[idx].id] else { continue }
+            if sources[idx].applyCheckMarks(mark) { changed = true }
+        }
+        return changed
     }
 
     private static func applyRespondTimes(_ times: [UUID: Int64], to sources: inout [BookSource]) -> Bool {
@@ -558,12 +580,18 @@ class BookSourceStore: @MainActor ObservableObject {
     /// Same contracts as those three: no `lastUpdateTime` bump, and a source in both sets is
     /// deleted. Returns how many sources were deleted.
     @discardableResult
-    func applyCheckOutcome(respondTimes: [UUID: Int64], disable: Set<UUID>, delete: Set<UUID>) -> Int {
+    func applyCheckOutcome(
+        respondTimes: [UUID: Int64],
+        marks: [UUID: BookSourceCheckMarks] = [:],
+        disable: Set<UUID>,
+        delete: Set<UUID>
+    ) -> Int {
         var updated = sources
         let timed = Self.applyRespondTimes(respondTimes, to: &updated)
+        let marked = Self.applyCheckMarks(marks, to: &updated)
         let disabled = Self.applyEnabled(false, to: disable.subtracting(delete), in: &updated)
         let removedCount = delete.isEmpty ? 0 : Self.remove(delete, from: &updated)
-        guard timed || disabled || removedCount > 0 else { return 0 }
+        guard timed || marked || disabled || removedCount > 0 else { return 0 }
         replaceSources(updated)
         if removedCount > 0 {
             dropPins(of: delete)
@@ -679,7 +707,7 @@ class BookSourceStore: @MainActor ObservableObject {
             }
             return String(afterScheme)
         }
-        return "无域名"
+        return "無域名"
     }
 
     // MARK: Import (Legado Compatible)
@@ -1234,18 +1262,18 @@ class BookSourceStore: @MainActor ObservableObject {
             switch self {
             case .tooLarge(let bytes):
                 return String(
-                    format: localized("档案有 %@，超过来源配置档的上限 %@。"),
+                    format: localized("檔案有 %@，超過來源配置檔的上限 %@。"),
                     ByteCountFormatter.string(fromByteCount: Int64(bytes), countStyle: .file),
                     ByteCountFormatter.string(fromByteCount: Int64(BookSourceStore.maxImportBytes), countStyle: .file)
                 )
-            case .notUTF8: return localized("档案不是 UTF-8 编码，无法读取来源配置。")
-            case .invalidData: return localized("无法读取来源配置资料")
-            case .parseError: return localized("无法解析来源配置资料")
+            case .notUTF8: return localized("檔案不是 UTF-8 編碼，無法讀取來源配置。")
+            case .invalidData: return localized("無法讀取來源配置資料")
+            case .parseError: return localized("無法解析來源配置資料")
             // The decoder's own words name the key or value a source's author has to fix.
             case .parseErrorDetail(let detail):
-                return String(format: localized("无法解析来源配置资料：%@"), detail)
+                return String(format: localized("無法解析來源配置資料：%@"), detail)
             case .encryptedFormat(let fmt):
-                return String(format: localized("%@ 格式经过加密，无法直接汇入。请用原本的 App 汇出成 JSON 或 TXT。"), fmt)
+                return String(format: localized("%@ 格式經過加密，無法直接匯入。請用原本的 App 匯出成 JSON 或 TXT。"), fmt)
             }
         }
 

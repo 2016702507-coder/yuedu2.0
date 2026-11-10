@@ -162,7 +162,7 @@ struct ChapterFetcher {
         // Rewrite Legado iOS paragraph-review markers into anchors before parsing, so the
         // markers survive the SwiftSoup round-trip regardless of how <comment> is handled.
         // Then, if the content is newline-separated plain-text paragraphs with only inline runs
-        // (no block tags) — e.g. 段评-injected content joins paragraphs with "\n" + inline bubble
+        // (no block tags) — e.g. 段評-injected content joins paragraphs with "\n" + inline bubble
         // <img>s — wrap each line in <p> so SwiftSoup doesn't collapse the breaks into one block.
         let rawHTMLContent = ReaderHTMLUtilities.wrapNewlineParagraphsIfNeeded(
             ReaderHTMLUtilities.rewriteReviewComments(cleanedRawHTML)
@@ -180,7 +180,7 @@ struct ChapterFetcher {
         ])
 
         // SwiftSoup.parse is CPU-intensive synchronous work AND degrades to a hang on the ~275KB
-        // of inline base64 SVG a 段评-heavy 起点 chapter carries (96 bubbles). The base64 payloads
+        // of inline base64 SVG a 段評-heavy 起点 chapter carries (96 bubbles). The base64 payloads
         // are opaque to structural parsing, so lift them out, parse the slimmed (~few-KB) HTML,
         // then restore — keeps SwiftSoup's cleaning behavior without feeding it the bloat.
         // Run in a detached task to avoid blocking the cooperative thread pool.
@@ -252,7 +252,7 @@ struct ChapterFetcher {
             // `<br>`-separated prose becomes real paragraphs here, on the parsed tree, so the
             // decision is per containing block instead of per chapter — one stray `<div>`/`<h2>`/
             // notice `<p>` used to cancel it for the whole chapter, leaving every paragraph after
-            // the first flush against the margin. Runs before the review repair so a 段评 bubble
+            // the first flush against the margin. Runs before the review repair so a 段評 bubble
             // ends up inside the paragraph it belongs to.
             let promotedParagraphs = ReaderHTMLUtilities.promoteBreakSeparatedParagraphs(in: body)
             let reviewRepair = SourcePerfTrace.span("chapter.reviewRepair") {
@@ -314,8 +314,8 @@ struct ChapterFetcher {
         }
 
         // A chapter title may carry a 本章说 comment bubble appended as a bare `data:image/...` URI
-        // (起点: `titleRow = title + Bubble`). `splitTitleBubble` above peeled the text off; the
-        // bubble is rendered as the source's image (text-sized, like body 段评), not literal text.
+        // (起點: `titleRow = title + Bubble`). `splitTitleBubble` above peeled the text off; the
+        // bubble is rendered as the source's image (text-sized, like body 段評), not literal text.
         let resolvedTitleBubbleHTML = titleBubbleHTML ?? leadingTitleBubbleHTML
         let escapedTitle = ReaderHTMLUtilities.escapeHTML(trimmedTitle.isEmpty ? "Untitled" : trimmedTitle)
         let heading = (trimmedTitle.isEmpty && resolvedTitleBubbleHTML == nil)
@@ -347,7 +347,7 @@ struct ChapterFetcher {
     }
 
     /// Splits a chapter title into its text part and an optional comment-bubble `<img>` HTML.
-    /// 起点 appends a 本章说 bubble to the title as a bare `data:image/...,{clickconfig}` URI; we
+    /// 起點 appends a 本章说 bubble to the title as a bare `data:image/...,{clickconfig}` URI; we
     /// wrap that into an `<img>` and run it through the same sanitizer as body bubbles (strips the
     /// click-config suffix, adds the review anchor + text-size marker). Returns `(title, nil)` when
     /// no bubble is present.
@@ -418,9 +418,9 @@ struct ChapterFetcher {
         ]
 
         // Every SwiftSoup sibling query below walks the whole parent's child list, and in a
-        // 段评 chapter that parent is <body> with every prose <p> and bubble as its children:
+        // 段評 chapter that parent is <body> with every prose <p> and bubble as its children:
         // asked once per bubble, the repair was quadratic in the chapter (MetricKit
-        // cpu-exception d32f7c57; 1572 KB of 段评 HTML took 17.9 s in Debug, all of it here).
+        // cpu-exception d32f7c57; 1572 KB of 段評 HTML took 17.9 s in Debug, all of it here).
         //
         // The answer is memoised per element. It cannot go stale: the loop only ever moves an
         // `<a>` (not a block) or removes an empty wrapper block whose block sibling `previous`
@@ -582,38 +582,83 @@ struct ChapterFetcher {
         return merged
     }
 
+    /// A chapter's pages, as Legado's `BookContent.getContent` reads them (legado-E, MD3 and
+    /// upstream agree). One next-page link from the first page starts a chain: each page's first
+    /// link is the next, and the chain ends at a link already read or at the next chapter's URL —
+    /// a 「下一篇」 link is the next chapter, not a page of this one (故事族, YCK1330: following it
+    /// read the whole book until the site answered 429). Several links from the first page are
+    /// that chapter's pages, each read once, with no links read from them.
+    ///
+    /// No page count ends a chapter, in Legado or here, as none ends a TOC
+    /// (`BookSourceFetcher.fetchFollowingTOCPages`). A cap of ten pages used to stop the chain
+    /// early: 得齐小说网's 《清光宝鉴》 chapter 247 is thirteen pages, and its last two never showed.
+    ///
+    /// `parsePage` and `extractNextURLs` read a page with the URL it came from and the URL the
+    /// rule gave for it — Legado's `redirectUrl` and `baseUrl` (`BookContent`): the chapter's
+    /// own URL, options and all, for the first page, and each link as written for the rest.
+    ///
+    /// - Parameter nextChapterURL: the next chapter's URL in the TOC, when there is one.
+    /// - Parameter initialRuleURL: the chapter's URL as the TOC gave it; the first page's
+    ///   URL when nil.
+    /// - Parameter fetchNextPageHTML: reads a next page from its link as the rule gave it.
+    ///   Legado reads it with an `AnalyzeUrl` of that link (`BookContent.getContent`), so a
+    ///   link's `,{…}` options are its request's — 顶点小说 (YCK1330) ends every link
+    ///   `,{"retry":2}` — and a caller hands an option-carrying link to the runtime, as a TOC's
+    ///   following page goes (`BookSourceFetcher.fetchFollowingTOCPage`). Made into a `URL`
+    ///   first, the options went out in the page's path and the site answered 404.
     func fetchPaginatedContent(
         initialHTML: String,
         initialURL: URL,
         initialBaseURL: String,
-        maxPages: Int = 10,
-        parsePage: @escaping @Sendable (String, String) async throws -> ChapterParsePayload,
-        extractNextURLs: @escaping @Sendable (String, String) async -> [String],
-        fetchNextPageHTML: @escaping @Sendable (URL) async throws -> String
+        initialRuleURL: String? = nil,
+        nextChapterURL: String? = nil,
+        parsePage: @escaping @Sendable (_ html: String, _ pageURL: String, _ ruleURL: String) async throws -> ChapterParsePayload,
+        extractNextURLs: @escaping @Sendable (_ html: String, _ pageURL: String, _ ruleURL: String) async -> [String],
+        fetchNextPageHTML: @escaping @Sendable (_ link: String) async throws -> String
     ) async throws -> ChapterPaginatedResult {
-        var parsed = try await parsePage(initialHTML, initialURL.absoluteString)
+        let firstRuleURL = initialRuleURL ?? initialURL.absoluteString
+        var parsed = try await parsePage(initialHTML, initialURL.absoluteString, firstRuleURL)
         var rawHTMLPages: [String] = [initialHTML]
-        var pendingURLs = await extractNextURLs(initialHTML, initialBaseURL)
-        var pageCount = 0
-        var visitedNextPages = Set<String>([initialURL.absoluteString])
+        let firstLinks = await extractNextURLs(initialHTML, initialBaseURL, firstRuleURL)
 
-        while !pendingURLs.isEmpty && pageCount < maxPages {
-            let nextURL = pendingURLs.removeFirst()
-            if visitedNextPages.contains(nextURL) { continue }
-            visitedNextPages.insert(nextURL)
-            guard let nextPageURL = URL(string: nextURL) else { continue }
-            let nextHTML = try await fetchNextPageHTML(nextPageURL)
-            rawHTMLPages.append(nextHTML)
-            let nextParsed = try await parsePage(nextHTML, nextURL)
-            parsed = merge(parsed, nextParsed)
-            let nextBatch = await extractNextURLs(nextHTML, nextURL)
-            for candidate in nextBatch where !visitedNextPages.contains(candidate) && !pendingURLs.contains(candidate) {
-                pendingURLs.append(candidate)
+        func readPage(_ link: String) async throws -> String? {
+            guard AnalyzeUrl.requestURL(AnalyzeUrl.stripOptions(from: link)) != nil else {
+                AppLogger.parse("Content next page is not a URL", context: ["url": String(link.prefix(160))])
+                return nil
             }
-            pageCount += 1
+            let html = try await fetchNextPageHTML(link)
+            rawHTMLPages.append(html)
+            parsed = merge(parsed, try await parsePage(html, link, link))
+            return html
+        }
+
+        if firstLinks.count == 1 {
+            var read: [String] = [initialURL.absoluteString]
+            var pageURL = initialURL.absoluteString
+            var link = firstLinks[0]
+            while !link.isEmpty, !read.contains(link) {
+                if let nextChapterURL, !nextChapterURL.isEmpty,
+                   Self.absoluteLink(link, base: pageURL) == Self.absoluteLink(nextChapterURL, base: pageURL) {
+                    break
+                }
+                read.append(link)
+                guard let html = try await readPage(link) else { break }
+                pageURL = link
+                link = await extractNextURLs(html, link, link).first ?? ""
+            }
+        } else if firstLinks.count > 1 {
+            for link in firstLinks {
+                _ = try await readPage(link)
+            }
         }
 
         return ChapterPaginatedResult(payload: parsed, rawHTMLPages: rawHTMLPages)
+    }
+
+    /// Legado's `NetworkUtils.getAbsoluteURL(redirectUrl, link)`: a relative link against the
+    /// page it came from; an absolute one as written.
+    private static func absoluteLink(_ link: String, base: String) -> String {
+        AnalyzeUrl.javaAbsoluteURL(link, base: base) ?? link
     }
 
     func buildChapterPackage(
@@ -625,9 +670,10 @@ struct ChapterFetcher {
         initialURL: URL,
         initialBaseURL: String,
         reviewContext: ReaderHTMLUtilities.LegadoReviewContext? = nil,
-        parsePage: @escaping @Sendable (String, String) async throws -> ChapterParsePayload,
-        extractNextURLs: @escaping @Sendable (String, String) async -> [String],
-        fetchNextPageHTML: @escaping @Sendable (URL) async throws -> String
+        nextChapterURL: String? = nil,
+        parsePage: @escaping @Sendable (_ html: String, _ pageURL: String, _ ruleURL: String) async throws -> ChapterParsePayload,
+        extractNextURLs: @escaping @Sendable (_ html: String, _ pageURL: String, _ ruleURL: String) async -> [String],
+        fetchNextPageHTML: @escaping @Sendable (_ link: String) async throws -> String
     ) async throws -> ChapterBuildResult {
         let parseStart = CFAbsoluteTimeGetCurrent()
         ReaderTelemetry.shared.log(
@@ -643,6 +689,8 @@ struct ChapterFetcher {
             initialHTML: initialHTML,
             initialURL: initialURL,
             initialBaseURL: initialBaseURL,
+            initialRuleURL: sourceURL,
+            nextChapterURL: nextChapterURL,
             parsePage: parsePage,
             extractNextURLs: extractNextURLs,
             fetchNextPageHTML: fetchNextPageHTML
@@ -711,11 +759,10 @@ struct ChapterFetcher {
     }
 
     func resolveContent(parsed: ChapterParsePayload) async -> String {
-        let chapterTitle = parsed.title.trimmingCharacters(in: .whitespacesAndNewlines)
-        var content = Self.sanitizeResolvedContent(parsed.content, title: chapterTitle)
+        var content = Self.sanitizeResolvedContent(parsed.content)
 
         if content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && parsed.isPay {
-            content = "[付费章节]"
+            content = "[付費章節]"
         }
 
         content = Self.normalizeLegadoContent(content)
@@ -727,7 +774,7 @@ struct ChapterFetcher {
         // `parsed.content`, not this plain-text copy. Applying it a second time here would be a
         // second implementation of the same concern operating on a different representation.
 
-        content = Self.sanitizeResolvedContent(content, title: chapterTitle)
+        content = Self.sanitizeResolvedContent(content)
 
         // The user's global replace rules are NOT applied here either: the cache keeps the
         // source's text and the reader applies them at display time
@@ -737,24 +784,16 @@ struct ChapterFetcher {
         // pages and audio URLs are safe from text-cleanup rules for the same reason: the
         // reader's rules only ever see laid-out prose.
 
-        let finalNormalizedTitle = chapterTitle
-            .replacingOccurrences(of: "\\s+", with: "", options: .regularExpression)
-            .lowercased()
-        let finalNormalizedContent = content
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-            .replacingOccurrences(of: "\\s+", with: "", options: .regularExpression)
-            .lowercased()
-        if finalNormalizedContent.isEmpty {
-            return ""
-        }
-        if !finalNormalizedTitle.isEmpty && finalNormalizedContent == finalNormalizedTitle {
+        // Text that is only the chapter's title is kept, as Legado keeps it
+        // (`looksLikeRejectedChapterPage`).
+        if content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             return ""
         }
         return content
     }
 
     private static func normalizeLegadoContent(_ text: String) -> String {
-        // Runs three times per chapter on a document a 段评 source makes hundreds of KB; the
+        // Runs three times per chapter on a document a 段評 source makes hundreds of KB; the
         // carriage-return replaces are a full copy each, so only pay for them when there is one.
         var output = text.containsMarker("\r")
             ? text.replacingOccurrences(of: "\r\n", with: "\n").replacingOccurrences(of: "\r", with: "\n")
@@ -783,7 +822,7 @@ struct ChapterFetcher {
     }
 
     /// Content that is not text: an image, a video, an audio or an `<iframe>` page. A chapter
-    /// made of nothing else is still a chapter — 起点读书qm（行内影片）'s 彩蛋 is its player page
+    /// made of nothing else is still a chapter — 起点读书qm（行內影片）'s 彩蛋 is its player page
     /// alone — so these keep their markup instead of being stripped to an empty string.
     private static func containsContentMediaTag(_ text: String) -> Bool {
         text.range(
@@ -830,20 +869,24 @@ struct ChapterFetcher {
             .replacingOccurrences(of: "&apos;", with: "'", options: .caseInsensitive)
     }
 
-    private static func sanitizeResolvedContent(_ text: String?, title: String) -> String {
+    private static func sanitizeResolvedContent(_ text: String?) -> String {
         let normalized = Self.normalizeLegadoContent(text ?? "")
         guard !normalized.isEmpty else { return "" }
-        if Self.looksLikeRejectedChapterPage(normalized, title: title) {
+        if Self.looksLikeRejectedChapterPage(normalized) {
             return ""
         }
         return normalized
     }
 
-    private static func looksLikeRejectedChapterPage(_ text: String, title: String) -> Bool {
+    /// An error or verification page where a chapter was expected. A chapter whose text is only
+    /// its title is not one: Legado keeps any content that is not blank (`BookContent`
+    /// `getContent` raises 内容为空 only for blank text), and a volume's opening page is often
+    /// just its name — 新笔趣阁wap (wap.t965.com, YCK1330)'s 「正文」 is `<h2>正文</h2>`. Until
+    /// 11-09 such text was rejected here, but only when read back from the cache, against the
+    /// TOC title, while the save compared it with the content page's title, which is usually
+    /// empty: every save of such a chapter failed with "Chapter cache verification failed".
+    private static func looksLikeRejectedChapterPage(_ text: String) -> Bool {
         let compact = text
-            .lowercased()
-            .replacingOccurrences(of: "\\s+", with: "", options: .regularExpression)
-        let compactTitle = title
             .lowercased()
             .replacingOccurrences(of: "\\s+", with: "", options: .regularExpression)
 
@@ -859,13 +902,13 @@ struct ChapterFetcher {
         let isIISRuntimeError =
             (
                 contains("应用程序中的服务器错误")
-                    || contains("应用程式中的伺服器错误")
+                    || contains("應用程式中的伺服器錯誤")
                     || contains("servererrorin'/'application")
                     || contains("servererrorin/application")
             )
             && (
                 contains("运行时错误")
-                    || contains("运行时错误")
+                    || contains("運行時錯誤")
                     || contains("runtimeerror")
                     || contains("web.config")
                     || contains("defaultredirect")
@@ -879,15 +922,15 @@ struct ChapterFetcher {
             contains("如遇到章节错误")
             && (
                 contains("关闭浏览器的阅读/畅读/小说模式")
-                    || contains("关闭浏览器的阅读/畅读/小说模式")
+                    || contains("關閉瀏覽器的閱讀/暢讀/小說模式")
                     || (
                         contains("阅读/畅读/小说模式")
-                            || contains("阅读/畅读/小说模式")
+                            || contains("閱讀/暢讀/小說模式")
                     )
             )
             && (
                 contains("关闭广告屏蔽过滤功能")
-                    || contains("关闭广告屏蔽过滤功能")
+                    || contains("關閉廣告屏蔽過濾功能")
             )
 
         if isReadModeHint {
@@ -904,28 +947,24 @@ struct ChapterFetcher {
         // "cloudflare" alone is insufficient; require additional verification keywords
         let hasCloudflareMention = contains("cloudflare")
         let hasChallengeKeyword =
-            contains("人机验证") || contains("人机验证")
+            contains("人机验证") || contains("人機驗證")
             || contains("checkyourbrowser") || contains("ddos")
 
         let isHumanVerification =
             isCloudflareChallenge
             || (hasCloudflareMention && hasChallengeKeyword)
             || (contains("访问异常") && contains("验证"))
-            || (contains("访问异常") && contains("验证"))
+            || (contains("訪問異常") && contains("驗證"))
 
         if isHumanVerification {
-            return true
-        }
-
-        if !compactTitle.isEmpty && compact == compactTitle {
             return true
         }
 
         return false
     }
 
-    func isRejectedChapterContent(_ text: String, title: String) -> Bool {
-        Self.looksLikeRejectedChapterPage(text, title: title)
+    func isRejectedChapterContent(_ text: String) -> Bool {
+        Self.looksLikeRejectedChapterPage(text)
     }
 
     func extractWebContentSinglePage(html: String, pageURL: String) async -> String {

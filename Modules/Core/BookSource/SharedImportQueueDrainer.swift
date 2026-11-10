@@ -33,7 +33,6 @@ final class SharedImportQueueDrainer: ObservableObject {
         var importedBookSourceCount = 0
         var importedRSSCount = 0
         var importedReplaceRuleCount = 0
-        var importedFontCount = 0
         var bookToOpen: UUID?
         /// Why each failed item failed, as the Files importer lists it: `name: reason`, or
         /// the reason alone for an item that arrived without a name.
@@ -51,8 +50,6 @@ final class SharedImportQueueDrainer: ObservableObject {
                 importedRSSCount += result.count
             case .replaceRule:
                 importedReplaceRuleCount += result.count
-            case .font:
-                importedFontCount += result.count
             case .customization:
                 break // The presented import flow reports its own applied result.
             }
@@ -103,7 +100,6 @@ final class SharedImportQueueDrainer: ObservableObject {
         case bookSource
         case rss
         case replaceRule
-        case font
         case customization
     }
 
@@ -122,10 +118,10 @@ final class SharedImportQueueDrainer: ObservableObject {
 
         var errorDescription: String? {
             switch self {
-            case .missingPayloadDirectory, .missingQueuedFile: localized("找不到分享过来的档案")
-            case .missingBookStore: localized("书架还没准备好，请再分享一次")
-            case .invalidRemoteURL: localized("分享过来的网址无效")
-            case .unsupportedPayload: localized("不支援这种档案格式")
+            case .missingPayloadDirectory, .missingQueuedFile: localized("找不到分享過來的檔案")
+            case .missingBookStore: localized("書架還沒準備好，請再分享一次")
+            case .invalidRemoteURL: localized("分享過來的網址無效")
+            case .unsupportedPayload: localized("不支援這種檔案格式")
             }
         }
 
@@ -295,7 +291,7 @@ final class SharedImportQueueDrainer: ObservableObject {
         openInInboxURL: URL = SharedImportQueueDrainer.defaultOpenInInboxURL(),
         importData: ((Data) throws -> Int)? = nil,
         fetchURL: @escaping (URL) async throws -> Data = {
-            try await URLSession.shared.data(from: $0).0
+            try await URLSession.trusting.data(from: $0).0
         },
         importBookFile: ((URL) async throws -> Int)? = nil,
         importOPMLData: @escaping (Data) throws -> Int = { data in
@@ -483,8 +479,6 @@ final class SharedImportQueueDrainer: ObservableObject {
             return .init(count: try importLegadoRSSData(Data(contentsOf: url)), category: .rss)
         case .replaceRules:
             return .init(count: try importReplaceRuleData(Data(contentsOf: url)), category: .replaceRule)
-        case .font(let ext):
-            return try importSharedFont(fileAt: url, fileExtension: ext)
         case .localBook(let ext):
             let name = SharedImportPayloadClassifier.stagedFilename(
                 suggestedFilename: suggestedFilename ?? url.lastPathComponent,
@@ -521,8 +515,6 @@ final class SharedImportQueueDrainer: ObservableObject {
             return .init(count: try importLegadoRSSData(data), category: .rss)
         case .replaceRules:
             return .init(count: try importReplaceRuleData(data), category: .replaceRule)
-        case .font(let ext):
-            return try importSharedFont(data: data, fileExtension: ext)
         case .localBook(let ext):
             let tempURL = try writeTemporaryPayload(
                 data,
@@ -534,44 +526,13 @@ final class SharedImportQueueDrainer: ObservableObject {
         }
     }
 
-    /// A font handed over by the system (分享 / Open In) arrives under a provider-chosen
-    /// name whose extension is often dropped or replaced. The font store keys on
-    /// `pathExtension`, so stage it under a temporary name carrying the extension the
-    /// classifier actually detected before importing. The staged copy is temporary:
-    /// `UserFontStorageManager` copies what it keeps into Documents/fonts and registers
-    /// that copy, not this one.
-    private func importSharedFont(fileAt url: URL, fileExtension: String) throws -> ImportResult {
-        let staged = try stagedFontURL(fileExtension: fileExtension)
-        defer { try? FileManager.default.removeItem(at: staged.deletingLastPathComponent()) }
-        try FileManager.default.copyItem(at: url, to: staged)
-        try GlobalSettings.shared.importUserFont(from: staged)
-        return .init(count: 1, category: .font)
-    }
-
-    private func importSharedFont(data: Data, fileExtension: String) throws -> ImportResult {
-        let staged = try stagedFontURL(fileExtension: fileExtension)
-        defer { try? FileManager.default.removeItem(at: staged.deletingLastPathComponent()) }
-        try data.write(to: staged, options: .atomic)
-        try GlobalSettings.shared.importUserFont(from: staged)
-        return .init(count: 1, category: .font)
-    }
-
-    private func stagedFontURL(fileExtension: String) throws -> URL {
-        let directory = FileManager.default.temporaryDirectory
-            .appendingPathComponent("shared-font-\(UUID().uuidString)", isDirectory: true)
-        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        return directory
-            .appendingPathComponent(UUID().uuidString)
-            .appendingPathExtension(fileExtension)
-    }
-
     private func importBookSources(_ data: Data, fileExtension: String) throws -> Int {
         if let importDataOverride, fileExtension.lowercased() == "json" {
             return try importDataOverride(data)
         }
         // Parse now so a malformed pack still fails here and is reported as a failure, then
         // hand the result to the confirmation list. Returning 0 keeps this out of the
-        // "成功汇入 N 个项目" tally — nothing has been written yet — and `publish` skips the
+        // "成功匯入 N 個項目" tally — nothing has been written yet — and `publish` skips the
         // alert entirely when a drain carried nothing but sources to review.
         let sources = try BookSourceStore.shared.parseForImport(
             data: data,
@@ -652,7 +613,6 @@ enum SharedImportPayloadClassification: Equatable {
     case rssOPML
     case rssLegadoJSON
     case replaceRules
-    case font(fileExtension: String)
     case localBook(fileExtension: String)
 }
 
@@ -664,33 +624,12 @@ enum SharedImportPayloadClassifier {
         "txt", "md", "markdown", "json"
     ])
 
-    /// Font formats the reader can install. Kept in step with
-    /// `UserFontStorageManager.supportedFileExtensions` and the font
-    /// `CFBundleDocumentTypes` entry in Info.plist; a shared font must be accepted
-    /// by all three or it is still refused at whichever layer disagrees.
-    private static let fontFileExtensions: Set<String> = ["ttf", "otf", "ttc"]
-
-    /// sfnt magic: `0x00010000` / `true` is TrueType, `OTTO` is OpenType/CFF and
-    /// `ttcf` is a TrueType collection. Chat apps and 檔案 Apps often hand a font
-    /// over under a name whose extension was dropped, so the header is the reliable
-    /// identifier when the filename cannot be trusted.
-    private static func fontExtension(from data: Data) -> String? {
-        let head = [UInt8](data.prefix(4))
-        if head == [0x00, 0x01, 0x00, 0x00] || head == Array("true".utf8) { return "ttf" }
-        if head == Array("OTTO".utf8) { return "otf" }
-        if head == Array("ttcf".utf8) { return "ttc" }
-        return nil
-    }
-
     static func classify(
         fileURL: URL,
         fileExtension: String,
         suggestedFilename: String?
     ) throws -> SharedImportPayloadClassification {
         let ext = normalizedExtension(fileExtension, suggestedFilename: suggestedFilename)
-        if fontFileExtensions.contains(ext) {
-            return .font(fileExtension: ext)
-        }
         if ext == "yuedustyle" { return .customization(.nativePackage) }
         if ext == "qitheme" || ext == "red" { return .customization(.qiTheme) }
         if ext == "qihighlight" { return .customization(.highlightPack) }
@@ -704,12 +643,6 @@ enum SharedImportPayloadClassifier {
         }
 
         let sample = try readSample(from: fileURL)
-        // A chat app can hand a font over with the extension stripped. The sfnt header
-        // still says what it is; check before the book/text heuristics so a binary font
-        // is neither rejected nor filed as a book.
-        if let detected = fontExtension(from: sample) {
-            return .font(fileExtension: detected)
-        }
         // A shared link's URL often has no extension; a Kindle book says what it is at
         // offset 60. Which of its two formats it holds is read again at import.
         if MOBIFile.isMOBI(sample) {
@@ -742,19 +675,12 @@ enum SharedImportPayloadClassifier {
         suggestedFilename: String?
     ) throws -> SharedImportPayloadClassification {
         let ext = normalizedExtension(fileExtension, suggestedFilename: suggestedFilename)
-        if fontFileExtensions.contains(ext) {
-            return .font(fileExtension: ext)
-        }
         if ext == "yuedustyle" { return .customization(.nativePackage) }
         if ext == "qitheme" || ext == "red" { return .customization(.qiTheme) }
         if ext == "qihighlight" { return .customization(.highlightPack) }
 
         if ["yds", "mrs"].contains(ext) {
             return .bookSource(fileExtension: ext)
-        }
-
-        if let detected = fontExtension(from: data) {
-            return .font(fileExtension: detected)
         }
 
         if MOBIFile.isMOBI(data) {

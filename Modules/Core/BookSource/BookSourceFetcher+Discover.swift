@@ -18,12 +18,25 @@ extension BookSourceFetcher {
         in source: BookSource,
         variableOverlay: [String: String]
     ) async throws -> [ModernParserBridge.DiscoverItem] {
-        guard source.enabledExplore,
-              !source.exploreUrl.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        else {
+        guard source.enabledExplore else { return [] }
+        return try await exploreKinds(page: page, in: source, variableOverlay: variableOverlay)
+    }
+
+    /// The kinds of the source's explore rule, whether or not 發現 is switched on for it — what
+    /// 書源驗證 reads: Legado's `CheckSourceService` checks discovery for every source with an
+    /// `exploreUrl` (`enabledExplore` only hides a source from 发现).
+    func exploreKinds(in source: BookSource) async throws -> [ModernParserBridge.DiscoverItem] {
+        try await exploreKinds(page: 1, in: source, variableOverlay: [:])
+    }
+
+    private func exploreKinds(
+        page: Int,
+        in source: BookSource,
+        variableOverlay: [String: String]
+    ) async throws -> [ModernParserBridge.DiscoverItem] {
+        guard !source.exploreUrl.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             return []
         }
-
         return try await BookSourceSession.session(for: source).host
             .getExploreItems(page: page, variableOverlay: variableOverlay)
     }
@@ -46,6 +59,16 @@ extension BookSourceFetcher {
             return []
         }
 
-        return try await BookSourceSession.session(for: source).host.exploreBooks(ruleUrl: rawURL, page: page)
+        let books = try await BookSourceSession.session(for: source).host.exploreBooks(ruleUrl: rawURL, page: page)
+        // Every explore row's cover, not just the ones a screen prefetches: `BookCoverLoader`
+        // only sees a URL, and an unregistered cover from a `coverDecodeJs` source is drawn
+        // from its encrypted bytes — blank (FB-135: 探索 sections, 查看全部, the related row).
+        for book in books {
+            CoverDecodeService.shared.registerIfNeeded(
+                coverUrl: book.coverUrl.trimmingCharacters(in: .whitespacesAndNewlines),
+                source: source
+            )
+        }
+        return books
     }
 }
