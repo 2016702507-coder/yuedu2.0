@@ -381,7 +381,9 @@ struct AppDependencies: Sendable {
         let webFetcher = WebFetcher()
         let webViewFetcher = MainActor.assumeIsolated { WebViewFetcher.shared }
         let bsf = BookSourceFetcher(webFetcher: webFetcher)
-        let cfm = ChapterFetchManager(bookSourceFetcher: bsf, webViewFetcher: webViewFetcher)
+        // 上游 3.0.1 重构：ChapterFetchManager.init 只收 bookSourceFetcher / moduleReader，
+        // webViewFetcher 已由其内部 WebViewFetcher.shared 接管。云端这行是旧签名，删掉多余实参。
+        let cfm = ChapterFetchManager(bookSourceFetcher: bsf)
         let liveChapterFetcher = LiveChapterFetcher(chapterFetchManager: cfm)
         let offlineChapterStore = OfflineChapterStore()
         let offlineDownloadManager = OfflineDownloadManager(
