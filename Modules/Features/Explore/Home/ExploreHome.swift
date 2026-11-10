@@ -66,6 +66,11 @@ private struct ExploreHomeRoot: View {
     /// Set as the home is edited or done, until the reader drags the page: the page keeps to
     /// its end, where 编辑首页 and 完成 are, while the other mode lays out.
     @State private var followsEnd = false
+    /// A cold launch restores the scroll offset iOS kept when the app was quit. Every section
+    /// is laid out afresh then, and on iOS 27 the lazy stack can draw no row at that old
+    /// offset — the home stays blank but for 编辑首页 (see the note on the anchor below).
+    /// Anchor once, after the first sync has filled the rows; later scrolls are never undone.
+    @State private var didAnchorOnLaunch = false
     /// The safe area under the page: the tab bar's, or the ＋'s bar while the home is edited.
     @State private var bottomInset: CGFloat = 0
     /// The page's width, which each section keeps in its card while the home is edited.
@@ -165,8 +170,17 @@ private struct ExploreHomeRoot: View {
     /// Every section is settled with nothing in it, so the home would be blank: a China
     /// storefront with no source and nothing read yet, a source no section draws from, or a
     /// 首页配置 with no section shown.
+    ///
+    /// `allSatisfy` on an empty array is vacuously true. Before the first sync has built any
+    /// row (or when a cold launch's sync is cancelled and restarted while the source library
+    /// is read), `groups` is empty and that used to put the full-screen "探索还没有内容"
+    /// over the whole page — a cold launch looked blank but for 编辑首页 (reported again
+    /// after build 4, where only the write path had been fixed). Only a ready home that
+    /// genuinely has no section is an empty state; a pending sync must not cover the page.
     private var showsNothing: Bool {
-        groups.allSatisfy(\.isSettledEmpty)
+        let drawn = groups
+        guard !drawn.isEmpty else { return model.isReady && hasNoSections }
+        return drawn.allSatisfy(\.isSettledEmpty)
     }
 
     /// The selected 首页配置 shows no section at all: none left, or every one hidden.
@@ -373,6 +387,18 @@ private struct ExploreHomeRoot: View {
                 followsEnd = false
                 proxy.scrollTo(Self.top, anchor: .top)
             }
+        }
+        // A cold launch restores the scroll offset iOS kept when the app was quit. On iOS 27
+        // the lazy stack then drew no row at that deep offset, every section having been
+        // rebuilt, and the home stayed blank but for 编辑首页 (see the note above). The anchor
+        // above only runs on a change of the selected 首页配置; a relaunch is not a change.
+        // Anchor once, after the first sync has built the rows, so the stack lays out from its
+        // top. A later scroll is never undone.
+        .onChange(of: model.isReady) { _, ready in
+            guard ready, !didAnchorOnLaunch else { return }
+            didAnchorOnLaunch = true
+            followsEnd = false
+            proxy.scrollTo(Self.top, anchor: .top)
         }
         }
         .overlay {
