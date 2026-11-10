@@ -267,6 +267,9 @@ struct BookSearchView: View {
     @State private var submittedQuery = ""
     @State private var showsSourceScopeSheet = false
     @State private var needsSearchResubmission = false
+    /// 来源配置目录里长按卡片改名：正在改的书源，与输入框草稿。
+    @State private var renamingSource: BookSource?
+    @State private var renameText = ""
     /// The session scope as the reader changes it on this page.
     @State private var editedSessionScope: SearchSourceScope?
     /// What this page has pushed through its one item-based destination: a result on
@@ -448,6 +451,20 @@ struct BookSearchView: View {
         } message: {
             Text(errorMsg ?? "")
         }
+        // 长按来源配置卡片改名。输入框草稿在弹出前由长按动作填成当前名字。
+        .alert(
+            localized("重新命名"),
+            isPresented: Binding(
+                get: { renamingSource != nil },
+                set: { if !$0 { renamingSource = nil } }
+            )
+        ) {
+            TextField(localized("名称"), text: $renameText)
+            Button(localized("取消"), role: .cancel) { renamingSource = nil }
+            Button(localized("确定")) { commitSourceRename() }
+        } message: {
+            Text(localized("改名后，这张卡片和该来源的发现页会一起更新"))
+        }
         .onAppear {
             aggregator.setResultPresentationActive(scenePhase == .active)
             if !initialQuery.isEmpty && query.isEmpty {
@@ -528,7 +545,6 @@ struct BookSearchView: View {
     // MARK: Sources Directory
 
     /// 搜索 tab 的根页、空查询、没在打字：下半页就是来源配置目录。
-    /// 以前它只在 资源库 那一页，那一页没有入口之后，这块是唯一能看到分组的地方。
     private var showsSourcesDirectory: Bool {
         isAtTabRoot
             && trimmedQuery.isEmpty
@@ -538,48 +554,41 @@ struct BookSearchView: View {
             && !exploreSources.isEmpty
     }
 
-    /// 资源库 的「来源配置」网格原样搬过来：所有来源配置 + 各分组，纸面卡片、同一套点按行为。
+    /// 每个书源一张卡，不再按分组合并。
+    ///
+    /// 旧版把好几个书源塞进「所有来源配置 / 某个分组」一张卡里，点进去还得再挑一次
+    /// 才到书源的发现页。现在目录直接平铺每个可发现书源：点按直达它的发现页
+    /// (`ExploreNavigationRoute.source`)，长按「重新命名」改卡片上的名字。
     private var sourcesDirectory: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: DSSpacing.xl) {
-                LibrarySection(
-                    localized("来源配置"),
-                    isLazy: false
-                ) {
+                LibrarySection(localized("来源配置")) {
                     NavigationLink(value: ExploreNavigationRoute.sourceManager) {
                         LibrarySectionAccessoryLabel()
                     }
                     .accessibilityLabel(localized("管理来源配置"))
                     .accessibilityIdentifier("search.sources.manage")
                 } content: { layout in
-                    NavigationLink(value: ExploreNavigationRoute.sources(group: nil)) {
-                        ExploreEntryLabel(
-                            title: localized("所有来源配置"),
-                            artwork: nil,
-                            layout: layout,
-                            corner: .count(exploreSources.count),
-                            glass: true
-                        )
-                    }
-                    .buttonStyle(ExploreTileButtonStyle())
-                    .accessibilityLabel(localized("所有来源配置"))
-                    .accessibilityValue(String(format: localized("%d 个来源配置"), exploreSources.count))
-                    .accessibilityIdentifier("search.sources.all")
-
-                    ForEach(sourceGroups) { group in
-                        NavigationLink(value: ExploreNavigationRoute.sources(group: group.name)) {
+                    ForEach(exploreSources) { source in
+                        NavigationLink(value: ExploreNavigationRoute.source(sourceURL: source.bookSourceUrl)) {
                             ExploreEntryLabel(
-                                title: group.name,
+                                title: source.bookSourceName,
                                 artwork: nil,
                                 layout: layout,
-                                corner: .count(group.count),
                                 glass: true
                             )
                         }
                         .buttonStyle(ExploreTileButtonStyle())
-                        .accessibilityLabel(group.name)
-                        .accessibilityValue(String(format: localized("%d 个来源配置"), group.count))
-                        .accessibilityIdentifier("search.group.\(group.name)")
+                        .accessibilityLabel(source.bookSourceName)
+                        .accessibilityIdentifier("search.source.\(source.id.uuidString)")
+                        .contextMenu {
+                            Button {
+                                renameText = source.bookSourceName
+                                renamingSource = source
+                            } label: {
+                                Label(localized("重新命名"), systemImage: "pencil")
+                            }
+                        }
                     }
                 }
             }
@@ -596,8 +605,20 @@ struct BookSearchView: View {
         DiscoverViewModel.exploreSources(in: enabledSources)
     }
 
-    private var sourceGroups: [LibrarySourceGroups.Group] {
-        LibrarySourceGroups.groups(of: exploreSources)
+    /// 长按卡片改名：只改书源名字，其余字段按 id 从库里取最新，避免用长按那一刻的
+    /// 快照覆盖掉别处的改动。写回走 `BookSourceStore.update`，它会发布变更让这张卡
+    /// 和书源管理、发现页标题一起刷新，并跟着 iCloud 同步。
+    private func commitSourceRename() {
+        guard let target = renamingSource else { return }
+        let name = renameText.trimmingCharacters(in: .whitespacesAndNewlines)
+        defer { renamingSource = nil }
+        guard !name.isEmpty,
+              let current = sourceStore.sources.first(where: { $0.id == target.id }),
+              name != current.bookSourceName
+        else { return }
+        var updated = current
+        updated.bookSourceName = name
+        BookSourceStore.shared.update(updated)
     }
 
     // MARK: Result List

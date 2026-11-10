@@ -4484,3 +4484,6 @@
 "探索页设置暂时无法写入，本次编辑不会被保存。原文件会保留备份。" = "Your Explore layout can't be written right now, so this edit won't be saved. The original file is kept as a backup.";
 "重试保存" = "Retry Save";
 "重建首页" = "Rebuild Home";
+
+/* Search tab source directory: rename a source card via long press */
+"改名后，这张卡片和该来源的发现页会一起更新" = "This card and the source's Discover page will both use the new name.";
