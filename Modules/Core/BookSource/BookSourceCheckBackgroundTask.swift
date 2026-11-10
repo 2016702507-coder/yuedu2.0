@@ -122,17 +122,13 @@ final class BookSourceCheckBackgroundTask {
             // Start now or not at all: a request queued behind others would start after the
             // user is long back, and the background task's grace covers the gap either way.
             request.strategy = .fail
-            if #available(iOS 27.0, *) {
-                BGTaskScheduler.shared.submitTaskRequest(request) { error in
-                    guard let error else { return }
-                    Task { @MainActor in self.submissionFailed(identifier, error) }
-                }
-            } else {
-                do {
-                    try BGTaskScheduler.shared.submit(request)
-                } catch {
-                    Task { @MainActor in self.submissionFailed(identifier, error) }
-                }
+            // 构建用 Xcode 26.3 SDK：`submitTaskRequest(_:completionHandler:)` 是 iOS 27 SDK 才有的
+            // 签名，在本 SDK 下会被解析成另一个重载，尾随闭包被判「多余」。这里统一用经典
+            // `submit(_:)`——它提交的是同一个 request，行为一致，只是 iOS 27 起标为弃用（仅警告）。
+            do {
+                try BGTaskScheduler.shared.submit(request)
+            } catch {
+                Task { @MainActor in self.submissionFailed(identifier, error) }
             }
         }
     }
