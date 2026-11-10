@@ -135,7 +135,7 @@ struct BookSourceParsingPipeline {
         runtimeVariables: [String: String]? = nil,
         chapterRef: OnlineChapterRef? = nil
     ) async -> (urls: [String], runtimeVariables: [String: String]?) {
-        await SourcePerfTrace.spanAsync("chapter.nextContent", source.bookSourceName, thresholdMs: 0) {
+        await SourcePerfTrace.spanAsync("chapter.nextContent", source.bookSourceName, thresholdMilliseconds: 0) {
             // An absent rule needs no runtime context. Acquiring the shared parse lock
             // first made a completed chapter wait for another chapter's review requests
             // merely to discover that this source has no continuation page.
