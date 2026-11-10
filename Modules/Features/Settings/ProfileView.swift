@@ -67,10 +67,11 @@ struct SettingsView: View {
     }
 
     private let feedbackEmail = "2961361138@qq.com"
-    /// 交流群 (maintainer, 2026-11-05). Tapping the row copies the number — a QQ group
-    /// invitation URL needs the group to be joinable by link, and this one is searched
-    /// by number instead.
+    /// 交流群 (maintainer, 2026-11-05). 群号显示在副标题上，点击直接进群。
     private let qqGroup = "649975499"
+    /// 入群链接 (maintainer, 2026-11-11): QQ 群「ios阅读2.0交流群」的 universal-share 链接。
+    /// 改成打开链接而不是复制群号 —— 复制之后还要用户自己去 QQ 搜寻，多一步。
+    private let qqGroupShareURL = URL(string: "https://qun.qq.com/universal-share/share?ac=1&authKey=i%2B%2FIrhPqCd3TkyLQMLtHXJLwQIF8qXp25SBbjOMcW7qOc6N88%2Fn5tH7Ku8W%2F7MWM&busi_data=eyJncm91cENvZGUiOiI2NDk5NzU0OTkiLCJ0b2tlbiI6IjFIcWdDY0dvaUlkREdBYVFpS1JVdGltWEFjcDFBNDl1NW9YazBnTCt1QzZUeFk2R0ZvaHFuWFZiNkVqYUVKTy8iLCJ1aW4iOiIyOTYxMzYxMTM4In0%3D&data=dhkMCM4L1doSVHXHMmgMWnGSbiQ_MhBf1W3yIPBj5MgeaWMInwEL1VwHsWS8r-7cBSNNUKcPS8hLuvK2haz05w&svctype=4&tempid=h5_group_info")
 
     private var feedbackMailURL: URL? {
         var components = URLComponents()
@@ -283,6 +284,38 @@ struct SettingsView: View {
 
                     // ── 支援 ──
                     Section {
+                        // 交流群 (maintainer, 2026-11-11): 放到诊断前面 —— 想反馈的人先看到群，
+                        // 群里有维护者答疑。点一下直接打开入群链接，不再复制群号让人自己搜。
+                        Button {
+                            if let url = qqGroupShareURL { openURL(url) }
+                        } label: {
+                            HStack(spacing: 12) {
+                                Image(systemName: "person.2.fill")
+                                    .font(DSFont.fixed(size: 18, weight: .medium))
+                                    .frame(width: 28, height: 28)
+                                    .foregroundColor(DSColor.textPrimary)
+                                    .accessibilityHidden(true)
+
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text(localized("QQ 交流群"))
+                                        .foregroundColor(DSColor.textPrimary)
+                                    Text(qqGroup)
+                                        .font(DSFont.caption)
+                                        .foregroundColor(DSColor.textSecondary)
+                                }
+
+                                Spacer(minLength: 12)
+
+                                Image(systemName: "arrow.up.right")
+                                    .font(DSFont.caption)
+                                    .foregroundColor(DSColor.textSecondary)
+                                    .accessibilityHidden(true)
+                            }
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("settings_qq_group")
+
                         // 回馈中心 只剩日志 (maintainer, 2026-11-05): 送出回报、我的回馈、
                         // 截图入口全部拿掉，这一格直接就是诊断日志。
                         NavigationLink {
@@ -298,8 +331,7 @@ struct SettingsView: View {
                             AboutSupportView(
                                 appVersion: appVersion,
                                 feedbackEmail: feedbackEmail,
-                                feedbackMailURL: feedbackMailURL,
-                                qqGroup: qqGroup
+                                feedbackMailURL: feedbackMailURL
                             )
                         } label: {
                             HStack {
@@ -429,7 +461,6 @@ private struct AboutSupportView: View {
     let appVersion: String
     let feedbackEmail: String
     let feedbackMailURL: URL?
-    let qqGroup: String
 
     @State private var copiedNotice: String?
 
@@ -484,40 +515,6 @@ private struct AboutSupportView: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("about.email")
-
-                Button {
-                    UIPasteboard.general.string = qqGroup
-                    copiedNotice = localized("群号已复制到剪贴簿。")
-                } label: {
-                    HStack(spacing: 12) {
-                        Image(systemName: "person.2.fill")
-                            .font(DSFont.fixed(size: 18, weight: .medium))
-                            .frame(width: 28, height: 28)
-                            .foregroundColor(DSColor.textPrimary)
-                            .accessibilityHidden(true)
-
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text(localized("QQ 交流群"))
-                                .foregroundColor(DSColor.textPrimary)
-                            Text(qqGroup)
-                                .font(DSFont.caption)
-                                .foregroundColor(DSColor.textSecondary)
-                        }
-
-                        Spacer(minLength: 12)
-
-                        Image(systemName: "doc.on.doc")
-                            .font(DSFont.caption)
-                            .foregroundColor(DSColor.textSecondary)
-                            .accessibilityHidden(true)
-                    }
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("about.qq_group")
-            } footer: {
-                Text(localized("点一下群号即可复制，再到 QQ 搜寻加入。"))
-                    .dsSectionFooter()
             }
             .interfaceSectionSurface()
 
