@@ -576,7 +576,17 @@ final class BookSourceHealthChecker: ObservableObject {
         return sourceCount >= 1_000 ? max(32, configured) : configured
     }
 
-    func prepare(sources: [BookSource]) {
+    /// - Parameter preferredSearchKeywords: kept for the app's check sheet, which still
+    ///   passes the shelf titles it collected. Upstream 3.0.1 deliberately dropped the
+    ///   "search with a bookshelf title" hint — `BookSource.getCheckKeyword` now uses the
+    ///   source's own `checkKeyWord` (else the run's default keyword) — so the value is
+    ///   unused here. Accepting and ignoring it keeps the functional layer byte-identical
+    ///   while the probe uses exactly the keyword upstream uses.
+    func prepare(
+        sources: [BookSource],
+        preferredSearchKeywords: [UUID: String]? = nil
+    ) {
+        _ = preferredSearchKeywords
         // Legado refuses a second run while one is going (`CheckSourceService`); so does this
         // checker — replacing `items` under a live run would hand its tasks the new list.
         guard !isRunning else { return }
