@@ -353,8 +353,25 @@ build_with() {
   local name="$1" mode="$2" opt="$3" batch="$4" disopt="$5"
   echo "----- 尝试配置: $name (mode=$mode opt=$opt batch=$batch disable-optzns=$disopt) -----"
   local extra_flags="\$(inherited)"
+  # 默认 swiftc 一旦某个文件类型检查失败就停止调度后续文件，于是「一轮只暴露一个
+  # 错误」，而每轮要 15 分钟。下面探测工具链是否支持继续构建，支持就加上：
+  # 一次把所有源文件的错误都报出来。旧工具链不认识该开关时探测失败，自动跳过，
+  # 行为退回原样。
+  if [ "${CONTINUE_AFTER_ERRORS:-}" = "" ]; then
+    printf 'let yueduProbe = 1\n' > /tmp/yuedu_flag_probe.swift
+    if swiftc -typecheck -continue-building-after-errors /tmp/yuedu_flag_probe.swift >/dev/null 2>&1; then
+      CONTINUE_AFTER_ERRORS="-continue-building-after-errors"
+      echo "工具链支持 -continue-building-after-errors，本轮一次报全所有错误"
+    else
+      CONTINUE_AFTER_ERRORS="none"
+      echo "工具链不支持 -continue-building-after-errors，退回遇错即停"
+    fi
+  fi
+  if [ "$CONTINUE_AFTER_ERRORS" != "none" ]; then
+    extra_flags="\$(inherited) $CONTINUE_AFTER_ERRORS"
+  fi
   if [ "$disopt" = "yes" ]; then
-    extra_flags="\$(inherited) -Xfrontend -disable-llvm-optzns"
+    extra_flags="$extra_flags -Xfrontend -disable-llvm-optzns"
   fi
   # strip 只能在「已链接完成的产物」上做。上一版把
   #   STRIP_INSTALLED_PRODUCT=YES / COPY_PHASE_STRIP=YES / DEPLOYMENT_POSTPROCESSING=YES
@@ -450,7 +467,7 @@ attempt() {
   errs=$(grep -c 'error:' "build-$name.log" 2>/dev/null || true)
   if [ "${errs:-0}" -gt 0 ]; then
     echo "===== 存在 ${errs} 条 error: 行，判定为真实源码错误，停止换档 ====="
-    grep -n 'error:' "build-$name.log" 2>/dev/null | head -60 || true
+    grep -n 'error:' "build-$name.log" 2>/dev/null | head -120 || true
     echo "===== 失败命令 ====="
     awk '/The following build commands failed:/,0' "build-$name.log" 2>/dev/null | head -25 || true
     cp "build-$name.log" build.log
