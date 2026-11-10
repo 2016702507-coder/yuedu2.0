@@ -381,6 +381,9 @@ struct yuedu_appApp: App {
                 }
                 // Pick up sources shared while the app was backgrounded.
                 if newPhase == .active {
+                    // 卡密会员：后台改完档位后，回前台按 10 分钟节流复验一次，
+                    // 让「升级成永久／激活」最迟约 10 分钟就反映到本机权益。
+                    Task { await CardKeyMembership.shared.refreshIfNeeded() }
                     Task { await subscriptionStore.refreshAllEntitlements() }
                     Task { await subscriptionStore.reloadProductsIfStorefrontChanged() }
                     Task { await SharedImportQueueDrainer.shared.drain() }

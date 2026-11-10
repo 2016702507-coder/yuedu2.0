@@ -74,13 +74,14 @@ final class CardKeyMembership: ObservableObject {
     private static let serverAnchorKey = "cardkey_membership_server_anchor"
     private static let localAnchorKey = "cardkey_membership_local_anchor"
 
-    /// 已激活用户的复验间隔：一小时内重复启动不重复请求。
-    private static let cacheTTL: TimeInterval = 3_600
+    /// 已激活用户的复验间隔：10 分钟内重复启动不重复请求。
+    /// 后台改完会员后，最迟约 10 分钟就会拉到新档位（配合下面的前台定时复验）。
+    private static let cacheTTL: TimeInterval = 600
 
     /// 重装恢复**失败**后的重试间隔（多半是断网）。
     ///
-    /// 不能跟著 `cacheTTL` 走：一小时是「已激活后多久复验一次」的节律，
-    /// 而断网重装的人联网后应该一分钟内就接回来，不该等一小时。
+    /// 不能跟著 `cacheTTL` 走：10 分钟是「已激活后多久复验一次」的节律，
+    /// 而断网重装的人联网后应该一分钟内就接回来，不该等满 10 分钟。
     private static let restoreRetryDelay: TimeInterval = 60
 
     /// 本机设备标识，进程内只读一次。
@@ -107,6 +108,10 @@ final class CardKeyMembership: ObservableObject {
     private var lastRestoreAttempt: Date = .distantPast
     private var isRefreshing = false
     private var expiryTimer: Timer?
+    /// 前台周期性复验：后台改完会员后，最迟约 10 分钟就能拉到新档位，
+    /// 不必等用户手动重开或切后台。Timer 在后台会被系统挂起，回到前台
+    /// 由 `refreshIfNeeded()` 兜底。
+    private var recheckTimer: Timer?
 
     private init() {
         let defaults = UserDefaults.standard
@@ -139,6 +144,7 @@ final class CardKeyMembership: ObservableObject {
         // 重装：UserDefaults 被清空，但 Keychain 里的卡密还在（设备标识就在那儿，
         // 所以服务端仍认得这台机器）。下面的 `refreshIfNeeded` 会用它把会员接回来。
         Task { await refreshIfNeeded() }
+        startRecheckTimer()
     }
 
     /// 重装或清空资料后，用 Keychain 里的卡密把会员接回来。
@@ -150,7 +156,7 @@ final class CardKeyMembership: ObservableObject {
         guard !isUnlocked else { return }
         // 刚试过就别再问：回前台、多个视图的 onAppear 都会走到 refreshIfNeeded，
         // 而服务端挂掉时这里是每次都会失败的。失败只挡一小会儿，成功才进入
-        // `cacheTTL` 那一小时的复验节律 —— 写 lastCheck 是「复验成功」的语义，
+        // `cacheTTL` 那 10 分钟的复验节律 —— 写 lastCheck 是「复验成功」的语义，
         // 失败不该占用它。
         if Date().timeIntervalSince(lastRestoreAttempt) < Self.restoreRetryDelay { return }
         lastRestoreAttempt = Date()
@@ -460,6 +466,20 @@ final class CardKeyMembership: ObservableObject {
 
         if let reason { lastFailureReason = reason }
         onStateChanged?()
+    }
+
+    /// 每 10 分钟向服务端复验一次，让后台改完的档位自动反映到本机。
+    /// 写法沿用 `scheduleExpiryTimer`：Timer 挂在主 RunLoop，后台自动挂起。
+    /// 用 `force: true` 是为了避开与 `cacheTTL` 等长的节流边界（否则可能
+    /// 差几毫秒被跳过、变成 20 分钟才刷一次）。
+    private func startRecheckTimer() {
+        recheckTimer?.invalidate()
+        recheckTimer = Timer.scheduledTimer(withTimeInterval: Self.cacheTTL, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                guard let self else { return }
+                await self.refreshIfNeeded(force: true)
+            }
+        }
     }
 
     /// 到期那一刻把会员收回，不用等用户重启 App。
