@@ -113,15 +113,11 @@ enum GlobalAppTypographyUIKitBridge {
         tabBar.scrollEdgeAppearance = tabBarAppearance
         // 强制走半透明通道，杜绝任何不透明兜底背景
         tabBar.isTranslucent = true
-        // 连每个标签项（含选中态）背后的高亮药丸底/背景图也清掉，只保留红字+彩图标的选中态
-        for layout in [tabBarAppearance.stackedLayoutAppearance,
-                       tabBarAppearance.inlineLayoutAppearance,
-                       tabBarAppearance.compactInlineLayoutAppearance] {
-            layout.normal.backgroundColor = .clear
-            layout.normal.backgroundImage = nil
-            layout.selected.backgroundColor = .clear
-            layout.selected.backgroundImage = nil
-        }
+        // 整条 bar 的底/雾/阴影/选中态高亮都在上面用 UITabBarAppearance 清干净了：
+        // configureWithTransparentBackground + backgroundEffect = nil 会把 iOS 26
+        // 液态玻璃那层（包括选中项背后的高亮）一起拿掉，只留红字 + 彩图标的选中态。
+        // 注意：UITabBarItemStateAppearance 并没有 backgroundColor / backgroundImage
+        // 这两个成员，旧写法在 Xcode 26.3 下会直接编译报错，已删除。
     }
 
     private static func apply(
@@ -280,12 +276,9 @@ enum GlobalAppTypographyUIKitBridge {
                 font: font,
                 into: itemAppearance.selected.titleTextAttributes
             )
-            // 最透：连每个标签项（含选中态）背后的高亮药丸底/背景图也清掉，
-            // 只保留红字+彩图标的选中态，不残留任何不透明块（参考待改清单第 11 条）。
-            itemAppearance.normal.backgroundColor = .clear
-            itemAppearance.normal.backgroundImage = nil
-            itemAppearance.selected.backgroundColor = .clear
-            itemAppearance.selected.backgroundImage = nil
+            // 只合并字体。选中项背后的高亮由系统绘制，整条 bar 的底/雾/阴影在下方
+            // 用 UITabBarAppearance 清掉；UITabBarItemStateAppearance 没有
+            // backgroundColor / backgroundImage，旧写法是编译错误，已移除。
         }
         // 底部导航栏完全透明：去掉系统默认的灰底、毛玻璃与阴影，让背后山影/正文直接透出，
         // 与藏书页「继续阅读」按钮、分类标签栏同一套透明玻璃语言（参考待改清单第 7、10 条）。
