@@ -50,6 +50,22 @@ extension View {
         modifier(InterfaceSurfaceModifier(shape: shape, fill: fill, glassAllowed: true))
     }
 
+    /// 清透玻璃：保留 `.ultraThinMaterial` 的通透（比 `.regular` 更透、不起雾），
+    /// 但受「全局玻璃」总闸 (`interfaceFrostedGlass`) 与系统「降低透明度」控制。
+    ///
+    /// 关掉总闸（或系统降低透明度）时回退成不透明的 `fill`，**完全不调用任何
+    /// material / glassEffect API** —— 这是 iOS 17 等旧系统遇到玻璃渲染异常时的
+    /// 一键兜底：全 App 所有玻璃表面统一走纯色，杜绝花屏/重影。
+    ///
+    /// 用于分类栏、胶囊按钮这类用户明确要「最透、不要雾」的表面；卡片/面板仍走
+    /// `interfaceCardSurface` / `floatingSurfaceBackground`，几者共用同一个总闸。
+    func clearGlassSurface<SurfaceShape: Shape>(
+        in shape: SurfaceShape,
+        fill: Color = DSColor.surface
+    ) -> some View {
+        modifier(ClearGlassSurfaceModifier(shape: shape, fill: fill))
+    }
+
     /// The 光晕 alone, for elements that already own their background and only need
     /// the glow (e.g. chrome painted with an opaque theme color).
     func interfaceGlow<SurfaceShape: Shape>(
@@ -89,6 +105,67 @@ extension View {
     /// rounding is done by a `clipShape` further out, so the surface itself is square.
     func interfaceCardSurface(fill: Color = DSColor.surface) -> some View {
         modifier(InterfaceCardSurfaceModifier(shape: Rectangle(), fill: fill))
+    }
+}
+
+/// 清透玻璃的开关实现：与 `InterfaceSurfaceModifier` 共用同一个「全局玻璃」总闸，
+/// 但保留 `.ultraThinMaterial` 的通透质感。关掉总闸时退化成纯色 `fill`，不碰任何材质 API。
+private struct ClearGlassSurfaceModifier<SurfaceShape: Shape>: ViewModifier {
+    let shape: SurfaceShape
+    let fill: Color
+
+    @Bindable private var settings = GlobalSettings.shared
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+
+    /// 与 `InterfaceSurfaceModifier.usesFrostedGlass` 同一判定：总闸开 + 系统未降低透明度。
+    private var usesGlass: Bool {
+        settings.interfaceFrostedGlass && !reduceTransparency
+    }
+
+    func body(content: Content) -> some View {
+        Group {
+            if usesGlass {
+                content.background(.ultraThinMaterial, in: shape)
+            } else {
+                // 兜底路径：纯色填充，不调用 .ultraThinMaterial / .glassEffect 等材质 API。
+                content.background(fill, in: shape)
+            }
+        }
+    }
+}
+
+/// 全局玻璃总闸下的「整片背景」：给 sheet 的 `presentationBackground`、全屏编辑器
+/// 这类需要自己铺满底层的位置用。与 `ClearGlassSurfaceModifier` 共用同一判定；
+/// 总闸关闭或系统要求降低透明度时铺不透明纯色，不调用任何材质 API ——
+/// iOS 17 等旧系统遇到玻璃渲染异常时的一键兜底（参考待改清单第 13 条）。
+struct GlobalGlassBackdrop: View {
+    /// 材质层不透明度（阅读设置 sheet 定稿 0.30）。
+    var materialOpacity: CGFloat = 1
+    /// 夜间 / 浅色 tint，用来压住材质让文字更清楚。
+    var tintOpacityDark: CGFloat = 0
+    var tintOpacityLight: CGFloat = 0
+
+    @Bindable private var settings = GlobalSettings.shared
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @Environment(\.colorScheme) private var colorScheme
+
+    private var usesGlass: Bool {
+        settings.interfaceFrostedGlass && !reduceTransparency
+    }
+
+    var body: some View {
+        ZStack {
+            if usesGlass {
+                Rectangle()
+                    .fill(.ultraThinMaterial)
+                    .opacity(materialOpacity)
+                (colorScheme == .dark ? Color.black : Color.white)
+                    .opacity(colorScheme == .dark ? tintOpacityDark : tintOpacityLight)
+            } else {
+                Rectangle().fill(DSColor.surface)
+            }
+        }
+        .ignoresSafeArea()
     }
 }
 

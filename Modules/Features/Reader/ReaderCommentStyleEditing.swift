@@ -119,10 +119,14 @@ struct ReviewCardGlassPreview: View {
 /// glass those systems have (`ReviewCardGlassView` does the same in the reader).
 private struct ReviewCardGlassShape: View {
     let cornerRadius: CGFloat
+    @Bindable private var settings = GlobalSettings.shared
 
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-        if #available(iOS 26.0, *) {
+        // 全局玻璃总闸：关闭时用纯色，不调用 glassEffect / thinMaterial（iOS 17 兜底）。
+        if !settings.interfaceFrostedGlass {
+            shape.fill(Color.secondary.opacity(0.28))
+        } else if #available(iOS 26.0, *) {
             Color.clear.glassEffect(.regular, in: shape)
         } else {
             shape.fill(.thinMaterial)

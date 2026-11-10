@@ -35,7 +35,7 @@ struct ReaderBookmarkToastView: View {
         .font(DSFont.subheadline.weight(.semibold))
         .padding(.horizontal, DSSpacing.lg)
         .padding(.vertical, DSSpacing.md)
-        .background(.regularMaterial, in: Capsule())
+        .floatingSurfaceBackground(in: Capsule())
         .shadow(color: DSColor.shadow, radius: DSSpacing.sm, y: DSSpacing.xs)
         .environment(\.colorScheme, colorScheme)
         // VoiceOver hears it as an announcement when it appears; a focusable element

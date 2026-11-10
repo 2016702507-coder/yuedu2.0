@@ -254,7 +254,7 @@ struct BrowserStartPage: View {
                         .foregroundStyle(DSColor.textPrimary)
                         .padding(.horizontal, DSSpacing.lg)
                         .padding(.vertical, DSSpacing.sm)
-                        .background(DSColor.surface, in: Capsule())
+                        .interfaceCardSurface(in: Capsule())
                         .shadow(color: DSColor.appIconShadow, radius: DSLayout.browserLiftShadowRadius, y: DSLayout.browserLiftShadowY)
                         .frame(minHeight: DSLayout.minimumTapTarget)
                         .contentShape(Rectangle())

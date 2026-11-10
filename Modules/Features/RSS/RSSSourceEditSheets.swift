@@ -98,7 +98,7 @@ struct EditRSSSourceSheet: View {
                 if isSaving {
                     ProgressView(localized("正在验证网址…"))
                         .padding()
-                        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+                        .floatingSurfaceBackground(in: RoundedRectangle(cornerRadius: 12))
                 }
             }
             .alert(localized("无法解析此网址"), isPresented: $showUnreachableConfirm) {

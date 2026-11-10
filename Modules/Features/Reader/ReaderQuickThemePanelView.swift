@@ -680,17 +680,15 @@ struct ReaderQuickThemePanelView: View {
 /// 2026-11-10 追加反馈「再透一点吧还是模糊」：材料 0.45 → 0.30（清晰原内容
 /// 占比 55% → 70%），tint 0.13/0.07 → 0.09/0.05。仍是同一块共用玻璃。
 struct ReaderGlassSheetBackground: View {
-    @Environment(\.colorScheme) private var colorScheme
-
     var body: some View {
-        ZStack {
-            Rectangle()
-                .fill(.ultraThinMaterial)
-                .opacity(0.30)
-            (colorScheme == .dark ? Color.black : Color.white)
-                .opacity(colorScheme == .dark ? 0.09 : 0.05)
-        }
-        .ignoresSafeArea()
+        // 共用组件：主面板 / 九宫格 / 整份设置 / 分区 sheet 都走这一块玻璃。
+        // 参数仍是 2026-11-10 定稿值（0.30 / 0.09 / 0.05），只是把「全局玻璃」
+        // 总闸接进来：关掉时退成不透明纯色，供 iOS 17 一键兜底（第 13 条）。
+        GlobalGlassBackdrop(
+            materialOpacity: 0.30,
+            tintOpacityDark: 0.09,
+            tintOpacityLight: 0.05
+        )
     }
 }
 
@@ -784,7 +782,7 @@ private struct ReaderQuickPanelSectionGrid: View {
                         .font(DSFont.bodyBold)
                         .foregroundStyle(DSColor.textPrimary)
                         .frame(width: 36, height: 36)
-                        .background(.regularMaterial, in: Circle())
+                        .floatingSurfaceBackground(in: Circle())
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(localized("返回"))

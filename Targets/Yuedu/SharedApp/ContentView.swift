@@ -92,7 +92,9 @@ struct ContentView: View {
     }
 
     private var typographyRefreshID: String {
-        "\(drawnGlobalFont ?? "system")|\(dynamicTypeSize)|\(isBoldTextOn)"
+        // 全局玻璃总闸切换时也要重刷 UIKit 底栏外观（关掉玻璃时恢复系统默认底栏），
+        // 否则 appearance 只在字体变化时才 apply，开关当场不生效。参考待改清单第 13 条。
+        "\(drawnGlobalFont ?? "system")|\(dynamicTypeSize)|\(isBoldTextOn)|\(gs.interfaceFrostedGlass)"
     }
 
     var body: some View {

@@ -344,10 +344,13 @@ private struct BookDetailCardButtonGroup<Buttons: View>: View {
 /// `FrostedGlassBackground`.
 struct CardButtonGlass: ViewModifier {
     var tint: Color?
+    @Bindable private var settings = GlobalSettings.shared
 
     func body(content: Content) -> some View {
         #if compiler(>=6.2)
-        if #available(iOS 26.0, *) {
+        // 全局玻璃总闸：关闭时连 iOS 26 的 glassEffect 也不画，走 legacy 纯色路径
+        // （legacy 已收编到 floatingSurfaceBackground，会跟随开关退化成纯色）。
+        if #available(iOS 26.0, *), settings.interfaceFrostedGlass {
             content.glassEffect(glass, in: Capsule())
         } else {
             legacy(content)
@@ -368,7 +371,7 @@ struct CardButtonGlass: ViewModifier {
     private func legacy(_ content: Content) -> some View {
         content
             .background(tint?.opacity(DSLayout.cardHeaderGlassTintOpacity) ?? .clear, in: Capsule())
-            .background(.regularMaterial, in: Capsule())
+            .floatingSurfaceBackground(in: Capsule())
     }
 }
 
@@ -1085,7 +1088,7 @@ struct BookDetailRecommendationSection: View {
                     .foregroundStyle(DSColor.textSecondary)
                     .padding(.horizontal, DSSpacing.sm)
                     .padding(.vertical, DSSpacing.xs)
-                    .background(DSColor.surfaceTertiary, in: Capsule())
+                    .interfaceCardSurface(in: Capsule(), fill: DSColor.surfaceTertiary)
             }
             Text(verbatim: reason)
                 .font(DSFont.subheadline)

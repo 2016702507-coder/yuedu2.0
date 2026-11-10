@@ -351,7 +351,7 @@ extension ReaderView {
         }
         .padding(DSSpacing.xl)
         .frame(maxWidth: 300)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: DSRadius.lg, style: .continuous))
+        .floatingSurfaceBackground(in: RoundedRectangle(cornerRadius: DSRadius.lg, style: .continuous))
         // The reader tints its controls with the ink (`ReaderView.body`), so the prominent
         // button is filled with it; its label is chosen against the accent colour, which has
         // to be the same ink. 黑色's D9D9D9 took the system's white at 1.42:1.

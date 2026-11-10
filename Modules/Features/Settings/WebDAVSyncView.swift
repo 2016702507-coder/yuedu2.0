@@ -147,7 +147,7 @@ struct WebDAVSyncView: View {
                     .font(DSFont.subheadline)
             }
             .padding(24)
-            .background(.ultraThinMaterial)
+            .clearGlassSurface(in: RoundedRectangle(cornerRadius: 16, style: .continuous))
             .cornerRadius(16)
         }
     }

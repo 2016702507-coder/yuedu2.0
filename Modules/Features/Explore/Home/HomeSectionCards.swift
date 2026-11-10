@@ -555,7 +555,7 @@ struct HomeReadingCard: View {
         }
         .padding(DSSpacing.lg)
         .frame(maxWidth: .infinity, minHeight: coverSize.height + DSSpacing.lg * 2, alignment: .topLeading)
-        .background(DSColor.surface, in: RoundedRectangle(cornerRadius: DSRadius.xl, style: .continuous))
+        .interfaceCardSurface(in: RoundedRectangle(cornerRadius: DSRadius.xl, style: .continuous))
         .contentShape(RoundedRectangle(cornerRadius: DSRadius.xl, style: .continuous))
     }
 

@@ -323,7 +323,7 @@ extension CustomizationImportOverview {
         if extras.frostedGlass != nil || extras.glassTransparency != nil
             || extras.glowIntensity != nil || extras.glassCards != nil {
             var effects: [String] = []
-            if extras.frostedGlass == true { effects.append(localized("毛玻璃")) }
+            if extras.frostedGlass == true { effects.append(localized("全局玻璃")) }
             if (extras.glowIntensity ?? 0) > 0 { effects.append(localized("光晕")) }
             items.append(Item(
                 titleKey: "界面效果",

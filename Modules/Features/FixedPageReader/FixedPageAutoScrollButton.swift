@@ -48,7 +48,7 @@ private struct DimmedWhileScrollingButtonStyle: ButtonStyle {
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .background(.regularMaterial, in: Circle())
+            .floatingSurfaceBackground(in: Circle())
             .opacity(isDimmed && !configuration.isPressed ? DSLayout.readerFloatingControlScrollingOpacity : 1)
             .animation(DSAnimation.fast, value: isDimmed)
     }

@@ -38,7 +38,7 @@ struct AIChatUserBubble: View {
             }
             .padding(.horizontal, DSSpacing.md)
             .padding(.vertical, DSSpacing.sm)
-            .background(DSColor.surface, in: RoundedRectangle(cornerRadius: DSRadius.xl, style: .continuous))
+            .interfaceCardSurface(in: RoundedRectangle(cornerRadius: DSRadius.xl, style: .continuous))
         }
     }
 }
@@ -209,7 +209,7 @@ struct AIChatAssistantMessage: View {
         .multilineTextAlignment(.leading)
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(DSSpacing.md)
-        .background(DSColor.surface, in: RoundedRectangle(cornerRadius: DSRadius.lg, style: .continuous))
+        .interfaceCardSurface(in: RoundedRectangle(cornerRadius: DSRadius.lg, style: .continuous))
         .transition(.opacity)
     }
 }
@@ -270,7 +270,7 @@ struct AIAnswerMarkdownView: View {
                     .padding(DSSpacing.md)
                     .foregroundStyle(DSColor.textPrimary)
             }
-            .background(DSColor.surface, in: RoundedRectangle(cornerRadius: DSRadius.lg, style: .continuous))
+            .interfaceCardSurface(in: RoundedRectangle(cornerRadius: DSRadius.lg, style: .continuous))
         }
     }
 

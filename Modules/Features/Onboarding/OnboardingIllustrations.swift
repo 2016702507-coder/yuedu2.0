@@ -74,7 +74,7 @@ struct OnboardingWorkStack: View {
                 .padding(.horizontal, DSSpacing.sm)
                 .padding(.vertical, DSSpacing.xxs)
                 .background(DSColor.accentLight, in: Capsule())
-                .background(DSColor.surface, in: Capsule())
+                .interfaceCardSurface(in: Capsule())
                 .foregroundStyle(DSColor.accent)
                 .padding(DSSpacing.xxs)
         }

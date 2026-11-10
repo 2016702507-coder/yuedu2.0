@@ -19,9 +19,8 @@ struct ReaderTouchZoneEditorView: View {
 
     var body: some View {
         ZStack {
-            Rectangle()
-                .fill(.ultraThinMaterial)
-                .ignoresSafeArea()
+            // 统一走「全局玻璃」总闸：关闭时是纯色底，不碰材质 API（第 13 条）。
+            GlobalGlassBackdrop()
 
             VStack(spacing: 0) {
                 header

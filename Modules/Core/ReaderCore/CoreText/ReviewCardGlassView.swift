@@ -30,19 +30,36 @@ final class ReviewCardGlassView: UIView {
     /// text only: a visual effect view under a translucent ancestor stops drawing its glass.
     func configure(image: ReviewCardImage, opacity: CGFloat) {
         imageView.alpha = opacity
-        guard self.image !== image else { return }
+        // 全局玻璃总闸：关闭时（或系统降低透明度）不挂任何 UIVisualEffect，
+        // 改用不透明纯色底 —— iOS 17 等旧系统遇到玻璃渲染异常时的一键兜底。
+        let useGlass = GlobalSettings.shared.interfaceFrostedGlass
+            && !UIAccessibility.isReduceTransparencyEnabled
+        guard self.image !== image else {
+            applyGlass(enabled: useGlass)
+            return
+        }
         overrideUserInterfaceStyle = image.isNight ? .dark : .light
         self.image = image
         imageView.image = image
         if panelViews.count != image.glassPanels.count {
             panelViews.forEach { $0.removeFromSuperview() }
             panelViews = image.glassPanels.map { _ in
-                let panel = UIVisualEffectView(effect: Self.glassEffect)
+                let panel = UIVisualEffectView(effect: nil)
                 insertSubview(panel, belowSubview: imageView)
                 return panel
             }
         }
+        applyGlass(enabled: useGlass)
         setNeedsLayout()
+    }
+
+    private func applyGlass(enabled: Bool) {
+        for panel in panelViews {
+            panel.effect = enabled ? Self.glassEffect : nil
+            panel.backgroundColor = enabled
+                ? .clear
+                : UIColor.secondarySystemBackground.withAlphaComponent(0.9)
+        }
     }
 
     override func layoutSubviews() {

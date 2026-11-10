@@ -90,10 +90,18 @@ enum GlobalAppTypographyUIKitBridge {
             tabItem.setTitleTextAttributes(nil, for: .selected)
         }
 
-        // 底部导航栏完全透明（参考待改清单第 11 条）：把系统默认灰底/毛玻璃与阴影清掉，
-        // 让背后山影与正文直接透出，毫无雾感。只清背景，图标与文字的选中态不动。
-        // 注意 iOS 26 的 UITabBar 默认是「液态玻璃」材质，光清 backgroundColor 不够，
-        // 必须把 backgroundEffect（磨砂层）一并置 nil，否则 bar 自身仍残留一层雾。
+        let tabBar = UITabBar.appearance()
+        // 全局玻璃总闸（参考待改清单第 13 条）：关掉玻璃时恢复系统默认底栏，
+        // 不再碰任何透明/材质配置 —— iOS 17 等旧系统遇到玻璃渲染异常时的一键兜底。
+        // 开启时才是「完全透明玻璃」：清掉系统默认灰底/毛玻璃/阴影/选中态药丸底。
+        guard GlobalSettings.shared.interfaceFrostedGlass else {
+            let systemAppearance = UITabBarAppearance()
+            systemAppearance.configureWithDefaultBackground()
+            tabBar.standardAppearance = systemAppearance
+            tabBar.scrollEdgeAppearance = systemAppearance
+            tabBar.isTranslucent = true
+            return
+        }
         let tabBarAppearance = UITabBarAppearance()
         tabBarAppearance.configureWithTransparentBackground()
         tabBarAppearance.backgroundEffect = nil
@@ -101,7 +109,6 @@ enum GlobalAppTypographyUIKitBridge {
         tabBarAppearance.shadowColor = nil
         tabBarAppearance.shadowImage = nil
         tabBarAppearance.backgroundImage = nil
-        let tabBar = UITabBar.appearance()
         tabBar.standardAppearance = tabBarAppearance
         tabBar.scrollEdgeAppearance = tabBarAppearance
         // 强制走半透明通道，杜绝任何不透明兜底背景
@@ -227,6 +234,22 @@ enum GlobalAppTypographyUIKitBridge {
                 for: .selected
             )
         }
+        // 全局玻璃总闸关闭时：重建系统默认 appearance，实例层也不再做透明化，
+        // 彻底规避 iOS 17 等旧系统的玻璃渲染异常（参考待改清单第 13 条）。
+        guard GlobalSettings.shared.interfaceFrostedGlass else {
+            let systemAppearance = UITabBarAppearance()
+            systemAppearance.configureWithDefaultBackground()
+            for layout in [systemAppearance.stackedLayoutAppearance,
+                           systemAppearance.inlineLayoutAppearance,
+                           systemAppearance.compactInlineLayoutAppearance] {
+                layout.normal.titleTextAttributes = merging(font: font, into: layout.normal.titleTextAttributes)
+                layout.selected.titleTextAttributes = merging(font: font, into: layout.selected.titleTextAttributes)
+            }
+            tabBar.standardAppearance = systemAppearance
+            tabBar.scrollEdgeAppearance = systemAppearance
+            tabBar.isTranslucent = true
+            return
+        }
         let newStandard = tabAppearance(tabBar.standardAppearance, font: font)
         tabBar.standardAppearance = newStandard
         // Keep scrollEdgeAppearance in sync; when nil, the system provides a
@@ -236,6 +259,7 @@ enum GlobalAppTypographyUIKitBridge {
         tabBar.scrollEdgeAppearance = tabAppearance(scrollSource, font: font)
         // 彻底透明：强制半透明通道，杜绝任何不透明兜底背景与残留磨砂（参考待改清单第 11 条）。
         tabBar.isTranslucent = true
+    }
 
     private static func tabAppearance(
         _ source: UITabBarAppearance,

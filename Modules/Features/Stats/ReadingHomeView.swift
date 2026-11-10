@@ -376,7 +376,7 @@ struct ReadingHomeView: View {
             .frame(maxWidth: .infinity)
             .padding(.vertical, 15)
             // 与书架页「继续阅读」的 glassCapsule、本页「阅读小笺」同一套玻璃。
-            .background(.ultraThinMaterial, in: Capsule())
+            .clearGlassSurface(in: Capsule())
             .overlay(Capsule().strokeBorder(PaperPalette.hairline(scheme), lineWidth: 0.8))
             .shadow(color: PaperPalette.shadow(scheme), radius: 16, x: 0, y: 8)
         }

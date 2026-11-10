@@ -4487,3 +4487,8 @@
 
 /* Search tab source directory: rename a source card via long press */
 "改名后，这张卡片和该来源的发现页会一起更新" = "This card and the source's Discover page will both use the new name.";
+
+/* App-wide glass master switch: title + footers (all surfaces, iOS 17 fallback) */
+"全局玻璃" = "App-wide Glass";
+"系统已开启「降低透明度」，全 App 的玻璃表面目前一律使用不透明底色。" = "Reduce Transparency is on, so every glass surface in the app uses an opaque fill.";
+"全 App 的卡片、设置行、工具列、分类栏与底部导航栏统一为玻璃质感。若 iOS 17 等旧系统出现玻璃显示异常，关闭此开关即可让所有界面回退为不透明底色。透明度越低，背后的内容越不透出。" = "Cards, settings rows, toolbars, the category bar and the bottom tab bar all share one glass look. If glass renders incorrectly on older systems such as iOS 17, turn this off to fall every surface back to an opaque fill. Lower transparency lets less of the content behind show through.";

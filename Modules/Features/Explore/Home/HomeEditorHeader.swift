@@ -32,7 +32,7 @@ struct HomeEditorHeader: View {
                             .font(DSFont.caption2)
                             .foregroundStyle(DSColor.textPrimary)
                             .frame(width: DSLayout.homeEditorPhotoBadgeSize, height: DSLayout.homeEditorPhotoBadgeSize)
-                            .background(.regularMaterial, in: Circle())
+                            .floatingSurfaceBackground(in: Circle())
                             .accessibilityHidden(true)
                     }
             }

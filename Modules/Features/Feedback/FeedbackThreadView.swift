@@ -303,7 +303,7 @@ struct FeedbackMessageBubble: View {
                 }
             }
             .padding(DSSpacing.md)
-            .background(DSColor.surface, in: RoundedRectangle(cornerRadius: DSRadius.xl, style: .continuous))
+            .interfaceCardSurface(in: RoundedRectangle(cornerRadius: DSRadius.xl, style: .continuous))
             .overlay {
                 if isMine {
                     RoundedRectangle(cornerRadius: DSRadius.xl, style: .continuous)

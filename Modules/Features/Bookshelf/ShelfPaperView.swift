@@ -138,8 +138,9 @@ struct ShelfPaperView: View {
                 }
             }
             // 全 App 的浮层都是玻璃，这一张也一样：后面的书架透上来，
-            // 封面格子自己带 surface，不会糊成一片。
-            .presentationBackground(.ultraThinMaterial)
+            // 封面格子自己带 surface，不会糊成一片。统一走「全局玻璃」总闸，
+            // 关掉时退成不透明纯色，供 iOS 17 一键兜底（第 13 条）。
+            .presentationBackground { GlobalGlassBackdrop() }
         }
         .confirmationDialog(
             localized("删除所选书籍"),
@@ -390,9 +391,10 @@ struct ShelfPaperView: View {
             .padding(4)
         }
         .scrollIndicators(.hidden)
-        // 透明玻璃：与首页「继续阅读」按钮同一套玻璃语言，不再受「毛玻璃」开关影响，
-        // 始终透出背后正文/山影。横向 ScrollView 保留，分类多了可左右滑动。
-        .background(.ultraThinMaterial, in: Capsule())
+        // 收编到全局玻璃统一入口（参考待改清单第 13 条）：与设置行/卡片同一套玻璃，
+        // 由「全局玻璃」总闸控制；关掉后连同整条分类栏一起回退为不透明底色，
+        // 不再绕过开关写死 .ultraThinMaterial（iOS 17 兜底）。横向 ScrollView 保留。
+        .clearGlassSurface(in: Capsule())
         .overlay(Capsule().strokeBorder(PaperPalette.hairline(scheme).opacity(0.55), lineWidth: 0.6))
         .padding(.top, 18)
     }

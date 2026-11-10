@@ -48,10 +48,12 @@ extension View {
 
 private struct AudiobookPopoverBackground: View {
     let tone: CoverTint.RGB
+    @Bindable private var settings = GlobalSettings.shared
 
     var body: some View {
         #if compiler(>=6.2)
-        if #available(iOS 26.0, *) {
+        // 全局玻璃总闸：关闭时用纯色封面色，不调用 glassEffect（iOS 17 兜底）。
+        if #available(iOS 26.0, *), settings.interfaceFrostedGlass {
             Rectangle()
                 .fill(.clear)
                 .glassEffect(.regular.tint(tone.color.opacity(DSLayout.audiobookPlayerPopoverTint)), in: .rect)

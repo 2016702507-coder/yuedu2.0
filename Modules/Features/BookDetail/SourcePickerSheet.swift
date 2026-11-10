@@ -101,7 +101,7 @@ struct SourceOriginRow: View {
                                 .foregroundStyle(DSColor.textSecondary)
                                 .padding(.horizontal, DSSpacing.sm)
                                 .padding(.vertical, DSSpacing.xs)
-                                .background(DSColor.surfaceTertiary, in: Capsule())
+                                .interfaceCardSurface(in: Capsule(), fill: DSColor.surfaceTertiary)
                         }
                     }
                     if !origin.lastChapter.isEmpty {

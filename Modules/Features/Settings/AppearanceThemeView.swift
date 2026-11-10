@@ -634,7 +634,7 @@ struct AppearanceThemeView: View {
             parts.append(localized("光晕"))
         }
         if settings.interfaceFrostedGlass {
-            parts.append(localized("毛玻璃"))
+            parts.append(localized("全局玻璃"))
         }
         guard !parts.isEmpty else { return localized("已关闭") }
         // Locale-correct joiner ("光晕、毛玻璃" / "Glow, Frosted Glass") instead of a

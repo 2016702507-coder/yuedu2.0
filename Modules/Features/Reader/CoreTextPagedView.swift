@@ -3049,12 +3049,29 @@ struct CoreTextPageEngineView: UIViewControllerRepresentable {
         }
 
         /// Builds the ✕ chip lazily and keeps it parented to the gesture's view.
-        /// A blur circle adapts to any reader background; the icon follows the
-        /// current theme's text color.
+        /// A glass circle (or an opaque fallback when 全局玻璃 is off) adapts to
+        /// any reader background; the icon follows the current theme's text color.
         private func ensureSwipeUpExitChip(in view: UIView) -> UIView {
+            // 全局玻璃总闸（待改清单第 13 条）：关掉玻璃或系统要求降低透明度时，
+            // 这里不创建任何 UIVisualEffectView / UIBlurEffect —— iOS 17 等旧系统
+            // 遇到玻璃渲染异常时的一键兜底。
+            let glassEnabled = GlobalSettings.shared.interfaceFrostedGlass
+                && !UIAccessibility.isReduceTransparencyEnabled
             let chip: UIView
             if let existing = swipeUpExitChipContainer {
                 chip = existing
+                // 开关在设置里被切换后，懒加载的旧底视图要跟着换掉，不能残留材质。
+                let isBlur = existing.subviews.first is UIVisualEffectView
+                if isBlur != glassEnabled {
+                    existing.subviews.first?.removeFromSuperview()
+                    existing.insertSubview(
+                        makeSwipeUpExitChipBackdrop(
+                            size: ReaderSwipeUpExitMotion.chipDiameter,
+                            glass: glassEnabled
+                        ),
+                        at: 0
+                    )
+                }
             } else {
                 let size = ReaderSwipeUpExitMotion.chipDiameter
                 let container = UIView(frame: CGRect(x: 0, y: 0, width: size, height: size))
@@ -3064,12 +3081,9 @@ struct CoreTextPageEngineView: UIViewControllerRepresentable {
                 container.layer.shadowRadius = 10
                 container.layer.shadowOffset = CGSize(width: 0, height: 4)
 
-                let blur = UIVisualEffectView(effect: UIBlurEffect(style: .systemMaterial))
-                blur.frame = container.bounds
-                blur.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-                blur.clipsToBounds = true
-                blur.layer.cornerRadius = size / 2
-                container.addSubview(blur)
+                container.addSubview(
+                    makeSwipeUpExitChipBackdrop(size: size, glass: glassEnabled)
+                )
 
                 let icon = UIImageView(
                     image: UIImage(
@@ -3096,6 +3110,28 @@ struct CoreTextPageEngineView: UIViewControllerRepresentable {
             }
             view.bringSubviewToFront(chip)
             return chip
+        }
+
+        /// ✕ chip 的底视图：总闸开时用系统材质玻璃圆，关时退化成不透明纯色圆。
+        private func makeSwipeUpExitChipBackdrop(size: CGFloat, glass: Bool) -> UIView {
+            let backdrop: UIView
+            if glass {
+                backdrop = UIVisualEffectView(effect: UIBlurEffect(style: .systemMaterial))
+            } else {
+                let solid = UIView()
+                solid.backgroundColor = UIColor { trait in
+                    trait.userInterfaceStyle == .dark
+                        ? UIColor(white: 0.18, alpha: 0.94)
+                        : UIColor(white: 0.97, alpha: 0.94)
+                }
+                backdrop = solid
+            }
+            backdrop.frame = CGRect(x: 0, y: 0, width: size, height: size)
+            backdrop.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+            backdrop.clipsToBounds = true
+            backdrop.layer.cornerRadius = size / 2
+            backdrop.isUserInteractionEnabled = false
+            return backdrop
         }
 
         private func applySwipeUpExitChipLayout(progress: CGFloat, in view: UIView) {

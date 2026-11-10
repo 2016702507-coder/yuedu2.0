@@ -649,7 +649,8 @@ private extension View {
     @ViewBuilder
     func titleCapsuleGlass() -> some View {
         #if compiler(>=6.2)
-        if #available(iOS 26.0, *) {
+        // 全局玻璃总闸：关闭时不画 glassEffect（原样返回）。iOS 17 兜底。
+        if #available(iOS 26.0, *), GlobalSettings.shared.interfaceFrostedGlass {
             glassEffect(.regular.interactive(), in: Capsule())
         } else {
             self

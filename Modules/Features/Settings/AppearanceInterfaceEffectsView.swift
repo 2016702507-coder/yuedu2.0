@@ -21,7 +21,7 @@ struct AppearanceInterfaceEffectsView: View {
 
             Section {
                 Toggle(isOn: $settings.interfaceFrostedGlass) {
-                    Text(localized("毛玻璃"))
+                    Text(localized("全局玻璃"))
                         .font(DSFont.body)
                         .foregroundStyle(DSColor.textPrimary)
                 }
@@ -183,12 +183,13 @@ struct AppearanceInterfaceEffectsView: View {
         }
     }
 
+    /// 全局玻璃总闸的说明：明确它覆盖全 App 的所有玻璃表面，以及 iOS 17 兜底用途。
     /// Reduce Transparency overrides the toggle, so say so instead of leaving the
     /// user with a switch that visibly does nothing.
     private var frostedGlassFooterKey: String {
         reduceTransparency
-            ? "系统已开启「降低透明度」，浮动元素目前一律使用不透明底色。"
-            : "关闭后，浮动元素改用不透明底色。透明度越低，背后的内容越不透出。"
+            ? "系统已开启「降低透明度」，全 App 的玻璃表面目前一律使用不透明底色。"
+            : "全 App 的卡片、设置行、工具列、分类栏与底部导航栏统一为玻璃质感。若 iOS 17 等旧系统出现玻璃显示异常，关闭此开关即可让所有界面回退为不透明底色。透明度越低，背后的内容越不透出。"
     }
 
     private var glowValueText: String {
