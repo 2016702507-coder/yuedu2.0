@@ -877,6 +877,15 @@ struct BookInfoPackage: Codable {
     let runtimeVariables: [String: String]?
     let rawHTMLFilename: String?
     let savedAt: Date
+    /// 解析出这个包的书的 `OnlineBook.tocHtml`：目录就在详情页上时，这里存的就是那一页。
+    /// 与上游一致，不参与编解码（对应 Legado 的 `@Ignore`）——缓存里存的是书的字段，
+    /// 目录页 HTML 太大且随时可重新请求，读回来时按需再取。
+    var tocHtml: String? = nil
+
+    private enum CodingKeys: String, CodingKey {
+        case sourceId, sourceName, bookURL, name, author, intro, coverUrl, tocUrl, wordCount
+        case lastChapter, kind, runtimeVariables, rawHTMLFilename, savedAt
+    }
 
     var onlineBook: OnlineBook {
         OnlineBook(
@@ -891,7 +900,8 @@ struct BookInfoPackage: Codable {
             kind: kind,
             sourceId: sourceId,
             sourceName: sourceName,
-            runtimeVariables: runtimeVariables
+            runtimeVariables: runtimeVariables,
+            tocHtml: tocHtml
         )
     }
 
@@ -940,7 +950,8 @@ struct BookInfoPackage: Codable {
             kind: preferParsed(kind, known.kind),
             runtimeVariables: runtimeVariables ?? known.runtimeVariables,
             rawHTMLFilename: rawHTMLFilename,
-            savedAt: savedAt
+            savedAt: savedAt,
+            tocHtml: tocHtml
         )
     }
 }
