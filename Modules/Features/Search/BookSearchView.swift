@@ -270,6 +270,12 @@ struct BookSearchView: View {
     /// 来源配置目录里长按卡片改名：正在改的书源，与输入框草稿。
     @State private var renamingSource: BookSource?
     @State private var renameText = ""
+    /// 搜索页书源目录的分组筛选：nil = 全部，其它 = 某个自定义分组名。
+    /// 只存在内存里，退出页面回到「全部」，不写进设置。
+    @State private var selectedSourceGroup: String? = nil
+    /// 自定义分组编辑器，以及长按单张卡片时预选的那本书源。
+    @State private var showsSourceGroupEditor = false
+    @State private var groupEditorPreselected: UUID? = nil
     /// The session scope as the reader changes it on this page.
     @State private var editedSessionScope: SearchSourceScope?
     /// What this page has pushed through its one item-based destination: a result on
@@ -418,6 +424,13 @@ struct BookSearchView: View {
                 onSave: applySearchSourceScope
             )
         }
+        .sheet(isPresented: $showsSourceGroupEditor) {
+            SearchSourceGroupEditor(
+                sources: exploreSources,
+                existingGroups: directoryGroups,
+                preselectedID: groupEditorPreselected
+            )
+        }
         .onSubmit(of: .search) { submit() }
         .task(id: showsCombinedResults ? trimmedQuery : "") {
             await shelfSearch.search(showsCombinedResults ? trimmedQuery : "", in: bookStore)
@@ -562,6 +575,7 @@ struct BookSearchView: View {
     private var sourcesDirectory: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: DSSpacing.xl) {
+                sourceGroupBar
                 LibrarySection(localized("来源配置")) {
                     NavigationLink(value: ExploreNavigationRoute.sourceManager) {
                         LibrarySectionAccessoryLabel()
@@ -569,7 +583,7 @@ struct BookSearchView: View {
                     .accessibilityLabel(localized("管理来源配置"))
                     .accessibilityIdentifier("search.sources.manage")
                 } content: { layout in
-                    ForEach(exploreSources) { source in
+                    ForEach(visibleExploreSources) { source in
                         NavigationLink(value: ExploreNavigationRoute.source(sourceURL: source.bookSourceUrl)) {
                             ExploreEntryLabel(
                                 title: source.bookSourceName,
@@ -588,6 +602,12 @@ struct BookSearchView: View {
                             } label: {
                                 Label(localized("重新命名"), systemImage: "pencil")
                             }
+                            Button {
+                                groupEditorPreselected = source.id
+                                showsSourceGroupEditor = true
+                            } label: {
+                                Label(localized("加入分组…"), systemImage: "folder.badge.plus")
+                            }
                         }
                     }
                 }
@@ -603,6 +623,119 @@ struct BookSearchView: View {
     /// 目录里的来源：与 资源库 同一套过滤（已启用、可发现、有探索地址）。
     private var exploreSources: [BookSource] {
         DiscoverViewModel.exploreSources(in: enabledSources)
+    }
+
+    // MARK: 自定义分组
+
+    /// 分组名去掉首尾空白：Legado 允许书源带空分组，视为「未分组」。
+    private static func groupName(of source: BookSource) -> String {
+        source.bookSourceGroup.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// 目录里出现过的自定义分组，按书源顺序去重，带上该组在目录里的书源数。
+    /// 用 `exploreSources` 而不是全库统计，免得 chip 上的数字和目录里能点开的卡片对不上。
+    private var directoryGroups: [BookSourceGroupCandidate] {
+        var order: [String] = []
+        var counts: [String: Int] = [:]
+        for source in exploreSources {
+            let name = Self.groupName(of: source)
+            guard !name.isEmpty else { continue }
+            if counts[name] == nil { order.append(name) }
+            counts[name, default: 0] += 1
+        }
+        return order.map { BookSourceGroupCandidate(name: $0, count: counts[$0] ?? 0) }
+    }
+
+    /// 选中的分组若已被拆空，自动回到「全部」，不留一个空目录。
+    private var activeGroup: String? {
+        guard let selected = selectedSourceGroup,
+              directoryGroups.contains(where: { $0.name == selected })
+        else { return nil }
+        return selected
+    }
+
+    /// 选了某个分组就只显示这一组的书源（同一组「放在一起」）；「全部」时
+    /// 也按分组稳定排序，让同组卡片挨在一起，未分组的排在最后。
+    private var visibleExploreSources: [BookSource] {
+        if let group = activeGroup {
+            return exploreSources.filter { Self.groupName(of: $0) == group }
+        }
+        let order = Dictionary(
+            uniqueKeysWithValues: directoryGroups.enumerated().map { ($0.element.name, $0.offset) }
+        )
+        let grouped = exploreSources.filter { !Self.groupName(of: $0).isEmpty }
+        let ungrouped = exploreSources.filter { Self.groupName(of: $0).isEmpty }
+        let sorted = grouped.enumerated().sorted { lhs, rhs in
+            let li = order[Self.groupName(of: lhs.element)] ?? .max
+            let ri = order[Self.groupName(of: rhs.element)] ?? .max
+            return li == ri ? lhs.offset < rhs.offset : li < ri
+        }.map { $0.element }
+        return sorted + ungrouped
+    }
+
+    /// 可横向滑动的分类栏，跟书架分类栏同一套清透玻璃胶囊，受「全局玻璃」总闸控制。
+    private var sourceGroupBar: some View {
+        ScrollView(.horizontal) {
+            HStack(spacing: 4) {
+                sourceGroupChip(title: localized("全部"), count: exploreSources.count,
+                                isOn: activeGroup == nil) {
+                    withAnimation(.snappy(duration: 0.18)) { selectedSourceGroup = nil }
+                }
+                ForEach(directoryGroups) { group in
+                    sourceGroupChip(title: group.name, count: group.count,
+                                    isOn: activeGroup == group.name) {
+                        withAnimation(.snappy(duration: 0.18)) { selectedSourceGroup = group.name }
+                    }
+                }
+                Button {
+                    groupEditorPreselected = nil
+                    showsSourceGroupEditor = true
+                } label: {
+                    Label(localized("自定义分组"), systemImage: "folder.badge.gearshape")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(DSColor.accent)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 9)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(localized("自定义分组"))
+                .accessibilityIdentifier("search.sources.editGroups")
+            }
+            .padding(4)
+        }
+        .scrollIndicators(.hidden)
+        .clearGlassSurface(in: Capsule())
+        .overlay(Capsule().strokeBorder(Color.primary.opacity(0.08), lineWidth: 0.6))
+    }
+
+    private func sourceGroupChip(
+        title: String,
+        count: Int,
+        isOn: Bool,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            HStack(spacing: 5) {
+                Text(title)
+                    .font(.system(size: 13, weight: isOn ? .semibold : .regular))
+                    .lineLimit(1)
+                Text("\(count)")
+                    .font(.system(size: 11, weight: .medium))
+                    .monospacedDigit()
+                    .foregroundStyle(DSColor.textSecondary)
+            }
+            .foregroundStyle(isOn ? DSColor.accent : DSColor.textPrimary)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 9)
+            .background {
+                if isOn {
+                    Capsule().fill(DSColor.accent.opacity(0.16))
+                }
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(title)
+        .accessibilityValue(String(format: localized("%d 个来源配置"), count))
     }
 
     /// 长按卡片改名：只改书源名字，其余字段按 id 从库里取最新，避免用长按那一刻的
@@ -821,6 +954,171 @@ struct BookSearchView: View {
         // An audiobook's player grows out of the now-playing bar, as Apple Books opens one.
         if NowPlayingHub.shared.openIfAudiobook(book, store: bookStore) { return }
         recentReaderRoute = DetailReaderRoute(id: book.id)
+    }
+}
+
+// MARK: - 搜索页自定义分组编辑器
+
+/// 搜索页书源目录的「自定义分组」：勾选好几个书源，一次性放进一个分组。
+/// 写回统一走 `BookSourceStore.setGroup(_:ids:)` —— 与书源管理页、资源库的分组是
+/// 同一份 `bookSourceGroup` 数据，会跟着 iCloud 同步，不会另立一份偏好设置。
+private struct SearchSourceGroupEditor: View {
+    let sources: [BookSource]
+    let existingGroups: [BookSourceGroupCandidate]
+    let preselectedID: UUID?
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var selection: Set<UUID>
+    @State private var newGroupName = ""
+    @State private var query = ""
+
+    init(
+        sources: [BookSource],
+        existingGroups: [BookSourceGroupCandidate],
+        preselectedID: UUID?
+    ) {
+        self.sources = sources
+        self.existingGroups = existingGroups
+        self.preselectedID = preselectedID
+        // 长按某张卡片进来时先勾上它；从分类栏「自定义分组」进来则不预选。
+        // 放在 init 而不是 onAppear，避免 sheet 内容重建时把用户已勾的清掉。
+        _selection = State(initialValue: preselectedID.map { Set([$0]) } ?? [])
+    }
+
+    private var trimmedName: String {
+        newGroupName.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var filteredSources: [BookSource] {
+        let needle = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !needle.isEmpty else { return sources }
+        return sources.filter { $0.bookSourceName.lowercased().contains(needle) }
+    }
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Section {
+                    TextField(localized("新分组名称"), text: $newGroupName)
+                } header: {
+                    Text(localized("新建分组"))
+                } footer: {
+                    Text(localized("输入名称创建新分组，或直接点下方已有分组；选好书源后点右上角「加入分组」。"))
+                }
+                .interfaceSectionSurface()
+
+                if !existingGroups.isEmpty {
+                    Section {
+                        ForEach(existingGroups) { group in
+                            Button {
+                                newGroupName = group.name
+                            } label: {
+                                HStack(spacing: DSSpacing.sm) {
+                                    Label(group.name, systemImage: "folder")
+                                        .foregroundStyle(
+                                            trimmedName == group.name ? DSColor.accent : DSColor.textPrimary
+                                        )
+                                        .lineLimit(1)
+                                    Spacer(minLength: DSSpacing.sm)
+                                    if trimmedName == group.name {
+                                        Image(systemName: "checkmark")
+                                            .foregroundStyle(DSColor.accent)
+                                    }
+                                    Text("\(group.count)")
+                                        .font(DSFont.subheadline)
+                                        .foregroundStyle(DSColor.textSecondary)
+                                        .monospacedDigit()
+                                }
+                            }
+                        }
+                    } header: {
+                        Text(localized("已有分组"))
+                    }
+                    .interfaceSectionSurface()
+                }
+
+                Section {
+                    ForEach(filteredSources) { source in
+                        Button {
+                            toggle(source.id)
+                        } label: {
+                            HStack(spacing: DSSpacing.sm) {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(source.bookSourceName.isEmpty
+                                         ? localized("未命名来源配置") : source.bookSourceName)
+                                        .font(DSFont.subheadline)
+                                        .foregroundStyle(DSColor.textPrimary)
+                                        .lineLimit(1)
+                                    let group = source.bookSourceGroup
+                                        .trimmingCharacters(in: .whitespacesAndNewlines)
+                                    if !group.isEmpty {
+                                        Text(group)
+                                            .font(DSFont.footnote)
+                                            .foregroundStyle(DSColor.textSecondary)
+                                            .lineLimit(1)
+                                    }
+                                }
+                                Spacer(minLength: DSSpacing.sm)
+                                Image(systemName: selection.contains(source.id)
+                                      ? "checkmark.circle.fill" : "circle")
+                                    .foregroundStyle(selection.contains(source.id)
+                                                     ? DSColor.accent : DSColor.textSecondary)
+                            }
+                        }
+                        .accessibilityLabel(source.bookSourceName)
+                    }
+                } header: {
+                    Text(String(format: localized("已选 %d 个来源配置"), selection.count))
+                }
+                .interfaceSectionSurface()
+
+                if !selection.isEmpty {
+                    Section {
+                        Button(role: .destructive) {
+                            BookSourceStore.shared.setGroup("", ids: selection)
+                            dismiss()
+                        } label: {
+                            Label(localized("移出分组（回到未分组）"), systemImage: "folder.badge.minus")
+                                .foregroundStyle(DSColor.textPrimary)
+                        }
+                    }
+                    .interfaceSectionSurface()
+                }
+            }
+            .softScrollEdges()
+            .listStyle(.insetGrouped)
+            .scrollContentBackground(.hidden)
+            .searchable(
+                text: $query,
+                placement: .navigationBarDrawer(displayMode: .always),
+                prompt: localized("搜索来源配置")
+            )
+            .navigationTitle(localized("自定义分组"))
+            .toolbarTitleDisplayMode(.inline)
+            .themedAppSurface(for: .settings)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button(localized("取消")) { dismiss() }
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        BookSourceStore.shared.setGroup(trimmedName, ids: selection)
+                        dismiss()
+                    } label: {
+                        Text(localized("加入分组"))
+                    }
+                    .disabled(selection.isEmpty || trimmedName.isEmpty)
+                }
+            }
+        }
+    }
+
+    private func toggle(_ id: UUID) {
+        if selection.contains(id) {
+            selection.remove(id)
+        } else {
+            selection.insert(id)
+        }
     }
 }
 

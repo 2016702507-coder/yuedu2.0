@@ -210,7 +210,11 @@ class ModernParserBridge {
         // on. `WebFetcher`'s capture points miss everything here — rule fetches and
         // `java.ajax` go through `URLSession` directly, not through `WebFetcher`.
         if timedOut {
-            WebCrawlerDebugger.logInfo("timeout", url: url)
+            // 脚本请求超时也是一次失败请求：脚本宿主挂掉的书源（YCK 1329）此前
+            // 只留一条 info，抓取记录里看不出请求失败。移植自上游 2433f30c。
+            WebCrawlerDebugger.logError(
+                URLError(.timedOut, userInfo: [NSLocalizedDescriptionKey: localized("连线超时")]), url: url
+            )
         } else {
             WebCrawlerDebugger.logResponse(
                 url: url ?? "-", statusCode: statusCode ?? -1, htmlBody: body ?? ""
