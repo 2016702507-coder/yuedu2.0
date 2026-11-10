@@ -492,6 +492,51 @@ attempt() {
 # 第 1 档用真正的 -O 优化（不带 -disable-llvm-optzns）：代码段从 97MB 降到
 # 正常量级，产物约 40MB，第三方重签工具才签得动、系统才装得下。
 # 若 -O 触发 IRGen 崩溃，自动降级到 -Onone 三档兜底。
+# 一次报全：xcodebuild 一旦某个 SwiftCompile 失败就停下，所以正常的构建日志永远
+# 只有一个 error:。而整模块编译（-wholemodule + -Onone）会把所有源文件塞进同一个
+# frontend 进程，配上 -continue-building-after-errors 就能一次列出全部错误。
+# 只在真的失败时才跑这一趟，成功路径不受影响。
+diag_all_errors() {
+  echo ""
+  echo "===== 诊断：整模块类型检查，列出全部错误 ====="
+  if [ "${CONTINUE_AFTER_ERRORS:-none}" = "none" ]; then
+    echo "工具链不支持 -continue-building-after-errors，跳过诊断"
+    return 0
+  fi
+  # 换一个 derivedDataPath，避免和刚失败的那次构建的中间产物互相干扰
+  xcodebuild \
+    -project Yuedu-Reader.xcodeproj \
+    -scheme Yuedu-Reader \
+    -configuration Release \
+    -destination 'generic/platform=iOS' \
+    -derivedDataPath "build-diag" \
+    -jobs 8 \
+    -clonedSourcePackagesDirPath build/SourcePackages \
+    -onlyUsePackageVersionsFromResolvedFile \
+    CODE_SIGNING_ALLOWED=NO \
+    CODE_SIGN_IDENTITY="" \
+    CODE_SIGNING_REQUIRED=NO \
+    ENABLE_DEBUG_DYLIB=NO \
+    SWIFT_ACTIVE_COMPILATION_CONDITIONS="\$(inherited) $EXTRA_SWIFT_FLAGS" \
+    SWIFT_COMPILATION_MODE=wholemodule \
+    SWIFT_OPTIMIZATION_LEVEL=-Onone \
+    SWIFT_ENABLE_BATCH_MODE=NO \
+    SWIFT_TREAT_WARNINGS_AS_ERRORS=NO \
+    OTHER_SWIFT_FLAGS="\$(inherited) -continue-building-after-errors" \
+    DEBUG_INFORMATION_FORMAT=dwarf \
+    COPY_PHASE_STRIP=NO \
+    VALIDATE_PRODUCT=NO \
+    -skipPackagePluginValidation \
+    -skipMacroValidation \
+    build > build-diag.log 2>&1 || true
+  TOTAL=$(grep -c 'error:' build-diag.log 2>/dev/null || true)
+  echo "诊断构建共 ${TOTAL:-0} 条 error:"
+  echo "---- 全部错误（最多 120 行）----"
+  grep -o '/Users/builder/clone/[^:]*:[0-9]*:[0-9]*: error: .*' build-diag.log 2>/dev/null | sort -u | head -120 || true
+  echo "---- 结束 ----"
+  cp build-diag.log build.log 2>/dev/null || true
+}
+
 for combo in \
   "opt|incremental|-O|NO|no" \
   "opt-size|incremental|-Osize|NO|no" \
@@ -501,7 +546,7 @@ for combo in \
   rc=0
   attempt "$name" "$mode" "$opt" "$batch" "$disopt" || rc=$?
   if [ "$rc" -eq 0 ]; then echo "构建完成：$name"; BUILD_OK=1; break; fi
-  if [ "$rc" -eq 2 ]; then echo "真实源码错误，终止"; exit 1; fi
+  if [ "$rc" -eq 2 ]; then echo "真实源码错误，终止"; diag_all_errors; exit 1; fi
   echo "「$name」编译器崩溃，进入下一档"
 done
 
