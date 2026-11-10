@@ -567,6 +567,13 @@ final class ReaderNavigationCoordinator: ObservableObject {
 
     // MARK: UIKit navigation bridge
 
+    /// 书架改版（ShelfPaperView）后用它判断能否走卡片 push：探针还没把外层
+    /// UINavigationController 接上时，open() 会一直等不到 push，调用方据此
+    /// 退回 fullScreenCover，保证书仍然打得开。
+    var isNavigationControllerAttached: Bool {
+        transitionDriver.navigationController != nil
+    }
+
     func attach(to navigationController: UINavigationController, owner: UUID? = nil) {
         pendingNavigationDetach?.cancel()
         pendingNavigationDetach = nil

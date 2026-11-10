@@ -198,7 +198,7 @@ private enum BookshelfImportPresentationRoute: Hashable {
     case calibreWireless
 }
 
-private extension View {
+extension View {
     /// Same frames, at the same moments, as the `GeometryReader` + preference it replaces —
     /// in window coordinates, empty ones ignored — written to `box` instead of to state.
     /// What the cover draws goes to `box` too, so a tap lifts exactly that.
@@ -225,7 +225,7 @@ private extension View {
 /// a book was opened after launch (iOS 17.5 simulator, 2026-10-26). The shelf's body reads
 /// none of the coordinator's state, so it has nothing to re-render for.
 @MainActor
-private final class ShelfReaderNavigation: ObservableObject {
+final class ShelfReaderNavigation: ObservableObject {
     let coordinator = ReaderNavigationCoordinator()
 }
 

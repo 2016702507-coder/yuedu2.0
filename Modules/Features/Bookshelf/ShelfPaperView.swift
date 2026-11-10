@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 // MARK: - 书架（纸感版）
 //
@@ -30,6 +31,15 @@ struct ShelfPaperView: View {
     @State private var coverSearchBook: ReadingBook?
     /// 选完封面后正在下载 —— 期间再点一次不应叠第二个下载。
     @State private var isApplyingCover = false
+    @Environment(\.horizontalSizeClass) private var sizeClass
+    @Environment(\.appDependencies) private var appDependencies
+    @Environment(\.rootTabBarVisibility) private var rootTabBarVisibility
+    /// 直接复用旧书架的 holder：它不是被观察的 coordinator，发布的状态不会在
+    /// UIKit 开始 push 之前重绘书架（iOS 17 会把刚 push 的 reader reconcile 掉）。
+    @StateObject private var readerNavigation = ShelfReaderNavigation()
+    /// 每本书封各自的窗口坐标 frame / 绘制内容。引用类型，写入内部字典不会触发
+    /// SwiftUI 重绘，也不会在 body 求值时改动 @State 本身。
+    @State private var coverBoxes = ShelfPaperCoverBoxes()
 
     // MARK: Data
 
@@ -60,46 +70,55 @@ struct ShelfPaperView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
-                masthead
-                    .padding(.bottom, 22)
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    masthead
+                        .padding(.bottom, 22)
 
-                if store.books.isEmpty {
-                    emptyShelf
-                } else {
-                    continueReading
-                    chips
-                    restOfShelf
+                    if store.books.isEmpty {
+                        emptyShelf
+                    } else {
+                        continueReading
+                        chips
+                        restOfShelf
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 32)
+            }
+            .scrollIndicators(.hidden)
+            .background {
+                // 有背景图时，页面下半的书名直接坐在山水上，灰字读不清。这层柔边把页面下半
+                // 渐回页面底色，图仍从上半页透出来；它铺在内容**之下**，所以封面和文字照旧
+                // 清楚，只是它们背后的图淡了。没设图时它整层隐形。
+                ZStack(alignment: .bottom) {
+                    PaperBackground(scope: .bookshelf)
+
+                    LinearGradient(
+                        stops: [
+                            .init(color: PaperPalette.page(scheme).opacity(0), location: 0),
+                            .init(color: PaperPalette.page(scheme).opacity(0.55), location: 0.45),
+                            .init(color: PaperPalette.page(scheme).opacity(0.92), location: 1),
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                    .frame(height: 420)
+                    .opacity(showsArtwork ? 1 : 0)
+                    .allowsHitTesting(false)
+                    .ignoresSafeArea(edges: .bottom)
                 }
             }
-            .padding(.horizontal, 20)
-            .padding(.bottom, 32)
-        }
-        .scrollIndicators(.hidden)
-        .background {
-            // 有背景图时，页面下半的书名直接坐在山水上，灰字读不清。这层柔边把页面下半
-            // 渐回页面底色，图仍从上半页透出来；它铺在内容**之下**，所以封面和文字照旧
-            // 清楚，只是它们背后的图淡了。没设图时它整层隐形。
-            ZStack(alignment: .bottom) {
-                PaperBackground(scope: .bookshelf)
-
-                LinearGradient(
-                    stops: [
-                        .init(color: PaperPalette.page(scheme).opacity(0), location: 0),
-                        .init(color: PaperPalette.page(scheme).opacity(0.55), location: 0.45),
-                        .init(color: PaperPalette.page(scheme).opacity(0.92), location: 1),
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .frame(height: 420)
-                .opacity(showsArtwork ? 1 : 0)
-                .allowsHitTesting(false)
-                .ignoresSafeArea(edges: .bottom)
+            .toolbar(.hidden, for: .navigationBar)
+            .background {
+                // 卡片翻开转场必须挂在外层 UINavigationController 上。这个零尺寸探针
+                // 解析出书架自己的 nav controller，交给 coordinator 提供打开动画与
+                // 侧滑返回；放在 NavigationStack 的内容里，responder 链才找得到它。
+                ReaderEdgeSwipeEnabler(navigator: readerNavigation.coordinator)
+                    .frame(width: 0, height: 0)
             }
         }
-        .toolbar(.hidden, for: .navigationBar)
         .fullScreenCover(isPresented: Binding(
             get: { readingBookID != nil },
             set: { if !$0 { readingBookID = nil } }
@@ -282,7 +301,7 @@ struct ShelfPaperView: View {
                         Button {
                             // An audiobook's player grows out of the now-playing bar.
                             if !NowPlayingHub.shared.openIfAudiobook(book, store: store) {
-                                readingBookID = book.id
+                                openBook(book)
                             }
                         } label: {
                             HStack(spacing: 6) {
@@ -321,7 +340,7 @@ struct ShelfPaperView: View {
                 .contextMenu {
                     Button {
                         if !NowPlayingHub.shared.openIfAudiobook(book, store: store) {
-                            readingBookID = book.id
+                            openBook(book)
                         }
                     } label: {
                         Label(localized("打开"), systemImage: "book")
@@ -518,7 +537,7 @@ struct ShelfPaperView: View {
             } else {
                 // An audiobook's player grows out of the now-playing bar.
                 if !NowPlayingHub.shared.openIfAudiobook(book, store: store) {
-                    readingBookID = book.id
+                    openBook(book)
                 }
             }
         } label: {
@@ -560,7 +579,7 @@ struct ShelfPaperView: View {
             Button {
                 // An audiobook's player grows out of the now-playing bar.
                 if !NowPlayingHub.shared.openIfAudiobook(book, store: store) {
-                    readingBookID = book.id
+                    openBook(book)
                 }
             } label: {
                 Label(localized("打开"), systemImage: "book")
@@ -637,6 +656,70 @@ struct ShelfPaperView: View {
             }
             .shadow(color: .black.opacity(0.16), radius: 8, x: 3, y: 6)
             .accessibilityHidden(true)
+            .reportBookshelfCoverFrame(into: coverBoxes.box(for: book.id), onChange: nil)
+    }
+
+    /// 点开书籍时走项目里已有的卡片翻开转场（ReaderCardTransitionAnimator）：
+    /// 被点的封面从原位置放大、沿书脊 3D 翻开展成阅读页，而不是直接模态硬切。
+    /// 书架改版成 ShelfPaperView 后一直只设 readingBookID 走 fullScreenCover，
+    /// 把这套上游动画整个绕过去了；这里把它接回来。
+    /// 紧凑宽度、非音视频的书才走 push；iPad / 听书 / 视频保留原来的全屏模态，
+    /// 免得把阅读器塞进内容列或抢了正在播放的播放器。
+    private func openBook(_ book: ReadingBook) {
+        let navigator = readerNavigation.coordinator
+        guard BookCardNavigationGate.shouldUseCardTransition(
+            for: book, isRegularWidth: sizeClass == .regular
+        ), navigator.isNavigationControllerAttached else {
+            readingBookID = book.id
+            return
+        }
+
+        let box = coverBoxes.box(for: book.id)
+        let tapped = box.tappedCover()
+        let geometry = tapped.geometry
+        let snapshot = BookshelfCoverStyle.snapshot(
+            for: book,
+            drawn: tapped.drawnCover,
+            catalogImage: tapped.catalogImage,
+            colorScheme: scheme,
+            sourceSize: geometry?.frame.size
+        )
+        let snapshotUpgrade = snapshot == nil
+            ? nil
+            : BookshelfCoverStyle.snapshotUpgrade(for: tapped.drawnCover)
+        let source = ReaderTransitionSource(
+            bookID: book.id,
+            cornerRadius: geometry?.cornerRadius ?? 5,
+            frame: geometry?.frame,
+            frameProvider: { [weak box] in
+                guard let box, !box.frame.isEmpty else { return nil }
+                return box.frame
+            },
+            snapshot: snapshot,
+            snapshotUpgrade: snapshotUpgrade,
+            direction: .leftSpine
+        )
+
+        let readerBookID = book.id
+        let readerStore = store
+        let readerDependencies = appDependencies
+        let readerTabBarVisibility = rootTabBarVisibility
+        navigator.open(
+            bookID: readerBookID,
+            source: source,
+            destination: {
+                ReaderHostingController(content: AnyView(
+                    BookReaderView(bookId: readerBookID)
+                        .environmentObject(readerStore)
+                        .environment(\.appDependencies, readerDependencies)
+                        .environment(\.readerNavigator, navigator)
+                        .environment(\.rootTabBarVisibility, readerTabBarVisibility)
+                ))
+            },
+            onTransitionCompleted: {
+                readerStore.updateLastOpened(bookId: readerBookID)
+            }
+        )
     }
 
     private func count(for option: ShelfFilter) -> Int {
@@ -819,6 +902,20 @@ enum ShelfInk {
 
     static func muted(_ scheme: ColorScheme) -> Color {
         Color(uiColor: DSUIColor.textTertiary)
+    }
+}
+
+// MARK: - 打开动画桥接
+
+/// 每本书一个封面框，按 id 复用；写内部字典不触发 SwiftUI 状态更新。
+private final class ShelfPaperCoverBoxes {
+    private var boxes: [UUID: BookshelfCoverFrameBox] = [:]
+
+    func box(for id: UUID) -> BookshelfCoverFrameBox {
+        if let existing = boxes[id] { return existing }
+        let created = BookshelfCoverFrameBox()
+        boxes[id] = created
+        return created
     }
 }
 
