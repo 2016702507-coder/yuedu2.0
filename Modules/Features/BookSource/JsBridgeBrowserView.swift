@@ -134,6 +134,9 @@ struct JsBridgeBrowserView: View {
     let finishesWhenChallengeClears: Bool
     /// 段评面板要透出阅读器背景：WebView 与页面底色都清空，改成玻璃底。
     let transparentBackground: Bool
+    /// 段评与互动样式页写好的自定义 CSS 注入脚本；空字串表示不注入。
+    /// 由 `LegadoReviewBrowserView` 按当前日夜模式生成，段评面板专用。
+    let customCSSScript: String
 
     init(
         urlString: String,
@@ -147,6 +150,7 @@ struct JsBridgeBrowserView: View {
         userAgent: String? = nil,
         finishesWhenChallengeClears: Bool = false,
         transparentBackground: Bool = false,
+        customCSSScript: String = "",
         onDismiss: @escaping (_ body: String?) -> Void
     ) {
         self.urlString = urlString
@@ -160,6 +164,7 @@ struct JsBridgeBrowserView: View {
         self.userAgent = userAgent
         self.finishesWhenChallengeClears = finishesWhenChallengeClears
         self.transparentBackground = transparentBackground
+        self.customCSSScript = customCSSScript
         self.onDismiss = onDismiss
     }
 
@@ -260,7 +265,8 @@ struct JsBridgeBrowserView: View {
                 initialRequest: initialRequest,
                 userAgent: userAgent,
                 finishesWhenChallengeClears: finishesWhenChallengeClears,
-                transparentBackground: transparentBackground
+                transparentBackground: transparentBackground,
+                customCSSScript: customCSSScript
             )
                 .edgesIgnoringSafeArea(hidesToolbar ? .all : [])
 
@@ -363,6 +369,17 @@ struct LegadoReviewBrowserView: View {
         _configurationJSON = State(initialValue: target.sourceBrowserPage?.configurationJSON ?? "")
     }
 
+    /// 当前启用的段评样式，按日夜模式降级成可注入网页的 CSS 脚本。
+    /// 未启用或没有选中模板时返回空字串，书源网页保持原样。
+    private var customCSSScript: String {
+        let css = ReviewPanelCSSBridge.browserCSS(
+            ReviewPanelStyleStore.shared.activeCSS(),
+            isNight: colorScheme == .dark
+        )
+        guard !css.isEmpty else { return "" }
+        return ReviewPanelCSSBridge.installScript(css: css, isNight: colorScheme == .dark)
+    }
+
     var body: some View {
         Group {
             if let page = target.sourceBrowserPage {
@@ -382,6 +399,7 @@ struct LegadoReviewBrowserView: View {
                 },
                 sourceConfigurationUpdateHandler: { configurationJSON = $0 },
                 transparentBackground: true,
+                customCSSScript: customCSSScript,
                 onDismiss: onDismiss
             )
             } else {
@@ -391,6 +409,7 @@ struct LegadoReviewBrowserView: View {
                     hidesToolbar: ParagraphReviewBrowserPresentationPolicy.hidesToolbar,
                     initialRequest: target.browserRequest,
                     transparentBackground: true,
+                    customCSSScript: customCSSScript,
                     onDismiss: onDismiss
                 )
             }
@@ -467,6 +486,7 @@ struct JsBridgeBrowserRepresentable: UIViewRepresentable {
     var userAgent: String? = nil
     var finishesWhenChallengeClears = false
     var transparentBackground = false
+    var customCSSScript = ""
 
     static let sourceJavaPromptName = SourceWebUIDelegate.sourceBridgePromptName
 
@@ -735,6 +755,15 @@ struct JsBridgeBrowserRepresentable: UIViewRepresentable {
             wv.underPageBackgroundColor = .clear
             config.userContentController.addUserScript(WKUserScript(
                 source: Self.transparentBackgroundScript,
+                injectionTime: .atDocumentStart,
+                forMainFrameOnly: true
+            ))
+        }
+        // 段评与互动样式：排在透明背景脚本之后注入，样式表在运行时追加到 head
+        // 末尾，同优先级下后写的 !important 规则盖得住透明脚本清底色的规则。
+        if !customCSSScript.isEmpty {
+            config.userContentController.addUserScript(WKUserScript(
+                source: customCSSScript,
                 injectionTime: .atDocumentStart,
                 forMainFrameOnly: true
             ))

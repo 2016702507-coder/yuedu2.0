@@ -8,6 +8,7 @@ struct ReaderParagraphBubbleSettingsView: View {
     var onOpenImporter: (() -> Void)?
     @State private var editorDraft: CommentBubbleStyleDraft?
     @State private var stylePendingDeletion: ReaderCommentBubbleCustomStyle?
+    @State private var cayImportMessage: String?
 
     var body: some View {
         Form {
@@ -46,6 +47,9 @@ struct ReaderParagraphBubbleSettingsView: View {
                     Button(action: onOpenImporter) {
                         SettingsRowLabel(localized("汇入样式"), systemImage: "square.and.arrow.down", role: .action)
                     }
+                }
+                Button(action: installCayPresets) {
+                    SettingsRowLabel(localized("汇入孤岛气泡样式"), systemImage: "square.and.arrow.down.on.square", role: .action)
                 }
                 exportLink
                 if let activeCustomStyle {
@@ -98,6 +102,34 @@ struct ReaderParagraphBubbleSettingsView: View {
         } message: { style in
             Text(String(format: localized("「%@」会被永久删除，此操作无法复原。"), style.name))
         }
+        .alert(
+            localized("汇入孤岛气泡样式"),
+            isPresented: Binding(
+                get: { cayImportMessage != nil },
+                set: { if !$0 { cayImportMessage = nil } }
+            )
+        ) {
+            Button(localized("确定"), role: .cancel) {}
+        } message: {
+            Text(cayImportMessage ?? "")
+        }
+    }
+
+    /// 把孤岛的三套气泡轮廓加进自订样式库；已存在同名样式则跳过。
+    private func installCayPresets() {
+        var added = 0
+        for preset in CayBubblePresets.items {
+            guard CommentBubbleSVGRecognizer.recognizeUserTemplate(preset.svg) != nil else { continue }
+            guard !settings.commentBubbleCustomStyles.contains(where: { $0.name == preset.name }) else { continue }
+            settings.upsertCommentBubbleCustomStyle(
+                ReaderCommentBubbleCustomStyle(name: preset.name, svg: preset.svg)
+            )
+            added += 1
+        }
+        settings.commentBubbleFollowsSourceSVG = false
+        cayImportMessage = added > 0
+            ? String(format: localized("已汇入 %d 套孤岛气泡样式，可在上方选取。"), added)
+            : localized("孤岛气泡样式已存在，或当前版本无法辨识这些模板。")
     }
 
     // MARK: - Styles

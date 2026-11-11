@@ -822,6 +822,15 @@ struct ReaderSettingsView: View {
                 }
 
                 NavigationLink {
+                    ReviewPanelStyleSettingsView()
+                } label: {
+                    SettingsRowLabel(
+                        localized("段评与互动样式"),
+                        systemImage: "text.bubble.fill"
+                    )
+                }
+
+                NavigationLink {
                     ReaderDialogueBubbleSettingsView(
                         style: settings.dialogueBubbleStyle,
                         onOpenImporter: { requestStyleImporter(.dialogueBubble) },

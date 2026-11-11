@@ -13,6 +13,21 @@ struct ReaderCommentBubbleSettingsView: View {
         Form {
             Section {
                 NavigationLink {
+                    ReviewPanelStyleSettingsView()
+                } label: {
+                    SettingsRowLabel(
+                        localized("段评与互动样式"),
+                        systemImage: "text.bubble.fill"
+                    )
+                }
+            } footer: {
+                Text(localized("按区域自订段评面板、评论、热评、本章说与作者说的 CSS，可存多套样式并汇入汇出。"))
+                    .dsSectionFooter()
+            }
+            .interfaceSectionSurface()
+
+            Section {
+                NavigationLink {
                     ReaderParagraphBubbleSettingsView(onOpenImporter: onOpenImporter.map { open in
                         { open(.commentBubble) }
                     })
