@@ -9,14 +9,10 @@ enum ParagraphReviewBrowserPresentationPolicy {
     static let hidesToolbar = true
 }
 
-/// 段评面板的底。
+/// 段评面板的底：真正的毛玻璃。
 ///
-/// 刻意**不用 `Material`**：任何 material 都自带高斯模糊，opacity 压到多低，
-/// 底下正文都会被糊成一层「雾」——这正是 0.72 / 0.12 / 0.05 / 0 怎么调都还有雾的原因，
-/// 雾不是浓度，是材质本身。
-///
-/// 改成纯色蒙版：只做均匀压暗（深色黑 / 浅色白），不模糊。
-/// 0 就完全不画，正文原样透上来；1 是不透明的普通面板。
+/// 面板页面是全透明的，玻璃感来自 sheet 自己的 `.ultraThinMaterial`（会实时模糊背后的正文）。
+/// 这里只再叠一层极淡的纯色蒙版控制浓淡：档位调低几乎只剩玻璃，调高就接近普通白/黑面板。
 enum ParagraphReviewVeil {
     static func color(for scheme: ColorScheme, opacity: Double) -> Color {
         let level = min(max(opacity, 0), 1)
@@ -418,8 +414,8 @@ struct LegadoReviewBrowserView: View {
                 )
             }
         }
-        // 面板底：纯色蒙版，不用 material。material 的模糊会把下方正文糊成雾，
-        // 浓度再低也去不掉；纯色只压亮度，拖到 0 就彻底透明。
+        // 面板底：sheet 用系统 ultraThinMaterial 做真毛玻璃（实时模糊背后的正文），
+        // 页面本身完全透明，只有需要压浓时再叠一层极淡的纯色蒙版。
         .background {
             Rectangle()
                 .fill(
@@ -430,7 +426,7 @@ struct LegadoReviewBrowserView: View {
                 )
                 .ignoresSafeArea()
         }
-        .presentationBackground(.clear)
+        .presentationBackground(.ultraThinMaterial)
         // 关掉 sheet 的背景变暗层：不然底下正文会被系统压暗，看起来还是「隔了一层」。
         // 只开到 medium：面板半屏时正文保持原亮度，拉到全屏时不再让手势穿透到正文。
         .presentationBackgroundInteraction(.enabled(upThrough: .medium))

@@ -1,23 +1,28 @@
 import Foundation
 
-/// 点开本章说 / 热评 / 作者说 / 段评时弹出的「孤岛段评面板」。
+/// 点开本章说 / 热评 / 作者说 / 段评时弹出的「段评面板」。
 ///
-/// 与旧做法的根本区别：**不再往书源网页上刷 CSS**。书源网页那套 UI（tab、神评、
-/// 默认/热/最新、重复标题）整个被移进一个隐藏容器，用户看到的只有一个由这里
-/// 生成的独立面板。书源自己的 JS、登录态、java.ajax 照常跑在隐藏容器里，评论数据
-/// 从那边抽出来喂给面板；DOM 节点仍在，书源脚本后续追加的内容也能被继续抽取。
+/// 做法：**不重排文字，只搬结构**。
+/// 书源网页那套 UI（tab、排序、输入框、页头）整个收进 `display:none` 的隐藏层，
+/// 书源自己的 JS / 登录态 / java.ajax 照常在隐藏层里跑；同时把评论列表的节点**克隆**
+/// 一份进面板，按「头像 / 昵称 / 标签 / 正文 / 配图 / 时间 / 回复数 / 楼中楼」打上
+/// `yd*` 类名，再套一层统一字体与间距。
 ///
-/// 透明由 Swift 侧的 `ParagraphReviewVeil` 纯色蒙版负责（外观 › 界面效果，默认 0.06），
-/// 这里生成的 DOM 自身完全不带底色、不用 blur、不画阴影——`transparentBackgroundScript`
-/// 会强制关掉 backdrop-filter，模糊只会把下方正文糊成雾。文字保持不透明以确保可读。
+/// 为什么不按文本行重新拼卡片：书源页面千奇百怪，文字一旦被拆开重排，
+/// 「第 16 段」会跑进正文、昵称和时间会粘成一行、楼中楼会丢掉——上一版就是这么错乱的。
+/// 克隆 DOM 后文字、图片、表情、链接全部原样保留，最多是排版不完美，绝不会串行。
+///
+/// 面板自身不带底色：毛玻璃由 Swift 侧的 sheet 背景（`ultraThinMaterial`）提供，
+/// 页面只负责把文字与卡片画在半透明层上。
 enum IslandReviewPanel {
 
     /// 生成 `atDocumentStart` 注入的脚本。
     /// - Parameters:
     ///   - isNight: 当前日夜模式，决定文字与分隔线配色。
     ///   - title: 面板标题（通常取 `ReviewTarget.title`，已本地化过）。
-    ///   - customCSS: 用户在「段评样式」里编辑的 CSS。只作用于本面板，且先剔除
-    ///     `content:` 改字声明——那正是上一版「本章热议」重复四次的元凶。
+    ///   - customCSS: 用户在「段评样式」里编辑的 CSS。只作用于本面板，
+    ///     且会先剔除 `content:` 改字与 `background*` 声明——前者是更早一版
+    ///     「本章热议」重复四次的原因，后者会把毛玻璃糊成一块实心板。
     static func installScript(isNight: Bool, title: String, customCSS: String) -> String {
         let modeLiteral = javaScriptStringLiteral(isNight ? "dark" : "light")
         let titleLiteral = javaScriptStringLiteral(title)
@@ -25,442 +30,570 @@ enum IslandReviewPanel {
 
         // Swift raw string：JS 里的正则反斜杠无需转义，插值用 \#(...)。
         return #"""
-        (function () {
-            var PANEL_ID = '__yd_island_panel__';
-            var SRC_ID   = '__yd_source_root__';
-            var STYLE_ID = '__yd_island_style__';
-            var MODE     = \#(modeLiteral);
-            var TITLE    = \#(titleLiteral);
-            var CUSTOM   = \#(cssLiteral);
-            var DARK     = MODE === 'dark';
+(function () {
+    var PANEL_ID = '__yd_island_panel__';
+    var SRC_ID = '__yd_source_root__';
+    var STYLE_ID = '__yd_island_style__';
+    var MODE = \#(modeLiteral);
+    var TITLE = \#(titleLiteral);
+    var CUSTOM = \#(cssLiteral);
+    var DARK = MODE === 'dark';
 
-            var C = DARK ? {
-                ink:    '#ECECEC',
-                sub:    '#9A958F',
-                line:   'rgba(255,255,255,.13)',
-                quote:  'rgba(255,255,255,.07)',
-                chip:   'rgba(240,128,95,.20)',
-                chipfg: '#F0A078',
-                av:     'rgba(255,255,255,.16)',
-                img:    'rgba(255,255,255,.08)',
-                // 面板自带半透明底：全透会让背后正文和评论文字直接叠在一起没法读。
-                // 只用纯色、不加模糊——模糊会把正文糊成一层「雾」。
-                sheet:  'rgba(26,25,26,.78)',
-                // 文字所在的块（标题 / 引用 / 评论卡片 / 输入框）再垫一层实底，
-                // 保证评论文字绝对清晰；空隙处才让背景明显透出来。
-                card:   'rgba(32,31,32,.94)'
-            } : {
-                ink:    '#262626',
-                sub:    '#86827C',
-                line:   'rgba(60,55,48,.12)',
-                quote:  'rgba(120,110,95,.10)',
-                chip:   'rgba(232,99,63,.14)',
-                chipfg: '#C05A30',
-                av:     'rgba(60,55,48,.12)',
-                img:    'rgba(60,55,48,.08)',
-                sheet:  'rgba(255,255,255,.80)',
-                card:   'rgba(255,255,255,.95)'
-            };
+    var started = false;
+    var rendering = false;
+    var sweeping = false;
+    var timer = null;
+    var failures = 0;
+    var startedAt = Date.now();
 
-            var rendering = false;
-            var sweeping  = false;
-            var timer     = null;
-            var started   = false;
+    function esc(s) {
+        return String(s == null ? '' : s)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+    function cls(el) { return String((el && el.className) || ''); }
+    function T(el) {
+        if (!el) return '';
+        return String(el.textContent || '').replace(/\s+/g, ' ').trim();
+    }
+    function ownText(el) {
+        var s = '';
+        for (var i = 0; i < el.childNodes.length; i++) {
+            var n = el.childNodes[i];
+            if (n.nodeType === 3) s += n.nodeValue;
+        }
+        return s.replace(/\s+/g, ' ').trim();
+    }
+    function vis(el) {
+        try {
+            var s = window.getComputedStyle(el);
+            if (!s) return false;
+            if (s.display === 'none' || s.visibility === 'hidden') return false;
+            if (parseFloat(s.opacity || '1') < 0.05) return false;
+            if (el.closest && el.closest('#' + SRC_ID)) return true;
+            var r = el.getBoundingClientRect();
+            return r.width > 4 && r.height > 4;
+        } catch (e) { return false; }
+    }
 
-            function esc(s) {
-                return String(s == null ? '' : s)
-                    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-                    .replace(/>/g, '&gt;').replace(/"/g, '&quot;')
-                    .replace(/'/g, '&#39;');
+    var TIME_RE = /^(\d{4}[-/.]\d{1,2}[-/.]\d{1,2}(\s+\d{1,2}:\d{2}(:\d{2})?)?|\d{1,2}[-/.]\d{1,2}(\s+\d{1,2}:\d{2})?|(刚刚|今天|昨天|前天|\d+\s*(秒|分钟|小时|天|周|个月|年)前)(\s*\d{1,2}:\d{2})?)$/;
+    var REPLY_RE = /^(\d+\s*)?(条)?(回复|评论)(\s*\d+)?$/;
+    var LIKE_RE = /^(\d+\s*)?(个)?(赞|点赞|顶|有用)(\s*\d+)?$/;
+    var CHIP_RE = /^(第\s*\d+\s*段|第\s*[0-9一二三四五六七八九十百]+\s*章|整章|章末|章节标题|标题评|作者说|本章说|段评|书友说|LV\.?\s*\d+|Lv\.?\s*\d+|等级\s*\d+|\d+\s*楼|楼主|神评|热评|精华|置顶|精选)/i;
+    var JUNK_RE = /^(回复|点赞|赞|举报|展开|收起|查看更多|加载更多|查看全部|上一页|下一页|全部|默认|最新|最热|发表|发送|取消|登录|注册)$/;
+
+    function fixSrc(im) {
+        var src = im.getAttribute('src') || '';
+        var lazy = im.getAttribute('data-src') || im.getAttribute('data-original') ||
+                   im.getAttribute('data-lazy-src') || im.getAttribute('data-echo') || '';
+        if ((!src || /^data:image\/(gif|svg)/i.test(src) || /blank|placeholder|loading/i.test(src)) && lazy) {
+            im.setAttribute('src', lazy);
+            src = lazy;
+        }
+        if (!src) {
+            var ss = im.getAttribute('srcset') || im.getAttribute('data-srcset') || '';
+            var first = ss.split(',')[0];
+            if (first) {
+                var url = first.trim().split(/\s+/)[0];
+                if (url) { im.setAttribute('src', url); src = url; }
             }
-            // 原 DOM 收进 display:none 的隐藏层后 innerText 会退化成没有换行的
-            // textContent，所有评论文字会连成一坨。这里按块级标签自己拼行，
-            // 保证隐藏层里也能读出「昵称 / 正文 / 时间」这些独立行。
-            function txt(el) {
-                if (!el) return '';
-                var parts = [];
-                function walk(n) {
-                    if (n.nodeType === 3) { parts.push(n.nodeValue); return; }
-                    if (n.nodeType !== 1) return;
-                    var tag = n.tagName;
-                    if (/^(SCRIPT|STYLE|NOSCRIPT|TEMPLATE)$/.test(tag)) return;
-                    if (tag === 'BR') { parts.push('\n'); return; }
-                    for (var i = 0; i < n.childNodes.length; i++) walk(n.childNodes[i]);
-                    // 按标签而不是 CSS display 分行：隐藏层里 innerText 会把
-                    // inline-block 的昵称/等级、时间/赞/回复挤成同一行。
-                    if (/^(DIV|P|LI|ARTICLE|SECTION|H[1-6]|UL|OL|TR|TD|BLOCKQUOTE|TIME|SMALL|BUTTON|HEADER|FOOTER|ASIDE|MAIN)$/.test(tag)) {
-                        parts.push('\n');
+        }
+        if (src && src.indexOf('//') === 0) im.setAttribute('src', location.protocol + src);
+        im.setAttribute('loading', 'eager');
+        im.setAttribute('referrerpolicy', 'no-referrer');
+        im.removeAttribute('srcset');
+        im.removeAttribute('data-srcset');
+    }
+
+    // MARK: - 隐藏书源原 UI（节点保留，书源脚本照常运行）
+
+    function ensureSourceRoot() {
+        var src = document.getElementById(SRC_ID);
+        if (src) return src;
+        src = document.createElement('div');
+        src.id = SRC_ID;
+        src.style.setProperty('display', 'none', 'important');
+        var panel = document.getElementById(PANEL_ID);
+        var nodes = [].slice.call(document.body.childNodes);
+        for (var i = 0; i < nodes.length; i++) {
+            if (nodes[i] === panel) continue;
+            src.appendChild(nodes[i]);
+        }
+        document.body.insertBefore(src, document.body.firstChild);
+        return src;
+    }
+    function sweep() {
+        var src = document.getElementById(SRC_ID);
+        if (!src) return;
+        sweeping = true;
+        try {
+            var kids = [].slice.call(document.body.children);
+            for (var i = 0; i < kids.length; i++) {
+                var n = kids[i];
+                if (n === src || n.id === PANEL_ID || n.id === STYLE_ID) continue;
+                if (/^(SCRIPT|STYLE|LINK|META)$/.test(n.tagName)) continue;
+                src.appendChild(n);
+            }
+        } finally { sweeping = false; }
+    }
+
+    // MARK: - 找评论列表（按重复结构聚类，不看文案）
+
+    function depthOf(el, root) {
+        var d = 0, p = el;
+        while (p && p !== root) { d++; p = p.parentElement; }
+        return d;
+    }
+
+    function listIn(root) {
+        var best = null;
+        var boxes = root.querySelectorAll('div,ul,ol,section,article,tbody,main,dl');
+        for (var i = 0; i < boxes.length; i++) {
+            var box = boxes[i];
+            if (box.id === PANEL_ID) continue;
+            var kids = [];
+            for (var j = 0; j < box.children.length; j++) {
+                var k = box.children[j];
+                if (k.id === PANEL_ID) continue;
+                kids.push(k);
+            }
+            if (kids.length < 2 || kids.length > 200) continue;
+            var groups = {};
+            for (var g = 0; g < kids.length; g++) {
+                var sig = kids[g].tagName + '#' + cls(kids[g]).slice(0, 60);
+                (groups[sig] = groups[sig] || []).push(kids[g]);
+            }
+            for (var key in groups) {
+                var group = groups[key];
+                if (group.length < 2) continue;
+                var good = 0, imgN = 0, txtSum = 0;
+                for (var q = 0; q < group.length; q++) {
+                    var t = T(group[q]);
+                    if (t.length >= 6) good++;
+                    txtSum += t.length;
+                    if (group[q].querySelector('img')) imgN++;
+                }
+                if (good < 2) continue;
+                var avg = txtSum / group.length;
+                var score = group.length * 10 + Math.min(group.length, 12) * 2 +
+                            imgN * 4 + Math.min(avg, 120) * 0.2 + depthOf(box, root) * 0.6;
+                if (!best || score > best.score) best = { box: box, cards: group, score: score };
+            }
+        }
+        return best;
+    }
+
+    function findReplies(card) {
+        var inner = listIn(card);
+        if (!inner) return null;
+        if (inner.cards.length < 1) return null;
+        if (inner.box === card) return null;
+        return inner.box;
+    }
+
+    // MARK: - 给克隆出来的卡片标角色（只加 class，不动文字）
+
+    function tagCard(card, nested) {
+        if (!card || card.nodeType !== 1) return;
+        card.classList.add('ydc');
+        if (nested) card.classList.add('ydc-sub');
+
+        // 先找出子回复区，后面抽头像/正文/时间都要跳过这一块，避免把楼中楼当成本条的头像和正文
+        var repsBox = nested ? null : findReplies(card);
+        function inReps(el) { return !!(repsBox && (el === repsBox || repsBox.contains(el))); }
+
+        var imgs = [];
+        var allImgs = card.querySelectorAll('img');
+        for (var i = 0; i < allImgs.length; i++) {
+            if (inReps(allImgs[i])) continue;
+            fixSrc(allImgs[i]);
+            imgs.push(allImgs[i]);
+        }
+
+        // 正文：直接文本占比最高、且不是「时间/回复数/点赞数/标签」的那一块
+        var bestTx = null, bestScore = 0;
+        var txCand = card.querySelectorAll('div,p,section,article,span,a,blockquote');
+        for (var b = 0; b < txCand.length; b++) {
+            var el = txCand[b];
+            if (el.classList.contains('ydc')) continue;
+            if (inReps(el)) continue;
+            var total = T(el).length;
+            if (total < 4) continue;
+            var own = ownText(el).length;
+            if (own === 0) continue;
+            var st = T(el);
+            if (TIME_RE.test(st) || REPLY_RE.test(st) || LIKE_RE.test(st)) continue;
+            if (JUNK_RE.test(st)) continue;
+            if (CHIP_RE.test(st) && total <= 18) continue;
+            var score = own * 3 + total * 0.12;
+            if (score > bestScore) { bestScore = score; bestTx = el; }
+        }
+
+        // 头像：第一个「周边没有文字」的图片
+        var av = null;
+        for (var m = 0; m < imgs.length; m++) {
+            var im = imgs[m];
+            if (bestTx && bestTx.contains(im)) continue;
+            var hint = (cls(im) + ' ' + (im.getAttribute('alt') || '')).toLowerCase();
+            if (/avatar|face|head|portrait|user|touxiang|author/.test(hint)) { av = im; break; }
+            var p = im.parentElement, up = 0;
+            while (p && up < 2 && p !== card && T(p).length > 0) { p = p.parentElement; up++; }
+            if (p && p !== card && T(p).length === 0) { av = im; break; }
+        }
+
+        if (!av) {
+            // 退一步：第一张「小图」（宽度 <= 72），多半就是头像
+            for (var m2 = 0; m2 < imgs.length; m2++) {
+                var im2 = imgs[m2];
+                if (bestTx && bestTx.contains(im2)) continue;
+                var w2 = parseInt(im2.getAttribute('width') || '0', 10) ||
+                         (im2.style ? parseInt(im2.style.width || '0', 10) : 0);
+                if (w2 > 0 && w2 <= 72) { av = im2; break; }
+            }
+        }
+
+        // 时间 / 回复数 / 点赞数
+        var tEl = null, rEl = null, lEl = null;
+        var leaves = card.querySelectorAll('span,a,div,em,i,small,time,p,b,strong');
+        for (var d = 0; d < leaves.length; d++) {
+            var le = leaves[d];
+            if (le.children.length > 0) continue;
+            if (inReps(le)) continue;
+            if (bestTx && bestTx.contains(le)) continue;
+            if (av && (le === av || le.contains(av))) continue;
+            var lt = T(le);
+            if (!lt || lt.length > 26) continue;
+            if (!tEl && TIME_RE.test(lt)) { tEl = le; continue; }
+            if (!rEl && REPLY_RE.test(lt)) { rEl = le; continue; }
+            if (!lEl && LIKE_RE.test(lt)) { lEl = le; continue; }
+        }
+
+        // 标签 / 段位：最多两个（等级 + 第几段），都并到头像那一行
+        var chips = [];
+        if (!nested) {
+            for (var e = 0; e < leaves.length && chips.length < 2; e++) {
+                var ce = leaves[e];
+                if (ce.children.length > 0) continue;
+                if (inReps(ce)) continue;
+                if (bestTx && bestTx.contains(ce)) continue;
+                if (ce === tEl || ce === rEl || ce === lEl) continue;
+                if (ce.parentElement && ce.parentElement.classList.contains('ydhead')) continue;
+                var ct = T(ce);
+                if (!ct || ct.length > 18) continue;
+                if (CHIP_RE.test(ct)) { chips.push(ce); continue; }
+                if (/label|tag|badge|level|lv/i.test(cls(ce)) && ct.length <= 10) { chips.push(ce); }
+            }
+        }
+
+        // 昵称：正文/标签/时间之外，最靠前的短文本
+        var nm = null;
+        if (!nested) {
+            var nameCand = card.querySelectorAll('a,span,div,strong,b,em');
+            for (var f = 0; f < nameCand.length; f++) {
+                var ne = nameCand[f];
+                if (ne.children.length > 0) continue;
+                if (inReps(ne)) continue;
+                if (bestTx && bestTx.contains(ne)) continue;
+                if (ne === tEl || ne === rEl || ne === lEl) continue;
+                if (chips.indexOf(ne) >= 0) continue;
+                var nt = T(ne);
+                if (!nt || nt.length < 2 || nt.length > 18) continue;
+                if (JUNK_RE.test(nt) || TIME_RE.test(nt)) continue;
+                nm = ne; break;
+            }
+        }
+
+        if (bestTx) bestTx.classList.add('ydtx');
+        for (var ci = 0; ci < chips.length; ci++) chips[ci].classList.add('ydbadge');
+        if (nm) nm.classList.add('ydnm');
+
+        for (var h = 0; h < imgs.length; h++) {
+            if (imgs[h] === av) continue;
+            imgs[h].classList.add('ydpic');
+        }
+        if (av) {
+            av.classList.remove('ydpic');
+            av.classList.add('ydav');
+        }
+
+        // 头像 + 昵称 + 标签合成一行
+        if (av || nm || chips.length) {
+            var head = document.createElement('div');
+            head.className = 'ydhead';
+            if (av) {
+                var abox = av.parentElement;
+                var good = abox && abox !== card && T(abox).length === 0 && abox.children.length <= 2 &&
+                           abox.querySelectorAll('img').length <= 1 && !abox.classList.contains('ydhead');
+                if (good) {
+                    var outer = abox.parentElement;
+                    if (outer && outer !== card && T(outer).length === 0 && outer.children.length <= 2 &&
+                        !outer.classList.contains('ydhead') && !outer.classList.contains('ydreps')) {
+                        abox = outer;
                     }
-                }
-                for (var i = 0; i < el.childNodes.length; i++) walk(el.childNodes[i]);
-                var lines = parts.join('').split(/\n+/).map(function (s) { return s.trim(); })
-                    .filter(function (s) { return s.length; });
-                if (lines.length >= 2) return lines.join('\n');
-                var own = (el.innerText || '').trim();
-                if (own && own.indexOf('\n') >= 0) return own;
-                if (lines.length === 1) return lines[0];
-                return (el.textContent || '').trim();
-            }
-            function cls(el) {
-                return String((el && el.className) || '');
-            }
-            function isVisible(el) {
-                try {
-                    var s = window.getComputedStyle(el);
-                    if (!s) return false;
-                    if (s.display === 'none' || s.visibility === 'hidden') return false;
-                    if (parseFloat(s.opacity || '1') < 0.05) return false;
-                    // 隐藏层内的元素没有几何尺寸，跳过尺寸判定（否则一条都抽不到）。
-                    if (el.closest && el.closest('#' + SRC_ID)) return true;
-                    var r = el.getBoundingClientRect();
-                    if (r.width < 8 || r.height < 6) return false;
-                    return true;
-                } catch (e) { return false; }
-            }
-
-            // MARK: - 样式（面板自身全透明，靠 Swift 侧蒙版压亮度）
-
-            function cssText() {
-                return [
-                    'html,body{background:transparent !important;background-color:transparent !important;margin:0 !important;padding:0 !important;}',
-                    '#' + SRC_ID + '{display:none !important;}',
-                    '#' + PANEL_ID + '{',
-                    '  position:relative;width:100%;box-sizing:border-box;',
-                    '  padding:0 0 26px;',
-                    '  background:' + C.sheet + ' !important;',
-                    '  border-radius:22px 22px 0 0;',
-                    '  color:' + C.ink + ' !important;',
-                    '  font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Noto Sans CJK SC",sans-serif;',
-                    '  -webkit-font-smoothing:antialiased;',
-                    '}',
-                    '#' + PANEL_ID + ' *{box-sizing:border-box;}',
-                    '#' + PANEL_ID + ' .ydi-grab{width:36px;height:4px;border-radius:4px;',
-                    '  background:' + C.line + ' !important;margin:10px auto 2px;}',
-                    '#' + PANEL_ID + ' .ydi-hd{margin:0 12px 10px;padding:10px 0 12px;',
-                    '  border-radius:14px;background:' + C.card + ' !important;',
-                    '  text-align:center;font-size:15px;font-weight:600;color:' + C.ink + ' !important;}',
-                    '#' + PANEL_ID + ' .ydi-q{margin:0 12px 10px;padding:11px 13px;border-radius:14px;',
-                    '  background:' + C.card + ' !important;font-size:13px;line-height:1.6;',
-                    '  color:' + C.sub + ' !important;}',
-                    '#' + PANEL_ID + ' .ydi-c{margin:0 12px 10px;padding:12px 13px 11px;',
-                    '  border-radius:14px;background:' + C.card + ' !important;}',
-                    '#' + PANEL_ID + ' .ydi-u{display:flex;align-items:center;gap:8px;margin-bottom:8px;}',
-                    '#' + PANEL_ID + ' .ydi-av{width:30px;height:30px;flex:0 0 30px;border-radius:50%;',
-                    '  object-fit:cover;background:' + C.av + ' !important;color:' + C.ink + ';',
-                    '  font-size:13px;display:flex;align-items:center;justify-content:center;}',
-                    '#' + PANEL_ID + ' .ydi-av-ph{width:30px;height:30px;flex:0 0 30px;border-radius:50%;',
-                    '  background:' + C.av + ' !important;}',
-                    '#' + PANEL_ID + ' .ydi-nm{font-size:13px;font-weight:600;color:' + C.ink + ' !important;}',
-                    '#' + PANEL_ID + ' .ydi-lv{font-size:10px;padding:1px 6px;border-radius:4px;',
-                    '  background:' + C.chip + ' !important;color:' + C.chipfg + ' !important;}',
-                    '#' + PANEL_ID + ' .ydi-tx{font-size:13px;line-height:1.7;margin:0 0 9px;',
-                    '  color:' + C.ink + ' !important;word-break:break-word;}',
-                    '#' + PANEL_ID + ' .ydi-img{display:block;width:150px;max-width:60%;height:96px;',
-                    '  object-fit:cover;border-radius:8px;background:' + C.img + ' !important;}',
-                    '#' + PANEL_ID + ' .ydi-rep{margin:9px 0 0;padding:8px 10px;border-radius:8px;',
-                    '  background:' + C.quote + ' !important;font-size:12px;color:' + C.sub + ' !important;}',
-                    '#' + PANEL_ID + ' .ydi-meta{display:flex;justify-content:space-between;gap:10px;',
-                    '  font-size:11px;color:' + C.sub + ' !important;margin-top:9px;}',
-                    '#' + PANEL_ID + ' .ydi-in{margin:2px 12px 0;border:1px solid ' + C.line + ';',
-                    '  border-radius:999px;padding:10px 14px;background:' + C.card + ' !important;',
-                    '  font-size:12px;color:' + C.sub + ' !important;}',
-                    '#' + PANEL_ID + ' .ydi-empty{text-align:center;padding:34px 20px;',
-                    '  font-size:13px;color:' + C.sub + ' !important;}'
-                ].join('\n');
-            }
-
-            function installStyle() {
-                var head = document.head || document.documentElement;
-                if (!head) return;
-                var style = document.getElementById(STYLE_ID);
-                if (!style) {
-                    style = document.createElement('style');
-                    style.id = STYLE_ID;
-                    head.appendChild(style);
-                }
-                // 必须排在最后：透明背景脚本用 !important 清底色，同优先级下后写的胜出。
-                style.textContent = cssText() + '\n' + CUSTOM;
-                if (head.lastChild !== style) head.appendChild(style);
-            }
-
-            // MARK: - 把书源原 UI 收进隐藏容器（节点保留，书源 JS 继续可用）
-
-            function ensureSourceRoot() {
-                var src = document.getElementById(SRC_ID);
-                if (src) return src;
-                src = document.createElement('div');
-                src.id = SRC_ID;
-                src.style.setProperty('display', 'none', 'important');
-                var panel = document.getElementById(PANEL_ID);
-                var nodes = [].slice.call(document.body.childNodes);
-                for (var i = 0; i < nodes.length; i++) {
-                    var n = nodes[i];
-                    if (n === panel) continue;
-                    src.appendChild(n);
-                }
-                document.body.insertBefore(src, document.body.firstChild);
-                return src;
-            }
-
-            // 书源 ajax 之后新插进 body 的节点，也要收进去，否则旧界面会露出来。
-            function sweep() {
-                var src = document.getElementById(SRC_ID);
-                if (!src) return;
-                sweeping = true;
-                try {
-                    var kids = [].slice.call(document.body.children);
-                    for (var i = 0; i < kids.length; i++) {
-                        var n = kids[i];
-                        if (n === src || n.id === PANEL_ID || n.id === STYLE_ID) continue;
-                        if (n.tagName === 'SCRIPT' || n.tagName === 'STYLE' || n.tagName === 'LINK') continue;
-                        src.appendChild(n);
-                    }
-                } finally { sweeping = false; }
-            }
-
-            // MARK: - 从书源 DOM 抽评论（不依赖具体 class 名，靠重复结构聚类）
-
-            // 签名只按「标签 + 类名 + 子元素数」分组，不带文本长度：
-            // 同类评论卡片的正文长短不一，带上长度会把它们拆成好几个组，
-            // 结果反而选中内部那个只有正文的 .content 组，昵称头像全丢。
-            function signature(el) {
-                // 子元素数只取粗档：有的评论带配图有的不带，精确计数会把
-                // 同一模板渲染的卡片拆成两组，晚到的一条就抽不到。
-                return el.tagName + '|' + cls(el).slice(0, 70) + '|' +
-                       Math.min(el.children.length, 4);
-            }
-
-            function candidates(root) {
-                var all = root.querySelectorAll('div,li,article,section,tr,p');
-                var out = [];
-                for (var i = 0; i < all.length; i++) {
-                    var el = all[i];
-                    if (!isVisible(el)) continue;
-                    var t = txt(el);
-                    if (t.length < 14 || t.length > 1500) continue;
-                    if (/<(script|style)/i.test(el.innerHTML || '')) {
-                        // 仍允许：内层脚本常见于模板页
-                    }
-                    out.push(el);
-                }
-                return out;
-            }
-
-            function pickCards(root) {
-                var groups = {};
-                var list = candidates(root);
-                for (var i = 0; i < list.length; i++) {
-                    var el = list[i];
-                    var k = signature(el);
-                    (groups[k] = groups[k] || []).push(el);
-                }
-                var best = [], bestScore = 0;
-                Object.keys(groups).forEach(function (k) {
-                    var g = groups[k];
-                    if (g.length < 2 || g.length > 80) return;
-                    var total = 0;
-                    for (var t = 0; t < g.length; t++) total += txt(g[t]).length;
-                    var avg = total / g.length;
-                    if (avg < 16) return;
-                    // 组里元素互不嵌套，才算同一层卡片（而不是外层列表 + 内层块）
-                    var nested = 0;
-                    for (var a = 0; a < g.length && a < 6; a++) {
-                        for (var b = 0; b < g.length && b < 6; b++) {
-                            if (a !== b && g[a].contains(g[b])) nested++;
-                        }
-                    }
-                    if (nested > 2) return;
-                    // 评论卡片通常子元素更多、文本更长、还带时间/赞/回复；
-                    // 只比数量会选到「每条正文 div」这种只有一行字的组。
-                    var children = g[0].children.length;
-                    var score = g.length * (1 + Math.min(children, 8) * 0.6) * (avg >= 30 ? 1.4 : 1);
-                    if (/(赞|回复|·|前|昨天|去年|刚刚)/.test(txt(g[0]))) score *= 1.5;
-                    if (score > bestScore) { bestScore = score; best = g; }
-                });
-                return best.slice(0, 60);
-            }
-
-            var TIME_RE = /(\d{4}[-/]\d{1,2}[-/]\d{1,2}|\d{1,2}[-/]\d{1,2}|\d+\s*(分钟|小时|天|月|年)前|昨天|前天|去年|刚刚|今天)/;
-            var LEVEL_RE = /^(神评|热评|精选|精华|置顶|沙发|LV\.?\s*\d+|Lv\.?\s*\d+|V\d+|等级\s*\d+|楼主|作者)/i;
-            // 「神评 / 热评」不列在这里：它们在评论卡片里是等级徽章，要留给 LEVEL_RE。
-            var BAD_LINE = /^(本章热议|本章说|段评|全部|默认|最新|最热|热度|回复|点赞|查看更多|加载更多|上一页|下一页|登录|注册|收起|展开|全部评论|评论列表|写评论|发表|排序|筛选)$/;
-
-            function imgSrc(im) {
-                return im.getAttribute('src') || im.getAttribute('data-src') ||
-                       im.getAttribute('data-original') || im.getAttribute('data-lazy-src') || '';
-            }
-
-            function parseCard(el) {
-                var imgs = [].slice.call(el.querySelectorAll('img'));
-                var avatar = '', photo = '';
-                for (var i = 0; i < imgs.length; i++) {
-                    var im = imgs[i], s = imgSrc(im);
-                    if (!s || /^data:/i.test(s) || /\.(svg|gif)(\?|$)/i.test(s)) continue;
-                    var hint = cls(im) + ' ' + (im.getAttribute('alt') || '');
-                    if (/avatar|face|head|portrait|touxiang|头像|user/i.test(hint)) {
-                        if (!avatar) avatar = s;
-                    } else if (!photo) { photo = s; }
-                }
-                if (!avatar && imgs.length) {
-                    for (var j = 0; j < imgs.length; j++) {
-                        var s2 = imgSrc(imgs[j]);
-                        if (s2 && !/^data:/i.test(s2)) { avatar = s2; break; }
-                    }
-                }
-                if (avatar && avatar === photo) photo = '';
-
-                var lines = txt(el).split(/\n+/).map(function (s) { return s.trim(); })
-                    .filter(function (s) { return s.length > 0; });
-                var name = '', level = '', content = '', meta = '', likes = '', replies = '', rep = '';
-
-                for (var k = 0; k < lines.length; k++) {
-                    var L = lines[k];
-                    if (BAD_LINE.test(L)) continue;
-                    if (!name && L.length <= 20 && !TIME_RE.test(L) && !/^\d+$/.test(L) &&
-                        !/[赞回复条]$/.test(L) && !/[：:]/.test(L)) {
-                        name = L; continue;
-                    }
-                    if (!level && LEVEL_RE.test(L) && L.length <= 12) { level = L; continue; }
-                    if (TIME_RE.test(L) || /(赞|回复|·|IP|属地|来自)/.test(L)) {
-                        var m = L.match(/(\d+)\s*(?:个赞|赞|likes?)/i);
-                        if (m) likes = m[1];
-                        var r = L.match(/(\d+)\s*条?回复|回复\s*(\d+)/);
-                        if (r) replies = r[1] || r[2];
-                        if (L.length <= 60) { meta = meta ? meta : L; continue; }
-                    }
-                    if (/^回复\s*[^：:]+[：:]/.test(L) && !rep) { rep = L; continue; }
-                    if (L.length > content.length && L.length <= 600) content = L;
-                }
-                if (!content && lines.length) {
-                    for (var q = 0; q < lines.length; q++) {
-                        if (lines[q].length >= 8 && !BAD_LINE.test(lines[q])) { content = lines[q]; break; }
-                    }
-                }
-                return {
-                    avatar: avatar, photo: photo, name: name || '书友', level: level,
-                    content: content, meta: meta, likes: likes, replies: replies, rep: rep
-                };
-            }
-
-            // 聚类失败时的兜底：把可见文本里像评论的长行当成评论，保证面板不空。
-            function fallbackCards(root) {
-                var lines = txt(root).split(/\n+/).map(function (s) { return s.trim(); });
-                var out = [];
-                for (var i = 0; i < lines.length && out.length < 20; i++) {
-                    var L = lines[i];
-                    if (L.length < 8 || L.length > 400 || BAD_LINE.test(L)) continue;
-                    if (TIME_RE.test(L) && L.length < 30) continue;
-                    out.push({ avatar: '', photo: '', name: '书友', level: '', content: L,
-                               meta: '', likes: '', replies: '', rep: '' });
-                }
-                return out;
-            }
-
-            function quoteText(root) {
-                var q = root.querySelector('blockquote,[class*="quote" i],[class*="origin" i],[class*="source-text" i],[id*="quote" i]');
-                if (q) {
-                    var t = txt(q);
-                    if (t.length >= 2 && t.length <= 160) return t;
-                }
-                return '';
-            }
-
-            // MARK: - 渲染
-
-            function cardHTML(c) {
-                var av = c.avatar
-                    ? '<img class="ydi-av" src="' + esc(c.avatar) + '" alt="">'
-                    : '<span class="ydi-av ydi-av-ph">' + esc(c.name.slice(0, 1)) + '</span>';
-                var right = [];
-                if (c.likes) right.push(c.likes + ' 赞');
-                if (c.replies) right.push(c.replies + ' 条回复');
-                return '<div class="ydi-c card cay-card yd-area-comment">' +
-                    '<div class="ydi-u">' + av +
-                        '<span class="ydi-nm user cay-user">' + esc(c.name) + '</span>' +
-                        (c.level ? '<span class="ydi-lv label cay-label">' + esc(c.level) + '</span>' : '') +
-                    '</div>' +
-                    (c.content ? '<div class="ydi-tx text cay-text">' + esc(c.content) + '</div>' : '') +
-                    (c.photo ? '<img class="ydi-img" src="' + esc(c.photo) + '" alt="">' : '') +
-                    (c.rep ? '<div class="ydi-rep note cay-note">' + esc(c.rep) + '</div>' : '') +
-                    '<div class="ydi-meta"><span class="time cay-time">' + esc(c.meta) + '</span>' +
-                        '<span class="likes cay-likes">' + esc(right.join('　')) + '</span></div>' +
-                '</div>';
-            }
-
-            function render(cards, quote) {
-                var panel = document.getElementById(PANEL_ID);
-                if (!panel) {
-                    panel = document.createElement('div');
-                    panel.id = PANEL_ID;
-                    document.body.appendChild(panel);
-                }
-                rendering = true;
-                try {
-                    var body = cards.length
-                        ? cards.map(cardHTML).join('')
-                        : '<div class="ydi-empty">暂无评论</div>';
-                    panel.innerHTML =
-                        '<div class="ydi-grab"></div>' +
-                        '<div class="ydi-hd header cay-header">' + esc(TITLE || '段评') + '</div>' +
-                        (quote ? '<div class="ydi-q quote cay-quote">' + esc(quote) + '</div>' : '') +
-                        '<div class="ydi-list">' + body + '</div>' +
-                        '<div class="ydi-in">说点什么…</div>';
-                } finally {
-                    setTimeout(function () { rendering = false; }, 0);
+                    abox.classList.add('ydavbox');
+                    head.appendChild(abox);
+                } else {
+                    head.appendChild(av);
                 }
             }
+            if (nm) head.appendChild(nm);
+            for (var cc = 0; cc < chips.length; cc++) head.appendChild(chips[cc]);
+            card.insertBefore(head, card.firstChild);
+        }
 
-            function refresh() {
-                if (!document.body) return;
-                installStyle();
-                var src = ensureSourceRoot();
-                sweep();
-                var cards = pickCards(src).map(parseCard).filter(function (c) {
-                    return c.content && c.content.length >= 2;
-                });
-                if (!cards.length) cards = fallbackCards(src);
-                render(cards, quoteText(src));
+        // 子回复
+        if (repsBox) {
+            repsBox.classList.add('ydreps');
+            for (var r = 0; r < repsBox.children.length; r++) {
+                tagCard(repsBox.children[r], true);
             }
+        }
 
-            function start() {
-                if (started || !document.body) return;
-                started = true;
-                refresh();
-                try {
-                    // 只盯 body 的「直接子节点」：书源 ajax 之后新插进来的节点要收进隐藏层。
-                    // 不观察 body 的 subtree，否则 render() 改写 panel.innerHTML 会自己触发自己。
-                    var bodyMo = new MutationObserver(function () {
-                        if (rendering || sweeping) return;
-                        sweep();
-                        clearTimeout(timer);
-                        timer = setTimeout(function () { refresh(); }, 320);
-                    });
-                    bodyMo.observe(document.body, { childList: true, subtree: false });
-
-                    // 隐藏层内部（书源把评论插回它原来的容器）变化时重新抽取。
-                    var srcEl = document.getElementById(SRC_ID);
-                    if (srcEl) {
-                        var srcMo = new MutationObserver(function () {
-                            if (rendering || sweeping) return;
-                            clearTimeout(timer);
-                            timer = setTimeout(function () { refresh(); }, 320);
-                        });
-                        srcMo.observe(srcEl, { childList: true, subtree: true });
-                    }
-                } catch (e) {}
-                // ajax 晚到 / 首屏尚未渲染完：补几次，之后交给 MutationObserver。
-                [250, 700, 1500, 3000].forEach(function (ms) {
-                    setTimeout(function () { if (!rendering) refresh(); }, ms);
-                });
-            }
-
-            if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', start, { once: true });
+        // 底部：时间靠左，回复/点赞靠右
+        if (tEl || rEl || lEl) {
+            var foot = document.createElement('div');
+            foot.className = 'ydfoot';
+            var left = document.createElement('span');
+            left.className = 'ydft';
+            var right = document.createElement('span');
+            right.className = 'ydfr';
+            if (tEl) left.appendChild(tEl);
+            if (rEl) { if (rEl.parentElement) rEl.parentElement.removeChild(rEl); right.appendChild(rEl); }
+            if (lEl) { if (lEl.parentElement) lEl.parentElement.removeChild(lEl); right.appendChild(lEl); }
+            if (left.childNodes.length) foot.appendChild(left);
+            if (right.childNodes.length) foot.appendChild(right);
+            if (!foot.childNodes.length) return;
+            if (repsBox && card.contains(repsBox) && repsBox.parentNode) {
+                repsBox.parentNode.insertBefore(foot, repsBox);
             } else {
-                start();
+                card.appendChild(foot);
             }
-            window.addEventListener('load', function () { setTimeout(start, 60); });
-        })();
+        }
+    }
+
+    // 有些「作者说 / 作者有话说」只有一条内容，凑不出重复列表，这里退化成单卡片。
+    function singleCard(root) {
+        var best = null, bestDepth = -1;
+        var nodes = root.querySelectorAll('div,article,section,li');
+        for (var i = 0; i < nodes.length; i++) {
+            var el = nodes[i];
+            if (el.getElementById) continue;
+            var t = T(el);
+            if (t.length < 12 || t.length > 2000) continue;
+            if (!/(\d{4}[-/.]\d{1,2}[-/.]\d{1,2}|\d{1,2}[-/.]\d{1,2}\s+\d{1,2}:\d{2}|\d+\s*(分钟|小时|天)前|昨天|刚刚)/.test(t)) continue;
+            if (el.children.length < 2) continue;
+            if (!el.querySelector('img') && t.length < 30) continue;
+            var d = depthOf(el, root);
+            if (d > bestDepth) { bestDepth = d; best = el; }
+        }
+        return best;
+    }
+
+    function loadMoreNode(src) {
+        var nodes = src.querySelectorAll('a,button,div,span,p');
+        for (var i = 0; i < nodes.length; i++) {
+            var n = nodes[i];
+            if (n.children.length > 1) continue;
+            var t = T(n);
+            if (!t || t.length > 14) continue;
+            if (/^(加载更多|查看更多|点击加载|展开更多|更多评论|查看全部评论|查看全部)/.test(t)) return n;
+        }
+        return null;
+    }
+
+    // MARK: - 样式
+
+    function cssText() {
+        var ink = DARK ? '#ECECEC' : '#1F1E1D';
+        var sub = DARK ? '#9E9A95' : '#8E8A84';
+        var line = DARK ? 'rgba(255,255,255,.10)' : 'rgba(60,55,48,.09)';
+        var chipBg = DARK ? 'rgba(255,255,255,.10)' : 'rgba(60,55,48,.055)';
+        var chipFg = DARK ? '#C9C4BE' : '#6E6A64';
+        var repBg = DARK ? 'rgba(255,255,255,.05)' : 'rgba(60,55,48,.045)';
+        var avBg = DARK ? 'rgba(255,255,255,.12)' : 'rgba(60,55,48,.08)';
+        var P = '#' + PANEL_ID;
+        return [
+            'html,body{background:transparent !important;background-color:transparent !important;margin:0 !important;padding:0 !important;}',
+            'body{-webkit-text-size-adjust:100%;}',
+            '#' + SRC_ID + '{display:none !important;}',
+            P + '{position:relative;width:100% !important;max-width:100% !important;overflow-x:hidden;box-sizing:border-box;',
+            '  background:transparent !important;padding:0 18px 30px !important;color:' + ink + ' !important;',
+            '  font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Noto Sans CJK SC",sans-serif !important;',
+            '  -webkit-font-smoothing:antialiased;}',
+            P + ' *{box-sizing:border-box !important;-webkit-tap-highlight-color:transparent;}',
+            P + ' a{color:inherit !important;text-decoration:none !important;}',
+            P + ' img{max-width:100% !important;}',
+            P + ' .ydhd{position:relative;text-align:center;font-size:15px;font-weight:600;letter-spacing:.6px;',
+            '  color:' + ink + ' !important;padding:12px 0 14px;}',
+            P + ' .ydlist{display:block !important;padding:0 !important;margin:0 !important;background:transparent !important;}',
+            P + ' .ydc{position:relative !important;display:block !important;width:auto !important;float:none !important;',
+            '  padding:16px 0 15px !important;margin:0 !important;border:0 !important;',
+            '  border-top:.5px solid ' + line + ' !important;background:transparent !important;',
+            '  box-shadow:none !important;border-radius:0 !important;}',
+            P + ' .ydlist > .ydc:first-child{border-top:none !important;padding-top:6px !important;}',
+            P + ' .ydc .ydav{display:block !important;width:32px !important;height:32px !important;',
+            '  min-width:32px !important;min-height:32px !important;max-width:none !important;',
+            '  border-radius:50% !important;object-fit:cover !important;background:' + avBg + ' !important;',
+            '  margin:0 !important;float:none !important;border:0 !important;padding:0 !important;}',
+            P + ' .ydc .ydhead{display:flex !important;align-items:center !important;gap:0 !important;',
+            '  width:100% !important;margin:0 0 8px !important;padding:0 !important;border:0 !important;',
+            '  background:transparent !important;float:none !important;}',
+            P + ' .ydc .ydavbox{display:block !important;flex:0 0 32px !important;width:32px !important;',
+            '  height:32px !important;margin:0 9px 0 0 !important;padding:0 !important;border:0 !important;',
+            '  border-radius:50% !important;overflow:hidden !important;background:transparent !important;',
+            '  float:none !important;position:static !important;}',
+            P + ' .ydc .ydavbox .ydav{width:100% !important;height:100% !important;min-width:0 !important;',
+            '  min-height:0 !important;margin:0 !important;border-radius:50% !important;}',
+            P + ' .ydc div:empty,' + P + ' .ydc span:empty{' + 'display:none !important;}',
+            P + ' .ydc .ydpic{display:block !important;max-width:48% !important;max-height:150px !important;',
+            '  width:auto !important;height:auto !important;border-radius:10px !important;object-fit:cover !important;',
+            '  margin:9px 0 2px !important;background:' + repBg + ' !important;float:none !important;}',
+            P + ' .ydc .ydbadge{display:inline-block !important;max-width:62%;overflow:hidden;text-overflow:ellipsis;',
+            '  white-space:nowrap !important;vertical-align:middle !important;font-size:11px !important;line-height:18px !important;',
+            '  padding:0 6px !important;margin:0 0 0 6px !important;border:0 !important;border-radius:5px !important;',
+            '  background:' + chipBg + ' !important;color:' + chipFg + ' !important;font-weight:400 !important;}',
+            P + ' .ydc .ydnm{display:inline-block !important;vertical-align:middle !important;font-size:13px !important;',
+            '  font-weight:600 !important;color:' + ink + ' !important;margin:0 6px 0 0 !important;max-width:46%;overflow:hidden;',
+            '  text-overflow:ellipsis;white-space:nowrap !important;}',
+            P + ' .ydc .ydtx{display:block !important;clear:both !important;font-size:14.5px !important;',
+            '  line-height:1.72 !important;margin:2px 0 0 !important;color:' + ink + ' !important;',
+            '  letter-spacing:.1px;word-break:break-word !important;white-space:pre-wrap !important;',
+            '  text-align:left !important;text-indent:0 !important;}',
+            P + ' .ydc .ydfoot{display:flex !important;align-items:center;justify-content:space-between !important;',
+            '  gap:10px !important;clear:both !important;margin:11px 0 0 !important;padding:0 !important;',
+            '  border:0 !important;background:transparent !important;font-size:11.5px !important;line-height:16px !important;',
+            '  color:' + sub + ' !important;}',
+            P + ' .ydc .ydfoot span{font-size:11.5px !important;color:' + sub + ' !important;background:none !important;}',
+            P + ' .ydc .ydft{color:' + sub + ' !important;}',
+            P + ' .ydc .ydfr{display:flex !important;align-items:center !important;gap:14px !important;}',
+            P + ' .ydreps{display:block !important;clear:both !important;margin:12px 0 0 !important;padding:2px 12px !important;',
+            '  border:0 !important;border-radius:12px !important;background:' + repBg + ' !important;}',
+            P + ' .ydreps .ydc{border-top:.5px solid ' + line + ' !important;padding:11px 0 10px !important;}',
+            P + ' .ydreps .ydc:first-child{border-top:none !important;}',
+            P + ' .ydreps .ydc .ydavbox{flex:0 0 24px !important;width:24px !important;height:24px !important;}',
+            P + ' .ydreps .ydc .ydav{width:100% !important;height:100% !important;}',
+            P + ' .ydreps .ydc .ydtx{font-size:13.5px !important;line-height:1.62 !important;}',
+            P + ' .ydmore{margin:18px auto 6px !important;padding:10px 0 !important;width:60% !important;',
+            '  text-align:center !important;font-size:12.5px !important;color:' + chipFg + ' !important;',
+            '  border-radius:999px !important;background:' + chipBg + ' !important;}',
+            P + ' .ydempty{text-align:center;padding:40px 20px !important;font-size:13px !important;color:' + sub + ' !important;}'
+        ].join('\n');
+    }
+
+    function installStyle() {
+        var head = document.head || document.documentElement;
+        if (!head) return;
+        var style = document.getElementById(STYLE_ID);
+        if (!style) {
+            style = document.createElement('style');
+            style.id = STYLE_ID;
+            document.documentElement.appendChild(style);
+        }
+        style.textContent = cssText() + '\n' + CUSTOM;
+    }
+
+    // MARK: - 渲染
+
+    function render(src) {
+        var found = listIn(src);
+        var cards = found ? found.cards : null;
+        if (!cards) {
+            var one = singleCard(src);
+            if (!one) return false;
+            cards = [one];
+        }
+        var panel = document.getElementById(PANEL_ID);
+        if (!panel) {
+            panel = document.createElement('div');
+            panel.id = PANEL_ID;
+            document.body.appendChild(panel);
+        }
+        rendering = true;
+        try {
+            panel.innerHTML = '<div class="ydhd">' + esc(TITLE || '段评') + '</div><div class="ydlist"></div>';
+            var list = panel.querySelector('.ydlist');
+            for (var i = 0; i < cards.length; i++) {
+                var card = cards[i].cloneNode(true);
+                tagCard(card, false);
+                list.appendChild(card);
+            }
+            if (!list.children.length) {
+                list.innerHTML = '<div class="ydempty">暂无评论</div>';
+            }
+            var more = loadMoreNode(src);
+            if (more) {
+                var btn = document.createElement('div');
+                btn.className = 'ydmore';
+                btn.textContent = '加载更多评论';
+                btn.addEventListener('click', function () {
+                    try { more.click(); } catch (e) {}
+                    setTimeout(refresh, 900);
+                });
+                panel.appendChild(btn);
+            }
+        } finally {
+            setTimeout(function () { rendering = false; }, 0);
+        }
+        return true;
+    }
+
+    function refresh() {
+        if (!document.body) return;
+        installStyle();
+        var src = ensureSourceRoot();
+        sweep();
+        var ok = render(src);
+        if (ok) {
+            failures = 0;
+        } else {
+            failures++;
+            if (failures >= 6 && Date.now() - startedAt > 6000) {
+                var panel = document.getElementById(PANEL_ID);
+                if (panel && panel.parentNode) panel.parentNode.removeChild(panel);
+                src.style.setProperty('display', 'block', 'important');
+                return true;
+            }
+        }
+        return ok;
+    }
+
+    function start() {
+        if (started || !document.body) return;
+        started = true;
+        refresh();
+        try {
+            var bodyMo = new MutationObserver(function () {
+                if (rendering || sweeping) return;
+                sweep();
+                clearTimeout(timer);
+                timer = setTimeout(refresh, 320);
+            });
+            bodyMo.observe(document.body, { childList: true, subtree: false });
+
+            var srcEl = document.getElementById(SRC_ID);
+            if (srcEl) {
+                var srcMo = new MutationObserver(function () {
+                    if (rendering || sweeping) return;
+                    clearTimeout(timer);
+                    timer = setTimeout(refresh, 320);
+                });
+                srcMo.observe(srcEl, { childList: true, subtree: true });
+            }
+        } catch (e) {}
+        [250, 700, 1500, 3000].forEach(function (ms) {
+            setTimeout(function () { if (!rendering) refresh(); }, ms);
+        });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', start, { once: true });
+    } else {
+        start();
+    }
+    window.addEventListener('load', function () { setTimeout(start, 60); });
+})();
+
         """#
     }
 
@@ -474,21 +607,25 @@ enum IslandReviewPanel {
         return encoded.replacingOccurrences(of: "</", with: "<\\/")
     }
 
-    /// 自定义 CSS 只保留视觉声明。`content:` 会改掉面板里的文字（上一版「本章热议」
-    /// 重复四次就是它造成的），必须剔除；`@dark` / `@light` 由 `browserCSS` 先处理过。
+    /// 自定义 CSS 只保留「文字 / 字号 / 行距 / 间距」这类视觉声明。
+    ///
+    /// 剔除 `content:`（它会改掉面板里的文字）、`background*`（一刷就把毛玻璃糊成实心板，
+    /// 上一版「根本不透明」就是旧模板给 body 刷了 0.92 的白底）和
+    /// `backdrop-filter`（在已经模糊的 sheet 上再糊一层，文字会发虚）。
     private static func sanitizedCSS(_ css: String) -> String {
         guard !css.isEmpty else { return "" }
         var out = css
-        if let re = try? NSRegularExpression(
-            pattern: #"content\s*:\s*(?:"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|[^;}]*)\s*;?"#,
-            options: [.caseInsensitive]
-        ) {
+        let patterns = [
+            #"content\s*:\s*(?:"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|[^;}]*)\s*;?"#,
+            #"background(-color|-image|-repeat|-size|-position|-attachment)?\s*:\s*[^;}]*;?"#,
+            #"(?:-webkit-)?backdrop-filter\s*:\s*[^;}]*;?"#
+        ]
+        for pattern in patterns {
+            guard let re = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) else { continue }
             out = re.stringByReplacingMatches(
                 in: out, options: [], range: NSRange(out.startIndex..., in: out), withTemplate: ""
             )
         }
-        // 面板里的节点带了 .user/.text/.quote/.card 等语义类，自定义 CSS 能命中；
-        // 但旧模板里的 .yd-area-* 裸声明可能带 position 之类，限定作用域避免影响整页。
         return out.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }
