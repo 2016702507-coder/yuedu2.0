@@ -101,7 +101,7 @@ struct ReaderBatterySVGImportView: View {
         .sheet(item: $pendingShare) { export in
             ShareExportSheet(export: export)
         }
-        .fileImporter(
+        .copiedFileImporter(
             isPresented: $showingImporter,
             allowedContentTypes: Self.svgContentTypes,
             allowsMultipleSelection: false,

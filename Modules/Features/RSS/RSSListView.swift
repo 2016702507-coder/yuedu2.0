@@ -267,7 +267,7 @@ struct RSSListView: View {
                 contentType: RSSOPMLDocument.exportContentType,
                 defaultFilename: "yuedu-rss.opml"
             ) { reportExportResult($0, format: .opml) }
-            .fileImporter(
+            .copiedFileImporter(
                 isPresented: $showJSONImporter,
                 allowedContentTypes: [.json, .data],
                 allowsMultipleSelection: false,
@@ -1204,7 +1204,7 @@ struct RSSOPMLImportSheet: View {
                         .floatingSurfaceBackground(in: RoundedRectangle(cornerRadius: 12))
                 }
             }
-            .fileImporter(
+            .copiedFileImporter(
                 isPresented: $showFileImporter,
                 allowedContentTypes: opmlContentTypes,
                 allowsMultipleSelection: false

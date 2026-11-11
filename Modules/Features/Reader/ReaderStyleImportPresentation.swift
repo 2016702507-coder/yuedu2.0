@@ -164,7 +164,7 @@ private struct ReaderStyleImportPresentationModifier: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .fileImporter(
+            .copiedFileImporter(
                 isPresented: Binding(
                     get: { route != nil },
                     set: { if !$0 { route = nil } }

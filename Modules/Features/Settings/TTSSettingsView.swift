@@ -59,7 +59,7 @@ struct TTSSettingsView: View {
                 NavigationStack { settingsPage }
             }
         }
-        .fileImporter(
+        .copiedFileImporter(
             isPresented: $showSourceFileImporter,
             allowedContentTypes: [.json, .plainText],
             allowsMultipleSelection: false

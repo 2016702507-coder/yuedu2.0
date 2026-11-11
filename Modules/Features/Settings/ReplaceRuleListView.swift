@@ -124,7 +124,7 @@ struct ReplaceRuleListView: View {
             .sheet(item: $editingRule) { rule in
                 ReplaceRuleEditView(rule: rule) { store.update($0) }
             }
-            .fileImporter(
+            .copiedFileImporter(
                 isPresented: $showingImportFile,
                 allowedContentTypes: [UTType.json, UTType.plainText]
             ) { result in

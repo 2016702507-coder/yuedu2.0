@@ -106,7 +106,7 @@ struct FileImportTab: View {
             .padding()
         }
         .softScrollEdges()
-        .fileImporter(isPresented: $showFilePicker,
+        .copiedFileImporter(isPresented: $showFilePicker,
                       allowedContentTypes: LocalBookImportService.supportedContentTypes,
                       allowsMultipleSelection: true) { result in
             switch result {

@@ -82,7 +82,7 @@ struct RemoteLibraryManagementView: View {
         .themedAppSurface(for: .bookshelf)
         .task { await loadCapabilities() }
         .onDisappear { task?.cancel() }
-        .fileImporter(isPresented: $importing,
+        .copiedFileImporter(isPresented: $importing,
                       allowedContentTypes: BookFileFormat.uploadExtensions.sorted().compactMap { UTType(filenameExtension: $0) },
                       allowsMultipleSelection: false) { result in
             switch result {

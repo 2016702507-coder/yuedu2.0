@@ -314,13 +314,10 @@ private struct BookSourceAddFlowPresentations: ViewModifier {
                     BookSourceImportSheet(flow: flow)
                 }
             }
-            .background(
-                CopiedFileImporter(
-                    isPresented: $flow.showsFirstLevelImportFile,
-                    allowedContentTypes: BookSourceAddFlow.importContentTypes,
-                    allowsMultipleSelection: false,
-                    onCompletion: flow.handleImportFile
-                )
+            .copiedFileImporter(
+                isPresented: $flow.showsFirstLevelImportFile,
+                allowedContentTypes: BookSourceAddFlow.importContentTypes,
+                onCompletion: flow.handleImportFile
             )
             .sheet(isPresented: $flow.showsNetworkImport, onDismiss: flow.presentQueuedImportReview) {
                 AdaptiveSheetContainer(maxWidth: DSLayout.readablePanelWidth) {
@@ -461,13 +458,10 @@ private struct BookSourceImportSheet: View {
                 }
             }
         }
-        .background(
-            CopiedFileImporter(
-                isPresented: $flow.showsImportFile,
-                allowedContentTypes: BookSourceAddFlow.importContentTypes,
-                allowsMultipleSelection: false,
-                onCompletion: flow.handleImportFile
-            )
+        .copiedFileImporter(
+            isPresented: $flow.showsImportFile,
+            allowedContentTypes: BookSourceAddFlow.importContentTypes,
+            onCompletion: flow.handleImportFile
         )
     }
 }

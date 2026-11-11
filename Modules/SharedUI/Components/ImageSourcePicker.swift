@@ -116,7 +116,7 @@ struct ImageSourcePickerButton<LabelContent: View>: View {
                 selection: $photoItem,
                 matching: .images
             )
-            .fileImporter(
+            .copiedFileImporter(
                 isPresented: $isShowingFiles,
                 allowedContentTypes: contentTypes,
                 allowsMultipleSelection: false,

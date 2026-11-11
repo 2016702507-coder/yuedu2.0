@@ -85,7 +85,7 @@ struct TXTTocRuleListView: View {
                 )
             }
         }
-        .fileImporter(isPresented: $showingImportFile, allowedContentTypes: [.json, .plainText]) { result in
+        .copiedFileImporter(isPresented: $showingImportFile, allowedContentTypes: [.json, .plainText]) { result in
             importFile(result)
         }
         .alert(localized("从网址汇入"), isPresented: $showingImportURL) {

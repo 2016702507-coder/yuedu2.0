@@ -78,7 +78,7 @@ struct GlobalFontSettingsView: View {
         .sheet(isPresented: $showsPaywall) {
             CardKeyUnlockView()
         }
-        .fileImporter(
+        .copiedFileImporter(
             isPresented: $showingImporter,
             allowedContentTypes: Self.fontContentTypes,
             allowsMultipleSelection: false,

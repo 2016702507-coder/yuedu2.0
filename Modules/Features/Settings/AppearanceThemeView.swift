@@ -714,7 +714,7 @@ struct AppearanceThemeView: View {
         } label: {
             SettingsRowLabel(localized("导入主题"), systemImage: "square.and.arrow.down", role: .action)
         }
-        .fileImporter(
+        .copiedFileImporter(
             isPresented: $showThemeImporter,
             allowedContentTypes: [
                 .json,
