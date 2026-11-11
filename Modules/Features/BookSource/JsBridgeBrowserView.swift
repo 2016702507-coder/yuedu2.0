@@ -367,6 +367,8 @@ struct LegadoReviewBrowserView: View {
     @State private var grabbed: GrabbedCommentPage?
     /// 抓取成功后再点右上角，可以退回书源原页面（书源页面有时还有「回复」这类原生面板没做的功能）。
     @State private var showsSourcePage = false
+    /// 4 秒内没抓到任何评论就回落显示书源原网页，避免一直卡在加载占位。
+    @State private var hasTimedOut = false
     /// 面板底色的浓淡由外观 › 界面效果 的滑杆决定，拖动即时生效。
     private var settings: GlobalSettings { .shared }
     @Environment(\.colorScheme) private var colorScheme
@@ -396,8 +398,25 @@ struct LegadoReviewBrowserView: View {
     }
 
     var body: some View {
-        Group {
-            if let grabbed, !showsSourcePage {
+        ZStack {
+            // ① 书源网页常驻在最底层，绝不因「抓到评论」被移出视图树。
+            //    旧实现用 if/else 切换，抓到数据的瞬间 WKWebView 被销毁，
+            //    页面里的 setTimeout / MutationObserver / 楼中楼展开请求全部停摆
+            //    —— 这正是「新界面楼中楼点不了、切回旧版加载完再切回来才显示」的根因。
+            //    常驻后 JS 持续运行，增量抓取不断回调 onCommentsGrabbed 刷新卡片。
+            sourceWebView
+                // 0.01 而非 0：彻底透明在个别系统上会被判为「不可见」而节流 JS 定时器。
+                .opacity(displayMode == .web ? 1 : 0.01)
+                .allowsHitTesting(displayMode == .web)
+
+            // ② 抓取中：毛玻璃占位盖住网页，杜绝「先闪一下旧页面再跳进新界面」。
+            if displayMode == .loading {
+                loadingPlaceholder
+                    .transition(.opacity)
+            }
+
+            // ③ 抓到评论：原生玻璃卡片盖在最上层。
+            if displayMode == .native, let grabbed {
                 NativeReviewPanelView(
                     title: grabbed.panelTitle(
                         fallback: target.title.isEmpty ? localized("段评") : target.title
@@ -406,54 +425,14 @@ struct LegadoReviewBrowserView: View {
                     comments: grabbed.items
                 )
                 .padding(.top, 6)
-            } else if let page = target.sourceBrowserPage {
-            JsBridgeBrowserView(
-                urlString: page.baseURL,
-                title: target.title,
-                hidesToolbar: ParagraphReviewBrowserPresentationPolicy.hidesToolbar,
-                initialHTML: page.html,
-                initialRequest: target.browserRequest,
-                injectedJavaScript: page.injectedJavaScript,
-                sourceRunHandler: { script in
-                    try await LegadoReviewActionRunner.shared.runSourcePageScript(
-                        script,
-                        sourceURL: page.sourceURL,
-                        actionContext: page.actionContext
-                    )
-                },
-                sourceConfigurationUpdateHandler: { configurationJSON = $0 },
-                transparentBackground: true,
-                customCSSScript: customCSSScript,
-                grabsComments: true,
-                onCommentsGrabbed: { page in
-                    // 脚本会随「滚动加载 / 楼中楼展开」分批再发一次。
-                    // 内容没变就不赋值（@State 一改整个 LazyVStack 会重排），
-                    // 条数变少也不收（防止加载中的半页把已有列表顶掉）。
-                    if !page.items.isEmpty, page != grabbed,
-                       page.items.count >= (grabbed?.items.count ?? 0) {
-                        grabbed = page
-                    }
-                },
-                onDismiss: onDismiss
-            )
-            } else {
-                JsBridgeBrowserView(
-                    urlString: target.url,
-                    title: target.title,
-                    hidesToolbar: ParagraphReviewBrowserPresentationPolicy.hidesToolbar,
-                    initialRequest: target.browserRequest,
-                    transparentBackground: true,
-                    customCSSScript: customCSSScript,
-                    grabsComments: true,
-                    onCommentsGrabbed: { page in
-                        if !page.items.isEmpty, page != grabbed,
-                           page.items.count >= (grabbed?.items.count ?? 0) {
-                            grabbed = page
-                        }
-                    },
-                    onDismiss: onDismiss
-                )
+                .transition(.opacity)
             }
+        }
+        .animation(.easeInOut(duration: 0.22), value: displayMode)
+        .task {
+            // 超时兜底：抓不到就回到书源原网页（旧版行为），不让用户干等。
+            try? await Task.sleep(for: .seconds(4))
+            if grabbed == nil { hasTimedOut = true }
         }
         .overlay(alignment: .topTrailing) {
             if grabbed != nil {
@@ -499,6 +478,84 @@ struct LegadoReviewBrowserView: View {
         .presentationCornerRadius(
             presentationConfiguration.expandedCornersRadius.map { CGFloat($0) }
         )
+    }
+
+    /// 三种显示状态。枚举自动符合 Equatable，可直接驱动 .animation(value:)。
+    private enum DisplayMode: Equatable {
+        case loading
+        case native
+        case web
+    }
+
+    private var displayMode: DisplayMode {
+        if showsSourcePage { return .web }
+        if grabbed != nil { return .native }
+        if hasTimedOut { return .web }
+        return .loading
+    }
+
+    /// 书源段评网页。抽成计算属性是为了让它在 ZStack 里只存在一份、常驻。
+    @ViewBuilder
+    private var sourceWebView: some View {
+        if let page = target.sourceBrowserPage {
+            JsBridgeBrowserView(
+                urlString: page.baseURL,
+                title: target.title,
+                hidesToolbar: ParagraphReviewBrowserPresentationPolicy.hidesToolbar,
+                initialHTML: page.html,
+                initialRequest: target.browserRequest,
+                injectedJavaScript: page.injectedJavaScript,
+                sourceRunHandler: { script in
+                    try await LegadoReviewActionRunner.shared.runSourcePageScript(
+                        script,
+                        sourceURL: page.sourceURL,
+                        actionContext: page.actionContext
+                    )
+                },
+                sourceConfigurationUpdateHandler: { configurationJSON = $0 },
+                transparentBackground: true,
+                customCSSScript: customCSSScript,
+                grabsComments: true,
+                onCommentsGrabbed: { page in
+                    if !page.items.isEmpty, page != grabbed,
+                       page.items.count >= (grabbed?.items.count ?? 0) {
+                        grabbed = page
+                    }
+                },
+                onDismiss: onDismiss
+            )
+        } else {
+            JsBridgeBrowserView(
+                urlString: target.url,
+                title: target.title,
+                hidesToolbar: ParagraphReviewBrowserPresentationPolicy.hidesToolbar,
+                initialRequest: target.browserRequest,
+                transparentBackground: true,
+                customCSSScript: customCSSScript,
+                grabsComments: true,
+                onCommentsGrabbed: { page in
+                    if !page.items.isEmpty, page != grabbed,
+                       page.items.count >= (grabbed?.items.count ?? 0) {
+                        grabbed = page
+                    }
+                },
+                onDismiss: onDismiss
+            )
+        }
+    }
+
+    /// 加载占位：一层薄毛玻璃 + 极小的进度指示，盖住尚未读好的网页。
+    private var loadingPlaceholder: some View {
+        VStack(spacing: 10) {
+            ProgressView()
+                .controlSize(.small)
+                .tint(DSColor.textSecondary)
+            Text(localized("正在读取评论…"))
+                .font(.system(size: 12))
+                .foregroundStyle(DSColor.textSecondary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(.ultraThinMaterial)
     }
 
     private var presentationConfiguration: SourceBrowserPresentationConfiguration {
@@ -891,7 +948,11 @@ struct JsBridgeBrowserRepresentable: UIViewRepresentable {
         return wv
     }
 
-    func updateUIView(_ uiView: WKWebView, context: Context) {}
+    /// WebView 现在常驻不销毁，body 每次重算都要把最新的抓取回调同步给
+    /// coordinator —— 否则楼中楼增量结果会写进首次创建时的旧闭包快照。
+    func updateUIView(_ uiView: WKWebView, context: Context) {
+        context.coordinator.commentsGrabHandler = onCommentsGrabbed
+    }
     func makeCoordinator() -> Coordinator { Coordinator() }
 
     static func dismantleUIView(_ uiView: WKWebView, coordinator: Coordinator) {

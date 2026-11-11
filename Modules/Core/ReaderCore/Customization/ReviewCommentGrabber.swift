@@ -6,10 +6,12 @@ import Foundation
 /// 布局、类名、层级都不一样，猜结构必然在某些页面上翻车（前两版就是这么翻的）。
 /// 这里的做法相反 —— **只在页面里读，不写**：
 ///
-/// 1. 三套适配器按顺序试：起点系（遇见 / 神魔小说这类，结构最规整）、
-///    书源自绘的 `.list > .c` 面板、以及「重复兄弟簇 + 特征打分」的通用兜底；
-/// 2. 只有拿到**至少一条有正文的评论**才算抓成功，否则一个字都不发；
-/// 3. 抓到了就交给原生面板画卡片，抓不到面板继续显示书源原页面。
+/// 1. 五套适配器按顺序试：作家说卡片、起点系（遇见 / 神魔小说这类）、
+///    书源自绘的 `.list > .c` 面板、番茄系、以及「重复兄弟簇 + 特征打分」的通用兜底；
+/// 2. 段落定位抽屉（「第 1 段 / 113 评」）一律排除，主评论 feed 未就绪时不发；
+/// 3. 只有拿到**至少一条有正文的评论**才算抓成功，否则一个字都不发；
+/// 4. 楼中楼会替用户点开并分批增量上报，首版就带上可展开的回复；
+/// 5. 抓到了交给原生面板画卡片，抓不到面板继续显示书源原页面。
 ///
 /// 所以最坏情况是「和以前一样看到书源页面」，不会出现乱七八糟的错版。
 ///
@@ -470,6 +472,7 @@ enum ReviewCommentGrabber {
     var all = document.body ? document.body.querySelectorAll('*') : [];
     for (var i = 0; i < all.length; i++) {
       var box = all[i];
+      if (inNav(box)) continue;
       var kids = box.children;
       if (kids.length < 2 || kids.length > 300) continue;
       var same = 0, sig0 = signature(kids[0]);
@@ -546,14 +549,151 @@ enum ReviewCommentGrabber {
       });
     }
     if (out.length < 2) return null;
-    var good = out.filter(function (x) { return (x.content || '').length >= 4 || x.images.length; }).length;
-    if (good / out.length < 0.6) return null;
+    /* 通用兜底最容易被「段索引」「标签云」骗到：那些卡片没有头像、没有正文，
+       只有一个短标题。这里要求绝大多数条目同时有人名和够长的正文，
+       否则宁可什么都不发（面板继续显示书源原页面）。 */
+    var good = out.filter(function (x) {
+      var named = x.user && x.user !== '匿名' && x.user !== '书友';
+      return named && ((x.content || '').length >= 6 || x.images.length);
+    }).length;
+    if (good / out.length < 0.8) return null;
     return { adapter: 'generic', title: '', context: '', items: out };
+  }
+
+  /* ---------- 适配器 -1：遇见 / 起点的「作家说」 ----------
+   * paragraphId=-10 时服务器只返回 authorActivity，页面渲染一张
+   *   section.author-speak-card
+   *     .author-speak-header > .author-speak-badge + img + .author-speak-name
+   *     .author-speak-content
+   * 没有任何 .li 评论卡片，所以其它适配器全部落空 —— 这正是「作者说
+   * 还显示旧版网页」的原因。这里把它做成一条作者卡片。
+   */
+  function adaptAuthorSay() {
+    var card = document.querySelector('.author-speak-card, #authorSpeakCard');
+    if (!card) return null;
+    var nameEl = card.querySelector('.author-speak-name');
+    var user = txt(nameEl) || '本书作者';
+    var av = card.querySelector('.author-speak-header img') || card.querySelector('img');
+    var bodyEl = card.querySelector('.author-speak-content');
+    var images = [];
+    var content = bodyContent(bodyEl, images);
+    if (!content && !images.length) return null;
+    return {
+      adapter: 'author',
+      title: '作家说',
+      subtitle: '',
+      segments: [],
+      context: '',
+      items: [{
+        id: 'author-say',
+        user: user,
+        avatar: av ? abs(av.getAttribute('src')) : '',
+        level: 0,
+        levelText: '',
+        badge: '',
+        meta: '',
+        quote: '',
+        segment: '',
+        content: content,
+        images: images,
+        voice: '',
+        likes: 0,
+        replyCount: 0,
+        replyTo: '',
+        isAuthor: true,
+        replies: []
+      }]
+    };
+  }
+
+  /* 段落定位抽屉 / 顶栏 / 筛选条这些是导航，不是评论。
+     本章说刚打开时主 feed 还没到，通用兜底最容易把这簇重复的
+     .drawer-item（「第 1 段 / 113 评」）当成评论抓走。 */
+  var NAV_SEL = '.anchor-drawer,.drawer-list,.drawer-item,.drawer-body,' +
+    '.type-tabs,.sort-group,.toolbar-panel,.top-header,.header,' +
+    '.roles-row,.segment-header,.segment-badge,.nav-btn,.tab-bar,.footer';
+
+  function inNav(el) {
+    var n = el;
+    while (n && n !== document.body) {
+      if (n.matches && n.matches(NAV_SEL)) return true;
+      n = n.parentElement;
+    }
+    return false;
+  }
+
+  /* 遇见页面主 feed 是否还没就绪：#feedContainer 存在、但里面既没有
+     评论 .li、也没有作者说卡片、也没有明确的空态提示 —— 说明数据还在飞，
+     此时什么都不发，等 MutationObserver 后续触发。 */
+  function feedPending() {
+    var feed = document.getElementById('feedContainer');
+    if (!feed) return false;
+    if (feed.querySelector('.li, .author-speak-card, .empty-tip')) return false;
+    return true;
+  }
+
+  /* ---------- 目录页：只列「第 N 段 · 113 评」，没有正文 ----------
+   * 本章说入口有些源先给一张段索引（全章汇总 / 章节标题评 / 第 1 段…），
+   * 点进去才是评论。这种页面如果照抓，原生面板会显示成一排「第 1 段」，
+   * 所以识别出来之后：不发数据，替用户点「全部 / 汇总」那一项，再抓。
+   */
+  var DIR_NAME_RE = /(第\s*\d+\s*段|整章章末|章节标题|全章本章说|全章汇总|章末讨论)/;
+  var DIR_COUNT_RE = /\d+\s*[评評条條]/;
+
+  function looksDirectoryItem(it) {
+    var t = ((it.user || '') + ' ' + (it.content || '')).replace(/\s+/g, ' ').trim();
+    if (!t) return true;
+    if (it.avatar) return false;                      // 有头像基本就是真人评论
+    if ((it.content || '').length > 24) return false;  // 有正文的不算目录
+    return DIR_NAME_RE.test(t) && (t.length <= 24 || DIR_COUNT_RE.test(t));
+  }
+
+  function isDirectoryPage(r) {
+    if (!r || !r.items.length || r.items.length > 30) return false;
+    var n = 0;
+    for (var i = 0; i < r.items.length; i++) if (looksDirectoryItem(r.items[i])) n++;
+    return n / r.items.length >= 0.5;
+  }
+
+  var ENTER_TRIED = false;
+  function enterDirectory() {
+    if (ENTER_TRIED) return;
+    ENTER_TRIED = true;
+    var prefer = /(全部|汇总|全章|整章|所有|总览)/;
+    var cands = document.querySelectorAll('a,button,li,[role="button"],[onclick],.c,.item,.row,.seg,.seg-item');
+    var best = null, bestScore = 0;
+    for (var i = 0; i < cands.length; i++) {
+      var el = cands[i];
+      var t = txt(el);
+      if (!t || t.length > 40) continue;
+      if (!/(第\s*\d+\s*段|章节标题|全章|汇总|全部|整章|总览)/.test(t)) continue;
+      if (el.querySelector('img') && !DIR_COUNT_RE.test(t)) continue;
+      var score = 0;
+      if (prefer.test(t)) score += 10;
+      if (el.tagName === 'A' || el.tagName === 'BUTTON') score += 3;
+      if (t.length <= 20) score += 2;
+      if (score > bestScore) { bestScore = score; best = el; }
+    }
+    if (!best || bestScore < 4) return;
+    try { best.click(); } catch (e) { return; }
+    setTimeout(function () { run(true); }, 1200);
+    setTimeout(function () { run(true); }, 2600);
+  }
+
+  /* ---------- 页面还在「加载中」 ---------- */
+  var LOADING_RE = /(正在加载|加载中|获取评论中|loading)/i;
+  function isLoading() {
+    var tip = document.querySelector('.loading-box,.loading,.spinner,[class*="load" i]');
+    if (tip && txt(tip) && LOADING_RE.test(txt(tip))) return true;
+    var t = String(document.body ? (document.body.innerText || '') : '');
+    if (t.replace(/\s/g, '').length < 8) return true;
+    return false;
   }
 
   function extract() {
     var r = null;
-    try { r = adaptQidian(); } catch (e0) {}
+    try { r = adaptAuthorSay(); } catch (eA) {}
+    if (!r) { try { r = adaptQidian(); } catch (e0) {} }
     if (!r) { try { r = adaptQD(); } catch (e) {} }
     if (!r) { try { r = adaptFQ(); } catch (e2) {} }
     if (!r) { try { r = adaptGeneric(); } catch (e3) {} }
@@ -587,13 +727,13 @@ enum ReviewCommentGrabber {
   var EXPANDING = false;
 
   function expandReplies() {
-    if (EXPANDING) return;
+    if (EXPANDING) return false;
     var btns = document.querySelectorAll('.reply-btn[data-action="toggle-replies"]');
     var pending = [];
     for (var i = 0; i < btns.length; i++) {
       if (btns[i].getAttribute('data-yd') !== '1') pending.push(btns[i]);
     }
-    if (!pending.length) return;
+    if (!pending.length) return false;
 
     EXPANDING = true;
     var batch = pending.slice(0, 40);
@@ -607,6 +747,7 @@ enum ReviewCommentGrabber {
       EXPANDING = false;
       run(true);
     }, 2000);
+    return true;
   }
 
   /* 全量指纹：条数 + 每条正文长度/点赞/回复数。回复展开、滚动加载都会变，
@@ -631,14 +772,28 @@ enum ReviewCommentGrabber {
     if (!body) return;
     var plain = String(body.innerText != null ? body.innerText : body.textContent || '');
     if (!force && plain.replace(/\s/g, '').length < 4) return;
+    if (!force && feedPending()) return;
     var r = extract();
     if (!r || !r.items.length) return;
+    /* 段索引页：不发，点进「全部」再抓。抓到的目录如果真发出去，
+       面板就会变成一排「第 1 段 / 113 评」—— 这是用户报的那个 bug。 */
+    if (isDirectoryPage(r)) { enterDirectory(); return; }
     if (EXPANDING && !force) return;
+    /* 展开链必须在指纹去重之前驱动：否则「这一版跟上一版一样」会提前 return，
+       下一批楼中楼就永远不会被点开（回复数会停在第一批 40 个）。 */
+    var expandingNow = expandReplies();
+    /* 第一版如果赶上楼中楼正在展开，先压住不发：否则用户第一眼看到的是
+       「10 条回复」却点不开的半张卡片。等展开完的 run(true) 再发完整版，
+       这段等待由面板的毛玻璃加载占位盖住。已经发过至少一版后不再压。 */
+    if (expandingNow && !force && !window.__ydPostedAny) {
+      window.__ydFirstHold = true;
+      return;
+    }
     var fingerprint = hash(r);
-    if (!force && fingerprint === window.__ydLastFp) return;
+    if (fingerprint === window.__ydLastFp) return;
     window.__ydLastFp = fingerprint;
+    window.__ydPostedAny = true;
     post(r);
-    expandReplies();
   }
 
   var timer = null;
@@ -650,8 +805,12 @@ enum ReviewCommentGrabber {
   function boot() {
     window.__ydGrabRun = run;
     run(false);
-    setTimeout(function () { run(true); }, 900);
-    setTimeout(function () { run(false); }, 2200);
+    /* 页面数据是分段来的（骨架 → 首屏 → 滚动加载 → 楼中楼）。多打几次，
+       每次靠指纹去重，抓到同样的东西不会重复打扰面板。 */
+    [400, 900, 1600, 2600, 4000, 6000].forEach(function (d) {
+      setTimeout(function () { run(false); }, d);
+    });
+    setTimeout(function () { run(true); }, 1400);
     try {
       var mo = new MutationObserver(schedule);
       mo.observe(document.body, { childList: true, subtree: true, characterData: true });
@@ -710,7 +869,7 @@ enum ReviewCommentGrabber {
 
 /// 一页抓取结果。
 struct GrabbedCommentPage: Decodable, Sendable, Equatable {
-    /// `qidian` / `qd` / `fq` / `generic`，只用于日志与排查。
+    /// `author` / `qidian` / `qd` / `fq` / `generic`，只用于日志与排查。
     var adapter: String
     /// 书源页面自己写的标题，例如「段评」「本章说」。
     var title: String?
