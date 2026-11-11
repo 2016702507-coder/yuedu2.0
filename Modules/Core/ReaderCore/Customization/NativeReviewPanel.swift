@@ -1,4 +1,75 @@
 import SwiftUI
+import AVFoundation
+import Combine
+
+// MARK: - 段评语音播放器
+
+/// 段评里语音评论的播放器（单例）。
+///
+/// 全 App 共用一个 `AVPlayer`，保证**同时只放一段语音**：
+/// 点正在播放的那条 → 暂停；点另一条 → 自动接管。
+/// 之前语音按钮直接 `openURL`，只把链接丢给外部浏览器，所以「配音听不了」。
+@MainActor
+final class ReviewVoicePlayer: NSObject, ObservableObject {
+    static let shared = ReviewVoicePlayer()
+
+    @Published private(set) var playingURL: URL?
+    @Published private(set) var isPlaying = false
+
+    private var player: AVPlayer?
+    private var item: AVPlayerItem?
+
+    private override init() {
+        super.init()
+    }
+
+    /// 点同一条切换播放/暂停，点另一条接管播放。
+    func toggle(_ url: URL) {
+        if isPlaying, playingURL == url {
+            stop()
+        } else {
+            play(url)
+        }
+    }
+
+    func play(_ url: URL) {
+        if playingURL != url || item == nil {
+            stop()
+            let newItem = AVPlayerItem(url: url)
+            item = newItem
+            player = AVPlayer(playerItem: newItem)
+            playingURL = url
+            NotificationCenter.default.addObserver(
+                self,
+                selector: #selector(didEnd(_:)),
+                name: .AVPlayerItemDidPlayToEndTime,
+                object: newItem
+            )
+            // 让静音键不中断播放，并兼容系统音乐被打断时自动让路。
+            try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .default)
+            try? AVAudioSession.sharedInstance().setActive(true)
+        } else {
+            player?.seek(to: .zero)
+        }
+        player?.play()
+        isPlaying = true
+    }
+
+    func stop() {
+        player?.pause()
+        if let it = item {
+            NotificationCenter.default.removeObserver(
+                self, name: .AVPlayerItemDidPlayToEndTime, object: it
+            )
+        }
+        isPlaying = false
+        playingURL = nil
+    }
+
+    @objc private func didEnd(_ note: Notification) {
+        stop()
+    }
+}
 
 // MARK: - 数据模型
 
@@ -203,7 +274,9 @@ private struct ReviewCommentCard: View {
     let isNested: Bool
 
     @Environment(\.colorScheme) private var colorScheme
-    @Environment(\.openURL) private var openURL
+
+    /// 语音评论播放器（单例共享），按钮点击切换播放/暂停，并随播放状态刷新图标。
+    @StateObject private var voicePlayer = ReviewVoicePlayer.shared
 
     /// 设置页可调的参数。@Observable，拖动滑杆时卡片会即时重画。
     private var style: NativeReviewPanelStyleStore { .shared }
@@ -243,13 +316,15 @@ private struct ReviewCommentCard: View {
                 ? max(6, CGFloat(style.cornerRadius) - 4)
                 : CGFloat(style.cornerRadius)
             let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
+            // 夜色模式下不再描白边：白边在暗色背景上会画出一圈明显的「框」。
+            // 暗色下直接无描边，卡片区分交给极淡底色 + 阴影；亮色下保留细高光。
+            let stroke: Color = colorScheme == .dark
+                ? Color.clear
+                : Color.white.opacity(0.30)
             shape
                 .fill(cardFill)
                 .overlay(
-                    shape.strokeBorder(
-                        Color.white.opacity(colorScheme == .dark ? 0.10 : 0.30),
-                        lineWidth: 0.5
-                    )
+                    shape.strokeBorder(stroke, lineWidth: 0.5)
                 )
                 .shadow(
                     color: .black.opacity(isNested ? 0 : (colorScheme == .dark ? 0.18 : 0.05)),
@@ -340,7 +415,9 @@ private struct ReviewCommentCard: View {
                     .padding(.vertical, 6)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(
-                        Color.primary.opacity(colorScheme == .dark ? 0.05 : 0.035),
+                        // 用中性灰而非 primary（暗色下 primary=白），避免在夜色模式
+                        // 给引用段落画出一块发白的方框。
+                        Color.secondary.opacity(colorScheme == .dark ? 0.12 : 0.06),
                         in: RoundedRectangle(cornerRadius: 8, style: .continuous)
                     )
             }
@@ -431,12 +508,14 @@ private struct ReviewCommentCard: View {
             }
 
             if style.showsVoice, let voice = comment.voice, !voice.isEmpty, let url = URL(string: voice) {
+                let playing = voicePlayer.isPlaying && voicePlayer.playingURL == url
                 Button {
-                    openURL(url)
+                    voicePlayer.toggle(url)
                 } label: {
-                    Image(systemName: "waveform.circle")
+                    Image(systemName: playing ? "waveform.circle.fill" : "waveform.circle")
                         .font(.system(size: typography.metaSize + 2))
                         .foregroundStyle(DSColor.accent)
+                        .symbolEffect(.variableColor, isActive: playing)
                 }
                 .buttonStyle(.plain)
             }
