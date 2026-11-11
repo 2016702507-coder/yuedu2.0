@@ -279,8 +279,13 @@ enum ReviewPanelCSSBridge {
         if raw.isEmpty {
             switch area {
             case .panel, .comment: return "\(root) body"
-            case .hot: return "\(root) .yd-area-hot, \(root) .cay-label"
-            case .chapterNote: return "\(root) .yd-area-chapter, \(root) .cay-note"
+            case .hot:
+                // 所有点开评论后弹出的面板共用同一套样式：热评这段不再只作用于
+                // 靠关键词打标出来的节点，通用评论卡片容器一并兜底，任何书源网页都吃得到。
+                return "\(root) .yd-area-hot, \(root) .cay-label, \(root) .cay-card, \(root) .card, \(root) li, \(root) section"
+            case .chapterNote:
+                // 同上：本章说 / 作者说这段无条件覆盖每个评论面板的卡片区。
+                return "\(root) .yd-area-chapter, \(root) .cay-note, \(root) .cay-card, \(root) .card, \(root) li, \(root) section"
             }
         }
 

@@ -387,7 +387,11 @@ final class ReviewPanelStyleStore {
 
     var selectedTemplate: ReviewPanelStyleTemplate? {
         guard isEnabled else { return nil }
-        return allTemplates.first { $0.id == selectedTemplateID }
+        // 选中的模板若已被删除，回退到内置首套：所有点开评论的面板始终有样式可套。
+        if let hit = allTemplates.first(where: { $0.id == selectedTemplateID }) {
+            return hit
+        }
+        return ReviewPanelStyleLibrary.builtins.first
     }
 
     private init() {
@@ -398,8 +402,14 @@ final class ReviewPanelStyleStore {
             customTemplates = []
         }
         selectedTemplateID = defaults.string(forKey: Self.selectedKey).flatMap { UUID(uuidString: $0) }
-        // 默认不启用：不改变任何书源的原有段评外观。
-        isEnabled = defaults.object(forKey: Self.enabledKey) as? Bool ?? false
+        // 首次启动即套用孤岛样式：所有点开评论后弹出的网页面板共用一个视图，
+        // 这里默认启用并选中内置首套，装包后无需手动开开关。用户一旦手动改过就尊重存档。
+        let neverConfigured = defaults.object(forKey: Self.enabledKey) == nil
+            && defaults.object(forKey: Self.selectedKey) == nil
+        isEnabled = defaults.object(forKey: Self.enabledKey) as? Bool ?? true
+        if neverConfigured, selectedTemplateID == nil {
+            selectedTemplateID = ReviewPanelStyleLibrary.builtins.first?.id
+        }
         isLoading = false
     }
 

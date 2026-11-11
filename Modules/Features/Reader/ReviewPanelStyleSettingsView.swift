@@ -25,7 +25,7 @@ struct ReviewPanelStyleSettingsView: View {
                 Text(localized("样式开关"))
                     .foregroundStyle(DSColor.textSecondary)
             } footer: {
-                Text(localized("关闭时使用书源网页原本的外观；开启后，选取的样式会套用到段评面板与评论。本章说 / 作者说 / 神评论卡片仍按「气泡设置」里的模板绘制。"))
+                Text(localized("开启后，所有点开评论弹出的面板（段评、本章说、热评、作者说等）都会套用这套孤岛样式；关闭则恢复书源网页原本的外观。"))
                     .dsSectionFooter()
             }
             .interfaceSectionSurface()
@@ -72,7 +72,7 @@ struct ReviewPanelStyleSettingsView: View {
                 Text(localized("分区 CSS"))
                     .foregroundStyle(DSColor.textSecondary)
             } footer: {
-                Text(localized("每个区域单独编辑，后写的样式覆盖先写的。段评网页只有一个页面，热评与本章说的区块由样式脚本按关键词识别。"))
+                Text(localized("四个区域各自编辑、合成一份样式，套用到所有点开评论弹出的面板；后写的样式覆盖先写的。"))
                     .dsSectionFooter()
             }
             .interfaceSectionSurface()
