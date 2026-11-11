@@ -38,7 +38,12 @@ struct CopiedFileImporter: UIViewControllerRepresentable {
             return
         }
         context.coordinator.isPresenting = true
-        let picker = UIDocumentPickerViewController(forOpening: allowedContentTypes)
+        // `asCopy: true`：让系统直接把选中的文件复制成 App 可读的副本，
+        // 与下面「再复制进沙盒」形成双保险，也避开部分签名环境的授权异常。
+        let picker = UIDocumentPickerViewController(
+            forOpeningContentTypes: allowedContentTypes,
+            asCopy: true
+        )
         picker.allowsMultipleSelection = allowsMultipleSelection
         picker.delegate = context.coordinator
         presenter.present(picker, animated: true)
