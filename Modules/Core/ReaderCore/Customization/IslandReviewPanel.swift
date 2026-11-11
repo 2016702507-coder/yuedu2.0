@@ -404,7 +404,7 @@ enum IslandReviewPanel {
     function isIndexRow(el) {
         var t = T(el).replace(/\s+/g, '');
         if (t.length > 30) return false;
-        return /^第\d+段/.test(t) || /章末讨论|整章|标题评|全章本章说/.test(t);
+        return /^第\d+段/.test(t) || /章末讨论|整章|标题评|全章本章说|段落定位|本章说/.test(t);
     }
     function indexLabel(el) {
         var t = T(el).replace(/\s+/g, ' ');
@@ -529,20 +529,22 @@ enum IslandReviewPanel {
     function render(src) {
         var found = listIn(src);
         var cards = found ? found.cards : null;
-        var indexRows = null;
+        var indexRows = [];
+        var textCards = [];
+        var STATUS_RE = /正在加载|加载中|暂无|没有更多|点击加载|稍后/;
         if (cards) {
             var real = [];
-            var rows = [];
             for (var i = 0; i < cards.length; i++) {
-                if (isCommentCard(cards[i])) real.push(cards[i]);
-                else if (isIndexRow(cards[i])) rows.push(cards[i]);
+                var node = cards[i];
+                var t = T(node);
+                if (isIndexRow(node)) { indexRows.push(node); continue; }
+                if (STATUS_RE.test(t) && t.length <= 20) continue;
+                if (isCommentCard(node)) { real.push(node); continue; }
+                // 纯文字的一句话评论（没有头像/时间）：保留，别当噪声丢掉
+                if (t.length >= 8 && t.length <= 400) textCards.push(node);
             }
-            if (real.length) {
-                cards = real;
-            } else if (rows.length >= 2) {
-                cards = [];
-                indexRows = rows;
-            }
+            cards = real.concat(textCards);
+            if (!cards.length && !indexRows.length) return false;
         } else {
             var one = singleCard(src);
             if (!one) return false;
@@ -558,7 +560,14 @@ enum IslandReviewPanel {
         try {
             panel.innerHTML = '<div class="ydhd">' + esc(TITLE || '段评') + '</div><div class="ydlist"></div>';
             var list = panel.querySelector('.ydlist');
-            if (indexRows) {
+            for (var i = 0; i < cards.length; i++) {
+                var card = cards[i].cloneNode(true);
+                tagCard(card, false);
+                list.appendChild(card);
+            }
+            if (indexRows.length) {
+                var idx = document.createElement('div');
+                idx.className = 'ydidx';
                 for (var r = 0; r < indexRows.length; r++) {
                     (function (node) {
                         var info = indexLabel(node);
@@ -572,15 +581,10 @@ enum IslandReviewPanel {
                             try { (a || node).click(); } catch (e) {}
                             setTimeout(function () { try { refresh(); } catch (e) {} }, 1500);
                         });
-                        list.appendChild(row);
+                        idx.appendChild(row);
                     })(indexRows[r]);
                 }
-            } else {
-                for (var i = 0; i < cards.length; i++) {
-                    var card = cards[i].cloneNode(true);
-                    tagCard(card, false);
-                    list.appendChild(card);
-                }
+                list.appendChild(idx);
             }
             if (!list.children.length) {
                 list.innerHTML = '<div class="ydempty">暂无评论</div>';
