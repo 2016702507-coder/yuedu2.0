@@ -15,6 +15,7 @@ struct ReviewPanelStyleSettingsView: View {
     @State private var templatePendingDeletion: ReviewPanelStyleTemplate?
     @State private var renameDraft: RenameDraft?
     @State private var showGuides = false
+    @State private var showNativePreview = false
 
     var body: some View {
         Form {
@@ -26,6 +27,36 @@ struct ReviewPanelStyleSettingsView: View {
                     .foregroundStyle(DSColor.textSecondary)
             } footer: {
                 Text(localized("开启后，所有点开评论弹出的面板（段评、本章说、热评、作者说等）都会套用这套孤岛样式；关闭则恢复书源网页原本的外观。"))
+                    .dsSectionFooter()
+            }
+            .interfaceSectionSurface()
+
+            Section {
+                Button {
+                    showNativePreview = true
+                } label: {
+                    HStack(spacing: DSSpacing.sm) {
+                        Image(systemName: "rectangle.on.rectangle")
+                            .foregroundStyle(DSColor.accent)
+                            .frame(width: 24)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(localized("原生段评面板"))
+                                .foregroundStyle(DSColor.textPrimary)
+                            Text(localized("按评论数据直接画卡片，不经过网页"))
+                                .font(DSFont.caption)
+                                .foregroundStyle(DSColor.textSecondary)
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(DSFont.caption)
+                            .foregroundStyle(DSColor.textTertiary)
+                    }
+                }
+            } header: {
+                Text(localized("面板样式"))
+                    .foregroundStyle(DSColor.textSecondary)
+            } footer: {
+                Text(localized("点开可以先看效果：头像、昵称、正文、配图、时间、点赞、回复数都按书源返回的数据摆位，缺哪项就不显示哪项。"))
                     .dsSectionFooter()
             }
             .interfaceSectionSurface()
@@ -163,6 +194,24 @@ struct ReviewPanelStyleSettingsView: View {
         }
         .sheet(item: $renameDraft) { draft in
             RenameTemplateView(draft: draft)
+        }
+        .sheet(isPresented: $showNativePreview) {
+            NavigationStack {
+                NativeReviewPanelView(
+                    title: localized("段评"),
+                    paragraphLabel: localized("第 109 段"),
+                    comments: ReviewPanelSampleData.paragraphComments
+                )
+                .background(.ultraThinMaterial)
+                .navigationTitle(localized("面板预览"))
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button(localized("完成")) { showNativePreview = false }
+                    }
+                }
+            }
+            .presentationBackground(.ultraThinMaterial)
         }
     }
 
