@@ -369,15 +369,19 @@ struct LegadoReviewBrowserView: View {
         _configurationJSON = State(initialValue: target.sourceBrowserPage?.configurationJSON ?? "")
     }
 
-    /// 当前启用的段评样式，按日夜模式降级成可注入网页的 CSS 脚本。
-    /// 未启用或没有选中模板时返回空字串，书源网页保持原样。
+    /// 点开评论一律弹孤岛段评面板：书源网页原 UI 收进隐藏层只作取数，
+    /// 用户看到的面板由 `IslandReviewPanel` 重绘。样式模板仍由段评样式设置提供，
+    /// 但只作用于新面板，不再往书源网页上刷 CSS（那会刷出重复的「本章热议」）。
     private var customCSSScript: String {
         let css = ReviewPanelCSSBridge.browserCSS(
             ReviewPanelStyleStore.shared.activeCSS(),
             isNight: colorScheme == .dark
         )
-        guard !css.isEmpty else { return "" }
-        return ReviewPanelCSSBridge.installScript(css: css, isNight: colorScheme == .dark)
+        return IslandReviewPanel.installScript(
+            isNight: colorScheme == .dark,
+            title: localized("段评"),
+            customCSS: css
+        )
     }
 
     var body: some View {
@@ -523,6 +527,10 @@ struct JsBridgeBrowserRepresentable: UIViewRepresentable {
             var nodes = document.body.querySelectorAll('div,section,main,article,ul,form');
             for (var i = 0; i < nodes.length; i++) {
                 var el = nodes[i];
+                // 孤岛段评面板自带那层半透明底是给评论文字垫对比度的，
+                // 不能当「书源白底画布」清掉，否则背后正文会和文字叠在一起。
+                if (el.id === '__yd_island_panel__' ||
+                    (el.closest && el.closest('#__yd_island_panel__'))) continue;
                 if (el.dataset && el.dataset.yueduCanvasCleared === '1') continue;
                 var rect = el.getBoundingClientRect();
                 if (rect.width * rect.height < viewport * 0.9) continue;
