@@ -390,6 +390,30 @@ enum IslandReviewPanel {
         return best;
     }
 
+    // 真正的评论卡片：有头像、有时间、或者有「N 条回复 / N 赞」。
+    // 「第 64 段 3 评」「正在加载评论数据…」「全章本章说汇总全部」这类段落索引行
+    // 一条都不满足，必须挡在外面——上一版把它们当评论渲染，作者说就整页错乱。
+    function isCommentCard(el) {
+        if (el.querySelector('img')) return true;
+        var t = T(el);
+        if (TIME_RE.test(t)) return true;
+        if (/(\d{4}[-/.]\d{1,2}[-/.]\d{1,2}|\d+\s*(分钟|小时|天)前|刚刚|昨天)/.test(t)) return true;
+        if (/(\d+)\s*(条)?回复/.test(t) && t.length > 16) return true;
+        return false;
+    }
+    function isIndexRow(el) {
+        var t = T(el).replace(/\s+/g, '');
+        if (t.length > 30) return false;
+        return /^第\d+段/.test(t) || /章末讨论|整章|标题评|全章本章说/.test(t);
+    }
+    function indexLabel(el) {
+        var t = T(el).replace(/\s+/g, ' ');
+        var m = t.match(/^(第\s*\d+\s*段|整章章末讨论|章节标题评|全章本章说汇总|本章评论段落定位)/);
+        var label = m ? m[1] : t.slice(0, 12);
+        var c = t.match(/(\d+)\s*评/);
+        return { label: label, count: c ? c[1] : '' };
+    }
+
     function loadMoreNode(src) {
         var nodes = src.querySelectorAll('a,button,div,span,p');
         for (var i = 0; i < nodes.length; i++) {
@@ -474,6 +498,13 @@ enum IslandReviewPanel {
             P + ' .ydreps .ydc .ydavbox{flex:0 0 24px !important;width:24px !important;height:24px !important;}',
             P + ' .ydreps .ydc .ydav{width:100% !important;height:100% !important;}',
             P + ' .ydreps .ydc .ydtx{font-size:13.5px !important;line-height:1.62 !important;}',
+            P + ' .ydrow{display:flex !important;align-items:center !important;gap:8px !important;',
+            '  padding:15px 0 !important;border-top:.5px solid ' + line + ' !important;font-size:14px !important;',
+            '  color:' + ink + ' !important;background:transparent !important;}',
+            P + ' .ydrow:first-child{border-top:none !important;}',
+            P + ' .ydrl{flex:1 !important;color:' + ink + ' !important;}',
+            P + ' .ydrc{font-size:12px !important;color:' + sub + ' !important;}',
+            P + ' .ydchev{font-size:16px !important;color:' + sub + ' !important;line-height:1 !important;}',
             P + ' .ydmore{margin:18px auto 6px !important;padding:10px 0 !important;width:60% !important;',
             '  text-align:center !important;font-size:12.5px !important;color:' + chipFg + ' !important;',
             '  border-radius:999px !important;background:' + chipBg + ' !important;}',
@@ -498,7 +529,21 @@ enum IslandReviewPanel {
     function render(src) {
         var found = listIn(src);
         var cards = found ? found.cards : null;
-        if (!cards) {
+        var indexRows = null;
+        if (cards) {
+            var real = [];
+            var rows = [];
+            for (var i = 0; i < cards.length; i++) {
+                if (isCommentCard(cards[i])) real.push(cards[i]);
+                else if (isIndexRow(cards[i])) rows.push(cards[i]);
+            }
+            if (real.length) {
+                cards = real;
+            } else if (rows.length >= 2) {
+                cards = [];
+                indexRows = rows;
+            }
+        } else {
             var one = singleCard(src);
             if (!one) return false;
             cards = [one];
@@ -513,10 +558,29 @@ enum IslandReviewPanel {
         try {
             panel.innerHTML = '<div class="ydhd">' + esc(TITLE || '段评') + '</div><div class="ydlist"></div>';
             var list = panel.querySelector('.ydlist');
-            for (var i = 0; i < cards.length; i++) {
-                var card = cards[i].cloneNode(true);
-                tagCard(card, false);
-                list.appendChild(card);
+            if (indexRows) {
+                for (var r = 0; r < indexRows.length; r++) {
+                    (function (node) {
+                        var info = indexLabel(node);
+                        var row = document.createElement('div');
+                        row.className = 'ydrow';
+                        row.innerHTML = '<span class="ydrl">' + esc(info.label) + '</span>' +
+                                        (info.count ? '<span class="ydrc">' + esc(info.count) + ' 评</span>' : '') +
+                                        '<span class="ydchev">›</span>';
+                        row.addEventListener('click', function () {
+                            var a = node.querySelector('a[href]');
+                            try { (a || node).click(); } catch (e) {}
+                            setTimeout(function () { try { refresh(); } catch (e) {} }, 1500);
+                        });
+                        list.appendChild(row);
+                    })(indexRows[r]);
+                }
+            } else {
+                for (var i = 0; i < cards.length; i++) {
+                    var card = cards[i].cloneNode(true);
+                    tagCard(card, false);
+                    list.appendChild(card);
+                }
             }
             if (!list.children.length) {
                 list.innerHTML = '<div class="ydempty">暂无评论</div>';
