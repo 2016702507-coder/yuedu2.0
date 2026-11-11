@@ -205,13 +205,24 @@ private struct ReviewCommentCard: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.openURL) private var openURL
 
-    /// 楼中楼默认折叠到前 2 条，点「展开其余 N 条回复」或底部「N 条回复」再铺开。
-    @State private var repliesExpanded = false
+    /// 设置页可调的参数。@Observable，拖动滑杆时卡片会即时重画。
+    private var style: NativeReviewPanelStyleStore { .shared }
+    private var typography: NativeReviewTypography { style.typography() }
 
-    private var avatarSide: CGFloat { isNested ? 24 : 38 }
+    /// 用户手动点过展开/收起就记住用户的，否则跟随设置里的默认值。
+    /// 不在 @State(initialValue:) 里读单例，避开 Swift 6 的主 actor 隔离限制，
+    /// 也避免列表复用时被反复重置成默认值。
+    @State private var repliesOverride: Bool?
+    private var repliesExpanded: Bool {
+        repliesOverride ?? style.repliesDefaultExpanded
+    }
 
-    /// 折叠时最多直接展示几条。
-    private static let collapsedReplyLimit = 2
+    private var avatarSide: CGFloat {
+        isNested ? max(18, CGFloat(style.avatarSize) * 0.63) : CGFloat(style.avatarSize)
+    }
+
+    /// 折叠时最多直接展示几条（设置页可调）。
+    private var collapsedLimit: Int { max(0, style.collapsedReplyLimit) }
 
     var body: some View {
         HStack(alignment: .top, spacing: isNested ? 8 : 10) {
@@ -228,7 +239,10 @@ private struct ReviewCommentCard: View {
         }
         .padding(isNested ? 10 : 12)
         .background {
-            let shape = RoundedRectangle(cornerRadius: isNested ? 10 : 14, style: .continuous)
+            let radius = isNested
+                ? max(6, CGFloat(style.cornerRadius) - 4)
+                : CGFloat(style.cornerRadius)
+            let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
             shape
                 .fill(cardFill)
                 .overlay(
@@ -285,13 +299,13 @@ private struct ReviewCommentCard: View {
     private var nameRow: some View {
         HStack(spacing: 6) {
             Text(comment.user.isEmpty ? localized("书友") : comment.user)
-                .font(.system(size: isNested ? 13 : 14, weight: .medium))
+                .font(typography.font(size: typography.nameSize - (isNested ? 1 : 0), weight: .medium))
                 .foregroundStyle(DSColor.textSecondary)
                 .lineLimit(1)
 
-            if let level = comment.levelText, !level.isEmpty {
+            if style.showsLevel, let level = comment.levelText, !level.isEmpty {
                 Text(level)
-                    .font(.system(size: 10.5, weight: .medium))
+                    .font(typography.font(size: max(9, typography.metaSize - 1.5), weight: .medium))
                     .foregroundStyle(DSColor.accent)
                     .lineLimit(1)
                     .padding(.horizontal, 5)
@@ -301,7 +315,7 @@ private struct ReviewCommentCard: View {
 
             if comment.isAuthor == true {
                 Text(localized("作者"))
-                    .font(.system(size: 10.5, weight: .medium))
+                    .font(typography.font(size: max(9, typography.metaSize - 1.5), weight: .medium))
                     .foregroundStyle(DSColor.accent)
                     .padding(.horizontal, 5)
                     .padding(.vertical, 1)
@@ -316,11 +330,11 @@ private struct ReviewCommentCard: View {
 
     private var content: some View {
         VStack(alignment: .leading, spacing: 6) {
-            if !isNested, let quote = comment.quote, !quote.isEmpty {
+            if style.showsQuote, !isNested, let quote = comment.quote, !quote.isEmpty {
                 Text(quote)
-                    .font(.system(size: 12.5))
+                    .font(typography.font(size: typography.metaSize + 0.5))
                     .foregroundStyle(DSColor.textSecondary)
-                    .lineSpacing(3)
+                    .lineSpacing(max(1, typography.lineSpacing - 1))
                     .lineLimit(4)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 6)
@@ -331,9 +345,11 @@ private struct ReviewCommentCard: View {
                     )
             }
             Text(bodyText)
-            .font(.system(size: isNested ? 14 : 15.5))
+            .font(typography.font(size: typography.contentSize - (isNested ? 1.5 : 0)))
+            // tracking 是 Text 的方法，必须在 foregroundStyle（返回 some View）之前。
+            .tracking(typography.letterSpacing ?? 0)
             .foregroundStyle(DSColor.textPrimary)
-            .lineSpacing(4)
+            .lineSpacing(typography.lineSpacing)
             .fixedSize(horizontal: false, vertical: true)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -350,7 +366,9 @@ private struct ReviewCommentCard: View {
 
     @ViewBuilder
     private var images: some View {
-        let urls = (comment.images ?? []).compactMap { URL(string: $0) }
+        let urls = style.showsImages
+            ? (comment.images ?? []).compactMap { URL(string: $0) }
+            : []
         if !urls.isEmpty {
             if urls.count == 1 {
                 singleImage(urls[0])
@@ -400,23 +418,24 @@ private struct ReviewCommentCard: View {
 
     private var footer: some View {
         HStack(spacing: DSSpacing.md) {
-            if let caption = comment.meta?.trimmingCharacters(in: .whitespaces), !caption.isEmpty {
+            if style.showsMeta,
+               let caption = comment.meta?.trimmingCharacters(in: .whitespaces), !caption.isEmpty {
                 Text(caption)
-                    .font(.system(size: 12))
+                    .font(typography.font(size: typography.metaSize))
                     .foregroundStyle(DSColor.textSecondary)
                     .lineLimit(1)
-            } else if let timeText {
+            } else if style.showsMeta, let timeText {
                 Text(timeText)
-                    .font(.system(size: 12))
+                    .font(typography.font(size: typography.metaSize))
                     .foregroundStyle(DSColor.textSecondary)
             }
 
-            if let voice = comment.voice, !voice.isEmpty, let url = URL(string: voice) {
+            if style.showsVoice, let voice = comment.voice, !voice.isEmpty, let url = URL(string: voice) {
                 Button {
                     openURL(url)
                 } label: {
                     Image(systemName: "waveform.circle")
-                        .font(.system(size: 14))
+                        .font(.system(size: typography.metaSize + 2))
                         .foregroundStyle(DSColor.accent)
                 }
                 .buttonStyle(.plain)
@@ -424,10 +443,10 @@ private struct ReviewCommentCard: View {
 
             Spacer(minLength: 0)
 
-            if let likes = comment.likes, likes > 0 {
+            if style.showsLikes, let likes = comment.likes, likes > 0 {
                 Label("\(likes)", systemImage: "hand.thumbsup")
                     .labelStyle(.titleAndIcon)
-                    .font(.system(size: 12))
+                    .font(typography.font(size: typography.metaSize))
                     .foregroundStyle(DSColor.textSecondary)
             }
 
@@ -443,7 +462,7 @@ private struct ReviewCommentCard: View {
                                 ? localized("收起回复")
                                 : String(format: localized("%d 条回复"), totalReplyCount)
                         )
-                        .font(.system(size: 12))
+                        .font(typography.font(size: typography.metaSize))
                         if hasInlineReplies {
                             Image(systemName: "chevron.down")
                                 .font(.system(size: 9, weight: .semibold))
@@ -485,7 +504,7 @@ private struct ReviewCommentCard: View {
                     } label: {
                         HStack(spacing: 3) {
                             Text(String(format: localized("展开其余 %d 条回复"), hiddenReplyCount))
-                                .font(.system(size: 12.5))
+                                .font(typography.font(size: typography.metaSize + 0.5))
                             Image(systemName: "chevron.down")
                                 .font(.system(size: 9, weight: .semibold))
                         }
@@ -501,7 +520,7 @@ private struct ReviewCommentCard: View {
                         toggleReplies()
                     } label: {
                         Text(localized("收起回复"))
-                            .font(.system(size: 12.5))
+                            .font(typography.font(size: typography.metaSize + 0.5))
                             .foregroundStyle(DSColor.textSecondary)
                             .padding(.leading, 32)
                             .padding(.top, 2)
@@ -534,20 +553,21 @@ private struct ReviewCommentCard: View {
         // 旧实现在这里直接 `return all`，导致折叠态和展开态长得一模一样：
         // 点「收回」看不出任何变化，就是用户说的「一层楼中楼收不回去」。
         // 现在统一交给 footer 的「N 条回复」展开，展开后底部再给「收起回复」。
-        if all.count <= Self.collapsedReplyLimit { return [] }
-        return Array(all.prefix(Self.collapsedReplyLimit))
+        if all.count <= collapsedLimit { return [] }
+        return Array(all.prefix(collapsedLimit))
     }
 
     private var hiddenReplyCount: Int {
         let all = comment.replies ?? []
-        guard !repliesExpanded, all.count > Self.collapsedReplyLimit else { return 0 }
-        return all.count - Self.collapsedReplyLimit
+        guard !repliesExpanded, all.count > collapsedLimit else { return 0 }
+        return all.count - collapsedLimit
     }
 
     private func toggleReplies() {
         guard hasInlineReplies else { return }
         withAnimation(.easeInOut(duration: 0.18)) {
-            repliesExpanded.toggle()
+            // 只写「用户覆盖值」，默认值仍由设置页决定；列表复用时也不会被重置。
+            repliesOverride = !(repliesOverride ?? style.repliesDefaultExpanded)
         }
     }
 
@@ -558,10 +578,11 @@ private struct ReviewCommentCard: View {
     /// 现在卡片只剩 12% 的白 + 一条高光描边，正文的明暗能直接透到卡片上，
     /// 卡片与面板的区分靠边框和极淡阴影，而不是靠一块白色。
     private var cardFill: AnyShapeStyle {
+        let base = CGFloat(style.cardOpacity)
         if isNested {
-            return AnyShapeStyle(Color.primary.opacity(colorScheme == .dark ? 0.035 : 0.02))
+            return AnyShapeStyle(Color.primary.opacity(base * (colorScheme == .dark ? 1.15 : 0.7)))
         }
-        return AnyShapeStyle(Color.white.opacity(colorScheme == .dark ? 0.02 : 0.03))
+        return AnyShapeStyle(Color.white.opacity(base * (colorScheme == .dark ? 0.7 : 1)))
     }
 }
 

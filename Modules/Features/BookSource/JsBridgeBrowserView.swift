@@ -365,12 +365,18 @@ struct LegadoReviewBrowserView: View {
     @State private var configurationJSON: String
     /// 从书源段评页里抓到的评论。有值就画原生卡片，没有就显示书源页面。
     @State private var grabbed: GrabbedCommentPage?
-    /// 抓取成功后再点右上角，可以退回书源原页面（书源页面有时还有「回复」这类原生面板没做的功能）。
-    @State private var showsSourcePage = false
+    /// 右上角小地球的「临时切换」。nil = 跟随设置里的默认显示模式；
+    /// 有值 = 用户这一次手动切过，只影响当前面板，不写回设置。
+    @State private var sourcePageOverride: Bool?
     /// 4 秒内没抓到任何评论就回落显示书源原网页，避免一直卡在加载占位。
     @State private var hasTimedOut = false
     /// 面板底色的浓淡由外观 › 界面效果 的滑杆决定，拖动即时生效。
     private var settings: GlobalSettings { .shared }
+    /// 设置页的「显示模式」决定默认显示原生卡片还是书源原网页。
+    private var nativeStyle: NativeReviewPanelStyleStore { .shared }
+    private var effectiveShowsSourcePage: Bool {
+        sourcePageOverride ?? (nativeStyle.displayMode == .web)
+    }
     @Environment(\.colorScheme) private var colorScheme
 
     init(
@@ -437,9 +443,11 @@ struct LegadoReviewBrowserView: View {
         .overlay(alignment: .topTrailing) {
             if grabbed != nil {
                 Button {
-                    withAnimation(.easeInOut(duration: 0.18)) { showsSourcePage.toggle() }
+                    withAnimation(.easeInOut(duration: 0.18)) {
+                        sourcePageOverride = !effectiveShowsSourcePage
+                    }
                 } label: {
-                    Image(systemName: showsSourcePage ? "text.bubble" : "globe")
+                    Image(systemName: effectiveShowsSourcePage ? "text.bubble" : "globe")
                         .font(.system(size: 11, weight: .medium))
                         .foregroundStyle(DSColor.textSecondary)
                         .padding(7)
@@ -451,7 +459,7 @@ struct LegadoReviewBrowserView: View {
                 .buttonStyle(.plain)
                 .padding(.top, 10)
                 .padding(.trailing, 12)
-                .accessibilityLabel(showsSourcePage ? localized("用卡片显示") : localized("显示原网页"))
+                .accessibilityLabel(effectiveShowsSourcePage ? localized("用卡片显示") : localized("显示原网页"))
             }
         }
         // 面板底：sheet 用系统 ultraThinMaterial 做真毛玻璃（实时模糊背后的正文），
@@ -488,7 +496,7 @@ struct LegadoReviewBrowserView: View {
     }
 
     private var displayMode: DisplayMode {
-        if showsSourcePage { return .web }
+        if effectiveShowsSourcePage { return .web }
         if grabbed != nil { return .native }
         if hasTimedOut { return .web }
         return .loading
