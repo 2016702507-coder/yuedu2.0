@@ -196,21 +196,15 @@ struct ReviewPanelStyleSettingsView: View {
             RenameTemplateView(draft: draft)
         }
         .sheet(isPresented: $showNativePreview) {
-            NavigationStack {
-                NativeReviewPanelView(
-                    title: localized("段评"),
-                    paragraphLabel: localized("第 109 段"),
-                    comments: ReviewPanelSampleData.paragraphComments
-                )
-                .background(.ultraThinMaterial)
-                .navigationTitle(localized("面板预览"))
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button(localized("完成")) { showNativePreview = false }
-                    }
-                }
-            }
+            // 不要 NavigationStack / 导航栏：导航栏自带一层不透明底，
+            // 顶部会立刻变成一条白边，玻璃感就断了。下拉即可关闭。
+            NativeReviewPanelView(
+                title: localized("段评"),
+                paragraphLabel: localized("第 109 段"),
+                comments: ReviewPanelSampleData.paragraphComments
+            )
+            .presentationDetents([.large])
+            .presentationDragIndicator(.visible)
             .presentationBackground(.ultraThinMaterial)
         }
     }

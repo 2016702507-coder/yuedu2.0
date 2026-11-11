@@ -88,7 +88,6 @@ struct NativeReviewPanelView: View {
     let comments: [ReviewComment]
 
     @Environment(\.colorScheme) private var colorScheme
-    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         ScrollView {
@@ -166,7 +165,22 @@ private struct ReviewCommentCard: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding(isNested ? 10 : 12)
-        .background(cardFill, in: RoundedRectangle(cornerRadius: isNested ? 10 : 14, style: .continuous))
+        .background {
+            let shape = RoundedRectangle(cornerRadius: isNested ? 10 : 14, style: .continuous)
+            shape
+                .fill(cardFill)
+                .overlay(
+                    shape.strokeBorder(
+                        Color.white.opacity(colorScheme == .dark ? 0.10 : 0.45),
+                        lineWidth: 0.5
+                    )
+                )
+                .shadow(
+                    color: .black.opacity(isNested ? 0 : (colorScheme == .dark ? 0.18 : 0.05)),
+                    radius: isNested ? 0 : 10,
+                    y: isNested ? 0 : 2
+                )
+        }
     }
 
     // MARK: 头像
@@ -422,10 +436,17 @@ private struct ReviewCommentCard: View {
         }
     }
 
-    private var cardFill: Color {
-        colorScheme == .dark
-            ? Color(uiColor: .secondarySystemBackground).opacity(0.55)
-            : Color(uiColor: .systemBackground).opacity(0.72)
+    /// 卡片只上一层「很薄的高光」，不再铺任何实底，也不再叠第二层模糊。
+    ///
+    /// 面板底已经是 `ultraThinMaterial`（系统模糊），卡片再盖 material 等于
+    /// 在同一处糊两次，越糊越白、越糊越不透 —— 看着就是一块白底。
+    /// 现在卡片只剩 12% 的白 + 一条高光描边，正文的明暗能直接透到卡片上，
+    /// 卡片与面板的区分靠边框和极淡阴影，而不是靠一块白色。
+    private var cardFill: AnyShapeStyle {
+        if isNested {
+            return AnyShapeStyle(Color.primary.opacity(colorScheme == .dark ? 0.06 : 0.035))
+        }
+        return AnyShapeStyle(Color.white.opacity(colorScheme == .dark ? 0.05 : 0.07))
     }
 }
 
