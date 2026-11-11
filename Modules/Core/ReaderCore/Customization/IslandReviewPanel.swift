@@ -55,10 +55,11 @@ enum IslandReviewPanel {
 
                 // 只有这三类规则。结构、层级、卡片底色一律不碰。
                 var rules = [
-                    // 大图不许撑破卡片；小头像不会被放大（max-* 只缩不放）。
-                    'img,video{max-width:100% !important;height:auto !important;}',
-                    // 长链接、长数字不许把卡片顶宽。
-                    'body{overflow-x:hidden !important;word-break:break-word;}'
+                    // 只限制宽度上限：大图不会撑破卡片，小头像也不会被放大。
+                    // 不写 `height:auto`：书源若给图片设了固定高度，强改会变形。
+                    'img,video{max-width:100% !important;}',
+                    // 长链接、长数字不许把卡片顶宽（只作用在滚动容器上，不动排版）。
+                    'body{overflow-x:hidden !important;}'
                 ];
                 if (CSS && CSS.length) rules.push(CSS);
                 var text = rules.join('\n');
