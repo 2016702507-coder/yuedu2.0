@@ -405,13 +405,18 @@ final class ReviewPanelStyleStore {
             customTemplates = []
         }
         selectedTemplateID = defaults.string(forKey: Self.selectedKey).flatMap { UUID(uuidString: $0) }
-        // 首次启动即套用孤岛样式：所有点开评论后弹出的网页面板共用一个视图，
-        // 这里默认启用并选中内置首套，装包后无需手动开开关。用户一旦手动改过就尊重存档。
+        // 默认**不**往段评页里刷自定义 CSS。
+        //
+        // 孤岛的段评页之所以好看，是因为书源 `showChapterComments` 返回的
+        // HTML 自带整套样式（卡片、头像圈、等级标签、点赞、楼中楼）。
+        // 之前默认套用内置的 Cay 示例 CSS，等于往人家画好的页面上再糊一层，
+        // 文字重叠、标签错位、「本章热议」重复，全是这么来的。
+        // 现在默认关闭，用户想要改字号行距自己去设置里打开。
         let neverConfigured = defaults.object(forKey: Self.enabledKey) == nil
             && defaults.object(forKey: Self.selectedKey) == nil
-        isEnabled = defaults.object(forKey: Self.enabledKey) as? Bool ?? true
-        if neverConfigured, selectedTemplateID == nil {
-            selectedTemplateID = ReviewPanelStyleLibrary.builtins.first?.id
+        isEnabled = defaults.object(forKey: Self.enabledKey) as? Bool ?? false
+        if neverConfigured {
+            selectedTemplateID = nil
         }
         isLoading = false
     }
@@ -501,7 +506,7 @@ final class ReviewPanelStyleStore {
 
     /// 当前启用模板四个区域的 CSS（未启用时为空）。
     func activeCSS() -> [ReviewPanelCSSArea: String] {
-        guard let template = selectedTemplate else { return [:] }
+        guard isEnabled, let template = selectedTemplate else { return [:] }
         var result: [ReviewPanelCSSArea: String] = [:]
         for area in ReviewPanelCSSArea.allCases {
             result[area] = template.css(for: area)

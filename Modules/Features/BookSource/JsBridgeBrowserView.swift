@@ -365,9 +365,9 @@ struct LegadoReviewBrowserView: View {
         _configurationJSON = State(initialValue: target.sourceBrowserPage?.configurationJSON ?? "")
     }
 
-    /// 点开评论一律弹孤岛段评面板：书源网页原 UI 收进隐藏层只作取数，
-    /// 用户看到的面板由 `IslandReviewPanel` 重绘。样式模板仍由段评样式设置提供，
-    /// 但只作用于新面板，不再往书源网页上刷 CSS（那会刷出重复的「本章热议」）。
+    /// 与孤岛（Cay）一致：书源给的段评页**原样显示**，不重排、不重绘。
+    /// `IslandReviewPanel` 只负责让底板透明和限制图片宽度；
+    /// 「段评样式」里的自定义 CSS 默认关闭，打开后也只改字号行距颜色。
     private var customCSSScript: String {
         let css = ReviewPanelCSSBridge.browserCSS(
             ReviewPanelStyleStore.shared.activeCSS(),
@@ -499,37 +499,35 @@ struct JsBridgeBrowserRepresentable: UIViewRepresentable {
             if (document.getElementById(STYLE_ID)) return;
             var style = document.createElement('style');
             style.id = STYLE_ID;
+            // 只清「页面自己的底板」，绝不动评论卡片、头像、标签、气泡的底色。
+            // 早先这里有一条 `body *:not(img){background:transparent!important}`，
+            // 把书源段评页自带的卡片底、头像圈、等级标签底全刷没了，还连带
+            // `box-shadow:none` 把卡片阴影清掉 —— 那不是「透明」，是把页面拆了。
+            // 孤岛（Cay）的做法是：网页原样显示，只让最底层透出阅读器正文。
             style.textContent = [
                 'html,body{background:transparent !important;background-color:transparent !important;}',
-                // 段评页的白底往往刷在内层容器上（卡片、列表、wrapper div），只清 html/body
-                // 看起来仍是一块块实心板。这里把所有容器的底色与背景图一并清掉；
-                // 图片、影片、canvas 这类内容本身不动。
-                'body *:not(img):not(video):not(canvas):not(svg){background-color:transparent !important;background-image:none !important;}',
-                // 卡片阴影与毛玻璃同样会挡住底下的正文。
-                '*{box-shadow:none !important;backdrop-filter:none !important;-webkit-backdrop-filter:none !important;}',
-                // 不少段评页用 ::before / ::after 铺一层全屏底色，这层也要清。
-                '*::before,*::after{background:transparent !important;background-color:transparent !important;background-image:none !important;}'
+                'body::before,body::after{background:transparent !important;background-image:none !important;}'
             ].join('');
             (document.head || document.documentElement).appendChild(style);
         }
         // 有些段评页把白底刷在一个铺满视口的 div 上（body 自己反而是透明的），
         // 只改 html/body 看起来仍旧「不透明」。这里按几何判定画布层：
-        // 占满九成以上视口、又没有背景图的容器，把它的底色一起清掉。
+        // 占满九成以上视口、又没有背景图、也没有文字的容器，才把它的底色清掉。
         function clearCanvasLayers() {
             var root = document.documentElement;
             if (!root || !document.body) return;
             var viewport = Math.max((window.innerWidth || root.clientWidth)
                 * (window.innerHeight || root.clientHeight), 1);
-            var nodes = document.body.querySelectorAll('div,section,main,article,ul,form');
+            var nodes = document.body.querySelectorAll('div,section,main,article,form');
             for (var i = 0; i < nodes.length; i++) {
                 var el = nodes[i];
-                // 孤岛段评面板自带那层半透明底是给评论文字垫对比度的，
-                // 不能当「书源白底画布」清掉，否则背后正文会和文字叠在一起。
-                if (el.id === '__yd_island_panel__' ||
-                    (el.closest && el.closest('#__yd_island_panel__'))) continue;
                 if (el.dataset && el.dataset.yueduCanvasCleared === '1') continue;
                 var rect = el.getBoundingClientRect();
-                if (rect.width * rect.height < viewport * 0.9) continue;
+                if (rect.width * rect.height < viewport * 0.95) continue;
+                // 承载评论内容的容器不是画布：清了它，卡片就全透明了。
+                if (el.children.length > 3) continue;
+                var text = (el.textContent || '').replace(/\\s+/g, '');
+                if (text.length > 0) continue;
                 var computed = window.getComputedStyle(el);
                 if (!computed) continue;
                 if (computed.backgroundImage && computed.backgroundImage !== 'none') continue;
@@ -548,7 +546,6 @@ struct JsBridgeBrowserRepresentable: UIViewRepresentable {
             setTimeout(run, 120);
             setTimeout(run, 600);
         });
-        // 段评列表多半是 java.ajax 回来之后才插进 DOM，第一次渲染完再看一遍。
         try {
             var observer = new MutationObserver(function () { run(); });
             observer.observe(document.documentElement, { childList: true, subtree: true });
