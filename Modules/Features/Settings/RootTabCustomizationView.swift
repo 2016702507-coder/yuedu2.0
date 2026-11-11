@@ -6,9 +6,14 @@ struct RootTabCustomizationView: View {
     @EnvironmentObject private var subscriptionStore: SubscriptionStore
     @State private var showPaywall = false
     @State private var iconImportError: RootTabIconImportError?
+    @State private var editMode: EditMode = .inactive
 
     private var canCustomize: Bool {
         subscriptionStore.hasAccess(.bottomBarCustomization)
+    }
+
+    private var isReordering: Bool {
+        editMode == .active
     }
 
     var body: some View {
@@ -32,8 +37,17 @@ struct RootTabCustomizationView: View {
             }
         }
         .softScrollEdges()
+        .environment(\.editMode, $editMode)
         .navigationTitle(localized("底部 Tab"))
         .toolbarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button(isReordering ? localized("完成") : localized("排序")) {
+                    withAnimation { editMode = isReordering ? .inactive : .active }
+                }
+                .disabled(!canCustomize)
+            }
+        }
         .themedAppSurface(for: .settings)
         .alert(item: $iconImportError) { error in
             Alert(
@@ -49,32 +63,44 @@ struct RootTabCustomizationView: View {
 
     private var visibleTabsSection: some View {
         Section {
-            ForEach(RootTabItem.tabs) { tab in
-                if tab.isAlwaysVisible {
-                    HStack {
-                        Label(localized(tab.titleKey), systemImage: tab.defaultSystemImage)
-                            .labelStyle(IconConsistentLabelStyle())
-                        Spacer(minLength: DSSpacing.md)
-                        Text(localized("固定显示"))
-                            .font(DSFont.caption)
-                            .foregroundStyle(DSColor.textSecondary)
-                    }
-                } else {
-                    Toggle(isOn: visibleBinding(for: tab)) {
-                        Label(localized(tab.titleKey), systemImage: tab.defaultSystemImage)
-                            .labelStyle(IconConsistentLabelStyle())
-                    }
-                    .disabled(!canCustomize)
-                }
+            // The reader's own order, not `RootTabItem.tabs`: dragging a row here moves that
+            // tab in the bar. Hidden tabs keep a place in the list so they can be ordered
+            // before they are switched on.
+            ForEach(settings.orderedRootTabs) { tab in
+                tabVisibilityRow(tab)
+            }
+            .onMove { source, destination in
+                guard canCustomize else { return }
+                settings.moveRootTabs(fromOffsets: source, toOffset: destination)
             }
         } header: {
             Text(localized("显示页面"))
                 .foregroundStyle(DSColor.textSecondary)
         } footer: {
-            Text(localized("至少保留一个内容页，设置固定显示，避免无法恢复页面。"))
+            Text(localized("点右上角「排序」拖动可调整底部顺序；至少保留一个内容页，设置固定显示，避免无法恢复页面。"))
                 .dsSectionFooter()
         }
         .interfaceSectionSurface()
+    }
+
+    @ViewBuilder
+    private func tabVisibilityRow(_ tab: RootTabItem) -> some View {
+        if tab.isAlwaysVisible {
+            HStack {
+                Label(localized(tab.titleKey), systemImage: tab.defaultSystemImage)
+                    .labelStyle(IconConsistentLabelStyle())
+                Spacer(minLength: DSSpacing.md)
+                Text(localized("固定显示"))
+                    .font(DSFont.caption)
+                    .foregroundStyle(DSColor.textSecondary)
+            }
+        } else {
+            Toggle(isOn: visibleBinding(for: tab)) {
+                Label(localized(tab.titleKey), systemImage: tab.defaultSystemImage)
+                    .labelStyle(IconConsistentLabelStyle())
+            }
+            .disabled(!canCustomize || isReordering)
+        }
     }
 
     private var tabPresentationSection: some View {

@@ -276,6 +276,29 @@ extension GlobalSettings {
     nonisolated static let defaultRootTabIconSize = 0.0
     static let initialCustomRootTabIconSize = 28.0
 
+    /// Reader-chosen tab order, independent of `rootTabVisibleIDs`, which stays the plain
+    /// "which tabs are shown" list (theme packs write it too, without any order in mind).
+    nonisolated static let rootTabOrderKey = "yd_root_tab_order"
+
+    nonisolated static var defaultRootTabOrder: [String] {
+        RootTabItem.tabs.map(\.rawValue)
+    }
+
+    /// `ids` deduplicated to real, drawn tabs, in the order given; anything missing (a tab
+    /// added after the reader saved an order) is appended in `RootTabItem.tabs` order.
+    nonisolated static func sanitizedRootTabOrder(_ ids: [String]) -> [String] {
+        var seen = Set<String>()
+        var order: [String] = []
+        for id in ids {
+            guard let tab = RootTabItem(rawValue: id), RootTabItem.tabs.contains(tab) else { continue }
+            if seen.insert(tab.rawValue).inserted { order.append(tab.rawValue) }
+        }
+        for tab in RootTabItem.tabs where !seen.contains(tab.rawValue) {
+            order.append(tab.rawValue)
+        }
+        return order
+    }
+
     nonisolated static var defaultRootTabVisibleIDs: [String] {
         RootTabItem.tabs.map(\.rawValue)
     }
@@ -319,8 +342,26 @@ extension GlobalSettings {
     }
 
     var visibleRootTabs: [RootTabItem] {
-        Self.sanitizedRootTabVisibleIDs(rootTabVisibleIDs)
+        let visible = Set(
+            Self.sanitizedRootTabVisibleIDs(rootTabVisibleIDs)
+                .compactMap(RootTabItem.init(rawValue:))
+        )
+        return orderedRootTabs.filter { visible.contains($0) }
+    }
+
+    /// Every tab the bar can draw, in the reader's order — hidden ones included, so the
+    /// customization list can be reordered before a tab is switched on.
+    var orderedRootTabs: [RootTabItem] {
+        Self.sanitizedRootTabOrder(rootTabOrder)
             .compactMap(RootTabItem.init(rawValue:))
+    }
+
+    /// Moves the rows in the customization list. `order` is the full tab list, so a hidden
+    /// tab keeps its place too.
+    func moveRootTabs(fromOffsets source: IndexSet, toOffset destination: Int) {
+        var order = orderedRootTabs.map(\.rawValue)
+        order.move(fromOffsets: source, toOffset: destination)
+        rootTabOrder = Self.sanitizedRootTabOrder(order)
     }
 
     func isRootTabVisible(_ tab: RootTabItem) -> Bool {

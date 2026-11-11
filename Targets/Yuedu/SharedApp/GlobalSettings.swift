@@ -1608,6 +1608,18 @@ class GlobalSettings {
             updateActiveThemeExtras { $0.hidesTabLabels = rootTabHidesLabels }
         }
     }
+    /// The reader's own tab order (drag-to-reorder in 設定 › 底部 Tab). Kept apart from
+    /// `rootTabVisibleIDs`, which is only "which tabs show" and is written by theme packs too.
+    var rootTabOrder: [String] {
+        didSet {
+            let sanitized = Self.sanitizedRootTabOrder(rootTabOrder)
+            if rootTabOrder != sanitized {
+                rootTabOrder = sanitized
+            } else if rootTabOrder != UserDefaults.standard.stringArray(forKey: Self.rootTabOrderKey) {
+                UserDefaults.standard.set(rootTabOrder, forKey: Self.rootTabOrderKey)
+            }
+        }
+    }
     var rootTabIconSize: Double {
         didSet {
             let sanitized = Self.sanitizedRootTabIconSize(rootTabIconSize)
@@ -2457,6 +2469,10 @@ class GlobalSettings {
                 ?? Self.defaultRootTabVisibleIDs
         )
         rootTabHidesLabels = UserDefaults.standard.bool(forKey: Self.rootTabHidesLabelsKey)
+        rootTabOrder = Self.sanitizedRootTabOrder(
+            UserDefaults.standard.stringArray(forKey: Self.rootTabOrderKey)
+                ?? Self.defaultRootTabOrder
+        )
         let loadedRootTabIconSize =
             (UserDefaults.standard.object(forKey: Self.rootTabIconSizeKey) as? Double)
             ?? Self.defaultRootTabIconSize

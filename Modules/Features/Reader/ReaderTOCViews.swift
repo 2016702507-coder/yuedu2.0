@@ -168,19 +168,22 @@ private struct VerticalTOCView: View {
     let pageOffsets: [UUID: Int]
     let showsPageNumbers: Bool
     let uncachedChapterIndexes: Set<Int>
+    /// 目录倒序开关。直排默认从右往左读，`chapters.reversed()` 才是「第一章在最右」，
+    /// 所以关闭时保持原样，打开才把顺序翻过来。
+    let isReversed: Bool
     let onSelectChapter: (BookChapter) -> Void
 
     @State private var didInitialTOCScroll = false
 
-    private var reversedChapters: [BookChapter] {
-        Array(chapters.reversed())
+    private var displayedChapters: [BookChapter] {
+        isReversed ? chapters : Array(chapters.reversed())
     }
 
     var body: some View {
         ScrollViewReader { proxy in
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(alignment: .top, spacing: VerticalTOCLayout.columnSpacing) {
-                    ForEach(Array(reversedChapters.enumerated()), id: \.element.id) { _, chapter in
+                    ForEach(Array(displayedChapters.enumerated()), id: \.element.id) { _, chapter in
                         let pageNumber: Int = {
                             if let offset = pageOffsets[chapter.id] {
                                 return offset + 1
@@ -210,6 +213,10 @@ private struct VerticalTOCView: View {
                     proxy.scrollTo(currentIndex, anchor: .trailing)
                 }
             }
+            .onChange(of: isReversed) {
+                guard chapters.first(where: { $0.index == currentIndex }) != nil else { return }
+                withAnimation { proxy.scrollTo(currentIndex, anchor: .center) }
+            }
         }
     }
 }
@@ -237,6 +244,8 @@ struct ReaderTOCView: View {
     @Binding var isPresented: Bool
 
     @State private var searchText = ""
+    /// 目录倒序开关，全 App 共用一个偏好：开最新章节排在最前。
+    @AppStorage("yd_reader_toc_reversed") private var isTOCReversed = false
 
     private var isSearching: Bool {
         !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
@@ -250,6 +259,11 @@ struct ReaderTOCView: View {
         }
     }
 
+    /// 实际画出来的顺序；横排正序时第一章在最上面，倒序时最后一章在最上面。
+    private var displayedChapters: [BookChapter] {
+        isTOCReversed ? Array(filteredChapters.reversed()) : filteredChapters
+    }
+
     var body: some View {
         NavigationStack {
             content
@@ -257,6 +271,19 @@ struct ReaderTOCView: View {
                 .navigationTitle(bookTitle)
                 .toolbarTitleDisplayMode(.inline)
                 .toolbar {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button {
+                            isTOCReversed.toggle()
+                        } label: {
+                            Label(
+                                isTOCReversed ? localized("倒序") : localized("正序"),
+                                systemImage: isTOCReversed ? "arrow.up" : "arrow.down"
+                            )
+                            .labelStyle(.titleAndIcon)
+                        }
+                        .accessibilityLabel(localized("章节排序"))
+                        .accessibilityValue(isTOCReversed ? localized("倒序") : localized("正序"))
+                    }
                     ToolbarItem(placement: .topBarTrailing) {
                         Button {
                             isPresented = false
@@ -306,6 +333,7 @@ struct ReaderTOCView: View {
                     pageOffsets: pageOffsets,
                     showsPageNumbers: showsPageNumbers,
                     uncachedChapterIndexes: uncachedChapterIndexes,
+                    isReversed: isTOCReversed,
                     onSelectChapter: { chapter in
                         onSelectChapter(chapter)
                         isPresented = false
@@ -353,7 +381,7 @@ struct ReaderTOCView: View {
                         .listRowSeparator(.hidden)
                 }
 
-                ForEach(filteredChapters) { chapter in
+                ForEach(displayedChapters) { chapter in
                     chapterRow(chapter)
                 }
             }
@@ -369,6 +397,12 @@ struct ReaderTOCView: View {
                 // the fixed-page reader's 目录 do; the 0.1 s wait this replaced had no reason
                 // on record.
                 proxy.scrollTo(currentIndex, anchor: .center)
+            }
+            .onChange(of: isTOCReversed) {
+                // 翻转顺序后列表会从顶部重排，把视线带回正在读的那一章。
+                guard !isSearching,
+                      chapters.contains(where: { $0.index == currentIndex }) else { return }
+                withAnimation { proxy.scrollTo(currentIndex, anchor: .center) }
             }
         }
     }
@@ -430,7 +464,7 @@ struct ReaderTOCView: View {
         .accessibilityValue(uncachedChapterIndexes.contains(chapter.index) ? localized("未下载") : "")
         .listRowBackground(Color.clear)
         .listRowInsets(EdgeInsets())
-        .listRowSeparator(.hidden, edges: chapter.id == filteredChapters.first?.id ? .top : [])
+        .listRowSeparator(.hidden, edges: chapter.id == displayedChapters.first?.id ? .top : [])
         .listRowSeparator(.visible, edges: .bottom)
         .listRowSeparatorTint(Color.secondary.opacity(0.18))
         .id(chapter.index)
