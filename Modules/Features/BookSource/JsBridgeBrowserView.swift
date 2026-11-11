@@ -271,7 +271,9 @@ struct JsBridgeBrowserView: View {
                 userAgent: userAgent,
                 finishesWhenChallengeClears: finishesWhenChallengeClears,
                 transparentBackground: transparentBackground,
-                customCSSScript: customCSSScript
+                customCSSScript: customCSSScript,
+                grabsComments: grabsComments,
+                onCommentsGrabbed: onCommentsGrabbed
             )
                 .edgesIgnoringSafeArea(hidesToolbar ? .all : [])
 
@@ -424,8 +426,13 @@ struct LegadoReviewBrowserView: View {
                 customCSSScript: customCSSScript,
                 grabsComments: true,
                 onCommentsGrabbed: { page in
-                    // 抓到的条目至少一条有正文才收（脚本已校验过一次，这里兜一层）。
-                    if !page.items.isEmpty { grabbed = page }
+                    // 脚本会随「滚动加载 / 楼中楼展开」分批再发一次。
+                    // 内容没变就不赋值（@State 一改整个 LazyVStack 会重排），
+                    // 条数变少也不收（防止加载中的半页把已有列表顶掉）。
+                    if !page.items.isEmpty, page != grabbed,
+                       page.items.count >= (grabbed?.items.count ?? 0) {
+                        grabbed = page
+                    }
                 },
                 onDismiss: onDismiss
             )
@@ -439,7 +446,10 @@ struct LegadoReviewBrowserView: View {
                     customCSSScript: customCSSScript,
                     grabsComments: true,
                     onCommentsGrabbed: { page in
-                        if !page.items.isEmpty { grabbed = page }
+                        if !page.items.isEmpty, page != grabbed,
+                           page.items.count >= (grabbed?.items.count ?? 0) {
+                            grabbed = page
+                        }
                     },
                     onDismiss: onDismiss
                 )
@@ -538,6 +548,8 @@ struct JsBridgeBrowserRepresentable: UIViewRepresentable {
     var finishesWhenChallengeClears = false
     var transparentBackground = false
     var customCSSScript = ""
+    var grabsComments = false
+    var onCommentsGrabbed: ((GrabbedCommentPage) -> Void)? = nil
 
     static let sourceJavaPromptName = SourceWebUIDelegate.sourceBridgePromptName
 

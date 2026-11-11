@@ -580,17 +580,50 @@ enum ReviewCommentGrabber {
     } catch (e) {}
   }
 
-  /* 楼中楼默认是折叠的（要点击才 fetch）。原生面板没有网页里的那个按钮，
-     所以抓完一轮后替用户点开（只点一次，靠 data 标记去重），再抓一轮。 */
+  /* 楼中楼默认是折叠的（点击才去 fetch）。原生面板没有网页里那个按钮，
+     所以抓完一轮后替用户点开，1.6 秒后统一再抓一次。
+     只点「回复不多」的卡片、最多 20 个：整章本章说动辄上百条带回复，
+     全点会给服务器发上百个请求，也没人一屏看得完。 */
+  var EXPANDING = false;
+
   function expandReplies() {
+    if (EXPANDING) return;
     var btns = document.querySelectorAll('.reply-btn[data-action="toggle-replies"]');
-    var clicked = 0;
-    for (var i = 0; i < btns.length && clicked < 12; i++) {
-      if (btns[i].getAttribute('data-yd') === '1') continue;
-      btns[i].setAttribute('data-yd', '1');
-      try { btns[i].click(); clicked++; } catch (e) {}
+    var pending = [];
+    for (var i = 0; i < btns.length; i++) {
+      if (btns[i].getAttribute('data-yd') !== '1') pending.push(btns[i]);
     }
-    if (clicked) setTimeout(function () { run(true); }, 1400);
+    if (!pending.length) return;
+
+    EXPANDING = true;
+    var batch = pending.slice(0, 40);
+    for (var j = 0; j < batch.length; j++) {
+      batch[j].setAttribute('data-yd', '1');
+      try { batch[j].click(); } catch (e) {}
+    }
+    /* 展开期间不发结果：20 个请求陆续回来，每回一个就 post 一次会把面板刷成幻灯片。
+       等这批全部落定，再一次性发。 */
+    setTimeout(function () {
+      EXPANDING = false;
+      run(true);
+    }, 2000);
+  }
+
+  /* 全量指纹：条数 + 每条正文长度/点赞/回复数。回复展开、滚动加载都会变，
+     没变就一个字都不发 —— 否则原生面板会被 MutationObserver 反复重建。 */
+  function hash(r) {
+    var h = 2166136261;
+    var str = r.adapter + '|' + r.items.length;
+    for (var i = 0; i < r.items.length; i++) {
+      var it = r.items[i];
+      str += '|' + (it.id || '') + ',' + String(it.content || '').length + ',' +
+        (it.likes || 0) + ',' + ((it.replies || []).length);
+    }
+    for (var k = 0; k < str.length; k++) {
+      h ^= str.charCodeAt(k);
+      h = (h * 16777619) >>> 0;
+    }
+    return String(h);
   }
 
   function run(force) {
@@ -600,8 +633,8 @@ enum ReviewCommentGrabber {
     if (!force && plain.replace(/\s/g, '').length < 4) return;
     var r = extract();
     if (!r || !r.items.length) return;
-    var fingerprint = r.adapter + ':' + r.items.length + ':' + r.items[0].user + ':' +
-      String(r.items[0].content || '').slice(0, 24);
+    if (EXPANDING && !force) return;
+    var fingerprint = hash(r);
     if (!force && fingerprint === window.__ydLastFp) return;
     window.__ydLastFp = fingerprint;
     post(r);
@@ -676,7 +709,7 @@ enum ReviewCommentGrabber {
 }
 
 /// 一页抓取结果。
-struct GrabbedCommentPage: Decodable, Sendable {
+struct GrabbedCommentPage: Decodable, Sendable, Equatable {
     /// `qidian` / `qd` / `fq` / `generic`，只用于日志与排查。
     var adapter: String
     /// 书源页面自己写的标题，例如「段评」「本章说」。
