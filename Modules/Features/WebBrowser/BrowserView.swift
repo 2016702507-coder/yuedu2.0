@@ -943,6 +943,7 @@ struct BrowserPage: View {
         // Sync browser login cookies to HTTPCookieStorage.shared so ChapterFetchManager
         // can carry the auth state when fetching chapters via URLSession / WebViewFetcher.
         browser.syncCookiesToURLSession {
+            if ReaderOpener.open(bookID: book.id, store: store) { return }
             readerPresentation = ReaderPresentation(id: book.id)
         }
     }
@@ -985,6 +986,8 @@ struct BrowserPage: View {
                         format: .plainText
                     )
                     isExtracting = false
+                    // 网页转码阅读同样用统一的封面翻开转场。
+                    if ReaderOpener.open(bookID: book.id, store: store) { return }
                     readerPresentation = ReaderPresentation(id: book.id)
                 } catch {
                     isExtracting = false

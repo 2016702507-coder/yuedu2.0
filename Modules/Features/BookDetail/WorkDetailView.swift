@@ -464,6 +464,13 @@ struct WorkDetailView: View {
             await ReadingChapterPlace(store: store, positionStore: dependencies.readingPositionStore)
                 .open(atChapter: chapter.index, bookId: bookID)
             if opensAudiobookPlayer(bookID) { return }
+            // 目录跳章也走统一的封面翻开界面，章节定位原样带过去。
+            if ReaderOpener.open(
+                bookID: bookID,
+                store: store,
+                dependencies: dependencies,
+                openingTOCTarget: target.fragment == nil ? nil : target
+            ) { return }
             pushed = .reader(bookID, target.fragment == nil ? nil : target)
         }
     }
@@ -1095,6 +1102,7 @@ struct WorkDetailView: View {
             return
         }
         if opensAudiobookPlayer(id) { return }
+        if ReaderOpener.open(bookID: id, store: store, dependencies: dependencies) { return }
         pushed = .reader(id)
     }
 

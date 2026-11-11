@@ -36,7 +36,7 @@ struct ImportedBookPresentation: UIViewControllerRepresentable {
         }
         controller.receive(requestID: request?.id, makeDestination: { scene in
             guard let request else { return nil }
-            return UIHostingController(rootView:
+            let host = UIHostingController(rootView:
                 BookReaderView(bookId: request.bookID)
                     .id(request.bookID)
                     .environmentObject(store)
@@ -44,6 +44,9 @@ struct ImportedBookPresentation: UIViewControllerRepresentable {
                     .environment(\.appDependencies, .live)
                     .followsScenePhase(of: scene)
             )
+            // Open In 打开的书也用统一的封面翻开转场；宿主由本流程自己 present。
+            ReaderOpener.attach(to: host, bookID: request.bookID, store: store)
+            return host
         }, didPresent: didPresent)
     }
 }

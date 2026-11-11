@@ -188,6 +188,8 @@ struct AozoraWorkDetailView: View {
     }
 
     private func openReader(_ id: UUID) {
+        // 公共书库（含加入书架后自动打开）也统一到封面翻开转场。
+        if ReaderOpener.open(bookID: id, store: store, dependencies: dependencies) { return }
         if let sheet { sheet.openReader(id) }
         else { readerBookID = id }
     }

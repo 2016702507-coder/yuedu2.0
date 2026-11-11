@@ -1070,6 +1070,17 @@ struct OnlineBookView: View {
                 showReader = true
                 return
             }
+            // 作品详情 / 在线书详情也用书架那张封面翻开卡片；原来 push 的
+            // onDisappear 清理（临时书、加入书架询问）改由 onDismiss 承担。
+            if ReaderOpener.open(
+                bookID: targetBookId,
+                store: bookStore,
+                dependencies: dependencies,
+                onDismiss: { readerDidClose() }
+            ) {
+                openingReader = false
+                return
+            }
             pushed = .reader(targetBookId)
             openingReader = false
         }

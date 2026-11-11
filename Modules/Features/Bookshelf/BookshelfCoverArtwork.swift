@@ -108,7 +108,15 @@ enum BookshelfCoverStyle {
             // file, when memory has one, starts the growth sharper.
             return CoverImagePipeline.shared.largestCachedImage(for: source) ?? image
         case .placeholder, nil:
-            return nil
+            // 封面还在读档、或入口没有可见书封（首页、详情、搜索…）时，也要抬走
+            // 这本书真正的封面：缓存里有就用真封面，没有就用生成封面。
+            // 直接返回 nil 会让转场退化成 systemGray5 灰卡，看起来就是「封面变灰」。
+            return fallbackSnapshot(
+                for: book,
+                catalogImage: catalogImage,
+                colorScheme: colorScheme,
+                sourceSize: sourceSize
+            )
         case .catalog(let catalog):
             // What `BookCoverImage` reported drawing; before its first report, what it
             // would draw from memory: the catalog cover, the 预设封面, or the generated cover.
@@ -126,6 +134,31 @@ enum BookshelfCoverStyle {
         case .generated:
             return generatedSnapshot(for: book, colorScheme: colorScheme, sourceSize: sourceSize)
         }
+    }
+
+    /// 没有可见书封可抬时用的真实封面：入口给的图 → 已缓存的书封 → 生成封面。
+    /// 绝不返回 nil，避免转场落到纯灰占位卡。
+    @MainActor
+    private static func fallbackSnapshot(
+        for book: ReadingBook,
+        catalogImage: UIImage?,
+        colorScheme: ColorScheme,
+        sourceSize: CGSize?
+    ) -> UIImage? {
+        if let catalogImage { return catalogImage }
+        if let cover = book.coverUrl.flatMap({
+            BookCoverLoader.cachedImage(
+                for: $0,
+                session: BookCoverLoader.remoteSession(for: book)
+            )
+        }) {
+            return cover
+        }
+        return generatedSnapshot(
+            for: book,
+            colorScheme: colorScheme,
+            sourceSize: sourceSize
+        )
     }
 
     /// Starts preparing the transition-size rendering of the bitmap the card is

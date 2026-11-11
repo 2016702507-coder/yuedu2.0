@@ -59,9 +59,10 @@ struct ReaderBookOpeningPose: Equatable {
     /// hinge reads as a lit, physical board rather than a flat card.
     let coverShadeOpacity: CGFloat
 
-    /// Darkest the cover gets, reached at the peak angle. The maintainer
-    /// chose this from the 2026-10-17 storyboard (Figma "开书卡片转场").
-    static let maxCoverShade: CGFloat = 0.38
+    /// Darkest the cover gets, reached at the peak angle. 0.38 made the lifted
+    /// cover read as a grey board; 0.18 keeps the artwork's colours while the
+    /// hinge still catches the light.
+    static let maxCoverShade: CGFloat = 0.18
 
     /// Peak hinge angle (~108°): just past perpendicular, so the cover stays
     /// visible for most of the motion and back-face culling retires it.

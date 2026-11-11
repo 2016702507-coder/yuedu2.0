@@ -953,6 +953,8 @@ struct BookSearchView: View {
     private func openRecentBook(_ book: ReadingBook) {
         // An audiobook's player grows out of the now-playing bar, as Apple Books opens one.
         if NowPlayingHub.shared.openIfAudiobook(book, store: bookStore) { return }
+        // 「最近阅读」也走统一的封面翻开转场；不可用时回落到原来的全屏模态。
+        if ReaderOpener.open(bookID: book.id, store: bookStore) { return }
         recentReaderRoute = DetailReaderRoute(id: book.id)
     }
 }

@@ -176,6 +176,8 @@ enum PublicLibraryCarouselPush {
 private struct PublicLibraryCarouselHost: ViewModifier {
     @Binding var path: NavigationPath
     @Binding var request: PublicLibraryBookSelection?
+    /// 统一开书转场需要书封；书库轮播的宿主由 App 根注入同一个 store。
+    @EnvironmentObject private var store: BookStore
     /// Owned by the view applying the host, which taps covers of its own.
     let frames: PublicLibraryCoverFrames
     /// Open carousels, each tied to the stack depth it was opened at; only the one at
@@ -203,7 +205,10 @@ private struct PublicLibraryCarouselHost: ViewModifier {
                             selection: entry.selection, coverFrames: frames,
                             push: { route in
                                 switch route {
-                                case .reader(let id): path.append(PublicLibraryReaderRoute(bookID: id))
+                                case .reader(let id):
+                                    if !ReaderOpener.open(bookID: id, store: store) {
+                                        path.append(PublicLibraryReaderRoute(bookID: id))
+                                    }
                                 case .author(let author): path.append(author)
                                 }
                             },

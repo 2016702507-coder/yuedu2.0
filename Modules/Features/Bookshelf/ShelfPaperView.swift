@@ -670,6 +670,8 @@ struct ShelfPaperView: View {
         guard BookCardNavigationGate.shouldUseCardTransition(
             for: book, isRegularWidth: sizeClass == .regular
         ), navigator.isNavigationControllerAttached else {
+            // 没挂上导航控制器（或 iPad / 音视频）时别直接硬切，统一走封面翻开转场。
+            if ReaderOpener.open(bookID: book.id, store: store) { return }
             readingBookID = book.id
             return
         }

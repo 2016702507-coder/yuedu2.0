@@ -665,9 +665,10 @@ final class ReaderCardTransitionAnimator: NSObject, UIViewControllerAnimatedTran
             // A plain colour card gets its rounding straight from
             // `backgroundColor` + `cornerRadius`, which Core Animation draws
             // without clipping, so this branch never sets `masksToBounds`.
-            // Only a card still on its placeholder lifts no image, so it lifts the
-            // placeholder's colour (`BookshelfCoverArtwork`), not a white card.
-            coverView.backgroundColor = DSUIColor.neutralControlFill
+            // 最后兜底也不要画 systemGray5 灰卡——那正是用户看到的「封面变灰」。
+            // 淡主题色至少仍是一张封面；正常情况下 snapshot 已由
+            // BookshelfCoverStyle.snapshot 保证是真实封面或生成封面。
+            coverView.backgroundColor = UIColor(DSColor.accent.opacity(0.14))
         }
         // The hinge anchor is fixed for the whole transition, so per-frame
         // layout can set bounds/position directly without anchor migration.

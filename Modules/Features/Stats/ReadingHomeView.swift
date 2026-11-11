@@ -38,6 +38,8 @@ struct ReadingHomeView: View {
     /// Where `scrollPosition` puts the strip: written by `settleCarousel` to open on the book
     /// last read, never read back for the caption.
     @State private var centeredBookID: UUID?
+    /// 中间那本封面在 window 里的位置：开书卡片从这里展开，和书架一样。
+    @State private var centeredCoverFrame: CGRect?
 
     /// The cover square on screen, measured rather than reported. `scrollPosition`'s binding
     /// does not reliably write back on iOS 17 (`LazyHStack` + `viewAligned`), which left the
@@ -142,11 +144,18 @@ struct ReadingHomeView: View {
         if restingBookID != book.id { restingBookID = book.id }
     }
 
-    /// 进阅读：有声书先让播放器长出来，和「继续阅读」走同一条路。
+    /// 进阅读：有声书先让播放器长出来；其余统一走书架那张封面翻开卡片。
     private func openBook(_ book: ReadingBook) {
-        if !NowPlayingHub.shared.openIfAudiobook(book, store: store) {
-            readingBookID = book.id
-        }
+        guard !NowPlayingHub.shared.openIfAudiobook(book, store: store) else { return }
+        // 首页「继续阅读」以前是黑屏「加载中…」直接硬切；现在和书架同一个
+        // 开书界面。转场不可用时回落到原来的全屏模态，保证书一定打得开。
+        if ReaderOpener.open(
+            bookID: book.id,
+            store: store,
+            coverFrame: centeredCoverFrame,
+            onDismiss: { recenterCarousel() }
+        ) { return }
+        readingBookID = book.id
     }
 
     /// 把刚合上的那本摆回中间。排序会把它挪到第一位，写回 `scrollPosition` 让轮播跟过去。
@@ -280,6 +289,14 @@ struct ReadingHomeView: View {
             .scrollIndicators(.hidden)
             .scrollClipDisabled()
             .coordinateSpace(.named(Self.carouselSpace))
+            .onChange(of: proxy.frame(in: .global), initial: true) { _, global in
+                centeredCoverFrame = CGRect(
+                    x: global.minX + (global.width - coverWidth) / 2,
+                    y: global.minY + (global.height - coverHeight) / 2,
+                    width: coverWidth,
+                    height: coverHeight
+                )
+            }
         }
         .frame(height: 254)
         .padding(.top, 18)

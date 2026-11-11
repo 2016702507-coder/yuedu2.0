@@ -178,6 +178,8 @@ struct RemoteLibraryBookDetailView: View {
     private func begin(_ selectedAction: RemoteLibraryActionModel.Action) {
         guard canAct, let format = selectedFormat else { return }
         actions.begin(selectedAction, item: item, format: format, service: dependencies.remoteLibrary, store: store) { id in
+            // 远端书库下载完成后也用统一的封面翻开转场。
+            if ReaderOpener.open(bookID: id, store: store, dependencies: dependencies) { return }
             sheet?.openReader(id)
         }
     }

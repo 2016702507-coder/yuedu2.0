@@ -465,6 +465,9 @@ struct HomeView: View {
         } else {
             AppLogger.info("⟐ openBook MODAL path bookID=\(book.id) (audiobook or non-phone shell)")
             pendingReaderOpenToken = nil
+            // iPad / 听书 / 视频等原本直接模态硬切的分支，也统一到封面翻开转场；
+            // 听书、视频 ReaderOpener 会主动让回专用播放器。
+            if ReaderOpener.open(bookID: book.id, store: store) { return }
             modalReaderBookId = book.id
         }
     }
