@@ -359,6 +359,9 @@ enum ReviewPanelStyleLibrary {
 
 /// 段评样式的存储与当前选择。独立于 `GlobalSettings`，避免动到它的 iCloud 合并时钟；
 /// 模板库与选择都存本机 UserDefaults，随段评面板打开时读取。
+/// 主线程隔离：UI 状态只从 SwiftUI 视图读写，也让 `static let shared` 在
+/// Swift 6 严格并发下成为 actor-isolated 而非 non-Sendable 的全局可变状态。
+@MainActor
 @Observable
 final class ReviewPanelStyleStore {
     static let shared = ReviewPanelStyleStore()
