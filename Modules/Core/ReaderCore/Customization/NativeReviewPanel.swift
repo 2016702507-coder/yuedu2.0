@@ -31,6 +31,23 @@ struct ReviewComment: Identifiable, Codable, Hashable, Sendable {
     var isAuthor: Bool?
     var replies: [ReviewComment]?
 
+    // MARK: 书源段评页抓下来的补充字段
+    //
+    // 这四项在书源页面里本来就存在（起点系页面：`.p1 .tag` 等级徽章、
+    // `.p3-left` 的「时间 · IP」、`.zw` 段落原文、`audio` 语音），
+    // 抓取器把它们一并带回来，卡片就按书源原样显示，不再自己编。
+
+    /// 等级 / 头衔文字，例如「见习」「舵主」。
+    var levelText: String?
+    /// 「11-11 22:10 · 江苏」这种书源写好的副行，比时间戳更贴近原页面。
+    var meta: String?
+    /// 本段原文引用（`.zw`）。
+    var quote: String?
+    /// 语音评论（`audio[src]`）。
+    var voice: String?
+    /// 所属段落标题，例如「第 12 段」「整章章末讨论」。
+    var segment: String?
+
     init(
         id: String,
         user: String,
@@ -42,7 +59,12 @@ struct ReviewComment: Identifiable, Codable, Hashable, Sendable {
         images: [String]? = nil,
         replyTo: String? = nil,
         isAuthor: Bool? = nil,
-        replies: [ReviewComment]? = nil
+        replies: [ReviewComment]? = nil,
+        levelText: String? = nil,
+        meta: String? = nil,
+        quote: String? = nil,
+        voice: String? = nil,
+        segment: String? = nil
     ) {
         self.id = id
         self.user = user
@@ -55,6 +77,11 @@ struct ReviewComment: Identifiable, Codable, Hashable, Sendable {
         self.replyTo = replyTo
         self.isAuthor = isAuthor
         self.replies = replies
+        self.levelText = levelText
+        self.meta = meta
+        self.quote = quote
+        self.voice = voice
+        self.segment = segment
     }
 }
 
@@ -94,8 +121,20 @@ struct NativeReviewPanelView: View {
             LazyVStack(alignment: .leading, spacing: DSSpacing.sm) {
                 header
 
-                ForEach(comments) { comment in
-                    ReviewCommentCard(comment: comment, isNested: false)
+                // 本章说页会把多段评论一次给全（每段一个 `.segment-block`）。
+                // 有分段信息时按段落分组，段标题用书源写的那行字（「第 12 段」），
+                // 没分段就平铺 —— 段评本来就只有一段。
+                ForEach(Array(sections.enumerated()), id: \.offset) { _, section in
+                    if let label = section.label {
+                        Text(label)
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(DSColor.textSecondary)
+                            .padding(.horizontal, 2)
+                            .padding(.top, DSSpacing.sm)
+                    }
+                    ForEach(section.comments) { comment in
+                        ReviewCommentCard(comment: comment, isNested: false)
+                    }
                 }
 
                 if comments.isEmpty {
@@ -111,6 +150,28 @@ struct NativeReviewPanelView: View {
         }
         .scrollIndicators(.hidden)
         .background(Color.clear)
+    }
+
+    private struct CommentSection {
+        let label: String?
+        let comments: [ReviewComment]
+    }
+
+    /// 按 `segment` 分组；只有一个分段时去掉标题，保持清爽。
+    private var sections: [CommentSection] {
+        var order: [String] = []
+        var bucket: [String: [ReviewComment]] = [:]
+        for comment in comments {
+            let key = comment.segment?.trimmingCharacters(in: .whitespaces) ?? ""
+            if bucket[key] == nil { order.append(key) }
+            bucket[key, default: []].append(comment)
+        }
+        guard order.count > 1 else {
+            return [CommentSection(label: nil, comments: comments)]
+        }
+        return order.map { key in
+            CommentSection(label: key.isEmpty ? nil : key, comments: bucket[key] ?? [])
+        }
     }
 
     private var header: some View {
@@ -142,6 +203,7 @@ private struct ReviewCommentCard: View {
     let isNested: Bool
 
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.openURL) private var openURL
 
     /// 楼中楼默认折叠到前 2 条，点「展开其余 N 条回复」或底部「N 条回复」再铺开。
     @State private var repliesExpanded = false
@@ -171,7 +233,7 @@ private struct ReviewCommentCard: View {
                 .fill(cardFill)
                 .overlay(
                     shape.strokeBorder(
-                        Color.white.opacity(colorScheme == .dark ? 0.10 : 0.45),
+                        Color.white.opacity(colorScheme == .dark ? 0.10 : 0.30),
                         lineWidth: 0.5
                     )
                 )
@@ -227,6 +289,16 @@ private struct ReviewCommentCard: View {
                 .foregroundStyle(DSColor.textSecondary)
                 .lineLimit(1)
 
+            if let level = comment.levelText, !level.isEmpty {
+                Text(level)
+                    .font(.system(size: 10.5, weight: .medium))
+                    .foregroundStyle(DSColor.accent)
+                    .lineLimit(1)
+                    .padding(.horizontal, 5)
+                    .padding(.vertical, 1)
+                    .background(DSColor.accent.opacity(0.12), in: RoundedRectangle(cornerRadius: 4, style: .continuous))
+            }
+
             if comment.isAuthor == true {
                 Text(localized("作者"))
                     .font(.system(size: 10.5, weight: .medium))
@@ -243,12 +315,28 @@ private struct ReviewCommentCard: View {
     // MARK: 正文
 
     private var content: some View {
-        Text(bodyText)
+        VStack(alignment: .leading, spacing: 6) {
+            if !isNested, let quote = comment.quote, !quote.isEmpty {
+                Text(quote)
+                    .font(.system(size: 12.5))
+                    .foregroundStyle(DSColor.textSecondary)
+                    .lineSpacing(3)
+                    .lineLimit(4)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 6)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(
+                        Color.primary.opacity(colorScheme == .dark ? 0.05 : 0.035),
+                        in: RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    )
+            }
+            Text(bodyText)
             .font(.system(size: isNested ? 14 : 15.5))
             .foregroundStyle(DSColor.textPrimary)
             .lineSpacing(4)
             .fixedSize(horizontal: false, vertical: true)
             .frame(maxWidth: .infinity, alignment: .leading)
+        }
     }
 
     private var bodyText: String {
@@ -312,10 +400,26 @@ private struct ReviewCommentCard: View {
 
     private var footer: some View {
         HStack(spacing: DSSpacing.md) {
-            if let timeText {
+            if let caption = comment.meta?.trimmingCharacters(in: .whitespaces), !caption.isEmpty {
+                Text(caption)
+                    .font(.system(size: 12))
+                    .foregroundStyle(DSColor.textSecondary)
+                    .lineLimit(1)
+            } else if let timeText {
                 Text(timeText)
                     .font(.system(size: 12))
                     .foregroundStyle(DSColor.textSecondary)
+            }
+
+            if let voice = comment.voice, !voice.isEmpty, let url = URL(string: voice) {
+                Button {
+                    openURL(url)
+                } label: {
+                    Image(systemName: "waveform.circle")
+                        .font(.system(size: 14))
+                        .foregroundStyle(DSColor.accent)
+                }
+                .buttonStyle(.plain)
             }
 
             Spacer(minLength: 0)
@@ -444,9 +548,9 @@ private struct ReviewCommentCard: View {
     /// 卡片与面板的区分靠边框和极淡阴影，而不是靠一块白色。
     private var cardFill: AnyShapeStyle {
         if isNested {
-            return AnyShapeStyle(Color.primary.opacity(colorScheme == .dark ? 0.06 : 0.035))
+            return AnyShapeStyle(Color.primary.opacity(colorScheme == .dark ? 0.035 : 0.02))
         }
-        return AnyShapeStyle(Color.white.opacity(colorScheme == .dark ? 0.05 : 0.07))
+        return AnyShapeStyle(Color.white.opacity(colorScheme == .dark ? 0.02 : 0.03))
     }
 }
 

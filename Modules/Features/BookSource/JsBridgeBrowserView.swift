@@ -133,6 +133,11 @@ struct JsBridgeBrowserView: View {
     /// 段评与互动样式页写好的自定义 CSS 注入脚本；空字串表示不注入。
     /// 由 `LegadoReviewBrowserView` 按当前日夜模式生成，段评面板专用。
     let customCSSScript: String
+    /// 段评面板：页面加载后把评论抓出来交给原生卡片画。
+    /// 关掉时页面行为与普通书源网页完全一致。
+    let grabsComments: Bool
+    /// 抓到评论（含后续滚动加载补抓）时回调。抓不到不会回调，页面照旧显示。
+    let onCommentsGrabbed: ((GrabbedCommentPage) -> Void)?
 
     init(
         urlString: String,
@@ -147,6 +152,8 @@ struct JsBridgeBrowserView: View {
         finishesWhenChallengeClears: Bool = false,
         transparentBackground: Bool = false,
         customCSSScript: String = "",
+        grabsComments: Bool = false,
+        onCommentsGrabbed: ((GrabbedCommentPage) -> Void)? = nil,
         onDismiss: @escaping (_ body: String?) -> Void
     ) {
         self.urlString = urlString
@@ -161,6 +168,8 @@ struct JsBridgeBrowserView: View {
         self.finishesWhenChallengeClears = finishesWhenChallengeClears
         self.transparentBackground = transparentBackground
         self.customCSSScript = customCSSScript
+        self.grabsComments = grabsComments
+        self.onCommentsGrabbed = onCommentsGrabbed
         self.onDismiss = onDismiss
     }
 
@@ -352,6 +361,10 @@ struct LegadoReviewBrowserView: View {
     let target: ReaderHTMLUtilities.ReviewTarget
     let onDismiss: (_ body: String?) -> Void
     @State private var configurationJSON: String
+    /// 从书源段评页里抓到的评论。有值就画原生卡片，没有就显示书源页面。
+    @State private var grabbed: GrabbedCommentPage?
+    /// 抓取成功后再点右上角，可以退回书源原页面（书源页面有时还有「回复」这类原生面板没做的功能）。
+    @State private var showsSourcePage = false
     /// 面板底色的浓淡由外观 › 界面效果 的滑杆决定，拖动即时生效。
     private var settings: GlobalSettings { .shared }
     @Environment(\.colorScheme) private var colorScheme
@@ -382,7 +395,16 @@ struct LegadoReviewBrowserView: View {
 
     var body: some View {
         Group {
-            if let page = target.sourceBrowserPage {
+            if let grabbed, !showsSourcePage {
+                NativeReviewPanelView(
+                    title: grabbed.panelTitle(
+                        fallback: target.title.isEmpty ? localized("段评") : target.title
+                    ),
+                    paragraphLabel: nil,
+                    comments: grabbed.items
+                )
+                .padding(.top, 6)
+            } else if let page = target.sourceBrowserPage {
             JsBridgeBrowserView(
                 urlString: page.baseURL,
                 title: target.title,
@@ -400,6 +422,11 @@ struct LegadoReviewBrowserView: View {
                 sourceConfigurationUpdateHandler: { configurationJSON = $0 },
                 transparentBackground: true,
                 customCSSScript: customCSSScript,
+                grabsComments: true,
+                onCommentsGrabbed: { page in
+                    // 抓到的条目至少一条有正文才收（脚本已校验过一次，这里兜一层）。
+                    if !page.items.isEmpty { grabbed = page }
+                },
                 onDismiss: onDismiss
             )
             } else {
@@ -410,8 +437,32 @@ struct LegadoReviewBrowserView: View {
                     initialRequest: target.browserRequest,
                     transparentBackground: true,
                     customCSSScript: customCSSScript,
+                    grabsComments: true,
+                    onCommentsGrabbed: { page in
+                        if !page.items.isEmpty { grabbed = page }
+                    },
                     onDismiss: onDismiss
                 )
+            }
+        }
+        .overlay(alignment: .topTrailing) {
+            if grabbed != nil {
+                Button {
+                    withAnimation(.easeInOut(duration: 0.18)) { showsSourcePage.toggle() }
+                } label: {
+                    Image(systemName: showsSourcePage ? "text.bubble" : "globe")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(DSColor.textSecondary)
+                        .padding(7)
+                        .background(.ultraThinMaterial, in: Circle())
+                        .overlay(
+                            Circle().strokeBorder(Color.white.opacity(0.25), lineWidth: 0.5)
+                        )
+                }
+                .buttonStyle(.plain)
+                .padding(.top, 10)
+                .padding(.trailing, 12)
+                .accessibilityLabel(showsSourcePage ? localized("用卡片显示") : localized("显示原网页"))
             }
         }
         // 面板底：sheet 用系统 ultraThinMaterial 做真毛玻璃（实时模糊背后的正文），
@@ -760,6 +811,21 @@ struct JsBridgeBrowserRepresentable: UIViewRepresentable {
                 forMainFrameOnly: true
             ))
         }
+        // 段评抓取：脚本在 documentEnd 跑（页面自己的渲染已经完成），
+        // 之后靠 MutationObserver 跟着「滚动加载更多」补抓。
+        if grabsComments {
+            context.coordinator.commentsGrabHandler = onCommentsGrabbed
+            config.userContentController.addScriptMessageHandler(
+                context.coordinator,
+                contentWorld: .page,
+                name: ReviewCommentGrabber.messageHandlerName
+            )
+            config.userContentController.addUserScript(WKUserScript(
+                source: ReviewCommentGrabber.script,
+                injectionTime: .atDocumentEnd,
+                forMainFrameOnly: true
+            ))
+        }
         // 段评与互动样式：排在透明背景脚本之后注入，样式表在运行时追加到 head
         // 末尾，同优先级下后写的 !important 规则盖得住透明脚本清底色的规则。
         if !customCSSScript.isEmpty {
@@ -825,6 +891,10 @@ struct JsBridgeBrowserRepresentable: UIViewRepresentable {
             forName: Coordinator.firstPaintMessageName,
             contentWorld: .defaultClient
         )
+        uiView.configuration.userContentController.removeScriptMessageHandler(
+            forName: ReviewCommentGrabber.messageHandlerName,
+            contentWorld: .page
+        )
         coordinator.clipboardBridge.remove(from: uiView.configuration.userContentController)
     }
 
@@ -848,6 +918,8 @@ struct JsBridgeBrowserRepresentable: UIViewRepresentable {
         var progressObservation: NSKeyValueObservation?
         var urlObservation: NSKeyValueObservation?
         var sourceRunHandler: ((String) async throws -> String)?
+        /// 段评抓取结果回调；`grabsComments` 关闭时为 nil。
+        var commentsGrabHandler: ((GrabbedCommentPage) -> Void)?
         var sourceConfigurationUpdateHandler: ((String) -> Void)?
         var finishesWhenChallengeClears = false
         /// A page of this navigation history was a Cloudflare challenge.
@@ -965,6 +1037,16 @@ struct JsBridgeBrowserRepresentable: UIViewRepresentable {
         ) {
             if message.name == Self.firstPaintMessageName {
                 setPhase(.painted)
+                replyHandler(nil, nil)
+                return
+            }
+            if message.name == ReviewCommentGrabber.messageHandlerName {
+                // 抓取脚本只发一条 JSON；解不出来就当没抓到，页面继续原样显示。
+                // 这条回调本身就在主 actor 上（协议要求），直接更新面板状态。
+                if let body = message.body as? String,
+                   let page = ReviewCommentGrabber.decode(body) {
+                    commentsGrabHandler?(page)
+                }
                 replyHandler(nil, nil)
                 return
             }
