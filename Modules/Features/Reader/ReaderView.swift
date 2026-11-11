@@ -2744,7 +2744,15 @@ struct ReaderView: View {
         }
         // 浮层的格子推进来的一页。单独一张半屏卡，不是把整份设置再推高，
         // 这样后面的正文留在原地，拖滑杆时看得见行距在动。
-        .sheet(item: $readerSectionSheet) { route in
+        .sheet(item: $readerSectionSheet, onDismiss: {
+            // 从分区卡片点「返回」应回到快速面板，而不是直接退回阅读页（用户反馈：
+            // 返回不到上一级）。readerSectionSheet 只会由快速面板打开，所以这里重开
+            // 面板是安全的；用极短延时避开「一张 sheet 还在收起又去弹另一张」的问题。
+            guard !showQuickThemePanel else { return }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                showQuickThemePanel = true
+            }
+        }) { route in
             AdaptiveSheetContainer(maxWidth: DSLayout.readableListWidth) {
                 readerSettingsContent(sections: route.sections)
             }

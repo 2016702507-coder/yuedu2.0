@@ -548,13 +548,15 @@ struct ReaderQuickThemePanelView: View {
         enum Kind {
             case section(ReaderSettingsSection)
             case tts
+            case autoRead
             case more
         }
     }
 
-    /// 主面板底部四列两行、共八格：把原先藏在「自定义 / 更多设置」里的常用设置直接
-    /// 平铺出来（反馈 #4，对齐参考图）。自动阅读、听书、自定义不再各占一格 —— 听书
-    /// 就是「朗读设置」，另外两个挪到「更多设置」九宫格末尾，功能一个不丢。
+    /// 主面板底部四列两行、共八格：把常用设置直接平铺出来（反馈 #4，对齐参考图）。
+    /// 「听书」并入「朗读设置」；「自动阅读」占用第四格（原「高亮设置」的位置），
+    /// 它是阅读时最常用的开关之一；「高亮」与「自定义」仍在「更多设置」九宫格里，
+    /// 功能一个不丢。
     private var actionGrid: some View {
         let tiles: [QuickPanelTile] = [
             .init(id: "size", titleKey: "大小", subtitleKey: "显示设置",
@@ -563,8 +565,8 @@ struct ReaderQuickThemePanelView: View {
                   systemImage: "text.alignleft", kind: .section(.layout)),
             .init(id: "tts", titleKey: "朗读设置", subtitleKey: nil,
                   systemImage: "speaker.wave.2", kind: .tts),
-            .init(id: "highlight", titleKey: "高亮设置", subtitleKey: nil,
-                  systemImage: "highlighter", kind: .section(.decoration)),
+            .init(id: "autoRead", titleKey: "自动阅读", subtitleKey: nil,
+                  systemImage: "play.fill", kind: .autoRead),
             .init(id: "bubble", titleKey: "气泡设置", subtitleKey: nil,
                   systemImage: "bubble.left.and.bubble.right", kind: .section(.decoration)),
             .init(id: "format", titleKey: "格式", subtitleKey: "标题样式",
@@ -601,7 +603,9 @@ struct ReaderQuickThemePanelView: View {
                         if let subtitleKey = tile.subtitleKey {
                             Text(localized(subtitleKey))
                                 .font(DSFont.caption)
-                                .foregroundStyle(DSColor.textSecondary)
+                                // 副标题与主标题同为深色：之前用 textSecondary 会明显偏灰，
+                                // 和其余纯图标格的深色标题不一致（用户反馈：字体颜色不统一）。
+                                .foregroundStyle(DSColor.textPrimary)
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.7)
                         }
@@ -627,6 +631,8 @@ struct ReaderQuickThemePanelView: View {
             onOpenSection?([section])
         case .tts:
             onOpenTTS?()
+        case .autoRead:
+            onStartAutoRead()
         case .more:
             withAnimation(.easeInOut(duration: 0.28)) {
                 showingSectionGrid = true
@@ -729,8 +735,8 @@ extension View {
 /// so a change is made with the paragraph still in view.
 private struct ReaderQuickPanelSectionGrid: View {
     let onOpenSection: (Set<ReaderSettingsSection>) -> Void
-    /// 主面板换成参考图的四列两行之后，自动阅读与自定义不再各占一格；它们挪到这里，
-    /// 入口一个不丢（反馈 #4）。
+    /// 「自定义」没有在主面板占格，入口留在这里；「自动阅读」已上移到主面板，
+    /// 这里不再重复（反馈 #4 / 反馈：去除与主面板重复的功能）。
     var onStartAutoRead: (() -> Void)? = nil
     var onCustomize: (() -> Void)? = nil
     /// 不再是 navigation destination，返回按钮由本页自己画。
@@ -742,18 +748,22 @@ private struct ReaderQuickPanelSectionGrid: View {
         GridItem(.flexible(), spacing: DSSpacing.md)
     ]
 
+    /// 主面板底部已经直接铺出的入口不再在这里重复：字体与大小、间距、格式、页首页尾。
+    /// 「高亮」保留在九宫格（主面板那一格已换成「自动阅读」），「自动阅读」随主面板迁走，
+    /// 都不再重复。「自定义」始终是本页的最后一格。
+    private static let gridSections: [ReaderSettingsSection] = [
+        .scope, .decoration, .paging, .brightness, .backup
+    ]
+
     var body: some View {
         ScrollView {
             VStack(spacing: DSSpacing.lg) {
                 gridHeader
                 LazyVGrid(columns: columns, spacing: DSSpacing.md) {
-                    ForEach(ReaderSettingsSection.allCases, id: \.self) { section in
+                    ForEach(Self.gridSections, id: \.self) { section in
                         gridCell(title: localized(section.titleKey), systemImage: section.systemImage) {
                             onOpenSection([section])
                         }
-                    }
-                    gridCell(title: localized("自动阅读"), systemImage: "play.fill") {
-                        onStartAutoRead?()
                     }
                     gridCell(title: localized("自定义"), systemImage: "paintbrush") {
                         onCustomize?()
