@@ -436,8 +436,14 @@ private struct ReviewCommentCard: View {
                     toggleReplies()
                 } label: {
                     HStack(spacing: 3) {
-                        Text(String(format: localized("%d 条回复"), totalReplyCount))
-                            .font(.system(size: 12))
+                        // 展开态直接写成「收起回复」：一层回复也能一眼看到收回入口，
+                        // 不用去猜那个「N 条回复」到底能不能再点一次。
+                        Text(
+                            repliesExpanded && hasInlineReplies
+                                ? localized("收起回复")
+                                : String(format: localized("%d 条回复"), totalReplyCount)
+                        )
+                        .font(.system(size: 12))
                         if hasInlineReplies {
                             Image(systemName: "chevron.down")
                                 .font(.system(size: 9, weight: .semibold))
@@ -490,7 +496,7 @@ private struct ReviewCommentCard: View {
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
-                } else if repliesExpanded, hasInlineReplies, totalReplyCount > Self.collapsedReplyLimit {
+                } else if repliesExpanded, hasInlineReplies {
                     Button {
                         toggleReplies()
                     } label: {
@@ -523,7 +529,12 @@ private struct ReviewCommentCard: View {
     private var visibleReplies: [ReviewComment] {
         let all = comment.replies ?? []
         guard !all.isEmpty else { return [] }
-        if repliesExpanded || all.count <= Self.collapsedReplyLimit { return all }
+        if repliesExpanded { return all }
+        // 只有一层（≤ 2 条）回复时，折叠态必须真的收成空。
+        // 旧实现在这里直接 `return all`，导致折叠态和展开态长得一模一样：
+        // 点「收回」看不出任何变化，就是用户说的「一层楼中楼收不回去」。
+        // 现在统一交给 footer 的「N 条回复」展开，展开后底部再给「收起回复」。
+        if all.count <= Self.collapsedReplyLimit { return [] }
         return Array(all.prefix(Self.collapsedReplyLimit))
     }
 
