@@ -334,7 +334,7 @@ struct AIRecommendationRow: View {
 @MainActor
 enum AIRecommendationRowPreview {
     static let list = AIRecommendationList(
-        entries: [("球状闪电", "刘慈欣"), ("银河帝国：基地", "艾西莫夫"), ("沙丘", "法蘭克・赫伯特"), ("十二国记", "小野不由美")]
+        entries: [("球状闪电", "刘慈欣"), ("银河帝国：基地", "艾西莫夫"), ("沙丘", "法兰克・赫伯特"), ("十二国记", "小野不由美")]
             .map { .init(work: .init(title: $0.0, author: $0.1, reason: "")) },
         generatedAt: Date(), service: "DeepSeek", model: "deepseek-chat")
 

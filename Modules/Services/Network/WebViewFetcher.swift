@@ -904,9 +904,9 @@ enum WebViewError: Error, LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .timeout: return "WebView 載入超時"
-        case .deallocated: return "WebView 已釋放"
-        case .emptyContent: return "WebView 回傳空內容"
+        case .timeout: return "WebView 载入超时"
+        case .deallocated: return "WebView 已释放"
+        case .emptyContent: return "WebView 回传空内容"
         }
     }
 }

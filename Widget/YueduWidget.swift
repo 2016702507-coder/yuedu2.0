@@ -33,7 +33,7 @@ struct BookProgressEntry: TimelineEntry {
 struct BookProgressProvider: TimelineProvider {
     func placeholder(in context: Context) -> BookProgressEntry {
         BookProgressEntry(date: Date(), book: BookProgress(
-            title: localized("示例書名"), author: localized("示例作者"), progress: 0.6,
+            title: localized("示例书名"), author: localized("示例作者"), progress: 0.6,
             coverImagePath: nil, lastReadDate: Date()
         ))
     }
@@ -93,7 +93,7 @@ struct BookProgressWidgetView: View {
                     Image(systemName: "books.vertical.fill")
                         .font(.system(size: 28))
                         .foregroundColor(.secondary)
-                    Text("尚無閱讀記錄")
+                    Text("尚无阅读记录")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
@@ -124,8 +124,8 @@ struct YueduWidget: Widget {
         StaticConfiguration(kind: kind, provider: BookProgressProvider()) { entry in
             BookProgressWidgetView(entry: entry)
         }
-        .configurationDisplayName("閱讀進度")
-        .description("顯示目前閱讀書籍的進度。")
+        .configurationDisplayName("阅读进度")
+        .description("显示目前阅读书籍的进度。")
         .supportedFamilies([.systemSmall, .systemMedium])
     }
 }

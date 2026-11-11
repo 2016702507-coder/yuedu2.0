@@ -31,11 +31,11 @@ enum RootTabItem: String, CaseIterable, Codable, Hashable, Identifiable {
 
     var titleKey: String {
         switch self {
-        case .bookshelf: return "書架"
+        case .bookshelf: return "书架"
         case .explore: return "探索"
-        case .library: return "首頁"
-        case .rss: return "RSS 訂閱"
-        case .settings: return "設定"
+        case .library: return "首页"
+        case .rss: return "RSS 订阅"
+        case .settings: return "设定"
         case .search: return "搜索"
         }
     }
@@ -69,8 +69,8 @@ enum RootTabIconSlot: String, CaseIterable, Codable, Hashable, Identifiable {
 
     var titleKey: String {
         switch self {
-        case .light: return "淺色圖標"
-        case .dark: return "深色圖標"
+        case .light: return "浅色图标"
+        case .dark: return "深色图标"
         }
     }
 
@@ -99,11 +99,11 @@ enum RootTabIconStorageError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .unsupportedImageFile:
-            return localized("僅支援圖片檔案")
+            return localized("仅支援图片档案")
         case .cannotReadImage:
-            return localized("無法讀取圖片檔案")
+            return localized("无法读取图片档案")
         case .missingDocumentsDirectory:
-            return localized("無法存取文件資料夾")
+            return localized("无法存取文件资料夹")
         }
     }
 }

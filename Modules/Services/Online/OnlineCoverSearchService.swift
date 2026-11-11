@@ -26,8 +26,8 @@ enum OnlineCoverSearchService {
 
         var displayName: String {
             switch self {
-            case .tuishujun: return localized("推書君")
-            case .ypshuo: return localized("一片書喽")
+            case .tuishujun: return localized("推书君")
+            case .ypshuo: return localized("一片书喽")
             }
         }
 

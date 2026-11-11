@@ -1524,7 +1524,7 @@ extension View {
     }
 }
 
-#Preview("詳情頁・書源接手點擊") {
+#Preview("详情页・书源接手点击") {
     NavigationStack {
         BookDetailScaffold(
             title: "没钱修什么仙",
@@ -1551,7 +1551,7 @@ extension View {
 }
 
 /// 作品详情 with no version to read: its 目录 says so (maintainer, 2026-10-22).
-#Preview("詳情頁・目錄・沒有可閱讀的來源") {
+#Preview("详情页・目录・没有可阅读的来源") {
     BookDetailChapterSection(
         title: localized("目录"), chapters: [], isLoading: false, errorMessage: nil, latestChapter: "",
         onRetry: {}, onShowAll: {}, emptyText: localized("目前没有可阅读的来源")
@@ -1560,7 +1560,7 @@ extension View {
 
 /// The design's baseline (maintainer, 2026-10-12): a book with nothing but its title and author —
 /// no cover, no genres, no description — must still look finished.
-#Preview("詳情頁・最少資料") {
+#Preview("详情页・最少资料") {
     NavigationStack {
         BookDetailScaffold(
             title: "无名之书",
@@ -1582,7 +1582,7 @@ extension View {
 }
 
 /// #57: a source's own CSS spaces its lines apart from ours; collapsed, the intro ends on a whole line.
-#Preview("詳情頁・HTML 簡介收合") {
+#Preview("详情页・HTML 简介收合") {
     @Previewable @State var isExpanded = false
     ScrollView {
         BookDetailIntroSection(

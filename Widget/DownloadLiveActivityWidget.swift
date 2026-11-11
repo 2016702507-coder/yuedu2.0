@@ -50,9 +50,9 @@ struct DownloadLiveActivityWidget: Widget {
 /// rather than methods so the Lock Screen view and the Dynamic Island phrase things the same
 /// way — they are two presentations of one activity, not two features.
 private func titleLine(_ state: DownloadActivityAttributes.ContentState) -> String {
-    guard let featured = state.books.first else { return localized("下載已完成") }
-    if state.isPaused { return String(format: localized("已暫停《%@》"), featured.title) }
-    return String(format: localized("正在下載《%@》"), featured.title)
+    guard let featured = state.books.first else { return localized("下载已完成") }
+    if state.isPaused { return String(format: localized("已暂停《%@》"), featured.title) }
+    return String(format: localized("正在下载《%@》"), featured.title)
 }
 
 /// The progress line: this book, then the queue behind it. Mirrors "852.9 MB of 1.07 GB".
@@ -82,17 +82,17 @@ private func chapterCount(_ state: DownloadActivityAttributes.ContentState) -> S
 /// so it never reads a symbol name or a bare fraction; only the button keeps its own label,
 /// because it is the only thing here that can be activated.
 private func spokenSummary(_ state: DownloadActivityAttributes.ContentState) -> String {
-    guard let featured = state.books.first else { return localized("下載已完成") }
+    guard let featured = state.books.first else { return localized("下载已完成") }
     let waiting = state.books.count - 1
     // Four whole sentences (paused or running, with or without a queue) rather than a status,
     // the progress and a queue clause glued together: word order and punctuation are the
     // language's to decide, and this sentence is the only thing VoiceOver reads.
     let format: String
     switch (state.isPaused, waiting > 0) {
-    case (false, false): format = localized("正在下載：%1$@，已完成 %2$d 章，共 %3$d 章")
-    case (false, true): format = localized("正在下載：%1$@，已完成 %2$d 章，共 %3$d 章，另有 %4$d 本等待中")
-    case (true, false): format = localized("下載已暫停：%1$@，已完成 %2$d 章，共 %3$d 章")
-    case (true, true): format = localized("下載已暫停：%1$@，已完成 %2$d 章，共 %3$d 章，另有 %4$d 本等待中")
+    case (false, false): format = localized("正在下载：%1$@，已完成 %2$d 章，共 %3$d 章")
+    case (false, true): format = localized("正在下载：%1$@，已完成 %2$d 章，共 %3$d 章，另有 %4$d 本等待中")
+    case (true, false): format = localized("下载已暂停：%1$@，已完成 %2$d 章，共 %3$d 章")
+    case (true, true): format = localized("下载已暂停：%1$@，已完成 %2$d 章，共 %3$d 章，另有 %4$d 本等待中")
     }
     // The queue-less sentences have no %4$d; String(format:) ignores a surplus argument.
     return String(
@@ -164,7 +164,7 @@ private struct PauseButton: View {
         .contentShape(Circle())
         .buttonStyle(.plain)
         .tint(.accentColor)
-        .accessibilityLabel(localized(book.isPaused ? "繼續下載" : "暫停下載"))
+        .accessibilityLabel(localized(book.isPaused ? "继续下载" : "暂停下载"))
     }
 }
 
@@ -220,7 +220,7 @@ private let previewState = DownloadActivityAttributes.ContentState(
     books: [
         .init(
             id: UUID().uuidString,
-            title: "巫師：從合成寶石開始",
+            title: "巫师：从合成宝石开始",
             completedChapters: 4,
             totalChapters: 50,
             isPaused: false,
@@ -252,7 +252,7 @@ private let previewState = DownloadActivityAttributes.ContentState(
             books: [
                 .init(
                     id: UUID().uuidString,
-                    title: "巫師：從合成寶石開始",
+                    title: "巫师：从合成宝石开始",
                     completedChapters: 4,
                     totalChapters: 50,
                     isPaused: true,

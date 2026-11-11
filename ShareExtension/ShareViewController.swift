@@ -19,7 +19,7 @@ final class ShareViewController: UIViewController {
         guard let item = extensionContext?.inputItems.first as? NSExtensionItem,
               let provider = item.attachments?.first,
               provider.hasItemConformingToTypeIdentifier(UTType.url.identifier) else {
-            finish(success: false, message: localized("無法讀取分享連結"))
+            finish(success: false, message: localized("无法读取分享连结"))
             return
         }
         provider.loadItem(forTypeIdentifier: UTType.url.identifier, options: nil) { [weak self] item, error in
@@ -33,7 +33,7 @@ final class ShareViewController: UIViewController {
                 }
                 guard let url,
                       ["http", "https"].contains(url.scheme?.lowercased() ?? "") else {
-                    self.finish(success: false, message: localized("無法讀取分享連結"))
+                    self.finish(success: false, message: localized("无法读取分享连结"))
                     return
                 }
                 self.enqueue(url)
@@ -44,7 +44,7 @@ final class ShareViewController: UIViewController {
     private func enqueue(_ url: URL) {
         do {
             guard let defaults = UserDefaults(suiteName: "group.com.zhangruilin.yuedureader") else {
-                finish(success: false, message: localized("無法儲存分享連結"))
+                finish(success: false, message: localized("无法储存分享连结"))
                 return
             }
             let encoded = try JSONEncoder().encode(LinkPayload(remoteURLString: url.absoluteString))
@@ -53,16 +53,16 @@ final class ShareViewController: UIViewController {
             pending.append(encoded)
             defaults.set(pending, forKey: key)
             defaults.synchronize()
-            finish(success: true, message: localized("連結已儲存，下次開啟閱讀時匯入。"))
+            finish(success: true, message: localized("连结已储存，下次开启阅读时汇入。"))
         } catch {
             finish(success: false, message: error.localizedDescription)
         }
     }
 
     private func finish(success: Bool, message: String) {
-        let alert = UIAlertController(title: localized(success ? "連結已儲存" : "匯入失敗"),
+        let alert = UIAlertController(title: localized(success ? "连结已储存" : "汇入失败"),
                                       message: message, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: localized("關閉"), style: .default) { [weak self] _ in
+        alert.addAction(UIAlertAction(title: localized("关闭"), style: .default) { [weak self] _ in
             self?.extensionContext?.completeRequest(returningItems: nil, completionHandler: nil)
         })
         present(alert, animated: true)

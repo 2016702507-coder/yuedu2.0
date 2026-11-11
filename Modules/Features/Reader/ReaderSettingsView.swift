@@ -1156,7 +1156,7 @@ struct ReaderSectionSheet: Identifiable, Hashable {
     )
 }
 
-#Preview("EPUB・套用書本間距") {
+#Preview("EPUB・套用书本间距") {
     ReaderSettingsView(
         fontSize: .constant(18),
         theme: .constant(.sepia),
@@ -1165,7 +1165,7 @@ struct ReaderSectionSheet: Identifiable, Hashable {
     )
 }
 
-#Preview("iPad 橫向・左右邊距上限") {
+#Preview("iPad 横向・左右边距上限") {
     ReaderSettingsView(
         fontSize: .constant(18),
         theme: .constant(.night),

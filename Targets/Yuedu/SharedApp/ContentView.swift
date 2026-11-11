@@ -179,14 +179,14 @@ struct ContentView: View {
         }
         .overlay(alignment: .bottom) {
             if importDrainer.activeImportCount > 0 {
-                ProgressView(localized("匯入中，請稍候…"))
+                ProgressView(localized("汇入中，请稍候…"))
                     .padding(DSSpacing.md)
                     .background(.regularMaterial, in: RoundedRectangle(cornerRadius: DSRadius.md))
                     .padding(DSSpacing.md)
             }
         }
         .alert(
-            localized("匯入"),
+            localized("汇入"),
             isPresented: Binding(
                 get: { importDrainer.lastOutcome != nil },
                 set: { isPresented in
@@ -195,7 +195,7 @@ struct ContentView: View {
             ),
             presenting: importDrainer.lastOutcome
         ) { _ in
-            Button(localized("確定"), role: .cancel) {
+            Button(localized("确定"), role: .cancel) {
                 importDrainer.lastOutcome = nil
             }
         } message: { outcome in
@@ -296,12 +296,12 @@ struct ContentView: View {
         let failed = outcome.failureCount
         let summary: String
         if imported > 0 && failed == 0 {
-            summary = String(format: localized("成功匯入 %d 個項目"), imported)
+            summary = String(format: localized("成功汇入 %d 个项目"), imported)
         } else if imported > 0 {
             summary = String(
-                format: localized("成功匯入 %1$d 個項目，%2$d 個失敗"), imported, failed)
+                format: localized("成功汇入 %1$d 个项目，%2$d 个失败"), imported, failed)
         } else {
-            summary = String(format: localized("%d 個項目匯入失敗"), failed)
+            summary = String(format: localized("%d 个项目汇入失败"), failed)
         }
         // Why, as the Files importer says it; the count above already gives the total, so
         // a long batch of failures keeps the alert short.
@@ -662,7 +662,7 @@ struct NowPlayingMiniPlayer: View {
                     .background(.thinMaterial, in: Circle())
                     .overlay(Circle().stroke(Color.secondary.opacity(0.35), lineWidth: 2))
             }
-            .accessibilityLabel(localized(hub.playbackState == .playing ? "暫停" : "播放"))
+            .accessibilityLabel(localized(hub.playbackState == .playing ? "暂停" : "播放"))
             .accessibilityIdentifier("now_playing_reader_play_pause")
 
             Button {
@@ -708,15 +708,15 @@ struct NowPlayingMiniPlayer: View {
     /// on the enclosing `HStack` propagates down and gives all three buttons the same
     /// name, so VoiceOver read the book title three times over play/pause and stop.
     private var nowPlayingLabel: String {
-        hub.title.isEmpty ? localized("語音朗讀") : hub.title
+        hub.title.isEmpty ? localized("语音朗读") : hub.title
     }
 
     /// What tapping the artwork does: narration whose reader has closed reopens its book
     /// (`NowPlayingHub.openFromArtwork`); anything else opens its player.
     private var openHint: String {
         hub.artworkReopensNarratedBook
-            ? localized("打開這本書到正在朗讀的地方")
-            : localized("打開播放控制面板")
+            ? localized("打开这本书到正在朗读的地方")
+            : localized("打开播放控制面板")
     }
 
     /// The leading 56pt tappable artwork: both TTS and audiobook spin the book cover
@@ -801,7 +801,7 @@ struct NowPlayingMiniPlayer: View {
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(localized("展開"))
+        .accessibilityLabel(localized("展开"))
         .accessibilityValue(nowPlayingLabel)
         .accessibilityFocused($focusedControl, equals: .edgeHandle)
     }

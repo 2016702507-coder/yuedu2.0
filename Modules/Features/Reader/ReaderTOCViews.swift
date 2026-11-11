@@ -458,7 +458,7 @@ struct ReaderTOCView: View {
     )
 }
 
-#Preview("目錄・線上書更新時間") {
+#Preview("目录・线上书更新时间") {
     ReaderTOCView(
         chapters: [
             BookChapter(index: 0, title: "第一卷 风起", content: ""),
@@ -481,7 +481,7 @@ struct ReaderTOCView: View {
     )
 }
 
-#Preview("目錄・直排未快取") {
+#Preview("目录・直排未快取") {
     ReaderTOCView(
         chapters: [
             BookChapter(index: 0, title: "第一章 序幕", content: ""),

@@ -349,7 +349,7 @@ actor ChapterFetchManager {
         guard let refs = book.onlineChapters, refs.indices.contains(chapterIndex) else {
             throw NSError(
                 domain: "OnlineReadingPipeline", code: -1,
-                userInfo: [NSLocalizedDescriptionKey: "找不到章節"])
+                userInfo: [NSLocalizedDescriptionKey: "找不到章节"])
         }
 
         // Clean up HTML fragment URLs that may remain from old caches (e.g. <a href="...">Chapter 1</a>)
@@ -515,7 +515,7 @@ actor ChapterFetchManager {
                 else {
                     throw NSError(
                         domain: "OnlineReadingPipeline", code: -2,
-                        userInfo: [NSLocalizedDescriptionKey: "找不到來源配置"])
+                        userInfo: [NSLocalizedDescriptionKey: "找不到来源配置"])
                 }
                 return try await bookSourceFetcher.fetchChapterPackage(
                     ref: ref,
@@ -914,7 +914,7 @@ final class OnlineBookCoordinator: Sendable {
         self.webViewFetcher = webViewFetcher
     }
 
-    private static let chapterPlaceholderBody = "載入章節中…"
+    private static let chapterPlaceholderBody = "载入章节中…"
 
     /// Per-book stable basePath. Avoids regenerating a new UUID directory on each
     /// buildPackage call, which would cause reloadWithUpdatedPackage to detect a
@@ -943,7 +943,7 @@ final class OnlineBookCoordinator: Sendable {
 
     private static func makePlaceholderPackage(for book: ReadingBook) throws -> BookPackage {
         let displayBookTitle = ReaderHTMLUtilities.displayText(fromHTMLFragment: book.title)
-        let title = displayBookTitle.isEmpty ? "網頁書籍" : displayBookTitle
+        let title = displayBookTitle.isEmpty ? "网页书籍" : displayBookTitle
         let converted = try XHTMLBookBuilder.convert(
             xhtmlChapters: [
                 XHTMLBookBuilder.XHTMLChapterInput(
@@ -1200,9 +1200,9 @@ final class OnlineBookCoordinator: Sendable {
     private static func failurePlaceholder(for title: String, reason: String?) -> String {
         let suffix: String
         if let reason, !reason.isEmpty {
-            suffix = "章節載入失敗（\(reason)）\n請下拉刷新或重新進入本章。"
+            suffix = "章节载入失败（\(reason)）\n请下拉刷新或重新进入本章。"
         } else {
-            suffix = "章節載入失敗\n請下拉刷新或重新進入本章。"
+            suffix = "章节载入失败\n请下拉刷新或重新进入本章。"
         }
         return "\(title)\n\n\(suffix)"
     }

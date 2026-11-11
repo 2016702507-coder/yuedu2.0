@@ -707,7 +707,7 @@ class BookSourceStore: @MainActor ObservableObject {
             }
             return String(afterScheme)
         }
-        return "無域名"
+        return "无域名"
     }
 
     // MARK: Import (Legado Compatible)
@@ -1262,18 +1262,18 @@ class BookSourceStore: @MainActor ObservableObject {
             switch self {
             case .tooLarge(let bytes):
                 return String(
-                    format: localized("檔案有 %@，超過來源配置檔的上限 %@。"),
+                    format: localized("档案有 %@，超过来源配置档的上限 %@。"),
                     ByteCountFormatter.string(fromByteCount: Int64(bytes), countStyle: .file),
                     ByteCountFormatter.string(fromByteCount: Int64(BookSourceStore.maxImportBytes), countStyle: .file)
                 )
-            case .notUTF8: return localized("檔案不是 UTF-8 編碼，無法讀取來源配置。")
-            case .invalidData: return localized("無法讀取來源配置資料")
-            case .parseError: return localized("無法解析來源配置資料")
+            case .notUTF8: return localized("档案不是 UTF-8 编码，无法读取来源配置。")
+            case .invalidData: return localized("无法读取来源配置资料")
+            case .parseError: return localized("无法解析来源配置资料")
             // The decoder's own words name the key or value a source's author has to fix.
             case .parseErrorDetail(let detail):
-                return String(format: localized("無法解析來源配置資料：%@"), detail)
+                return String(format: localized("无法解析来源配置资料：%@"), detail)
             case .encryptedFormat(let fmt):
-                return String(format: localized("%@ 格式經過加密，無法直接匯入。請用原本的 App 匯出成 JSON 或 TXT。"), fmt)
+                return String(format: localized("%@ 格式经过加密，无法直接汇入。请用原本的 App 汇出成 JSON 或 TXT。"), fmt)
             }
         }
 

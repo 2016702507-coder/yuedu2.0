@@ -1039,7 +1039,7 @@ struct BookSourceFormLoginView: View {
 
 #Preview("来源配置选单") {
     var source = BookSource()
-    source.bookSourceName = "範例來源配置・設定選單"
+    source.bookSourceName = "范例来源配置・设定选单"
     source.bookSourceUrl = "https://example.com"
     source.loginUrl = "function noop() {}"
     // 书源动态选单常见的组合：开关、下拉与动作按钮；viewName 是引号字面值时

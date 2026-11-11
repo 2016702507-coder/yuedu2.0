@@ -79,7 +79,7 @@ final class BookSourceCheckBackgroundTask {
     }
 
     private var subtitle: String {
-        String(format: localized("已驗證 %1$d／%2$d"), finished, total)
+        String(format: localized("已验证 %1$d／%2$d"), finished, total)
     }
 
     private func assertionExpired() {
@@ -111,7 +111,7 @@ final class BookSourceCheckBackgroundTask {
         guard registerIfNeeded(), let prefix = Self.identifierPrefix else { return }
         let identifier = prefix + "." + UUID().uuidString
         requestIdentifier = identifier
-        let title = localized("來源配置驗證")
+        let title = localized("来源配置验证")
         let subtitle = subtitle
         // `submit(_:)` is deprecated from iOS 27 in favour of the asynchronous form, which is
         // not to be called on the main thread.

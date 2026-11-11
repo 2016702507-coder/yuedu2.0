@@ -277,7 +277,7 @@ enum SearchTitleTag {
             BookCoverImage(coverURL: "", title: "斗罗大陆", author: "唐家三少")
         }
         SearchBookListRow(content: SearchBookListRowContent(
-            title: "三體：地球往事・黑暗森林・死神永生（廣播劇全集）",
+            title: "三体：地球往事・黑暗森林・死神永生（广播剧全集）",
             titleTag: "有声书",
             author: "刘慈欣",
             detail: "有声书 · 1 源"

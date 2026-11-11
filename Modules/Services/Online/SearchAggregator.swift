@@ -343,7 +343,7 @@ final class SearchBook: Identifiable {
             displayName = preparedOrigins[primaryIntroIndex]
                 .presentation.introTitleCandidate
         } else {
-            displayName = name.isEmpty ? "未知書名" : cleanedName
+            displayName = name.isEmpty ? "未知书名" : cleanedName
         }
 
         let displayIntro = primaryIntroIndex.map {

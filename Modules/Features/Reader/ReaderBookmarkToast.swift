@@ -49,7 +49,7 @@ struct ReaderBookmarkToastView: View {
         .padding()
 }
 
-#Preview("已移除・夜間") {
+#Preview("已移除・夜间") {
     ReaderBookmarkToastView(toast: ReaderBookmarkToast(isAdded: false), colorScheme: .dark)
         .padding()
         .background(Color.black)
