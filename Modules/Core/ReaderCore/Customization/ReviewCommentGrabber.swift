@@ -518,6 +518,137 @@ enum ReviewCommentGrabber {
     return { adapter: 'fqpanel', title: top || '段评', context: '', items: out };
   }
 
+  /* ---------- 适配器 2.75：日落系 comment_viewer 服务端面板页 ----------
+   * pyfq 系书源点气泡后 java.showBrowser(url) 打开的服务端评论页
+   *（/api/comment_viewer?...，服务器直出 HTML，页面内 fetch 拉数据再渲染）：
+   *   main#list
+   *     .context > .context-label(段落原文) + 文本
+   *     .section（分区标题）+ .comment-group > article.card（排序后会重排）
+   *       .head > img.avatar（解不出头像时是 span.avatar 首字占位）
+   *       .identity > .name-line > span.name + span.reply-to + span.badge… + span.sticker
+   *                  .time
+   *       .content（正文，内含 img.emoji-image 表情图，alt 是 [表情名]）
+   *       .pictures > img.picture（配图，可选）
+   *       .footer > .meta（#楼层 · 时间 · 归属地）+ .actions > span(♡ N 赞)
+   *                 button.reply-button（「查看 N 条回复」/「回复」）
+   *       .replies > .reply（楼中楼，名字/正文同结构）
+   * 通用兜底对这种结构抓不干净，按结构精确取字段。段评/章评/作家说/神评/书评
+   * 全部走这一套结构，一个适配器全覆盖。
+   */
+  var VIEWER_LABEL_RE = /^(段评|章评|书评|作家说|神评|听书章评|漫画章评|听书书评|漫剧评论|弹幕|作者|漫剧|段落评论|本章讨论|书籍评论|当前时间窗弹幕)$/;
+
+  function viewerRichText(el, images) {
+    if (!el) return '';
+    var clone = el.cloneNode(true);
+    var emo = clone.querySelectorAll('img.emoji-image');
+    for (var e = 0; e < emo.length; e++) {
+      var alt = emo[e].getAttribute('alt') || '';
+      if (emo[e].parentNode) emo[e].parentNode.replaceChild(document.createTextNode(alt), emo[e]);
+    }
+    return bodyContent(clone, images);
+  }
+
+  function adaptViewer() {
+    if (!document.querySelector('.comment-group article.card .identity .name-line')) return null;
+    var cards = document.querySelectorAll('.comment-group article.card');
+    if (cards.length < 2) return null;
+
+    var context = '';
+    var ctx = document.querySelector('.context');
+    if (ctx) {
+      var label = ctx.querySelector('.context-label');
+      context = txt(ctx);
+      if (label) context = context.slice(txt(label).length).trim();
+    }
+
+    var out = [];
+    for (var i = 0; i < cards.length; i++) {
+      var c = cards[i];
+      var content = viewerRichText(c.querySelector('.content'), null);
+      var images = [];
+      var pics = c.querySelectorAll('.pictures img.picture');
+      for (var p = 0; p < pics.length; p++) {
+        var src = abs(pics[p].getAttribute('src'));
+        if (src) images.push(src);
+      }
+      if (!content && !images.length) continue;
+
+      var nameEl = c.querySelector('.name-line .name');
+      var badge = '';
+      var bs = c.querySelectorAll('.name-line .badge');
+      for (var b = 0; b < bs.length; b++) {
+        var bt = txt(bs[b]);
+        if (bt && !VIEWER_LABEL_RE.test(bt)) { badge = bt; break; }
+      }
+      if (!badge) {
+        var st = c.querySelector('.name-line .sticker');
+        if (st) badge = txt(st);
+      }
+      var toEl = c.querySelector('.name-line .reply-to');
+      var avImg = c.querySelector('.head img.avatar');
+      var av = avImg ? abs(avImg.getAttribute('src')) : '';
+
+      var meta = txt(c.querySelector('.head .time')) || txt(c.querySelector('.footer .meta'));
+      var likes = parseInt(c.getAttribute('data-likes') || '0', 10) || 0;
+
+      var replyCount = 0;
+      var acts = c.querySelectorAll('.footer .reply-button');
+      for (var a = 0; a < acts.length; a++) {
+        var m = (acts[a].textContent || '').match(/查看\s*(\d+)\s*条回复/);
+        if (m) { replyCount = parseInt(m[1], 10) || 0; break; }
+      }
+      var replies = [];
+      var subs = c.querySelectorAll('.replies .reply');
+      for (var r = 0; r < subs.length; r++) {
+        var s = subs[r];
+        var rIm = [];
+        var rContent = viewerRichText(s.querySelector('.content'), rIm);
+        var rPics = s.querySelectorAll('.pictures img.picture');
+        for (var q = 0; q < rPics.length; q++) {
+          var rSrc = abs(rPics[q].getAttribute('src'));
+          if (rSrc) rIm.push(rSrc);
+        }
+        var rTo = s.querySelector('.name-line .reply-to');
+        var rAv = s.querySelector('img.avatar');
+        replies.push({
+          id: 'vr' + i + '_' + r,
+          user: txt(s.querySelector('.name-line .name')) || '读者',
+          avatar: rAv ? abs(rAv.getAttribute('src')) : '',
+          content: rContent,
+          images: rIm,
+          replyTo: rTo ? txt(rTo).replace(/^回复\s*/, '').replace(/[：:]\s*$/, '') : ''
+        });
+      }
+      if (replyCount < replies.length) replyCount = replies.length;
+      out.push({
+        id: 'vr' + i,
+        user: txt(nameEl) || '读者',
+        avatar: av,
+        level: 0,
+        badge: badge,
+        meta: meta,
+        content: content,
+        images: images,
+        voice: '',
+        likes: likes,
+        replyCount: replyCount,
+        replies: replies
+      });
+    }
+    if (out.length < 2) return null;
+    var withText = out.filter(function (x) { return x.content || x.images.length; }).length;
+    if (withText / out.length < 0.6) return null;
+    var h1 = txt(document.querySelector('header h1'));
+    var total = txt(document.getElementById('total'));
+    return {
+      adapter: 'viewer',
+      title: h1 || '评论',
+      subtitle: total ? '共 ' + total + ' 条' : '',
+      context: context,
+      items: out
+    };
+  }
+
   /* ---------- 适配器 3：通用——重复兄弟簇 ---------- */
   function signature(el) {
     var kids = el.children;
@@ -756,6 +887,7 @@ enum ReviewCommentGrabber {
     if (!r) { try { r = adaptQD(); } catch (e) {} }
     if (!r) { try { r = adaptFQ(); } catch (e2) {} }
     if (!r) { try { r = adaptFQPanel(); } catch (e4) {} }
+    if (!r) { try { r = adaptViewer(); } catch (e5) {} }
     if (!r) { try { r = adaptGeneric(); } catch (e3) {} }
     return r;
   }
@@ -788,10 +920,15 @@ enum ReviewCommentGrabber {
 
   function expandReplies() {
     if (EXPANDING) return false;
-    var btns = document.querySelectorAll('.reply-btn[data-action="toggle-replies"]');
+    /* 起点系是 .reply-btn[data-action=toggle-replies]；viewer 页的「查看 N 条回复」
+       也是 button.reply-button（同 class 还有「回复」按钮，绝不能点它）。 */
+    var btns = document.querySelectorAll('.reply-btn[data-action="toggle-replies"], article.card .reply-button');
     var pending = [];
     for (var i = 0; i < btns.length; i++) {
-      if (btns[i].getAttribute('data-yd') !== '1') pending.push(btns[i]);
+      var b = btns[i];
+      if (b.getAttribute('data-yd') === '1') continue;
+      if (/查看\s*\d+\s*条回复/.test(b.textContent || '')) { pending.push(b); continue; }
+      if (b.getAttribute('data-action') === 'toggle-replies') pending.push(b);
     }
     if (!pending.length) return false;
 
