@@ -649,6 +649,91 @@ enum ReviewCommentGrabber {
     };
   }
 
+  /* ---------- 适配器 2.85：书旗系自绘评论面板 ----------
+   * 书旗（知秋）书源 showBrowser 四参：壳 HTML（sqLiveCommentHtml）+ preloadJs，
+   * 页面内 XHR/java.ajax 拉 /v1/comments/chapter-list 再渲染：
+   *   header > h1#title（段评/章评）+ #quote.quote（段落原文，隐藏时 display:none）
+   *   main#list
+   *     article.comment
+   *       .author-row > img.avatar（解不出时是 span.avatar 占位）
+   *                  + .identity > b(昵称) + time(时间) + span.likes（「赞 N」）
+   *       .text（正文；richText 可内嵌 <img>，表情是 .emoji）
+   *       .replies > .reply（b 是昵称，文本「[回复 X：]正文」）
+   *       button.reply-more（「展开更多回复」，点击异步补楼中楼）
+   *   （章评模式外面还有 .section > h2，卡片本身同结构）
+   * 通用兜底抓它会把「赞 N」混进正文，这里按结构精确取字段。
+   */
+  function adaptSqPanel() {
+    if (!document.querySelector('article.comment .author-row .identity')) return null;
+    var cards = document.querySelectorAll('article.comment');
+    if (cards.length < 2) return null;
+
+    var context = '';
+    var q = document.querySelector('#quote.quote');
+    if (q && txt(q)) {
+      var shown = true;
+      try { shown = window.getComputedStyle(q).display !== 'none'; } catch (eQ) {}
+      if (shown) context = txt(q);
+    }
+
+    var out = [];
+    for (var i = 0; i < cards.length; i++) {
+      var c = cards[i];
+      var images = [];
+      var content = bodyContent(c.querySelector('.text'), images);
+      if (!content && !images.length) continue;
+
+      var nameEl = c.querySelector('.identity b');
+      var avImg = c.querySelector('.author-row img.avatar');
+      var av = avImg ? abs(avImg.getAttribute('src')) : '';
+      var meta = txt(c.querySelector('.identity time'));
+      var likes = pickNumbers(txt(c.querySelector('.likes')))[0] || 0;
+
+      var replies = [];
+      var subs = c.querySelectorAll('.replies .reply');
+      for (var r = 0; r < subs.length; r++) {
+        var s = subs[r];
+        var b = s.querySelector('b');
+        var rUser = txt(b);
+        /* replyHtml 结构：<b>昵称</b>[ 回复 X：]正文 —— 取 <b> 之后的剩余文本 */
+        var full = txt(s);
+        var rest = rUser && full.indexOf(rUser) === 0 ? full.slice(rUser.length) : full;
+        rest = rest.replace(/^\s*/, '');
+        var rTo = '';
+        var rm = rest.match(/^回复\s*(.+?)：([\s\S]*)$/);
+        if (rm) { rTo = rm[1].replace(/^@/, ''); rest = rm[2]; }
+        else { rest = rest.replace(/^：/, ''); }
+        replies.push({
+          id: 'sq' + i + '_' + r,
+          user: rUser || '书友',
+          avatar: '',
+          content: rest,
+          images: [],
+          replyTo: rTo
+        });
+      }
+      out.push({
+        id: 'sq' + i,
+        user: txt(nameEl) || '书友',
+        avatar: av,
+        level: 0,
+        badge: '',
+        meta: meta,
+        content: content,
+        images: images,
+        voice: '',
+        likes: likes,
+        replyCount: replies.length,
+        replies: replies
+      });
+    }
+    if (out.length < 2) return null;
+    var withText = out.filter(function (x) { return x.content || x.images.length; }).length;
+    if (withText / out.length < 0.6) return null;
+    var h1 = txt(document.querySelector('header h1'));
+    return { adapter: 'sqpanel', title: h1 || '段评', subtitle: '', context: context, items: out };
+  }
+
   /* ---------- 适配器 3：通用——重复兄弟簇 ---------- */
   function signature(el) {
     var kids = el.children;
@@ -888,6 +973,7 @@ enum ReviewCommentGrabber {
     if (!r) { try { r = adaptFQ(); } catch (e2) {} }
     if (!r) { try { r = adaptFQPanel(); } catch (e4) {} }
     if (!r) { try { r = adaptViewer(); } catch (e5) {} }
+    if (!r) { try { r = adaptSqPanel(); } catch (e6) {} }
     if (!r) { try { r = adaptGeneric(); } catch (e3) {} }
     return r;
   }
@@ -921,13 +1007,16 @@ enum ReviewCommentGrabber {
   function expandReplies() {
     if (EXPANDING) return false;
     /* 起点系是 .reply-btn[data-action=toggle-replies]；viewer 页的「查看 N 条回复」
-       也是 button.reply-button（同 class 还有「回复」按钮，绝不能点它）。 */
-    var btns = document.querySelectorAll('.reply-btn[data-action="toggle-replies"], article.card .reply-button');
+       也是 button.reply-button（同 class 还有「回复」按钮，绝不能点它）；
+       书旗系是 .reply-more「展开更多回复」。 */
+    var btns = document.querySelectorAll('.reply-btn[data-action="toggle-replies"], article.card .reply-button, article.comment .reply-more');
     var pending = [];
     for (var i = 0; i < btns.length; i++) {
       var b = btns[i];
       if (b.getAttribute('data-yd') === '1') continue;
-      if (/查看\s*\d+\s*条回复/.test(b.textContent || '')) { pending.push(b); continue; }
+      var bt = b.textContent || '';
+      if (/查看\s*\d+\s*条回复/.test(bt)) { pending.push(b); continue; }
+      if (/^展开更多回复/.test(bt.trim())) { pending.push(b); continue; }
       if (b.getAttribute('data-action') === 'toggle-replies') pending.push(b);
     }
     if (!pending.length) return false;
