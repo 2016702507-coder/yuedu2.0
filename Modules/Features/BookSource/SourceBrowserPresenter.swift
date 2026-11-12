@@ -119,9 +119,15 @@ enum SourceBrowserPresenter {
         // including when the sheet is swiped away instead of dismissed by a button.
         let awaitBox = BrowserAwaitBox { answer in
             pending.completion(answer)
-            Task { @MainActor in
-                isShowingSheet = false
-                presentNextIfIdle()
+            // 这里刻意不起 unstructured `Task`：`BrowserAwaitBox.deinit` 会在 sheet 被滑掉、
+            // 宿主提前释放时走到这个闭包，而 deinit 可能不在主线程；在 deinit 里创建 task，
+            // 17.0 上会踩 swift_task_dealloc 的分配器断言直接 SIGABRT（1.7 build13 两台
+            // 17.0 设备的崩溃日志）。主队列 + assumeIsolated 语义与原来完全一致。
+            DispatchQueue.main.async {
+                MainActor.assumeIsolated {
+                    isShowingSheet = false
+                    presentNextIfIdle()
+                }
             }
         }
         // `topVC` weakly: a strong capture would form a presenter ⇄ presented cycle that
