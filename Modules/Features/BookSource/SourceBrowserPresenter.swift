@@ -29,17 +29,6 @@ enum SourceBrowserPresenter {
                 presentVideo(request, title: title)
             }
         }
-        // 长时间后台后回前台：还开着的书源网页多半已被 iOS 杀掉 WebContent
-        // 进程（脚本因此永远等不到回答——见 BookSourceSession 顶部说明），
-        // 自动按用户下滑关闭结账，把屏幕还给用户。
-        NotificationCenter.default.addObserver(
-            forName: BookSourceSession.longBackgroundResumedNotification,
-            object: nil, queue: .main
-        ) { _ in
-            Task { @MainActor in
-                dismissStaleWebPageIfAny()
-            }
-        }
     }
 
     /// `java.openVideoPlayer`: the app's video player, full screen, playing at once — legado-E's
@@ -69,15 +58,31 @@ enum SourceBrowserPresenter {
     /// user confirms it (✓, or a Cloudflare challenge on it clearing), with nil when the page
     /// goes away any other way — ✕, a swipe, or nowhere to present it.
     static func present(_ request: SourceBrowserRequest, completion: @escaping (String?) -> Void) {
-        waiting.append(Pending(completion: completion, content: .page(request)))
-        presentNextIfIdle()
+        enqueue(Pending(completion: completion, content: .page(request)), withdrawal: request.withdrawal)
     }
 
     /// Shows `request`'s captcha. `completion` runs exactly once: with the code the user
     /// entered, or nil when the sheet goes away without one.
     static func presentCaptcha(_ request: SourceCaptchaRequest, completion: @escaping (String?) -> Void) {
-        waiting.append(Pending(completion: completion, content: .captcha(request)))
+        enqueue(Pending(completion: completion, content: .captcha(request)), withdrawal: request.withdrawal)
+    }
+
+    /// Queues `pending`; when the wait behind it is ended from outside (a validation run out of
+    /// time, the app returned from a long background), a sheet still queued is dropped and one on
+    /// screen is dismissed — which answers the script nil, as the reader's own ✕ does.
+    private static func enqueue(_ pending: Pending, withdrawal: SourceWaitWithdrawal?) {
+        waiting.append(pending)
+        withdrawal?.onWithdraw { withdraw(pending.id) }
         presentNextIfIdle()
+    }
+
+    private static func withdraw(_ id: UUID) {
+        if let index = waiting.firstIndex(where: { $0.id == id }) {
+            waiting.remove(at: index).completion(nil)
+            return
+        }
+        guard showingID == id, let host = showingHost else { return }
+        host.presentingViewController?.dismiss(animated: true)
     }
 
     private struct Pending {
@@ -86,25 +91,16 @@ enum SourceBrowserPresenter {
             case captcha(SourceCaptchaRequest)
         }
 
+        let id = UUID()
         let completion: (String?) -> Void
         let content: Content
     }
 
     private static var waiting: [Pending] = []
     private static var isShowingSheet = false
-    /// 当前 sheet 是不是网页页（区别于验证码）：只有网页页会被 iOS 挂起
-    /// 杀掉 WebContent 进程，需要后台太久后自动关。
-    private static var isShowingWebPage = false
-
-    /// 长时间后台后回前台：还开着的书源网页 sheet 里的 WKWebView 多半已被
-    /// iOS 杀掉（页面死了、永远答不上来），把它按用户下滑关闭结账——
-    /// `BrowserAwaitBox` 的释放路径与手动关闭完全一致。验证码 sheet 是
-    /// 原生视图，不受挂起影响，不动它。
-    static func dismissStaleWebPageIfAny() {
-        guard isShowingSheet, isShowingWebPage else { return }
-        guard let topVC = BookSourceFormLoginView.topViewController() else { return }
-        topVC.dismiss(animated: true)
-    }
+    /// The sheet on screen, for `withdraw`. Weak: its going away is what answers the script.
+    private static var showingID: UUID?
+    private static weak var showingHost: UIViewController?
 
     private static func presentNextIfIdle() {
         guard !isShowingSheet, !waiting.isEmpty else { return }
@@ -119,15 +115,10 @@ enum SourceBrowserPresenter {
         // including when the sheet is swiped away instead of dismissed by a button.
         let awaitBox = BrowserAwaitBox { answer in
             pending.completion(answer)
-            // 这里刻意不起 unstructured `Task`：`BrowserAwaitBox.deinit` 会在 sheet 被滑掉、
-            // 宿主提前释放时走到这个闭包，而 deinit 可能不在主线程；在 deinit 里创建 task，
-            // 17.0 上会踩 swift_task_dealloc 的分配器断言直接 SIGABRT（1.7 build13 两台
-            // 17.0 设备的崩溃日志）。主队列 + assumeIsolated 语义与原来完全一致。
-            DispatchQueue.main.async {
-                MainActor.assumeIsolated {
-                    isShowingSheet = false
-                    presentNextIfIdle()
-                }
+            Task { @MainActor in
+                isShowingSheet = false
+                showingID = nil
+                presentNextIfIdle()
             }
         }
         // `topVC` weakly: a strong capture would form a presenter ⇄ presented cycle that
@@ -142,7 +133,6 @@ enum SourceBrowserPresenter {
         let hostVC: UIViewController
         switch pending.content {
         case .page(let request):
-            isShowingWebPage = true
             let userAgent = request.urlRequest?.value(forHTTPHeaderField: "User-Agent")
             hostVC = UIHostingController(
                 rootView: JsBridgeBrowserView(
@@ -162,12 +152,13 @@ enum SourceBrowserPresenter {
                 hostVC.coversFullScreen()
             }
         case .captcha(let request):
-            isShowingWebPage = false
             hostVC = UIHostingController(
                 rootView: SourceCaptchaView(request: request, onFinish: finish)
             )
             hostVC.sheetPresentationController?.detents = [.medium(), .large()]
         }
+        showingID = pending.id
+        showingHost = hostVC
         topVC.present(hostVC, animated: true)
     }
 }
