@@ -34,7 +34,7 @@ final class ClockBatteryModel: ObservableObject {
         ReaderOverlayClockSnapshot(now: now, batteryLevel: batteryLevel, isCharging: isCharging)
     }
 
-    private var clockTimer: Timer?
+    nonisolated(unsafe) private var clockTimer: Timer?
     private var batteryLevelCancellable: AnyCancellable?
     private var batteryStateCancellable: AnyCancellable?
     private let formatter: DateFormatter = {
@@ -60,7 +60,7 @@ final class ClockBatteryModel: ObservableObject {
             .sink { [weak self] _ in self?.refreshBattery() }
     }
 
-    isolated deinit {
+    deinit {
         clockTimer?.invalidate()
     }
 
