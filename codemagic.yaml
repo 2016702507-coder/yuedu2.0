@@ -22,21 +22,22 @@ workflows:
     max_build_duration: 120
 
     environment:
-      # 必须锁 26.2：iOS 17.0 真机搜书 SIGABRT（诊断日志 crash: signal=6，堆栈
-      # pthread_kill → abort → swift_Concurrency_fatalError → swift_task_dealloc ←
-      # completeTaskWithClosure）是 Swift 工具链的任务分配器 LIFO 崩溃
+      # Xcode 版本与 iOS 17.0 崩溃的关系（2026-11-12 实测更新）：
+      # 崩溃形态固定为 pthread_kill → abort → swift_Concurrency_fatalError →
+      # swift_task_dealloc，signal=6，即 Swift 运行时 task 分配器的 LIFO 断言
       # （swiftlang/swift#84793「freed pointer was not the last allocation」，
-      # 部署目标 <18.0 + -O 触发；#88036 证实 6.2.4 起的产物在旧 OS 运行时上崩、
-      # 新运行时正常——与本机「只有 iOS 17.0 崩」吻合）。该 issue 实测：
-      #   26.2 (Swift 6.2.3) -> 干净
-      #   26.5/26.6 (6.3.2/6.3.3) -> 崩
-      # 本工程曾用 26.3 (6.2.4)，落在受影响区间。
+      # 部署目标 <18.0 + -O 触发）。此前按该 issue 的版本表锁 26.2（6.2.3，表里
+      # 标"干净"），但两台 iOS 17.0 真机的诊断日志证明 **26.2 的产物照样崩**：
+      #   iPhone13,1 1.7(13) ×5、iPhone16,1 1.6(11) ×11 + 1.7(13) ×3
+      # 因此版本表对本工程不适用，改用 26.4（Swift 6.2.5 系，issue 报告 26.4.1 起
+      # 修复；Codemagic 会把 26.4 自动解析到该系列最新补丁）。26.5/26.6 是 6.3.x，
+      # 已有新的回归，不要用。
       # 工具链差异实测（编译期）：
       #   16.4  -> EPUBAttributedStringBuilder.swift:274 非 Sendable 结果跨隔离传递
       #   26.6  -> ReaderViewportFragmentHost.swift:232 sending 'prepare' 数据竞争
       #   26.3  -> 通过
       # 26.2 未跑过并发诊断，若编译报错退回 26.3 并改用规避 #84793 触发模式的方式。
-      xcode: 26.2
+      xcode: 26.4
       vars:
         # 与 Actions 版一致的签名目标 App ID；留空则保持原包名 com.yuedu.reader。
         SIGN_BUNDLE_ID: com.QpPL.pEorsl
@@ -54,3 +55,6 @@ workflows:
       - Yuedu-unsigned.ipa
       - build*.log
       - crash-context.log
+      # dSYM 一起传：只有它能把崩溃日志里的裸地址（如 YueduReader+0x1e6ebf4）
+      # 还原成函数与行号。以前没传，所以只能靠栈形推断。
+      - build-opt/Build/Products/Release-iphoneos/YueduReader.app.dSYM
