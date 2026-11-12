@@ -275,9 +275,6 @@ private struct ReviewCommentCard: View {
 
     @Environment(\.colorScheme) private var colorScheme
 
-    /// 语音评论播放器（单例共享），按钮点击切换播放/暂停，并随播放状态刷新图标。
-    @StateObject private var voicePlayer = ReviewVoicePlayer.shared
-
     /// 设置页可调的参数。@Observable，拖动滑杆时卡片会即时重画。
     private var style: NativeReviewPanelStyleStore { .shared }
     private var typography: NativeReviewTypography { style.typography() }
@@ -307,6 +304,7 @@ private struct ReviewCommentCard: View {
             VStack(alignment: .leading, spacing: 6) {
                 nameRow
                 content
+                voiceBar
                 images
                 footer
                 replies
@@ -446,6 +444,18 @@ private struct ReviewCommentCard: View {
         return comment.content
     }
 
+    // MARK: 语音条
+
+    /// 段评里的语音评论胶囊条。无语音或设置页关闭时不显示。
+    @ViewBuilder
+    private var voiceBar: some View {
+        if style.showsVoice,
+           let voice = comment.voice, !voice.isEmpty,
+           let url = URL(string: voice) {
+            VoiceCapsuleBar(url: url)
+        }
+    }
+
     // MARK: 配图
 
     @ViewBuilder
@@ -476,9 +486,8 @@ private struct ReviewCommentCard: View {
     }
 
     private func singleImage(_ url: URL) -> some View {
-        ReviewAnimatedImageView(url: url, fills: false, placeholderHeight: 140)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .frame(maxHeight: 260)
+        ReviewAnimatedImageView(url: url, fills: false, placeholderHeight: 200)
+            .frame(maxWidth: 220, maxHeight: 220, alignment: .leading)
             .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
             .contentShape(Rectangle())
             .onTapGesture { viewerImage = ReviewViewerImageItem(url: url) }
@@ -498,19 +507,6 @@ private struct ReviewCommentCard: View {
                 Text(timeText)
                     .font(typography.font(size: typography.metaSize))
                     .foregroundStyle(DSColor.textSecondary)
-            }
-
-            if style.showsVoice, let voice = comment.voice, !voice.isEmpty, let url = URL(string: voice) {
-                let playing = voicePlayer.isPlaying && voicePlayer.playingURL == url
-                Button {
-                    voicePlayer.toggle(url)
-                } label: {
-                    Image(systemName: playing ? "waveform.circle.fill" : "waveform.circle")
-                        .font(.system(size: typography.metaSize + 2))
-                        .foregroundStyle(DSColor.accent)
-                        .symbolEffect(.variableColor, isActive: playing)
-                }
-                .buttonStyle(.plain)
             }
 
             Spacer(minLength: 0)
@@ -655,6 +651,83 @@ private struct ReviewCommentCard: View {
             return AnyShapeStyle(Color.primary.opacity(base * (colorScheme == .dark ? 1.15 : 0.7)))
         }
         return AnyShapeStyle(Color.white.opacity(base * (colorScheme == .dark ? 0.7 : 1)))
+    }
+}
+
+// MARK: - 语音条
+
+/// 段评语音条：灰色圆角胶囊 + 玻璃质感播放钮 + 波纹图标 + 时长。
+///
+/// 设计对齐要求：胶囊为灰色半透明圆角；播放钮是「透明玻璃感」的圆形，
+/// 内部一个 `waveform` 波纹图标；右侧显示语音时长（秒，形如 `16''`）。
+/// 点按交给单例 `ReviewVoicePlayer`，保证全 App 同时只放一段语音。
+private struct VoiceCapsuleBar: View {
+    let url: URL
+
+    @StateObject private var player = ReviewVoicePlayer.shared
+    @State private var duration: Double?
+    @Environment(\.colorScheme) private var colorScheme
+
+    private var typography: NativeReviewTypography { NativeReviewPanelStyleStore.shared.typography() }
+
+    /// 时长按 URL 缓存，避免列表里每条语音都去远端取一次。
+    private static var durationCache = [String: Double]()
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Button {
+                player.toggle(url)
+            } label: {
+                Image(systemName: "waveform")
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(Color.primary.opacity(0.7))
+                    .frame(width: 34, height: 34)
+                    .background(
+                        Circle()
+                            .fill(.ultraThinMaterial)
+                            .overlay(
+                                Circle().strokeBorder(Color.primary.opacity(0.12), lineWidth: 0.5)
+                            )
+                    )
+            }
+            .buttonStyle(.plain)
+
+            Text(durationText)
+                .font(typography.font(size: typography.metaSize))
+                .foregroundStyle(DSColor.textSecondary)
+
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 7)
+        .background(
+            Capsule().fill(Color.secondary.opacity(colorScheme == .dark ? 0.18 : 0.10))
+        )
+        .frame(maxWidth: 220)
+        .task { await loadDuration() }
+    }
+
+    private var isPlaying: Bool { player.isPlaying && player.playingURL == url }
+
+    private var durationText: String {
+        guard let d = duration, d.isFinite, d > 0 else { return "" }
+        return String(format: "%d''", Int(d.rounded()))
+    }
+
+    private func loadDuration() async {
+        let key = url.absoluteString
+        if let cached = Self.durationCache[key] {
+            duration = cached
+            return
+        }
+        do {
+            let asset = AVURLAsset(url: url)
+            let seconds = try await asset.load(.duration).seconds
+            Self.durationCache[key] = seconds
+            duration = seconds
+        } catch {
+            // 取不到时长就不显示，胶囊仍可用（点按照常播放）。
+        }
     }
 }
 
