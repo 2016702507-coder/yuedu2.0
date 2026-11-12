@@ -679,9 +679,10 @@ private struct VoiceCapsuleBar: View {
             Button {
                 player.toggle(url)
             } label: {
-                Image(systemName: "waveform")
+                Image(systemName: isPlaying ? "waveform.circle.fill" : "waveform")
                     .font(.system(size: 15, weight: .medium))
                     .foregroundStyle(Color.primary.opacity(0.7))
+                    .symbolEffect(.variableColor, isActive: isPlaying)
                     .frame(width: 34, height: 34)
                     .background(
                         Circle()
