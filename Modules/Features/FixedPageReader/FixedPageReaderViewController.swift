@@ -82,16 +82,6 @@ final class FixedPageReaderViewController: UIViewController, FixedPageReaderCont
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
-    deinit {
-        // Rendered pages are the largest thing this reader holds; closing the book
-        // releases them along with the open document. A no-op for a manga book,
-        // whose caches are empty.
-        Task {
-            await PDFPageRasterizer.shared.purge()
-            await FixedLayoutEPUBRenderer.shared.purge()
-        }
-    }
-
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .black
@@ -167,6 +157,17 @@ final class FixedPageReaderViewController: UIViewController, FixedPageReaderCont
         super.viewWillDisappear(animated)
         restoreLegacyReaderToolbar()
         saveTask?.cancel()
+        // 关书时释放渲染缓存。以前这段 Task 放在 deinit 里：iOS 17.0 上
+        // Swift 6 back-deployed concurrency 在析构阶段创建的 Task，其完成闭包
+        // 释放会命中 `completeTaskWithClosure -> swift_task_dealloc ->
+        // swift_Concurrency_fatalError -> abort`（SIGABRT）。挪到生命周期回调里
+        // 执行（对象仍存活、不在 deinit-on-executor 路径上），清理结果完全一样。
+        if isMovingFromParent || isBeingDismissed {
+            Task {
+                await PDFPageRasterizer.shared.purge()
+                await FixedLayoutEPUBRenderer.shared.purge()
+            }
+        }
         let page = currentChapterPage
         store?.updateMangaPosition(
             bookId: book.id,
