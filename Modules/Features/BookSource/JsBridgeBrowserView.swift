@@ -1019,7 +1019,9 @@ struct JsBridgeBrowserRepresentable: UIViewRepresentable {
         /// Strongly held: `WKWebView.uiDelegate` is weak.
         let uiDelegate = SourceWebUIDelegate()
         let clipboardBridge = SourceWebClipboardBridge()
-        private var keyboardHideObserver: NSObjectProtocol?
+        /// `nonisolated(unsafe)`：deinit 是非隔离的，需要读到要摘掉的通知令牌；
+        /// `removeObserver` 本身线程安全，写入只发生在主 actor 的安装方法里。
+        nonisolated(unsafe) private var keyboardHideObserver: NSObjectProtocol?
 
         /// WKWebView keeps the tapped `<input>` as `document.activeElement` after the keyboard is
         /// dismissed, so tapping it again fires no new focus event and the keyboard never returns
@@ -1041,7 +1043,10 @@ struct JsBridgeBrowserRepresentable: UIViewRepresentable {
             }
         }
 
-        isolated deinit {
+        // 刻意不用 `isolated deinit`：deinit-on-executor 是 iOS 18 起才有的运行时能力，
+        // 17.0 上只能走 back-deployed 的 task 路径，sheet 收起时会在 swift_task_dealloc
+        // 的分配器断言里 abort（SIGABRT，1.7 build13 崩溃日志即此）。摘通知与线程无关。
+        deinit {
             if let keyboardHideObserver {
                 NotificationCenter.default.removeObserver(keyboardHideObserver)
             }
