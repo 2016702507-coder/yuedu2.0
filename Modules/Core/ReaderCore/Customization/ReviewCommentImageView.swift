@@ -26,7 +26,7 @@ final class ReviewImageLoader {
         if let hit = cache.object(forKey: url as NSURL) { return hit }
         guard let (data, response) = try? await URLSession.shared.data(from: url),
               !data.isEmpty,
-              (response as? HTTPURLResponse)?.statusCode.map({ (200..<300).contains($0) }) ?? true
+              (response as? HTTPURLResponse).map({ (200..<300).contains($0.statusCode) }) ?? true
         else { return nil }
         let image = Self.decode(data)
         if let image {
