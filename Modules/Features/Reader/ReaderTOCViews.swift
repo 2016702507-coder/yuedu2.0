@@ -247,21 +247,29 @@ struct ReaderTOCView: View {
     /// 目录倒序开关，全 App 共用一个偏好：开最新章节排在最前。
     @AppStorage("yd_reader_toc_reversed") private var isTOCReversed = false
 
+    // 搜索过滤不再走 body 求值路径：以前 `filteredChapters` 是纯计算属性，每敲一个
+    // 字 SwiftUI 都会对几千章跑几遍本地化字符串匹配，加上 List 每行都读
+    // `displayedChapters.first`，一次输入就是几千次全量过滤，打字都卡。现在只在
+    // 敲键后 150 ms 防抖一次，离主线程用预折叠标题匹配，结果缓存成两个数组。
+    /// `nil`＝还没算过（直接用 `chapters`）；空数组＝真没搜到。
+    @State private var filtered: [BookChapter]?
+    @State private var filteredReversed: [BookChapter] = []
+    /// 与 `chapters` 同序的折叠标题（大小写/变音折叠），建一次供快速匹配。
+    @State private var foldedTitles: [String] = []
+    @State private var filterTask: Task<Void, Never>?
+
     private var isSearching: Bool {
         !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     private var filteredChapters: [BookChapter] {
-        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !query.isEmpty else { return chapters }
-        return chapters.filter {
-            $0.title.localizedCaseInsensitiveContains(query)
-        }
+        filtered ?? chapters
     }
 
     /// 实际画出来的顺序；横排正序时第一章在最上面，倒序时最后一章在最上面。
     private var displayedChapters: [BookChapter] {
-        isTOCReversed ? Array(filteredChapters.reversed()) : filteredChapters
+        guard let f = filtered else { return chapters }
+        return isTOCReversed ? filteredReversed : f
     }
 
     var body: some View {
@@ -301,6 +309,12 @@ struct ReaderTOCView: View {
                     placement: .navigationBarDrawer(displayMode: .always),
                     prompt: localized("搜索章节")
                 )
+                .onChange(of: searchText) {
+                    scheduleFilter()
+                }
+                .task {
+                    buildIndexIfNeeded()
+                }
                 .background(PageBackgroundView(scope: .settings).ignoresSafeArea())
                 .pageBackgroundToolbar(for: .settings)
         }
@@ -368,6 +382,56 @@ struct ReaderTOCView: View {
             return offset + 1
         }
         return chapter.index + 1
+    }
+
+    // MARK: - 搜索过滤（离主线程 + 防抖）
+
+    /// 需要时才建标题索引；索引就绪后把当前查询立刻重跑一遍。
+    private func buildIndexIfNeeded() {
+        guard foldedTitles.count != chapters.count else { return }
+        let source = chapters
+        Task.detached(priority: .userInitiated) {
+            let titles = source.map {
+                $0.title.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: nil)
+            }
+            await MainActor.run {
+                foldedTitles = titles
+                scheduleFilter(immediate: true)
+            }
+        }
+    }
+
+    /// 敲键 150 ms 防抖后过滤一次；空查询直接还原全量。
+    private func scheduleFilter(immediate: Bool = false) {
+        guard foldedTitles.count == chapters.count else {
+            // 索引还没建好：buildIndexIfNeeded 完成后会重跑。
+            buildIndexIfNeeded()
+            return
+        }
+        filterTask?.cancel()
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let source = chapters
+        let titles = foldedTitles
+        filterTask = Task.detached(priority: .userInitiated) {
+            if !immediate {
+                try? await Task.sleep(nanoseconds: 150_000_000)
+            }
+            guard !Task.isCancelled else { return }
+            let result: [BookChapter]
+            if query.isEmpty {
+                result = source
+            } else {
+                let q = query.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: nil)
+                result = source.enumerated().compactMap { index, chapter in
+                    titles[index].contains(q) ? chapter : nil
+                }
+            }
+            let reversed = Array(result.reversed())
+            await MainActor.run {
+                filtered = result
+                filteredReversed = reversed
+            }
+        }
     }
 
     private var tocList: some View {
