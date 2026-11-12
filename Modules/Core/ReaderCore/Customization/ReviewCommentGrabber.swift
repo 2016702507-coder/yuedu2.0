@@ -980,6 +980,10 @@ enum ReviewCommentGrabber {
 
   function post(result) {
     try {
+      /* 页面自报的总条数（#total /「共 N 条」）。loadStep 拿它判断
+         「抓够了没」，也随结果带回原生侧便于排查。 */
+      var reportedTotal = pageTotal();
+      window.__ydLastCount = result.items.length;
       var payload = {
         v: 2,
         adapter: result.adapter,
@@ -989,6 +993,7 @@ enum ReviewCommentGrabber {
         context: result.context || '',
         pageTitle: document.title || '',
         count: result.items.length,
+        total: reportedTotal,
         items: result.items
       };
       if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.ydComments) {
@@ -999,9 +1004,9 @@ enum ReviewCommentGrabber {
   }
 
   /* 楼中楼默认是折叠的（点击才去 fetch）。原生面板没有网页里那个按钮，
-     所以抓完一轮后替用户点开，1.6 秒后统一再抓一次。
-     只点「回复不多」的卡片、最多 20 个：整章本章说动辄上百条带回复，
-     全点会给服务器发上百个请求，也没人一屏看得完。 */
+     所以抓完一轮后替用户点开，2 秒后统一再抓一次。
+     滚动加载会不断追加新卡片，所以每批放宽到 60 个、可反复进入：
+     data-yd 标记保证同一按钮只点一次，不会重复发请求。 */
   var EXPANDING = false;
 
   function expandReplies() {
@@ -1022,7 +1027,7 @@ enum ReviewCommentGrabber {
     if (!pending.length) return false;
 
     EXPANDING = true;
-    var batch = pending.slice(0, 40);
+    var batch = pending.slice(0, 60);
     for (var j = 0; j < batch.length; j++) {
       batch[j].setAttribute('data-yd', '1');
       try { batch[j].click(); } catch (e) {}
@@ -1088,15 +1093,103 @@ enum ReviewCommentGrabber {
     timer = setTimeout(function () { run(false); }, 350);
   }
 
+  /* ---------- 主动把分页 / 无限滚动的评论加载全 ----------
+   * 多数书源段评页只渲染首屏（常见 20~30 条），其余要滚到底或点
+   * 「加载更多 / 下一页」才进 DOM。旧版只被动监听 scroll 事件，用户
+   * 不滚就永远停在首屏 —— 气泡写 99+、面板只有 23 条就是这么来的。
+   * 这里由脚本代替用户滚动 + 点按钮，每轮跑一次 run(true) 增量上报，
+   * 靠指纹去重，直到「达到页面自报总数」「连续三轮不涨」或「用完预算」。
+   * 全程有硬上限（轮数 + 间隔），不会无限发请求。 */
+  var LOAD = {
+    running: false, rounds: 0, maxRounds: 14,
+    stable: 0, lastCount: 0, target: 0, done: false
+  };
+
+  /* 页面自己报的总条数：#total 或「共 N 条」。抓够就收工。 */
+  function pageTotal() {
+    var el = document.getElementById('total') ||
+             document.querySelector('.total,.comment-total,[id*="total"],[class*="total"]');
+    var m = el ? txt(el).match(/(\d+)/) : null;
+    if (m) return parseInt(m[1], 10) || 0;
+    var body = String(document.body ? (document.body.innerText || '') : '');
+    var m2 = body.match(/共\s*(\d+)\s*[条评評]/);
+    return m2 ? (parseInt(m2[1], 10) || 0) : 0;
+  }
+
+  function scrollTargets() {
+    var out = [];
+    var doc = document.scrollingElement || document.documentElement;
+    if (doc) out.push(doc);
+    if (document.body) out.push(document.body);
+    var cands = document.querySelectorAll(
+      '#feedContainer,#list,.list,.comment-list,.comments,main,[class*="list"],[class*="feed"]');
+    for (var i = 0; i < cands.length && out.length < 8; i++) {
+      var e = cands[i];
+      if (e && e.scrollHeight > e.clientHeight + 20) out.push(e);
+    }
+    return out;
+  }
+
+  function scrollToBottom() {
+    try { window.scrollTo(0, document.body ? document.body.scrollHeight : 0); } catch (e) {}
+    var ts = scrollTargets();
+    for (var i = 0; i < ts.length; i++) {
+      try { ts[i].scrollTop = ts[i].scrollHeight; } catch (e) {}
+    }
+  }
+
+  var MORE_RE = /(加载更多|查看更多|更多评论|下一页|展开更多评论|点击加载|load\s*more|next\s*page)/i;
+  function clickLoadMore() {
+    var btns = document.querySelectorAll('a,button,[role="button"],li,[onclick],.load-more,.more,.next');
+    var clicked = 0;
+    for (var i = 0; i < btns.length && clicked < 3; i++) {
+      var b = btns[i], t = txt(b);
+      if (!t || t.length > 20 || !MORE_RE.test(t)) continue;
+      /* 楼中楼由 expandReplies 管，别在这儿点。 */
+      if (/回复/.test(t)) continue;
+      if (b.getAttribute('data-yd-more') === '1') continue;
+      b.setAttribute('data-yd-more', '1');
+      try { b.click(); clicked++; } catch (e) {}
+    }
+    return clicked;
+  }
+
+  function loadStep() {
+    if (LOAD.done || LOAD.running) return;
+    LOAD.running = true;
+    LOAD.rounds++;
+    scrollToBottom();
+    clickLoadMore();
+    /* 留时间给 XHR / 渲染，再抓一轮并顺带展开新出现的楼中楼。 */
+    setTimeout(function () {
+      LOAD.running = false;
+      run(true);
+      var now = window.__ydLastCount || 0;
+      if (!LOAD.target) LOAD.target = pageTotal();
+      if (now > LOAD.lastCount) { LOAD.lastCount = now; LOAD.stable = 0; }
+      else LOAD.stable++;
+      var reached = LOAD.target > 0 && now >= LOAD.target;
+      var settled = LOAD.stable >= 3 && LOAD.rounds >= 3;
+      var exhausted = LOAD.rounds >= LOAD.maxRounds;
+      if (reached || settled || exhausted) {
+        LOAD.done = true;
+        run(true);
+        return;
+      }
+      setTimeout(loadStep, 900);
+    }, 700);
+  }
+
   function boot() {
     window.__ydGrabRun = run;
     run(false);
-    /* 页面数据是分段来的（骨架 → 首屏 → 滚动加载 → 楼中楼）。多打几次，
-       每次靠指纹去重，抓到同样的东西不会重复打扰面板。 */
-    [400, 900, 1600, 2600, 4000, 6000].forEach(function (d) {
+    /* 首屏：骨架 → 首屏 → 楼中楼，短时间多打几次；之后交给 loadStep
+       主动滚动 / 点「加载更多」，把分页评论逐批拉进 DOM 再增量上报。 */
+    [400, 900, 1600].forEach(function (d) {
       setTimeout(function () { run(false); }, d);
     });
     setTimeout(function () { run(true); }, 1400);
+    setTimeout(loadStep, 1200);
     try {
       var mo = new MutationObserver(schedule);
       mo.observe(document.body, { childList: true, subtree: true, characterData: true });
@@ -1165,6 +1258,8 @@ struct GrabbedCommentPage: Decodable, Sendable, Equatable {
     /// 点开的那一段原文。
     var context: String?
     var count: Int?
+    /// 书源页面自己报的总条数（#total /「共 N 条」），用来判断抓取是否抓全。
+    var total: Int?
     var items: [ReviewComment]
 
     /// 面板标题：书源给的标题优先，其次退回调用方传的。

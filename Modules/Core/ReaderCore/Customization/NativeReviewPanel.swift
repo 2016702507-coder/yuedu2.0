@@ -245,25 +245,49 @@ struct NativeReviewPanelView: View {
         }
     }
 
+    /// 面板头：居中「段评」+ 段落原文引用框。
+    ///
+    /// 不再显示「N 条」评论总数：那个数来自书源页面自己的计数，和实际抓到的
+    /// 评论条数经常对不上（反馈「评论数严重不符」），这里一个数字都不显示。
     private var header: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack(spacing: DSSpacing.sm) {
-                Text(title)
-                    .font(DSFont.headline)
-                    .foregroundStyle(DSColor.textPrimary)
-                Text(String(format: localized("%d 条"), comments.count))
-                    .font(DSFont.caption)
+        VStack(spacing: 11) {
+            Text(localized("段评"))
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(DSColor.textPrimary)
+                .frame(maxWidth: .infinity)
+
+            if !quoteText.isEmpty {
+                Text(quoteText)
+                    .font(.system(size: 13))
+                    .italic()
                     .foregroundStyle(DSColor.textSecondary)
-                Spacer()
-            }
-            if let paragraphLabel, !paragraphLabel.isEmpty {
-                Text(paragraphLabel)
-                    .font(DSFont.caption)
-                    .foregroundStyle(DSColor.textSecondary)
+                    .lineSpacing(2)
+                    .lineLimit(3)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 11)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .fill(Color.secondary.opacity(colorScheme == .dark ? 0.10 : 0.055))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                    .strokeBorder(
+                                        Color.white.opacity(colorScheme == .dark ? 0.06 : 0.55),
+                                        lineWidth: 0.5
+                                    )
+                            )
+                    )
             }
         }
         .padding(.top, DSSpacing.sm)
-        .padding(.bottom, 2)
+        .padding(.bottom, 8)
+    }
+
+    /// 引用框里显示点开的那段原文。书源把原文放在 title 里；没给就用段号兜底。
+    private var quoteText: String {
+        let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmed.isEmpty, trimmed != localized("段评") { return trimmed }
+        return paragraphLabel?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
     }
 }
 
@@ -312,26 +336,18 @@ private struct ReviewCommentCard: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding(isNested ? 10 : 12)
+        // 扁平玻璃卡片：面板本身就是玻璃，卡片不再铺白底、描边、阴影，
+        // 只留一层几乎看不见的淡底 + 一条细分隔线，半屏和全屏都透。
         .background {
-            let radius = isNested
-                ? max(6, CGFloat(style.cornerRadius) - 4)
-                : CGFloat(style.cornerRadius)
-            let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
-            // 夜色模式下不再描白边：白边在暗色背景上会画出一圈明显的「框」。
-            // 暗色下直接无描边，卡片区分交给极淡底色 + 阴影；亮色下保留细高光。
-            let stroke: Color = colorScheme == .dark
-                ? Color.clear
-                : Color.white.opacity(0.30)
-            shape
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .fill(cardFill)
-                .overlay(
-                    shape.strokeBorder(stroke, lineWidth: 0.5)
-                )
-                .shadow(
-                    color: .black.opacity(isNested ? 0 : (colorScheme == .dark ? 0.18 : 0.05)),
-                    radius: isNested ? 0 : 10,
-                    y: isNested ? 0 : 2
-                )
+        }
+        .overlay(alignment: .bottom) {
+            if !isNested {
+                Rectangle()
+                    .fill(Color.secondary.opacity(colorScheme == .dark ? 0.16 : 0.11))
+                    .frame(height: 0.5)
+            }
         }
         // 配图点击 → 全屏查看器（黑底、缩放、GIF 照常播放）。
         .fullScreenCover(item: $viewerImage) { item in
@@ -380,7 +396,7 @@ private struct ReviewCommentCard: View {
         HStack(spacing: 6) {
             Text(comment.user.isEmpty ? localized("书友") : comment.user)
                 .font(typography.font(size: typography.nameSize - (isNested ? 1 : 0), weight: .medium))
-                .foregroundStyle(DSColor.textSecondary)
+                .foregroundStyle(DSColor.textPrimary)
                 .lineLimit(1)
 
             if style.showsLevel, let level = comment.levelText, !level.isEmpty {
@@ -403,6 +419,16 @@ private struct ReviewCommentCard: View {
             }
 
             Spacer(minLength: 0)
+
+            // 点赞挪到昵称行右侧（参考图的 👍240 位），底部只留时间和回复入口。
+            if style.showsLikes, let likes = comment.likes, likes > 0 {
+                HStack(spacing: 3) {
+                    Image(systemName: "hand.thumbsup")
+                    Text("\(likes)")
+                }
+                .font(typography.font(size: typography.metaSize))
+                .foregroundStyle(DSColor.textSecondary)
+            }
         }
     }
 
@@ -511,36 +537,22 @@ private struct ReviewCommentCard: View {
 
             Spacer(minLength: 0)
 
-            if style.showsLikes, let likes = comment.likes, likes > 0 {
-                Label("\(likes)", systemImage: "hand.thumbsup")
-                    .labelStyle(.titleAndIcon)
-                    .font(typography.font(size: typography.metaSize))
-                    .foregroundStyle(DSColor.textSecondary)
-            }
-
-            if totalReplyCount > 0 {
+            // 回复入口不再写「N 条回复」：书源给的计数和真实楼中楼条数常对不上，
+            // 一律改成不带数字的文字按钮，展开/收起功能不变。
+            if hasInlineReplies {
                 Button {
                     toggleReplies()
                 } label: {
                     HStack(spacing: 3) {
-                        // 展开态直接写成「收起回复」：一层回复也能一眼看到收回入口，
-                        // 不用去猜那个「N 条回复」到底能不能再点一次。
-                        Text(
-                            repliesExpanded && hasInlineReplies
-                                ? localized("收起回复")
-                                : String(format: localized("%d 条回复"), totalReplyCount)
-                        )
-                        .font(typography.font(size: typography.metaSize))
-                        if hasInlineReplies {
-                            Image(systemName: "chevron.down")
-                                .font(.system(size: 9, weight: .semibold))
-                                .rotationEffect(.degrees(repliesExpanded ? 180 : 0))
-                        }
+                        Text(repliesExpanded ? localized("收起回复") : localized("查看回复"))
+                            .font(typography.font(size: typography.metaSize))
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 9, weight: .semibold))
+                            .rotationEffect(.degrees(repliesExpanded ? 180 : 0))
                     }
-                    .foregroundStyle(hasInlineReplies ? DSColor.accent : DSColor.textSecondary)
+                    .foregroundStyle(DSColor.accent)
                 }
                 .buttonStyle(.plain)
-                .disabled(!hasInlineReplies)
             }
         }
         .padding(.top, 2)
@@ -564,14 +576,14 @@ private struct ReviewCommentCard: View {
         if !isNested, !visibleReplies.isEmpty {
             VStack(alignment: .leading, spacing: 6) {
                 ForEach(visibleReplies) { reply in
-                    ReviewCommentCard(comment: reply, isNested: true)
+                    replyCapsule(reply)
                 }
                 if hiddenReplyCount > 0 {
                     Button {
                         toggleReplies()
                     } label: {
                         HStack(spacing: 3) {
-                            Text(String(format: localized("展开其余 %d 条回复"), hiddenReplyCount))
+                            Text(localized("展开更多回复"))
                                 .font(typography.font(size: typography.metaSize + 0.5))
                             Image(systemName: "chevron.down")
                                 .font(.system(size: 9, weight: .semibold))
@@ -602,15 +614,51 @@ private struct ReviewCommentCard: View {
         }
     }
 
+    /// 楼中楼：一条灰色圆角胶囊，小圆头像 +「昵称：内容」，对齐参考图。
+    private func replyCapsule(_ reply: ReviewComment) -> some View {
+        HStack(alignment: .top, spacing: 6) {
+            Group {
+                if let raw = reply.avatar, !raw.isEmpty, let url = URL(string: raw) {
+                    AsyncImage(url: url) { phase in
+                        switch phase {
+                        case .success(let image): image.resizable().scaledToFill()
+                        default: Circle().fill(Color.primary.opacity(0.08))
+                        }
+                    }
+                } else {
+                    Circle().fill(Color.primary.opacity(0.08))
+                }
+            }
+            .frame(width: 20, height: 20)
+            .clipShape(Circle())
+
+            Text(replyLine(reply))
+                .font(typography.font(size: typography.metaSize + 0.5))
+                .foregroundStyle(DSColor.textSecondary)
+                .lineSpacing(2)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 7)
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Color.secondary.opacity(colorScheme == .dark ? 0.14 : 0.075))
+        )
+    }
+
+    private func replyLine(_ reply: ReviewComment) -> String {
+        let name = reply.user.isEmpty ? localized("书友") : reply.user
+        if let replyTo = reply.replyTo, !replyTo.isEmpty {
+            return "\(name)：回复 @\(replyTo)：\(reply.content)"
+        }
+        return "\(name)：\(reply.content)"
+    }
+
     // MARK: 楼中楼展开
 
     private var hasInlineReplies: Bool {
         !(comment.replies ?? []).isEmpty
-    }
-
-    /// 书源给的数量（replyCount）和内联回复条数取大值，避免「显示 0 条却有回复」。
-    private var totalReplyCount: Int {
-        max(comment.replyCount ?? 0, (comment.replies ?? []).count)
     }
 
     private var visibleReplies: [ReviewComment] {
@@ -620,7 +668,7 @@ private struct ReviewCommentCard: View {
         // 只有一层（≤ 2 条）回复时，折叠态必须真的收成空。
         // 旧实现在这里直接 `return all`，导致折叠态和展开态长得一模一样：
         // 点「收回」看不出任何变化，就是用户说的「一层楼中楼收不回去」。
-        // 现在统一交给 footer 的「N 条回复」展开，展开后底部再给「收起回复」。
+        // 现在统一交给 footer 的「查看回复」展开，展开后底部再给「收起回复」。
         if all.count <= collapsedLimit { return [] }
         return Array(all.prefix(collapsedLimit))
     }

@@ -112,9 +112,10 @@ struct ReviewPanelStyleSettingsView: View {
                 paragraphLabel: localized("第 109 段"),
                 comments: ReviewPanelSampleData.paragraphComments
             )
-            .presentationDetents([.large])
+            .presentationDetents([.medium, .large])
             .presentationDragIndicator(.visible)
-            .presentationBackground(.ultraThinMaterial)
+            .presentationBackground { ReaderGlassSheetBackground() }
+            .presentationBackgroundInteraction(.enabled(upThrough: .large))
         }
     }
 

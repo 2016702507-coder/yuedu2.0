@@ -474,10 +474,13 @@ struct LegadoReviewBrowserView: View {
                 )
                 .ignoresSafeArea()
         }
-        .presentationBackground(.ultraThinMaterial)
-        // 关掉 sheet 的背景变暗层：不然底下正文会被系统压暗，看起来还是「隔了一层」。
-        // 只开到 medium：面板半屏时正文保持原亮度，拉到全屏时不再让手势穿透到正文。
-        .presentationBackgroundInteraction(.enabled(upThrough: .medium))
+        // 全档位同一块玻璃：以前只 `.enabled(upThrough: .medium)`，拉到 large
+        // 系统就在 sheet 背后补一层不透明变暗层，材质采不到内容退化成近白实色
+        // —— 就是「半屏透明、拉满变白底」。改成全档位都保持背景可见，并用项目
+        // 里已定稿的低不透明度玻璃（0.30 材质 + 极淡 tint）替代裸 `.ultraThinMaterial`，
+        // 全屏时也不会糊成一块白板。
+        .presentationBackground { ReaderGlassSheetBackground() }
+        .presentationBackgroundInteraction(.enabled(upThrough: .large))
         .presentationDetents(presentationConfiguration.detents)
         .presentationDragIndicator(
             presentationConfiguration.skipCollapsed ? .hidden : .visible
