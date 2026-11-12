@@ -1,5 +1,6 @@
 import Foundation
 import os
+import UIKit
 
 /// One reusable parsing session per book source (Legado-style lifecycle).
 ///
@@ -187,7 +188,65 @@ final class BookSourceSession: Sendable {
     /// capacity almost immediately.
     private static let cacheLimit = 32
 
+    // MARK: - 长时间后台后的恢复
+
+    // 「在书源界面切后台很久，回来 App 卡在一个界面动不了」的根因：
+    // 源脚本在 startBrowserAwait / 验证码页里等人（`waitForUser` 的 sem.wait()
+    // 无超时、且豁免脚本超时——这是交互需要的），期间 App 被挂起；iOS 挂起
+    // 会把 WKWebView 的 WebContent 进程杀掉，页面死了、回调永远不来，脚本
+    // 却还停在等待里。等待着的脚本占着这个源的 gate（一次一个持有者），
+    // 之后这本书的每次取章/翻页都在 gate 上排队排到天荒地老——阅读页就
+    // 永远停在那一条上。
+    //
+    // 处理：回到前台时，若这次后台超过 30 秒，把所有 session 还在等用户的
+    // 等待一律按「用户关掉了页面」结账——与用户手动关页同一语义，脚本自
+    // 己会抛 browser cancelled、gate 释放、排队任务继续走。30 秒以内的短暂
+    // 切换不动它：页面多半还活着，别打断用户正在答的验证码。
+
+    private nonisolated(unsafe) static var backgroundedAt: Date?
+
+    /// 长时间后台（超过 `longBackgroundThreshold`）后回到前台。
+    /// 订阅者：书源网页 sheet 持有者（Features 层）按「页面已死」处理。
+    static let longBackgroundResumedNotification = Notification.Name("yuedu.longBackgroundResumed")
+    private static let longBackgroundThreshold: TimeInterval = 30
+
+    /// Lazy-install the observers on first session use (`static let` runs once).
+    private static let lifecycleGuard: Void = {
+        let center = NotificationCenter.default
+        center.addObserver(
+            forName: UIApplication.didEnterBackgroundNotification, object: nil, queue: .main
+        ) { _ in
+            backgroundedAt = Date()
+        }
+        center.addObserver(
+            forName: UIApplication.willEnterForegroundNotification, object: nil, queue: .main
+        ) { _ in
+            guard let at = backgroundedAt else { return }
+            backgroundedAt = nil
+            guard Date().timeIntervalSince(at) > longBackgroundThreshold else { return }
+            cancelAllUserWaits(reason: "长时间后台后回前台")
+            center.post(name: longBackgroundResumedNotification, object: nil)
+        }
+    }()
+
+    /// End every user wait on every live session（诊断/恢复入口也可手动调用）。
+    static func cancelAllUserWaits(reason: String) {
+        cacheLock.lock()
+        let sessions = cache.values.map(\.session)
+        cacheLock.unlock()
+        for session in sessions {
+            session.userWaits.cancelAll()
+        }
+        if !sessions.isEmpty {
+            AppLogger.parse("⟐ userWaits.cancelAll", context: [
+                "reason": reason,
+                "sessions": String(sessions.count),
+            ])
+        }
+    }
+
     static func session(for source: BookSource) -> BookSourceSession {
+        _ = lifecycleGuard
         let key = "\(source.bookSourceUrl)#\(source.lastUpdateTime)"
         cacheLock.lock()
         if let existing = cache[key] {

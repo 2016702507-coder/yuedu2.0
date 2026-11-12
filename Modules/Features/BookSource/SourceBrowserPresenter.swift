@@ -29,6 +29,17 @@ enum SourceBrowserPresenter {
                 presentVideo(request, title: title)
             }
         }
+        // 长时间后台后回前台：还开着的书源网页多半已被 iOS 杀掉 WebContent
+        // 进程（脚本因此永远等不到回答——见 BookSourceSession 顶部说明），
+        // 自动按用户下滑关闭结账，把屏幕还给用户。
+        NotificationCenter.default.addObserver(
+            forName: BookSourceSession.longBackgroundResumedNotification,
+            object: nil, queue: .main
+        ) { _ in
+            Task { @MainActor in
+                dismissStaleWebPageIfAny()
+            }
+        }
     }
 
     /// `java.openVideoPlayer`: the app's video player, full screen, playing at once — legado-E's
@@ -81,6 +92,19 @@ enum SourceBrowserPresenter {
 
     private static var waiting: [Pending] = []
     private static var isShowingSheet = false
+    /// 当前 sheet 是不是网页页（区别于验证码）：只有网页页会被 iOS 挂起
+    /// 杀掉 WebContent 进程，需要后台太久后自动关。
+    private static var isShowingWebPage = false
+
+    /// 长时间后台后回前台：还开着的书源网页 sheet 里的 WKWebView 多半已被
+    /// iOS 杀掉（页面死了、永远答不上来），把它按用户下滑关闭结账——
+    /// `BrowserAwaitBox` 的释放路径与手动关闭完全一致。验证码 sheet 是
+    /// 原生视图，不受挂起影响，不动它。
+    static func dismissStaleWebPageIfAny() {
+        guard isShowingSheet, isShowingWebPage else { return }
+        guard let topVC = BookSourceFormLoginView.topViewController() else { return }
+        topVC.dismiss(animated: true)
+    }
 
     private static func presentNextIfIdle() {
         guard !isShowingSheet, !waiting.isEmpty else { return }
@@ -112,6 +136,7 @@ enum SourceBrowserPresenter {
         let hostVC: UIViewController
         switch pending.content {
         case .page(let request):
+            isShowingWebPage = true
             let userAgent = request.urlRequest?.value(forHTTPHeaderField: "User-Agent")
             hostVC = UIHostingController(
                 rootView: JsBridgeBrowserView(
@@ -131,6 +156,7 @@ enum SourceBrowserPresenter {
                 hostVC.coversFullScreen()
             }
         case .captcha(let request):
+            isShowingWebPage = false
             hostVC = UIHostingController(
                 rootView: SourceCaptchaView(request: request, onFinish: finish)
             )

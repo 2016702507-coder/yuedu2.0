@@ -290,6 +290,9 @@ private struct ReviewCommentCard: View {
         repliesOverride ?? style.repliesDefaultExpanded
     }
 
+    /// 点开的配图（全屏查看器）。nil = 没开。
+    @State private var viewerImage: ReviewViewerImageItem?
+
     private var avatarSide: CGFloat {
         isNested ? max(18, CGFloat(style.avatarSize) * 0.63) : CGFloat(style.avatarSize)
     }
@@ -331,6 +334,10 @@ private struct ReviewCommentCard: View {
                     radius: isNested ? 0 : 10,
                     y: isNested ? 0 : 2
                 )
+        }
+        // 配图点击 → 全屏查看器（黑底、缩放、GIF 照常播放）。
+        .fullScreenCover(item: $viewerImage) { item in
+            ReviewImageViewer(url: item.url)
         }
     }
 
@@ -455,16 +462,13 @@ private struct ReviewCommentCard: View {
                     spacing: 6
                 ) {
                     ForEach(Array(urls.enumerated()), id: \.offset) { _, url in
-                        AsyncImage(url: url) { phase in
-                            if case .success(let image) = phase {
-                                image.resizable().scaledToFill()
-                            } else {
-                                Color.primary.opacity(0.05)
-                            }
-                        }
-                        .frame(height: 84)
-                        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-                        .clipped()
+                        // GIF 动图在九宫格里也要动起来；点开进全屏查看器。
+                        ReviewAnimatedImageView(url: url, fills: true, placeholderHeight: 84)
+                            .frame(height: 84)
+                            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                            .clipped()
+                            .contentShape(Rectangle())
+                            .onTapGesture { viewerImage = ReviewViewerImageItem(url: url) }
                     }
                 }
             }
@@ -472,23 +476,12 @@ private struct ReviewCommentCard: View {
     }
 
     private func singleImage(_ url: URL) -> some View {
-        AsyncImage(url: url) { phase in
-            switch phase {
-            case .success(let image):
-                image
-                    .resizable()
-                    .scaledToFit()
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-            case .failure:
-                EmptyView()
-            default:
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .fill(Color.primary.opacity(0.05))
-                    .frame(height: 140)
-            }
-        }
-        .frame(maxHeight: 260)
+        ReviewAnimatedImageView(url: url, fills: false, placeholderHeight: 140)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(maxHeight: 260)
+            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .contentShape(Rectangle())
+            .onTapGesture { viewerImage = ReviewViewerImageItem(url: url) }
     }
 
     // MARK: 底部
