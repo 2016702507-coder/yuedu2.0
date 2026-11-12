@@ -459,6 +459,65 @@ enum ReviewCommentGrabber {
     return { adapter: 'fq', title: '', context: '', items: out };
   }
 
+  /* ---------- 适配器 2.5：番茄 APP 书源的自绘段评面板 ----------
+   * fqapp 书源的段评面板是 jsLib 自己拼的 HTML（FQ_ideaTap → showBrowser 四参，
+   * preloadJs document.write 写出）：结构固定 ——
+   *   .top（标题「💬 本段段评 · N 条」）
+   *   .ls/#fqls > .it（评论行）
+   *     .av > b(首字占位) + img.p[data-av=真实头像URL]
+   *     .bd > .hd > .un(名字) + em.au(作者标) + .tm(日期) + .dg(N 赞)
+   *           .tx(正文) + .rp(N 条回复)
+   * 通用兜底抓它会把「作者标/赞数/回复数」全混进正文、点赞清零、头像丢失，
+   * 这里按结构精确取字段，抓干净的数据交给原生卡片。
+   */
+  function adaptFQPanel() {
+    var rows = document.querySelectorAll('.ls > .it, #fqls > .it, .ls .it, #fqls .it');
+    if (rows.length < 1) return null;
+    var out = [];
+    for (var i = 0; i < rows.length; i++) {
+      var c = rows[i];
+      var body = c.querySelector('.tx');
+      if (!body) continue;
+      var images = [];
+      var content = bodyContent(body, images);
+      if (!content) continue;
+      var nameEl = c.querySelector('.un');
+      var user = txt(nameEl);
+      if (!user) {
+        // 首字占位也别拿去当名字：.av b 只在头像解不出来时可见
+        var fu = c.querySelector('.av b');
+        user = fu && fu.style.display !== 'none' ? '' : '';
+      }
+      var avImg = c.querySelector('.av img.p');
+      var avatar = avImg ? abs(avImg.getAttribute('data-av') || avImg.getAttribute('src') || '') : '';
+      var dg = c.querySelector('.dg');
+      var likes = dg ? (pickNumbers(txt(dg))[0] || 0) : 0;
+      var rp = c.querySelector('.rp');
+      var replyCount = rp ? (pickNumbers(txt(rp))[0] || 0) : 0;
+      var isAuthor = !!c.querySelector('em.au');
+      var meta = txt(c.querySelector('.tm'));
+      out.push({
+        id: 'fp' + i,
+        user: user || '读者',
+        avatar: avatar,
+        level: 0,
+        badge: isAuthor ? '作者' : '',
+        meta: meta,
+        content: content,
+        images: images,
+        voice: '',
+        likes: likes,
+        replyCount: replyCount,
+        replies: []
+      });
+    }
+    if (out.length < 2) return null;
+    var withText = out.filter(function (x) { return x.content || x.images.length; }).length;
+    if (withText / out.length < 0.6) return null;
+    var top = txt(document.querySelector('.top')).replace(/^[^\u4e00-\u9fa5A-Za-z0-9]+/, '');
+    return { adapter: 'fqpanel', title: top || '段评', context: '', items: out };
+  }
+
   /* ---------- 适配器 3：通用——重复兄弟簇 ---------- */
   function signature(el) {
     var kids = el.children;
@@ -696,6 +755,7 @@ enum ReviewCommentGrabber {
     if (!r) { try { r = adaptQidian(); } catch (e0) {} }
     if (!r) { try { r = adaptQD(); } catch (e) {} }
     if (!r) { try { r = adaptFQ(); } catch (e2) {} }
+    if (!r) { try { r = adaptFQPanel(); } catch (e4) {} }
     if (!r) { try { r = adaptGeneric(); } catch (e3) {} }
     return r;
   }

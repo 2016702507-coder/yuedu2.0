@@ -858,6 +858,17 @@ struct JsBridgeBrowserRepresentable: UIViewRepresentable {
             config.userContentController.addUserScript(
                 WKUserScript(source: bootstrap, injectionTime: .atDocumentStart, forMainFrameOnly: true)
             )
+            // Legado 的 preloadJs 在页面加载完（onPageFinished）后才执行；自绘面板书源
+            // （番茄 APP 源等）靠 `document.write` 清空空壳页重写整张面板。documentStart
+            // 注入时解析器还没读完空壳，write 出的内容只是追加进流，部分面板依赖「已
+            // 到文档尾部」的语义时就会渲染失败 —— 表现为面板一片空白。对这类脚本再
+            // 在 documentEnd 补一次：此时 write 清空文档完整重写，与 Legado 行为一致；
+            // 幂等的面板脚本重跑一遍无副作用。
+            if injectedJavaScript.contains("document.write") {
+                config.userContentController.addUserScript(
+                    WKUserScript(source: bootstrap, injectionTime: .atDocumentEnd, forMainFrameOnly: true)
+                )
+            }
         }
         // In a world of its own, out of the page's reach, as every page here needs it.
         config.userContentController.addScriptMessageHandler(
