@@ -661,6 +661,7 @@ private struct ReviewCommentCard: View {
 /// 设计对齐要求：胶囊为灰色半透明圆角；播放钮是「透明玻璃感」的圆形，
 /// 内部一个 `waveform` 波纹图标；右侧显示语音时长（秒，形如 `16''`）。
 /// 点按交给单例 `ReviewVoicePlayer`，保证全 App 同时只放一段语音。
+@MainActor
 private struct VoiceCapsuleBar: View {
     let url: URL
 
