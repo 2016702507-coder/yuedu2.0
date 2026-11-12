@@ -74,7 +74,7 @@ final class AutoReadController: NSObject, ObservableObject {
     /// Asked every frame, because the reader can switch modes underneath us.
     var usesContinuousScroll: () -> Bool = { false }
 
-    private var displayLink: CADisplayLink?
+    nonisolated(unsafe) private var displayLink: CADisplayLink?
     private var lastTimestamp: CFTimeInterval?
 
     var secondsText: String { Self.secondsText(secondsPerPage) }
@@ -277,7 +277,7 @@ final class AutoReadController: NSObject, ObservableObject {
         return Advance(progress: value, pageTurns: turns)
     }
 
-    isolated deinit {
+    deinit {
         displayLink?.invalidate()
     }
 }
