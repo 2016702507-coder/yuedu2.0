@@ -35,6 +35,10 @@ struct ReadingHomeView: View {
     @State private var showsStats = false
     @State private var now = Date()
 
+    /// 长按封面要删的那本书，以及确认框的开关 —— 删的是整本（从书架消失），不是只从继续阅读去掉。
+    @State private var pendingDeleteBook: ReadingBook?
+    @State private var showsDeleteConfirm = false
+
     /// Where `scrollPosition` puts the strip: written by `settleCarousel` to open on the book
     /// last read, never read back for the caption.
     @State private var centeredBookID: UUID?
@@ -115,6 +119,22 @@ struct ReadingHomeView: View {
         }
         .sheet(isPresented: $showsStats) {
             NavigationStack { ReadingStatsView() }
+        }
+        // 长按封面的删除确认：删的是整本书，从书架消失。
+        .alert(localized("从书架删除"), isPresented: $showsDeleteConfirm) {
+            Button(localized("删除"), role: .destructive) {
+                if let book = pendingDeleteBook {
+                    store.delete(bookId: book.id)
+                    pendingDeleteBook = nil
+                }
+            }
+            Button(localized("取消"), role: .cancel) {
+                pendingDeleteBook = nil
+            }
+        } message: {
+            if let book = pendingDeleteBook {
+                Text(String(format: localized("确定要从书架删除《%@》吗？这本书及其阅读进度会被一并移除。"), book.title))
+            }
         }
     }
 
@@ -275,6 +295,11 @@ struct ReadingHomeView: View {
                             // 点封面直接进阅读；拖动时这个手势自动让位给滚动。
                             .contentShape(Rectangle())
                             .onTapGesture { openBook(book) }
+                            // 长按：从书架整本删除（含缓存与阅读进度），不是只撤掉继续阅读。
+                            .onLongPressGesture {
+                                pendingDeleteBook = book
+                                showsDeleteConfirm = true
+                            }
                             .accessibilityElement(children: .ignore)
                             .accessibilityAddTraits(.isButton)
                             .accessibilityLabel(book.title)

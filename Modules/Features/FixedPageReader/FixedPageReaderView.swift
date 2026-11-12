@@ -77,6 +77,10 @@ struct FixedPageReaderView: View {
     @Bindable private var globalSettings = GlobalSettings.shared
     @State private var readingStatsTracker: ReadingStatsSessionTracker?
     @State private var showTouchZoneEditor = false
+    /// 换源面板：从书详情复用现成的换源（书源/来源配置）引擎。
+    @State private var showsChangeSource = false
+    /// 换源后让阅读器重新加载：改这个 token 会重建 UIKit 控制器，读新源。
+    @State private var reloadToken = UUID()
 
     var body: some View {
         // The shelf's card push hosts this reader in a UIKit controller whose bar
@@ -96,13 +100,14 @@ struct FixedPageReaderView: View {
         ZStack {
             Color.black.ignoresSafeArea()
 
-            if let book = store.readingBook(id: bookId) {
-                FixedPageReaderRepresentable(
-                    book: book,
-                    store: store,
-                    state: state,
-                    chapterFetcher: dependencies.chapterFetcher
-                )
+                if let book = store.readingBook(id: bookId) {
+                    FixedPageReaderRepresentable(
+                        book: book,
+                        store: store,
+                        state: state,
+                        chapterFetcher: dependencies.chapterFetcher
+                    )
+                    .id(reloadToken)
                     .ignoresSafeArea()
 
                 if state.isLoading {
@@ -128,9 +133,11 @@ struct FixedPageReaderView: View {
                         onOpenTouchZoneEditor: {
                             state.showControls = false
                             showTouchZoneEditor = true
-                        }
+                        },
+                        canChangeSource: currentBook?.bookSourceId != nil,
+                        onOpenChangeSource: { showsChangeSource = true }
                     )
-                        .transition(.opacity)
+                    .transition(.opacity)
                 }
 
                 if state.fixedPageReaderConfiguration.layout == .continuousVerticalScroll,
@@ -224,6 +231,20 @@ struct FixedPageReaderView: View {
         .sheet(isPresented: $state.showChapterList) {
             FixedPageChapterListView(state: state)
         }
+        // 换源：复用书详情的换源（书源/来源配置）。换源后会重绑同一 bookId，
+        // dismiss 时 bump reloadToken 重建阅读器，读上新源。
+        .sheet(isPresented: $showsChangeSource, onDismiss: {
+            reloadToken = UUID()
+        }) {
+            if let book = store.readingBook(id: bookId),
+               let onlineBook = OnlineBook(shelfCopy: book) {
+                NavigationStack {
+                    OnlineBookView(book: onlineBook)
+                        .environmentObject(store)
+                        .environment(\.appDependencies, dependencies)
+                }
+            }
+        }
     }
 
     private var currentBook: ReadingBook? {
@@ -288,6 +309,9 @@ struct FixedPageReaderControlsOverlay: View {
     var isModal = true
     var onClose: () -> Void
     var onOpenTouchZoneEditor: () -> Void
+    /// 这本书能从书源/来源配置换源时才显示按钮（本地导入的漫画没有来源可换）。
+    var canChangeSource = false
+    var onOpenChangeSource: () -> Void = {}
     @State private var showSettings = false
     @State private var pendingTouchZoneEditor = false
     /// iOS 17: the paywall a locked setting asked for, presented once settings is gone.
@@ -312,6 +336,17 @@ struct FixedPageReaderControlsOverlay: View {
                                 state.showChapterList = true
                             } label: {
                                 Label(localized("目录"), systemImage: "list.bullet")
+                                    .labelStyle(.iconOnly)
+                            }
+                        }
+                    }
+                    ToolbarItem(placement: .topBarLeading) {
+                        if canChangeSource {
+                            Button {
+                                state.onStopAutoScroll?()
+                                onOpenChangeSource()
+                            } label: {
+                                Label(localized("换源"), systemImage: "arrow.triangle.2.circlepath")
                                     .labelStyle(.iconOnly)
                             }
                         }
