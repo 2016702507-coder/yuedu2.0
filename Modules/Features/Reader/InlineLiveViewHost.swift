@@ -69,7 +69,7 @@ final class InlineLiveViewHost {
     private weak var owner: UIViewController?
     private var controllers: [String: UIViewController] = [:]
 
-    private var stopObserver: NSObjectProtocol?
+    nonisolated(unsafe) private var stopObserver: NSObjectProtocol?
 
     init(owner: UIViewController) {
         self.owner = owner
@@ -80,7 +80,7 @@ final class InlineLiveViewHost {
         }
     }
 
-    isolated deinit {
+    deinit {
         if let stopObserver { NotificationCenter.default.removeObserver(stopObserver) }
     }
 

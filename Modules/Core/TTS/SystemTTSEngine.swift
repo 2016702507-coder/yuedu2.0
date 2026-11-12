@@ -655,11 +655,14 @@ final class SystemTTSEngine: NSObject, TTSPlayable {
     }
 
     /// Ending the background task and stopping the synthesizer are main-actor work. The
-    /// coordinator owns the engine and is released on main, so this runs inline; Swift 6.4
-    /// back-deploys isolated deinit for the main actor, so iOS 17 has it.
-    isolated deinit {
-        playbackToken = UUID()
-        resetPlaybackState()
+    /// coordinator owns the engine and is released on main, so this runs inline. NOTE: the
+    /// Swift 6.4 back-deploy of isolated deinit crashes on iOS 17.0 inside `swift_task_dealloc`,
+    /// so this is now a plain `deinit` guarded by `MainActor.assumeIsolated`.
+    deinit {
+        MainActor.assumeIsolated {
+            playbackToken = UUID()
+            resetPlaybackState()
+        }
     }
 }
 

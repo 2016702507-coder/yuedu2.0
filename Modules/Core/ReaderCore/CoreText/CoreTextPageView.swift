@@ -2814,7 +2814,13 @@ final class CoreTextPageViewController: UIViewController, ReaderBookmarkRibbonHo
             // iOS 15+ 的 sheet 背景不是 `backgroundColor`，而是一層系統材質視圖
             // （UIVisualEffectView）。只清 host.view 擋不住它，下面那層「白霧」會一直在，
             // 面板不透明度調到 0 都還是白的。整條容器鏈一起清。
-            Self.clearSheetChrome(host.presentationController?.containerView)
+            // 只清系统 sheet 的装饰层，绝不下钻到面板内容视图：面板自己的玻璃
+            // （UIVisualEffectView）就在 presentedView 子树里，旧实现递归把它
+            // effect=nil，拉到全屏就整片全透明、背后正文直接透上来。
+            Self.clearSheetChrome(
+                host.presentationController?.containerView,
+                keepingContentOf: host.presentationController?.presentedView
+            )
             self.installOutsideTapDismiss(
                 for: host,
                 isEnabled: SourceBrowserPresentationConfiguration(
@@ -2889,12 +2895,21 @@ final class CoreTextPageViewController: UIViewController, ReaderBookmarkRibbonHo
         host.view.backgroundColor = .clear
         host.view.isOpaque = false
         host.view.layer.isOpaque = false
-        Self.clearSheetChrome(host.presentationController?.containerView)
+        Self.clearSheetChrome(
+            host.presentationController?.containerView,
+            keepingContentOf: host.presentationController?.presentedView
+        )
     }
 
-    /// 把 sheet 容器上所有系統材質與底色清成透明，只留內容本身。
-    private static func clearSheetChrome(_ view: UIView?) {
+    /// 把 sheet 容器上的系統材質與底色清成透明，只留內容本身。
+    ///
+    /// `protected` 是被呈現的面板視圖（連同它自己的玻璃層）：整棵跳過。
+    /// 半屏/全屏切換時 UIKit 會重建容器上的材質視圖，需要再清一次；但面板
+    /// 自己那層玻璃也在容器鏈上，舊實作遞迴把它 `effect = nil`，拉到 large
+    /// 就變成全透明、背後正文直接透上來。現在只清系統裝飾層。
+    private static func clearSheetChrome(_ view: UIView?, keepingContentOf protected: UIView?) {
         guard let view else { return }
+        if let protected, view === protected || view.isDescendant(of: protected) { return }
         if let effect = view as? UIVisualEffectView {
             effect.effect = nil
         }
@@ -2902,7 +2917,7 @@ final class CoreTextPageViewController: UIViewController, ReaderBookmarkRibbonHo
         view.isOpaque = false
         view.layer.isOpaque = false
         for sub in view.subviews {
-            clearSheetChrome(sub)
+            clearSheetChrome(sub, keepingContentOf: protected)
         }
     }
 

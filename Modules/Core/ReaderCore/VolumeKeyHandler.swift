@@ -35,7 +35,7 @@ final class VolumeKeyHandler: NSObject, @MainActor ObservableObject {
         isEnabled = UserDefaults.standard.bool(forKey: "yd_volume_page")
     }
 
-    isolated deinit { stopListening() }
+    deinit { MainActor.assumeIsolated { stopListening() } }
 
     // MARK: - Start Listening
 

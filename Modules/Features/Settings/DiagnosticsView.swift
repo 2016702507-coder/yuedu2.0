@@ -311,7 +311,7 @@ final class DiagnosticsViewModel: ObservableObject {
         }
     }
 
-    private var acknowledgementObserver: NSObjectProtocol?
+    nonisolated(unsafe) private var acknowledgementObserver: NSObjectProtocol?
 
     @Published var isVerboseEnabled: Bool {
         didSet {
@@ -335,7 +335,7 @@ final class DiagnosticsViewModel: ObservableObject {
         }
     }
 
-    isolated deinit {
+    deinit {
         if let acknowledgementObserver {
             NotificationCenter.default.removeObserver(acknowledgementObserver)
         }

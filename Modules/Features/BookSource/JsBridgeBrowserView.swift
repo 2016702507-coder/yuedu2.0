@@ -24,6 +24,35 @@ enum ParagraphReviewVeil {
     }
 }
 
+/// 段評面板專用玻璃：比閱讀設定那塊（material 0.30）實得多，能擋住背後正文，
+/// 半屏與全屏用同一塊，不會拉滿就透成一層字。UIKit 呈現與 SwiftUI sheet 兩條
+/// 路徑都由內容自己畫這塊玻璃，所以兩種檔位、兩條路徑完全一致。
+/// 總閘關閉 / 系統要求降低透明度時退成不透明純色，保留 iOS 17 一鍵兜底。
+struct ReviewSheetGlassBackground: View {
+    @Bindable private var settings = GlobalSettings.shared
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @Environment(\.colorScheme) private var colorScheme
+
+    private var usesGlass: Bool {
+        settings.interfaceFrostedGlass && !reduceTransparency
+    }
+
+    var body: some View {
+        ZStack {
+            if usesGlass {
+                Rectangle()
+                    .fill(.ultraThinMaterial)
+                    .opacity(0.90)
+                (colorScheme == .dark ? Color.black : Color.white)
+                    .opacity(colorScheme == .dark ? 0.18 : 0.22)
+            } else {
+                Rectangle().fill(DSColor.surface)
+            }
+        }
+        .ignoresSafeArea()
+    }
+}
+
 struct SourceBrowserPresentationConfiguration: Equatable {
     var heightPercentage: Double?
     var skipCollapsed = false
@@ -462,24 +491,27 @@ struct LegadoReviewBrowserView: View {
                 .accessibilityLabel(effectiveShowsSourcePage ? localized("用卡片显示") : localized("显示原网页"))
             }
         }
-        // 面板底：sheet 用系统 ultraThinMaterial 做真毛玻璃（实时模糊背后的正文），
-        // 页面本身完全透明，只有需要压浓时再叠一层极淡的纯色蒙版。
+        // 面板底：一块较实的磨砂玻璃 + 用户滑杆控制的极淡纯色蒙版。
+        // 玻璃由内容自己画（不是系统的 presentationBackground），所以 UIKit
+        // 呈现的那条路径也有玻璃；半屏/全屏切换时 clearSheetChrome 会跳过
+        // presentedView 子树，这层玻璃不会被清掉。
         .background {
-            Rectangle()
-                .fill(
-                    ParagraphReviewVeil.color(
-                        for: colorScheme,
-                        opacity: settings.reviewSheetOpacity
+            ZStack {
+                ReviewSheetGlassBackground()
+                Rectangle()
+                    .fill(
+                        ParagraphReviewVeil.color(
+                            for: colorScheme,
+                            opacity: settings.reviewSheetOpacity
+                        )
                     )
-                )
-                .ignoresSafeArea()
+                    .ignoresSafeArea()
+            }
         }
-        // 全档位同一块玻璃：以前只 `.enabled(upThrough: .medium)`，拉到 large
-        // 系统就在 sheet 背后补一层不透明变暗层，材质采不到内容退化成近白实色
-        // —— 就是「半屏透明、拉满变白底」。改成全档位都保持背景可见，并用项目
-        // 里已定稿的低不透明度玻璃（0.30 材质 + 极淡 tint）替代裸 `.ultraThinMaterial`，
-        // 全屏时也不会糊成一块白板。
-        .presentationBackground { ReaderGlassSheetBackground() }
+        // 全档位同一块玻璃：presentationBackground 交给内容层，系统不再另画
+        // 一层材质（否则两层互采会糊成白板）；背景交互开到 large，保证玻璃
+        // 始终采样得到背后的书页正文。
+        .presentationBackground { Color.clear }
         .presentationBackgroundInteraction(.enabled(upThrough: .large))
         .presentationDetents(presentationConfiguration.detents)
         .presentationDragIndicator(

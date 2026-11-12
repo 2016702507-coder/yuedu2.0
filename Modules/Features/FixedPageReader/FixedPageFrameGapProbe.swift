@@ -38,8 +38,10 @@ final class FixedPageFrameGapProbe {
         self.stage = stage
     }
 
-    isolated deinit {
-        stop()
+    deinit {
+        MainActor.assumeIsolated {
+            stop()
+        }
     }
 
     var isWatching: Bool { link != nil }

@@ -252,7 +252,7 @@ struct NativeReviewPanelView: View {
     private var header: some View {
         VStack(spacing: 11) {
             Text(localized("段评"))
-                .font(.system(size: 17, weight: .semibold))
+                .font(.system(size: 16.5, weight: .bold))
                 .foregroundStyle(DSColor.textPrimary)
                 .frame(maxWidth: .infinity)
 
@@ -267,14 +267,20 @@ struct NativeReviewPanelView: View {
                     .padding(.horizontal, 14)
                     .padding(.vertical, 11)
                     .background(
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .fill(Color.secondary.opacity(colorScheme == .dark ? 0.10 : 0.055))
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .fill(colorScheme == .dark
+                                  ? Color.white.opacity(0.08)
+                                  : Color.white.opacity(0.66))
                             .overlay(
-                                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                RoundedRectangle(cornerRadius: 14, style: .continuous)
                                     .strokeBorder(
-                                        Color.white.opacity(colorScheme == .dark ? 0.06 : 0.55),
-                                        lineWidth: 0.5
+                                        Color.white.opacity(colorScheme == .dark ? 0.10 : 0.85),
+                                        lineWidth: 0.6
                                     )
+                            )
+                            .shadow(
+                                color: Color.black.opacity(colorScheme == .dark ? 0 : 0.06),
+                                radius: 8, y: 3
                             )
                     )
             }
@@ -335,17 +341,14 @@ private struct ReviewCommentCard: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(isNested ? 10 : 12)
-        // 扁平玻璃卡片：面板本身就是玻璃，卡片不再铺白底、描边、阴影，
-        // 只留一层几乎看不见的淡底 + 一条细分隔线，半屏和全屏都透。
-        .background {
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(cardFill)
-        }
+        .padding(.horizontal, 2)
+        .padding(.vertical, isNested ? 8 : 13)
+        // 照参考图：评论直接排在玻璃底上，不铺卡片实底、不描边、不加阴影，
+        // 只留一条极淡的细分隔线；半屏和全屏都是同一块玻璃。
         .overlay(alignment: .bottom) {
             if !isNested {
                 Rectangle()
-                    .fill(Color.secondary.opacity(colorScheme == .dark ? 0.16 : 0.11))
+                    .fill(Color.secondary.opacity(colorScheme == .dark ? 0.14 : 0.09))
                     .frame(height: 0.5)
             }
         }
@@ -687,19 +690,6 @@ private struct ReviewCommentCard: View {
         }
     }
 
-    /// 卡片只上一层「很薄的高光」，不再铺任何实底，也不再叠第二层模糊。
-    ///
-    /// 面板底已经是 `ultraThinMaterial`（系统模糊），卡片再盖 material 等于
-    /// 在同一处糊两次，越糊越白、越糊越不透 —— 看着就是一块白底。
-    /// 现在卡片只剩 12% 的白 + 一条高光描边，正文的明暗能直接透到卡片上，
-    /// 卡片与面板的区分靠边框和极淡阴影，而不是靠一块白色。
-    private var cardFill: AnyShapeStyle {
-        let base = CGFloat(style.cardOpacity)
-        if isNested {
-            return AnyShapeStyle(Color.primary.opacity(base * (colorScheme == .dark ? 1.15 : 0.7)))
-        }
-        return AnyShapeStyle(Color.white.opacity(base * (colorScheme == .dark ? 0.7 : 1)))
-    }
 }
 
 // MARK: - 语音条
@@ -736,8 +726,9 @@ private struct VoiceCapsuleBar: View {
                         Circle()
                             .fill(.ultraThinMaterial)
                             .overlay(
-                                Circle().strokeBorder(Color.primary.opacity(0.12), lineWidth: 0.5)
+                                Circle().strokeBorder(Color.white.opacity(colorScheme == .dark ? 0.14 : 0.75), lineWidth: 0.7)
                             )
+                            .shadow(color: Color.black.opacity(0.08), radius: 3, y: 1)
                     )
             }
             .buttonStyle(.plain)
@@ -751,7 +742,11 @@ private struct VoiceCapsuleBar: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 7)
         .background(
-            Capsule().fill(Color.secondary.opacity(colorScheme == .dark ? 0.18 : 0.10))
+            Capsule()
+                .fill(Color.gray.opacity(colorScheme == .dark ? 0.26 : 0.16))
+                .overlay(
+                    Capsule().strokeBorder(Color.white.opacity(colorScheme == .dark ? 0.08 : 0.5), lineWidth: 0.6)
+                )
         )
         .frame(maxWidth: 220)
         .task { await loadDuration() }

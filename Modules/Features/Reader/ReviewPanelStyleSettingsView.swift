@@ -114,7 +114,7 @@ struct ReviewPanelStyleSettingsView: View {
             )
             .presentationDetents([.medium, .large])
             .presentationDragIndicator(.visible)
-            .presentationBackground { ReaderGlassSheetBackground() }
+            .presentationBackground { ReviewSheetGlassBackground() }
             .presentationBackgroundInteraction(.enabled(upThrough: .large))
         }
     }
