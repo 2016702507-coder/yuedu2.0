@@ -46,20 +46,27 @@ fi
 echo "源码版本校验通过"
 
 echo ""
-echo "===== Pick newest Xcode ====="
+echo "===== Pick Xcode ====="
+# 优先 26.2（Swift 6.2.3）：iOS 17.0 真机 swift_task_dealloc LIFO 崩溃
+# （swiftlang/swift#84793）实测 26.2 干净、26.5/26.6 崩，6.2.4+ 产物在旧运行时崩
+# （#88036）。没有 26.2 时退回「选最新」。
 BEST=""
-BEST_V=0
-for x in /Applications/Xcode*.app; do
-  v=$(defaults read "$x/Contents/Info" CFBundleShortVersionString 2>/dev/null || echo 0)
-  maj=${v%%.*}
-  rest=${v#*.}
-  min=${rest%%.*}
-  n=$((maj * 100 + 10#${min:-0}))
-  if [ "$n" -gt "$BEST_V" ]; then
-    BEST_V=$n
-    BEST="$x"
-  fi
-done
+if [ -d "/Applications/Xcode_26.2.0.app" ]; then
+  BEST="/Applications/Xcode_26.2.0.app"
+else
+  BEST_V=0
+  for x in /Applications/Xcode*.app; do
+    v=$(defaults read "$x/Contents/Info" CFBundleShortVersionString 2>/dev/null || echo 0)
+    maj=${v%%.*}
+    rest=${v#*.}
+    min=${rest%%.*}
+    n=$((maj * 100 + 10#${min:-0}))
+    if [ "$n" -gt "$BEST_V" ]; then
+      BEST_V=$n
+      BEST="$x"
+    fi
+  done
+fi
 echo "选中: $BEST"
 sudo xcode-select -s "$BEST"
 xcodebuild -version

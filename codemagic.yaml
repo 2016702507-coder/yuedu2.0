@@ -22,14 +22,21 @@ workflows:
     max_build_duration: 120
 
     environment:
-      # 必须锁 26.3：GitHub 上成功出包的那几次用的就是 Xcode 26.3.0
-      # （runner 日志:「选中: /Applications/Xcode_26.3.0.app」）。
-      # 工具链差异实测：
+      # 必须锁 26.2：iOS 17.0 真机搜书 SIGABRT（诊断日志 crash: signal=6，堆栈
+      # pthread_kill → abort → swift_Concurrency_fatalError → swift_task_dealloc ←
+      # completeTaskWithClosure）是 Swift 工具链的任务分配器 LIFO 崩溃
+      # （swiftlang/swift#84793「freed pointer was not the last allocation」，
+      # 部署目标 <18.0 + -O 触发；#88036 证实 6.2.4 起的产物在旧 OS 运行时上崩、
+      # 新运行时正常——与本机「只有 iOS 17.0 崩」吻合）。该 issue 实测：
+      #   26.2 (Swift 6.2.3) -> 干净
+      #   26.5/26.6 (6.3.2/6.3.3) -> 崩
+      # 本工程曾用 26.3 (6.2.4)，落在受影响区间。
+      # 工具链差异实测（编译期）：
       #   16.4  -> EPUBAttributedStringBuilder.swift:274 非 Sendable 结果跨隔离传递
       #   26.6  -> ReaderViewportFragmentHost.swift:232 sending 'prepare' 数据竞争
       #   26.3  -> 通过
-      # 这不是源码问题，是 26.4+ 收紧的并发诊断把既有写法判成错误。
-      xcode: 26.3
+      # 26.2 未跑过并发诊断，若编译报错退回 26.3 并改用规避 #84793 触发模式的方式。
+      xcode: 26.2
       vars:
         # 与 Actions 版一致的签名目标 App ID；留空则保持原包名 com.yuedu.reader。
         SIGN_BUNDLE_ID: com.QpPL.pEorsl

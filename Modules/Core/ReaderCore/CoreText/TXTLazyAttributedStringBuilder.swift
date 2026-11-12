@@ -199,7 +199,36 @@ struct TXTLazyAttributedStringBuilder: AttributedStringBuilding {
     var appliesReplaceRules: Bool { true }
 
     func localChapterText(at index: Int, applyingReplaceRules: Bool) async -> AILocalChapterText {
-        .extracted(plainText(at: index, applyingReplaceRules: applyingReplaceRules))
+        // 全书搜寻 reads every chapter. The parse, the conversion and the replace rules used
+        // to run here on the caller's (main) executor, and a long novel's chapters stalled
+        // the results sheet one after another. The builder's state is immutable and Sendable,
+        // so the whole computation runs detached, as the EPUB builder's HTML extraction does.
+        let text = self.text
+        let chapterIndexes = self.chapterIndexes
+        let mappedTextFile = self.mappedTextFile
+        let mappedChapterIndexes = self.mappedChapterIndexes
+        let parsesAozora = parsesAozoraMarkup
+        // The rule list is read on the main actor before detaching; applying it is off-main.
+        let rules = applyingReplaceRules ? ReplaceRuleStore.rules(for: "") : []
+        let plain = await Task.detached(priority: .utility) { () -> String? in
+            let rawText: String?
+            if mappedChapterIndexes.indices.contains(index), let mappedTextFile {
+                rawText = TXTChapterParser.chapterText(mappedTextFile, byteRange: mappedChapterIndexes[index].byteRange)
+            } else if chapterIndexes.indices.contains(index), let text {
+                rawText = TXTChapterParser.chapterText(text, range: chapterIndexes[index].contentRange)
+            } else {
+                rawText = nil
+            }
+            guard var result = rawText, !result.isEmpty else { return nil }
+            // 繁簡轉換 runs before replace rules, as in legado's ContentProcessor: a rule made
+            // from a selection holds the characters the reader saw, which are the converted ones.
+            result = result.converted(to: .original)
+            if !rules.isEmpty {
+                result = ReplaceRuleEngine.apply(rules, to: result)
+            }
+            return parsesAozora ? AozoraMarkupParser.parse(result).plainText : result
+        }.value
+        return .extracted(plain)
     }
 
     func chapterPlainText(at index: Int) async -> String? {

@@ -361,10 +361,16 @@ struct BookDocumentContentProviderAdapter: BookContentProvider {
                 sourceHref: chapter.id
             )
         case .html(let html):
+            // SwiftSoup parses the whole chapter; during a whole-book search this ran for
+            // every chapter on the caller's (main) executor and stalled the UI. Detached,
+            // as the builders' own HTML extraction is.
+            let normalized = await Task.detached(priority: .utility) {
+                UniversalBookHelpers.normalizedText(fromHTML: html)
+            }.value
             return ChapterContentPayload(
                 index: index,
                 title: chapter.title,
-                plainText: UniversalBookHelpers.normalizedText(fromHTML: html),
+                plainText: normalized,
                 body: .html(html),
                 sourceHref: chapter.id
             )

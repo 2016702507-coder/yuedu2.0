@@ -283,8 +283,12 @@ final class OnlineProviderAttributedStringBuilder: @preconcurrency AttributedStr
             }
             // The cache holds the source's text; rules apply on the way out, here as on
             // screen (`applyReplaceRules`), so AI reads what the reader shows.
+            // Off the main actor: a whole-book search applies the rules to every chapter,
+            // and several slow rules on the main thread would stall the sheet for the
+            // whole search (regex rules run up to 3 s each).
             let rules = applyingReplaceRules ? ReplaceRuleStore.rules(for: replaceRuleScopeURL) : []
-            return .extracted(rules.isEmpty ? text : ReplaceRuleEngine.apply(rules, to: text))
+            let applied = rules.isEmpty ? text : await ReplaceRuleEngine.applyingOffMain(rules, to: text)
+            return .extracted(applied)
         } catch BookContentProviderError.contentNotCached {
             return .init(text: nil, status: .notDownloaded)
         } catch BookContentProviderError.unsupportedChapterContent {
