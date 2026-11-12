@@ -15,12 +15,12 @@ final class EPUBMediaOverlayPlaybackCoordinator: ObservableObject {
     @Published private(set) var currentChapterIndex: Int?
     @Published private(set) var errorMessage: String?
 
-    private var player: AVPlayer?
-    private var timeObserver: Any?
+    nonisolated(unsafe) private var player: AVPlayer?
+    nonisolated(unsafe) private var timeObserver: Any?
     private var activeOverlay: EPUBMediaOverlay?
     private var activeAudioHref: String?
 
-    isolated deinit {
+    deinit {
         if let timeObserver {
             player?.removeTimeObserver(timeObserver)
         }
