@@ -496,9 +496,10 @@ attempt() {
   return 1
 }
 
-# 第 1 档用真正的 -O 优化（不带 -disable-llvm-optzns）：代码段从 97MB 降到
-# 正常量级，产物约 40MB，第三方重签工具才签得动、系统才装得下。
-# 若 -O 触发 IRGen 崩溃，自动降级到 -Onone 三档兜底。
+# iOS 17.0 闪退根因：Xcode 26.3 (Swift 6.2.4) back-deployed 并发运行时在
+# -O 产物里命中 swift_task_dealloc 的 LIFO 断言（swift#84793）。本分支构建
+# 由 codemagic.yaml 固定到 Xcode 26.4（该 issue 的修复版本），这里再把首选
+# 档从 -O 换成 -Onone 作双保险；原四档保留兜底，构建不会因新增档失败。
 # 一次报全：xcodebuild 一旦某个 SwiftCompile 失败就停下，所以正常的构建日志永远
 # 只有一个 error:。而整模块编译（-wholemodule + -Onone）会把所有源文件塞进同一个
 # frontend 进程，配上 -continue-building-after-errors 就能一次列出全部错误。
@@ -545,6 +546,8 @@ diag_all_errors() {
 }
 
 for combo in \
+  "ios17-none|incremental|-Onone|NO|no" \
+  "ios17-safe|incremental|-O|NO|yes" \
   "opt|incremental|-O|NO|no" \
   "opt-size|incremental|-Osize|NO|no" \
   "nobatch-a|incremental|-Onone|NO|no" \
@@ -567,7 +570,7 @@ fi
 echo ""
 echo "===== Package unsigned IPA ====="
 if [ -z "${BUILD_DIR:-}" ]; then
-  for d in build-opt build-opt-size build-nobatch-a build-nobatch-b build-batch build-fallback build-out; do
+  for d in build-ios17-none build-ios17-safe build-opt build-opt-size build-nobatch-a build-nobatch-b build-batch build-fallback build-out; do
     if [ -d "$d/Build/Products" ]; then BUILD_DIR="$d"; break; fi
   done
 fi
