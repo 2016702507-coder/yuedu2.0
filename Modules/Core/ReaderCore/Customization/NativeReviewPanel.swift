@@ -266,23 +266,11 @@ struct NativeReviewPanelView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 11)
-                    .background(
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .fill(colorScheme == .dark
-                                  ? Color.white.opacity(0.08)
-                                  : Color.white.opacity(0.66))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                    .strokeBorder(
-                                        Color.white.opacity(colorScheme == .dark ? 0.10 : 0.85),
-                                        lineWidth: 0.6
-                                    )
-                            )
-                            .shadow(
-                                color: Color.black.opacity(colorScheme == .dark ? 0 : 0.06),
-                                radius: 8, y: 3
-                            )
-                    )
+                    .background {
+                        // 引用原文框也用玻璃：跟面板同一套設定驅動，比面板略實並留一圈
+                        // 細白描邊，做出參考圖那種淡玻璃卡片，不再是白底實心方塊。
+                        ReviewQuoteGlass(cornerRadius: 14)
+                    }
             }
         }
         .padding(.top, DSSpacing.sm)
@@ -294,6 +282,52 @@ struct NativeReviewPanelView: View {
         let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
         if !trimmed.isEmpty, trimmed != localized("段评") { return trimmed }
         return paragraphLabel?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+    }
+}
+
+// MARK: - 引用原文框玻璃
+
+/// 引用原文框也用玻璃：跟 `ReviewSheetGlassBackground` 同一套設定驅動（兩個透明度
+/// 滑桿），但比面板底略實一點並留一圈細白描邊，做出參考圖那種「淡玻璃卡片」的
+/// 層次。以前這裡是 `Color.white.opacity(0.66)` 白底實心方塊，面板改成玻璃後它
+/// 仍是白的，正是「引用的正文那裡也要玻璃」要修的地方。
+private struct ReviewQuoteGlass: View {
+    @Bindable private var settings = GlobalSettings.shared
+    @Environment(\.colorScheme) private var colorScheme
+
+    var cornerRadius: CGFloat = 14
+
+    /// 濃度 0 = 最透、1 = 最實，公式與面板玻璃完全一致。
+    private var level: Double {
+        let sheet = min(max(settings.reviewSheetOpacity, 0), 1)
+        let global = 1 - min(max(settings.interfaceGlassTransparency, 0), 1)
+        return min(max(0.7 * sheet + 0.3 * global, 0), 1)
+    }
+
+    /// 比面板底略實：0 → 0.20（仍能透出背後書頁）、1 → 0.90。
+    private var materialOpacity: Double { 0.20 + 0.70 * level }
+
+    /// 極淡 tint 給玻璃一點厚度；暗色用黑，避免夜間發白。
+    private var tintOpacity: Double {
+        (colorScheme == .dark ? 0.05 : 0.03) + 0.42 * level
+    }
+
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .fill(.ultraThinMaterial)
+                .opacity(materialOpacity)
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .fill(colorScheme == .dark ? Color.black : Color.white)
+                .opacity(tintOpacity)
+        }
+        .overlay(
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .strokeBorder(
+                    Color.white.opacity(colorScheme == .dark ? 0.16 : 0.72),
+                    lineWidth: 0.8
+                )
+        )
     }
 }
 
@@ -448,12 +482,10 @@ private struct ReviewCommentCard: View {
                     .padding(.horizontal, 8)
                     .padding(.vertical, 6)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(
-                        // 用中性灰而非 primary（暗色下 primary=白），避免在夜色模式
-                        // 给引用段落画出一块发白的方框。
-                        Color.secondary.opacity(colorScheme == .dark ? 0.12 : 0.06),
-                        in: RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    )
+                    .background {
+                        // 同上：评论里的引用段落也是玻璃，不再是一块灰底方块。
+                        ReviewQuoteGlass(cornerRadius: 8)
+                    }
             }
             Text(bodyText)
             .font(typography.font(size: typography.contentSize - (isNested ? 1.5 : 0)))
