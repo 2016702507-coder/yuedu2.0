@@ -314,9 +314,9 @@ private struct ReviewQuoteGlass: View {
 
     var body: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                .fill(.ultraThinMaterial)
+            GlassBlurView(blurStyle: .systemUltraThinMaterial)
                 .opacity(materialOpacity)
+                .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
             RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                 .fill(colorScheme == .dark ? Color.black : Color.white)
                 .opacity(tintOpacity)
