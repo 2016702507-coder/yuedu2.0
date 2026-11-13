@@ -245,25 +245,89 @@ struct NativeReviewPanelView: View {
         }
     }
 
+    /// 面板头：居中「段评」+ 段落原文引用框。
+    ///
+    /// 不再显示「N 条」评论总数：那个数来自书源页面自己的计数，和实际抓到的
+    /// 评论条数经常对不上（反馈「评论数严重不符」），这里一个数字都不显示。
     private var header: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack(spacing: DSSpacing.sm) {
-                Text(title)
-                    .font(DSFont.headline)
-                    .foregroundStyle(DSColor.textPrimary)
-                Text(String(format: localized("%d 条"), comments.count))
-                    .font(DSFont.caption)
+        VStack(spacing: 11) {
+            Text(localized("段评"))
+                .font(.system(size: 16.5, weight: .bold))
+                .foregroundStyle(DSColor.textPrimary)
+                .frame(maxWidth: .infinity)
+
+            if !quoteText.isEmpty {
+                Text(quoteText)
+                    .font(.system(size: 13))
+                    .italic()
                     .foregroundStyle(DSColor.textSecondary)
-                Spacer()
-            }
-            if let paragraphLabel, !paragraphLabel.isEmpty {
-                Text(paragraphLabel)
-                    .font(DSFont.caption)
-                    .foregroundStyle(DSColor.textSecondary)
+                    .lineSpacing(2)
+                    .lineLimit(3)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 11)
+                    .background {
+                        // 引用原文框也用玻璃：跟面板同一套設定驅動，比面板略實並留一圈
+                        // 細白描邊，做出參考圖那種淡玻璃卡片，不再是白底實心方塊。
+                        ReviewQuoteGlass(cornerRadius: 14)
+                    }
             }
         }
         .padding(.top, DSSpacing.sm)
-        .padding(.bottom, 2)
+        .padding(.bottom, 8)
+    }
+
+    /// 引用框里显示点开的那段原文。书源把原文放在 title 里；没给就用段号兜底。
+    private var quoteText: String {
+        let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmed.isEmpty, trimmed != localized("段评") { return trimmed }
+        return paragraphLabel?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+    }
+}
+
+// MARK: - 引用原文框玻璃
+
+/// 引用原文框也用玻璃：跟 `ReviewSheetGlassBackground` 同一套設定驅動（兩個透明度
+/// 滑桿），但比面板底略實一點並留一圈細白描邊，做出參考圖那種「淡玻璃卡片」的
+/// 層次。以前這裡是 `Color.white.opacity(0.66)` 白底實心方塊，面板改成玻璃後它
+/// 仍是白的，正是「引用的正文那裡也要玻璃」要修的地方。
+private struct ReviewQuoteGlass: View {
+    @Bindable private var settings = GlobalSettings.shared
+    @Environment(\.colorScheme) private var colorScheme
+
+    var cornerRadius: CGFloat = 14
+
+    /// 濃度 0 = 最透、1 = 最實，公式與面板玻璃完全一致。
+    private var level: Double {
+        let sheet = min(max(settings.reviewSheetOpacity, 0), 1)
+        let global = 1 - min(max(settings.interfaceGlassTransparency, 0), 1)
+        return min(max(0.7 * sheet + 0.3 * global, 0), 1)
+    }
+
+    /// 比面板底略實：0 → 0.20（仍能透出背後書頁）、1 → 0.90。
+    private var materialOpacity: Double { 0.20 + 0.70 * level }
+
+    /// 極淡 tint 給玻璃一點厚度；暗色用黑，避免夜間發白。
+    private var tintOpacity: Double {
+        (colorScheme == .dark ? 0.05 : 0.03) + 0.42 * level
+    }
+
+    var body: some View {
+        ZStack {
+            GlassBlurView(blurStyle: .systemUltraThinMaterial)
+                .opacity(materialOpacity)
+                .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .fill(colorScheme == .dark ? Color.black : Color.white)
+                .opacity(tintOpacity)
+        }
+        .overlay(
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .strokeBorder(
+                    Color.white.opacity(colorScheme == .dark ? 0.16 : 0.72),
+                    lineWidth: 0.8
+                )
+        )
     }
 }
 
@@ -274,9 +338,6 @@ private struct ReviewCommentCard: View {
     let isNested: Bool
 
     @Environment(\.colorScheme) private var colorScheme
-
-    /// 语音评论播放器（单例共享），按钮点击切换播放/暂停，并随播放状态刷新图标。
-    @StateObject private var voicePlayer = ReviewVoicePlayer.shared
 
     /// 设置页可调的参数。@Observable，拖动滑杆时卡片会即时重画。
     private var style: NativeReviewPanelStyleStore { .shared }
@@ -307,33 +368,23 @@ private struct ReviewCommentCard: View {
             VStack(alignment: .leading, spacing: 6) {
                 nameRow
                 content
+                voiceBar
                 images
                 footer
                 replies
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(isNested ? 10 : 12)
-        .background {
-            let radius = isNested
-                ? max(6, CGFloat(style.cornerRadius) - 4)
-                : CGFloat(style.cornerRadius)
-            let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
-            // 夜色模式下不再描白边：白边在暗色背景上会画出一圈明显的「框」。
-            // 暗色下直接无描边，卡片区分交给极淡底色 + 阴影；亮色下保留细高光。
-            let stroke: Color = colorScheme == .dark
-                ? Color.clear
-                : Color.white.opacity(0.30)
-            shape
-                .fill(cardFill)
-                .overlay(
-                    shape.strokeBorder(stroke, lineWidth: 0.5)
-                )
-                .shadow(
-                    color: .black.opacity(isNested ? 0 : (colorScheme == .dark ? 0.18 : 0.05)),
-                    radius: isNested ? 0 : 10,
-                    y: isNested ? 0 : 2
-                )
+        .padding(.horizontal, 2)
+        .padding(.vertical, isNested ? 8 : 13)
+        // 照参考图：评论直接排在玻璃底上，不铺卡片实底、不描边、不加阴影，
+        // 只留一条极淡的细分隔线；半屏和全屏都是同一块玻璃。
+        .overlay(alignment: .bottom) {
+            if !isNested {
+                Rectangle()
+                    .fill(Color.secondary.opacity(colorScheme == .dark ? 0.14 : 0.09))
+                    .frame(height: 0.5)
+            }
         }
         // 配图点击 → 全屏查看器（黑底、缩放、GIF 照常播放）。
         .fullScreenCover(item: $viewerImage) { item in
@@ -382,7 +433,7 @@ private struct ReviewCommentCard: View {
         HStack(spacing: 6) {
             Text(comment.user.isEmpty ? localized("书友") : comment.user)
                 .font(typography.font(size: typography.nameSize - (isNested ? 1 : 0), weight: .medium))
-                .foregroundStyle(DSColor.textSecondary)
+                .foregroundStyle(DSColor.textPrimary)
                 .lineLimit(1)
 
             if style.showsLevel, let level = comment.levelText, !level.isEmpty {
@@ -405,6 +456,16 @@ private struct ReviewCommentCard: View {
             }
 
             Spacer(minLength: 0)
+
+            // 点赞挪到昵称行右侧（参考图的 👍240 位），底部只留时间和回复入口。
+            if style.showsLikes, let likes = comment.likes, likes > 0 {
+                HStack(spacing: 3) {
+                    Image(systemName: "hand.thumbsup")
+                    Text("\(likes)")
+                }
+                .font(typography.font(size: typography.metaSize))
+                .foregroundStyle(DSColor.textSecondary)
+            }
         }
     }
 
@@ -421,12 +482,10 @@ private struct ReviewCommentCard: View {
                     .padding(.horizontal, 8)
                     .padding(.vertical, 6)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(
-                        // 用中性灰而非 primary（暗色下 primary=白），避免在夜色模式
-                        // 给引用段落画出一块发白的方框。
-                        Color.secondary.opacity(colorScheme == .dark ? 0.12 : 0.06),
-                        in: RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    )
+                    .background {
+                        // 同上：评论里的引用段落也是玻璃，不再是一块灰底方块。
+                        ReviewQuoteGlass(cornerRadius: 8)
+                    }
             }
             Text(bodyText)
             .font(typography.font(size: typography.contentSize - (isNested ? 1.5 : 0)))
@@ -444,6 +503,18 @@ private struct ReviewCommentCard: View {
             return String(format: localized("回复 @%@：%@"), replyTo, comment.content)
         }
         return comment.content
+    }
+
+    // MARK: 语音条
+
+    /// 段评里的语音评论胶囊条。无语音或设置页关闭时不显示。
+    @ViewBuilder
+    private var voiceBar: some View {
+        if style.showsVoice,
+           let voice = comment.voice, !voice.isEmpty,
+           let url = URL(string: voice) {
+            VoiceCapsuleBar(url: url)
+        }
     }
 
     // MARK: 配图
@@ -476,9 +547,8 @@ private struct ReviewCommentCard: View {
     }
 
     private func singleImage(_ url: URL) -> some View {
-        ReviewAnimatedImageView(url: url, fills: false, placeholderHeight: 140)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .frame(maxHeight: 260)
+        ReviewAnimatedImageView(url: url, fills: false, placeholderHeight: 200)
+            .frame(maxWidth: 220, maxHeight: 220, alignment: .leading)
             .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
             .contentShape(Rectangle())
             .onTapGesture { viewerImage = ReviewViewerImageItem(url: url) }
@@ -500,51 +570,24 @@ private struct ReviewCommentCard: View {
                     .foregroundStyle(DSColor.textSecondary)
             }
 
-            if style.showsVoice, let voice = comment.voice, !voice.isEmpty, let url = URL(string: voice) {
-                let playing = voicePlayer.isPlaying && voicePlayer.playingURL == url
-                Button {
-                    voicePlayer.toggle(url)
-                } label: {
-                    Image(systemName: playing ? "waveform.circle.fill" : "waveform.circle")
-                        .font(.system(size: typography.metaSize + 2))
-                        .foregroundStyle(DSColor.accent)
-                        .symbolEffect(.variableColor, isActive: playing)
-                }
-                .buttonStyle(.plain)
-            }
-
             Spacer(minLength: 0)
 
-            if style.showsLikes, let likes = comment.likes, likes > 0 {
-                Label("\(likes)", systemImage: "hand.thumbsup")
-                    .labelStyle(.titleAndIcon)
-                    .font(typography.font(size: typography.metaSize))
-                    .foregroundStyle(DSColor.textSecondary)
-            }
-
-            if totalReplyCount > 0 {
+            // 回复入口不再写「N 条回复」：书源给的计数和真实楼中楼条数常对不上，
+            // 一律改成不带数字的文字按钮，展开/收起功能不变。
+            if hasInlineReplies {
                 Button {
                     toggleReplies()
                 } label: {
                     HStack(spacing: 3) {
-                        // 展开态直接写成「收起回复」：一层回复也能一眼看到收回入口，
-                        // 不用去猜那个「N 条回复」到底能不能再点一次。
-                        Text(
-                            repliesExpanded && hasInlineReplies
-                                ? localized("收起回复")
-                                : String(format: localized("%d 条回复"), totalReplyCount)
-                        )
-                        .font(typography.font(size: typography.metaSize))
-                        if hasInlineReplies {
-                            Image(systemName: "chevron.down")
-                                .font(.system(size: 9, weight: .semibold))
-                                .rotationEffect(.degrees(repliesExpanded ? 180 : 0))
-                        }
+                        Text(repliesExpanded ? localized("收起回复") : localized("查看回复"))
+                            .font(typography.font(size: typography.metaSize))
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 9, weight: .semibold))
+                            .rotationEffect(.degrees(repliesExpanded ? 180 : 0))
                     }
-                    .foregroundStyle(hasInlineReplies ? DSColor.accent : DSColor.textSecondary)
+                    .foregroundStyle(DSColor.accent)
                 }
                 .buttonStyle(.plain)
-                .disabled(!hasInlineReplies)
             }
         }
         .padding(.top, 2)
@@ -568,14 +611,14 @@ private struct ReviewCommentCard: View {
         if !isNested, !visibleReplies.isEmpty {
             VStack(alignment: .leading, spacing: 6) {
                 ForEach(visibleReplies) { reply in
-                    ReviewCommentCard(comment: reply, isNested: true)
+                    replyCapsule(reply)
                 }
                 if hiddenReplyCount > 0 {
                     Button {
                         toggleReplies()
                     } label: {
                         HStack(spacing: 3) {
-                            Text(String(format: localized("展开其余 %d 条回复"), hiddenReplyCount))
+                            Text(localized("展开更多回复"))
                                 .font(typography.font(size: typography.metaSize + 0.5))
                             Image(systemName: "chevron.down")
                                 .font(.system(size: 9, weight: .semibold))
@@ -606,15 +649,51 @@ private struct ReviewCommentCard: View {
         }
     }
 
+    /// 楼中楼：一条灰色圆角胶囊，小圆头像 +「昵称：内容」，对齐参考图。
+    private func replyCapsule(_ reply: ReviewComment) -> some View {
+        HStack(alignment: .top, spacing: 6) {
+            Group {
+                if let raw = reply.avatar, !raw.isEmpty, let url = URL(string: raw) {
+                    AsyncImage(url: url) { phase in
+                        switch phase {
+                        case .success(let image): image.resizable().scaledToFill()
+                        default: Circle().fill(Color.primary.opacity(0.08))
+                        }
+                    }
+                } else {
+                    Circle().fill(Color.primary.opacity(0.08))
+                }
+            }
+            .frame(width: 20, height: 20)
+            .clipShape(Circle())
+
+            Text(replyLine(reply))
+                .font(typography.font(size: typography.metaSize + 0.5))
+                .foregroundStyle(DSColor.textSecondary)
+                .lineSpacing(2)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 7)
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Color.secondary.opacity(colorScheme == .dark ? 0.14 : 0.075))
+        )
+    }
+
+    private func replyLine(_ reply: ReviewComment) -> String {
+        let name = reply.user.isEmpty ? localized("书友") : reply.user
+        if let replyTo = reply.replyTo, !replyTo.isEmpty {
+            return "\(name)：回复 @\(replyTo)：\(reply.content)"
+        }
+        return "\(name)：\(reply.content)"
+    }
+
     // MARK: 楼中楼展开
 
     private var hasInlineReplies: Bool {
         !(comment.replies ?? []).isEmpty
-    }
-
-    /// 书源给的数量（replyCount）和内联回复条数取大值，避免「显示 0 条却有回复」。
-    private var totalReplyCount: Int {
-        max(comment.replyCount ?? 0, (comment.replies ?? []).count)
     }
 
     private var visibleReplies: [ReviewComment] {
@@ -624,7 +703,7 @@ private struct ReviewCommentCard: View {
         // 只有一层（≤ 2 条）回复时，折叠态必须真的收成空。
         // 旧实现在这里直接 `return all`，导致折叠态和展开态长得一模一样：
         // 点「收回」看不出任何变化，就是用户说的「一层楼中楼收不回去」。
-        // 现在统一交给 footer 的「N 条回复」展开，展开后底部再给「收起回复」。
+        // 现在统一交给 footer 的「查看回复」展开，展开后底部再给「收起回复」。
         if all.count <= collapsedLimit { return [] }
         return Array(all.prefix(collapsedLimit))
     }
@@ -643,18 +722,89 @@ private struct ReviewCommentCard: View {
         }
     }
 
-    /// 卡片只上一层「很薄的高光」，不再铺任何实底，也不再叠第二层模糊。
-    ///
-    /// 面板底已经是 `ultraThinMaterial`（系统模糊），卡片再盖 material 等于
-    /// 在同一处糊两次，越糊越白、越糊越不透 —— 看着就是一块白底。
-    /// 现在卡片只剩 12% 的白 + 一条高光描边，正文的明暗能直接透到卡片上，
-    /// 卡片与面板的区分靠边框和极淡阴影，而不是靠一块白色。
-    private var cardFill: AnyShapeStyle {
-        let base = CGFloat(style.cardOpacity)
-        if isNested {
-            return AnyShapeStyle(Color.primary.opacity(base * (colorScheme == .dark ? 1.15 : 0.7)))
+}
+
+// MARK: - 语音条
+
+/// 段评语音条：灰色圆角胶囊 + 玻璃质感播放钮 + 波纹图标 + 时长。
+///
+/// 设计对齐要求：胶囊为灰色半透明圆角；播放钮是「透明玻璃感」的圆形，
+/// 内部一个 `waveform` 波纹图标；右侧显示语音时长（秒，形如 `16''`）。
+/// 点按交给单例 `ReviewVoicePlayer`，保证全 App 同时只放一段语音。
+@MainActor
+private struct VoiceCapsuleBar: View {
+    let url: URL
+
+    @StateObject private var player = ReviewVoicePlayer.shared
+    @State private var duration: Double?
+    @Environment(\.colorScheme) private var colorScheme
+
+    private var typography: NativeReviewTypography { NativeReviewPanelStyleStore.shared.typography() }
+
+    /// 时长按 URL 缓存，避免列表里每条语音都去远端取一次。
+    private static var durationCache = [String: Double]()
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Button {
+                player.toggle(url)
+            } label: {
+                Image(systemName: isPlaying ? "waveform.circle.fill" : "waveform")
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(Color.primary.opacity(0.7))
+                    .symbolEffect(.variableColor, isActive: isPlaying)
+                    .frame(width: 34, height: 34)
+                    .background(
+                        Circle()
+                            .fill(.ultraThinMaterial)
+                            .overlay(
+                                Circle().strokeBorder(Color.white.opacity(colorScheme == .dark ? 0.14 : 0.75), lineWidth: 0.7)
+                            )
+                            .shadow(color: Color.black.opacity(0.08), radius: 3, y: 1)
+                    )
+            }
+            .buttonStyle(.plain)
+
+            Text(durationText)
+                .font(typography.font(size: typography.metaSize))
+                .foregroundStyle(DSColor.textSecondary)
+
+            Spacer(minLength: 0)
         }
-        return AnyShapeStyle(Color.white.opacity(base * (colorScheme == .dark ? 0.7 : 1)))
+        .padding(.horizontal, 12)
+        .padding(.vertical, 7)
+        .background(
+            Capsule()
+                .fill(Color.gray.opacity(colorScheme == .dark ? 0.26 : 0.16))
+                .overlay(
+                    Capsule().strokeBorder(Color.white.opacity(colorScheme == .dark ? 0.08 : 0.5), lineWidth: 0.6)
+                )
+        )
+        .frame(maxWidth: 220)
+        .task { await loadDuration() }
+    }
+
+    private var isPlaying: Bool { player.isPlaying && player.playingURL == url }
+
+    private var durationText: String {
+        guard let d = duration, d.isFinite, d > 0 else { return "" }
+        return String(format: "%d''", Int(d.rounded()))
+    }
+
+    private func loadDuration() async {
+        let key = url.absoluteString
+        if let cached = Self.durationCache[key] {
+            duration = cached
+            return
+        }
+        do {
+            let asset = AVURLAsset(url: url)
+            let seconds = try await asset.load(.duration).seconds
+            Self.durationCache[key] = seconds
+            duration = seconds
+        } catch {
+            // 取不到时长就不显示，胶囊仍可用（点按照常播放）。
+        }
     }
 }
 

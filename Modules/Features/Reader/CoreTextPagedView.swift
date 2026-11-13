@@ -1104,11 +1104,13 @@ struct CoreTextPageEngineView: UIViewControllerRepresentable {
             }
         }
 
-        isolated deinit {
-            clearEngineCallbacks()
-            // A display link holds its target. A reader torn down mid-turn (style switch,
-            // book closed) would otherwise leave it ticking against a dead coordinator.
-            rippleLink?.invalidate()
+        deinit {
+            MainActor.assumeIsolated {
+                clearEngineCallbacks()
+                // A display link holds its target. A reader torn down mid-turn (style switch,
+                // book closed) would otherwise leave it ticking against a dead coordinator.
+                rippleLink?.invalidate()
+            }
         }
 
         func bindEngineCallbacks(to engine: any PageRenderingProvider, pageViewController: UIPageViewController) {

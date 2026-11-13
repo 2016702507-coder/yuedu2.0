@@ -112,9 +112,10 @@ struct ReviewPanelStyleSettingsView: View {
                 paragraphLabel: localized("第 109 段"),
                 comments: ReviewPanelSampleData.paragraphComments
             )
-            .presentationDetents([.large])
+            .presentationDetents([.medium, .large])
             .presentationDragIndicator(.visible)
-            .presentationBackground(.ultraThinMaterial)
+            .presentationBackground { ReviewSheetGlassBackground() }
+            .presentationBackgroundInteraction(.enabled(upThrough: .large))
         }
     }
 
@@ -147,15 +148,25 @@ struct ReviewPanelStyleSettingsView: View {
                 comments: ReviewPanelSampleData.paragraphComments
             )
             .frame(height: 300)
-            // 预览里也铺同一层底色：拖「玻璃浓淡」时能立刻看到明暗变化，
-            // 不至于变成一个看不出效果的滑杆。真实面板还要再叠 ultraThinMaterial。
+            // 预览铺的就是真实面板那一块玻璃（同一组件、同一组滑杆值），
+            // 下面垫一层模拟书页正文，让玻璃有东西可采样：拖「玻璃浓淡」
+            // 或「外观 › 界面效果 › 透明度」时能立刻看到通透度变化。
+            // 以前这里只铺纯色蒙版，背后又是列表的不透明底，所以永远是一块灰白实心板。
             .background {
-                Rectangle().fill(
-                    ParagraphReviewVeil.color(
-                        for: colorScheme,
-                        opacity: settings.reviewSheetOpacity
-                    )
-                )
+                ZStack {
+                    (colorScheme == .dark ? Color.black : Color.white)
+                    VStack(alignment: .leading, spacing: 9) {
+                        ForEach(0..<14, id: \.self) { i in
+                            Capsule()
+                                .fill(Color.primary.opacity(0.17))
+                                .frame(height: 9)
+                                .padding(.trailing, i % 4 == 3 ? 52 : 0)
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 24)
+                    ReviewSheetGlassBackground(fillsSafeArea: false)
+                }
             }
             .allowsHitTesting(false)
             .listRowInsets(EdgeInsets())

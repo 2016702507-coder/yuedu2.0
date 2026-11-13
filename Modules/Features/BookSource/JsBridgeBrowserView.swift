@@ -24,6 +24,84 @@ enum ParagraphReviewVeil {
     }
 }
 
+/// 段評面板專用玻璃：半屏與全屏、UIKit 呈現與 SwiftUI sheet 都共用這一塊，
+/// 由內容自己畫，因此不會被 clearSheetChrome 清掉，兩種檔位、兩條路徑完全一致。
+///
+/// 「段評面板不透明度」/「玻璃濃淡」是同一個 `reviewSheetOpacity`，現在它直接
+/// 驅動這塊**玻璃本身**：0 = 最透的磨砂玻璃（背後書頁正文半清半糊地透上來），
+/// 1 = 接近普通實色面板。以前這裡把材質寫死成 0.90 + 0.22 白，滑桿只改另一層
+/// 純色蒙版，兩者解耦，所以使用者把不透明度拉到 0 看到的仍是一塊灰白實心板。
+///
+/// 不再受「全局玻璃總閘 / 系統降低透明度」一刀切成不透明純色：那條兜底會把
+/// 使用者明確要的玻璃直接換成實色，正是「怎麼調都沒用」的另一半原因。
+/// 真正的 `UIVisualEffectView` 毛玻璃，而不是 SwiftUI 自带的 `.ultraThinMaterial`。
+///
+/// 段评面板是 UIKit `present()` 出来的页面 sheet，SwiftUI 的材质在拖到 `.large` 满屏档时
+/// 采样不到背后的书页、会退化成刺眼白板（半屏玻璃、全屏白底的根因）。
+/// 原生 `UIVisualEffectView` 直接采窗口里背后那一层（书页），任何档位都稳定出玻璃，
+/// 半屏/全屏完全一致。透明度由外层 `.opacity()` 控制，跟之前语义一致。
+struct GlassBlurView: UIViewRepresentable {
+    var blurStyle: UIBlurEffect.Style = .systemUltraThinMaterial
+
+    func makeUIView(context: Context) -> UIVisualEffectView {
+        UIVisualEffectView(effect: UIBlurEffect(style: blurStyle))
+    }
+
+    func updateUIView(_ uiView: UIVisualEffectView, context: Context) {
+        uiView.effect = UIBlurEffect(style: blurStyle)
+    }
+}
+
+struct ReviewSheetGlassBackground: View {
+    /// 設定頁預覽是嵌在列表裡的小卡片，不需要鋪出安全區。
+    var fillsSafeArea: Bool = true
+
+    @Bindable private var settings = GlobalSettings.shared
+    @Environment(\.colorScheme) private var colorScheme
+
+    /// 濃度 0 = 最透、1 = 最實。
+    ///
+    /// 兩個設定都真正接到這塊玻璃上，不再是「拉了只改另一層蒙版」：
+    /// - 「外觀 › 界面效果 › 段評面板不透明度」/「段評與互動樣式 › 玻璃濃淡」
+    ///   是同一個 `reviewSheetOpacity`（主權重 0.7）；
+    /// - 「外觀 › 界面效果 › 透明度」`interfaceGlassTransparency`（權重 0.3），
+    ///   1 = 最透、0 = 最實，與全 App 卡片的語義一致。
+    /// 任何一個往「實」的方向拉，玻璃都立刻變濃；兩邊都拉到最透就是最清透的磨砂玻璃。
+    private var level: Double {
+        let sheet = min(max(settings.reviewSheetOpacity, 0), 1)
+        let global = 1 - min(max(settings.interfaceGlassTransparency, 0), 1)
+        return min(max(0.7 * sheet + 0.3 * global, 0), 1)
+    }
+
+    /// 材質不透明度：0 → 0.16（能清楚看到背後書頁正文的磨砂玻璃），
+    /// 1 → 0.92（接近普通實色面板）。調的是材質本身，不是往上蓋一層白。
+    private var materialOpacity: Double { 0.16 + 0.76 * level }
+
+    /// 極淡 tint，只給玻璃一點厚度、保證評論文字對比；不是白板來源。
+    private var tintOpacity: Double {
+        (colorScheme == .dark ? 0.04 : 0.02) + 0.56 * level
+    }
+
+    private var glass: some View {
+        ZStack {
+            GlassBlurView(blurStyle: .systemUltraThinMaterial)
+                .opacity(materialOpacity)
+            (colorScheme == .dark ? Color.black : Color.white)
+                .opacity(tintOpacity)
+        }
+    }
+
+    var body: some View {
+        Group {
+            if fillsSafeArea {
+                glass.ignoresSafeArea()
+            } else {
+                glass
+            }
+        }
+    }
+}
+
 struct SourceBrowserPresentationConfiguration: Equatable {
     var heightPercentage: Double?
     var skipCollapsed = false
@@ -462,22 +540,20 @@ struct LegadoReviewBrowserView: View {
                 .accessibilityLabel(effectiveShowsSourcePage ? localized("用卡片显示") : localized("显示原网页"))
             }
         }
-        // 面板底：sheet 用系统 ultraThinMaterial 做真毛玻璃（实时模糊背后的正文），
-        // 页面本身完全透明，只有需要压浓时再叠一层极淡的纯色蒙版。
+        // 面板底：一块较实的磨砂玻璃 + 用户滑杆控制的极淡纯色蒙版。
+        // 玻璃由内容自己画（不是系统的 presentationBackground），所以 UIKit
+        // 呈现的那条路径也有玻璃；半屏/全屏切换时 clearSheetChrome 会跳过
+        // presentedView 子树，这层玻璃不会被清掉。
         .background {
-            Rectangle()
-                .fill(
-                    ParagraphReviewVeil.color(
-                        for: colorScheme,
-                        opacity: settings.reviewSheetOpacity
-                    )
-                )
-                .ignoresSafeArea()
+            // 只留一塊由滑桿驅動的玻璃。以前這裡還額外疊一層純色蒙版
+            // (ParagraphReviewVeil)，兩個設定各自改不同層，怎麼拉都看不到玻璃變化。
+            ReviewSheetGlassBackground()
         }
-        .presentationBackground(.ultraThinMaterial)
-        // 关掉 sheet 的背景变暗层：不然底下正文会被系统压暗，看起来还是「隔了一层」。
-        // 只开到 medium：面板半屏时正文保持原亮度，拉到全屏时不再让手势穿透到正文。
-        .presentationBackgroundInteraction(.enabled(upThrough: .medium))
+        // 全档位同一块玻璃：presentationBackground 交给内容层，系统不再另画
+        // 一层材质（否则两层互采会糊成白板）；背景交互开到 large，保证玻璃
+        // 始终采样得到背后的书页正文。
+        .presentationBackground { Color.clear }
+        .presentationBackgroundInteraction(.enabled(upThrough: .large))
         .presentationDetents(presentationConfiguration.detents)
         .presentationDragIndicator(
             presentationConfiguration.skipCollapsed ? .hidden : .visible
@@ -563,7 +639,7 @@ struct LegadoReviewBrowserView: View {
                 .foregroundStyle(DSColor.textSecondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(.ultraThinMaterial)
+        .background(GlassBlurView(blurStyle: .systemUltraThinMaterial))
     }
 
     private var presentationConfiguration: SourceBrowserPresentationConfiguration {

@@ -1712,14 +1712,23 @@ _layouts.removeAll()
     }
 
     func localPosition(for globalPage: Int) -> (spineIndex: Int, localPage: Int) {
-        guard !spinePageOffsets.isEmpty else { return (0, globalPage) }
+        localPosition(in: spinePageOffsets, for: globalPage)
+    }
+
+    /// 同一套二分，但允许传入**旧**偏移表：偏移重建前后要把当前页还原成
+    /// 「章 + 章内页」，才能在新偏移下把它放回去。
+    private func localPosition(
+        in offsets: [Int],
+        for globalPage: Int
+    ) -> (spineIndex: Int, localPage: Int) {
+        guard !offsets.isEmpty else { return (0, globalPage) }
         var lo = 0
-        var hi = spinePageOffsets.count - 1
+        var hi = offsets.count - 1
         while lo < hi {
             let mid = (lo + hi + 1) / 2
-            if spinePageOffsets[mid] <= globalPage { lo = mid } else { hi = mid - 1 }
+            if offsets[mid] <= globalPage { lo = mid } else { hi = mid - 1 }
         }
-        let localPage = globalPage - spinePageOffsets[lo]
+        let localPage = globalPage - offsets[lo]
         return (lo, max(0, localPage))
     }
 
@@ -1727,6 +1736,14 @@ _layouts.removeAll()
         let anchoredPosition = readingAnchor
         let oldOffsets = spinePageOffsets
         let oldPage = currentPage
+        // 在**旧**偏移下记住用户当前所在的「章 + 章内页」。
+        // 后台预加载上一章会让 spinePageOffsets 整体平移（估算页数换成
+        // 真实页数），此时若锚点所在章还没布局 / 已被 LRU 淘汰，
+        // pageIndex(for:) 返回 nil，旧逻辑改拿 charOffset/400 猜全局页 ——
+        // 那个猜测页在偏移平移后常常落到别的章，回翻偶发跳章即此。
+        let stableLocal: (spineIndex: Int, localPage: Int)? = oldOffsets.isEmpty
+            ? nil
+            : localPosition(in: oldOffsets, for: oldPage)
         var offset = 0
 
         // Estimate bytes per page, scaled by font size so totalPages tracks layout changes.
@@ -1753,8 +1770,24 @@ _layouts.removeAll()
         }
         totalPages = offset
 
-        if let correctedPage = pageIndex(for: anchoredPosition) ?? estimatedGlobalPage(for: anchoredPosition) {
-            currentPage = max(0, min(correctedPage, max(totalPages - 1, 0)))
+        if let stableLocal {
+            // 首要原则：偏移重建只是把「全局页号」对齐到新的偏移表，
+            // 绝不应该改变用户正在看的那一页。readingAnchor 要等页面稳定
+            // （.settledPage）才更新，回翻手势进行中它是滞后的；若此时后台
+            // 预加载上一章刚好完成，滞后的锚点仍会被精确解析到别的章，
+            // 旧逻辑就这样把用户拽回上一章 —— 偶发跳章的另一条路径。
+            // TOC 跳转不受影响：updateReadingPosition 会同步 currentPage，
+            // 所以这里的 stableLocal 本身就是目标章。
+            let spine = min(max(stableLocal.spineIndex, 0), max(chapterCount - 1, 0))
+            let pages = max(1, estimatedPageCount(forChapter: spine))
+            let local = min(max(stableLocal.localPage, 0), pages - 1)
+            let rebased = spinePageOffsets[spine] + local
+            currentPage = max(0, min(rebased, max(totalPages - 1, 0)))
+        } else if let exact = pageIndex(for: anchoredPosition) {
+            // 没有旧偏移（首次启动）：按真实页码精确复位。
+            currentPage = max(0, min(exact, max(totalPages - 1, 0)))
+        } else if let estimated = estimatedGlobalPage(for: anchoredPosition) {
+            currentPage = max(0, min(estimated, max(totalPages - 1, 0)))
         }
 
         if currentPage != oldPage {

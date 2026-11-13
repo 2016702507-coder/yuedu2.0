@@ -89,7 +89,25 @@ struct ReviewAnimatedImageView: View {
     var body: some View {
         Group {
             if let image {
-                ReviewImageCanvas(image: image, fills: fills)
+                if fills {
+                    // 九宫格缩略图：外层已给固定高度与列宽，撑满裁切是设计意图。
+                    ReviewImageCanvas(image: image, fills: true)
+                } else {
+                    // 单图必须完整显示。UIViewRepresentable 默认按 UIImageView 的
+                    // intrinsicContentSize（原图像素）要尺寸，而外层
+                    // .frame(maxWidth:maxHeight:) 只是上限 —— 子视图溢出后
+                    // 再被 .clipShape 裁成左上角一个角，正是「尺寸对了、
+                    // 却只看到图片一个角」。这里显式给一个与图片等比、
+                    // 且不超过上限的 frame，配合 .scaleAspectFit 显示全图。
+                    ReviewImageCanvas(image: image, fills: false)
+                        .aspectRatio(
+                            CGSize(
+                                width: max(1, image.size.width),
+                                height: max(1, image.size.height)
+                            ),
+                            contentMode: .fit
+                        )
+                }
             } else if failed {
                 Color.clear
             } else {
@@ -116,6 +134,12 @@ private struct ReviewImageCanvas: UIViewRepresentable {
         view.contentMode = fills ? .scaleAspectFill : .scaleAspectFit
         view.clipsToBounds = true
         view.backgroundColor = .clear
+        // 别让 UIImageView 的 intrinsicContentSize（原图像素）反向撑大
+        // SwiftUI 容器；尺寸一律由 SwiftUI 侧的 frame / aspectRatio 决定。
+        view.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        view.setContentHuggingPriority(.defaultLow, for: .vertical)
+        view.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        view.setContentCompressionResistancePriority(.defaultLow, for: .vertical)
         view.image = image
         return view
     }

@@ -92,9 +92,11 @@ final class FixedPageWebtoonViewController: UIViewController, FixedPageModeReade
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
-    isolated deinit {
-        autoScrollDisplayLink?.invalidate()
-        zoomAnimationLink?.invalidate()
+    deinit {
+        MainActor.assumeIsolated {
+            autoScrollDisplayLink?.invalidate()
+            zoomAnimationLink?.invalidate()
+        }
     }
 
     override func viewWillDisappear(_ animated: Bool) {

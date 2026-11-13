@@ -2522,7 +2522,8 @@ final class CoreTextPageView: UIView, UIGestureRecognizerDelegate, @MainActor UI
 }
 
 /// Single-page ViewController wrapping CoreTextPageView, for use with UIPageViewController.
-final class CoreTextPageViewController: UIViewController, ReaderBookmarkRibbonHosting {
+final class CoreTextPageViewController: UIViewController, ReaderBookmarkRibbonHosting,
+    UISheetPresentationControllerDelegate {
     /// 段評面板外那層透明的點擊區（`installOutsideTapDismiss`）。
     private weak var reviewOutsideTapView: UIView?
     /// 當前這段評面板。關它時只認這一個對象：這頁自己 `dismiss(_:)` 在它沒呈現任何東西時會
@@ -2802,14 +2803,24 @@ final class CoreTextPageViewController: UIViewController, ReaderBookmarkRibbonHo
         if let sheet = host.sheetPresentationController {
             sheet.detents = [.medium(), .large()]
             sheet.prefersGrabberVisible = true
-            // 不移除变暗层的话，UIKit 这条路径会把底下的正文压暗，透明就等于白做。
-            sheet.largestUndimmedDetentIdentifier = .medium
+            // 关键：以前只把 medium 设为「不压暗」，拉到 large 时系统会补回
+            // 不透明变暗层 + 一层白雾材质，半屏的玻璃到全屏就变成白底。
+            // 把最大不压暗档位提到 large，全屏也保持透明玻璃。
+            sheet.largestUndimmedDetentIdentifier = .large
+            // 档位变化时系统会重新挂材质视图，监听后把容器链再清成透明。
+            sheet.delegate = self
         }
         present(host, animated: true) {
             // iOS 15+ 的 sheet 背景不是 `backgroundColor`，而是一層系統材質視圖
             // （UIVisualEffectView）。只清 host.view 擋不住它，下面那層「白霧」會一直在，
             // 面板不透明度調到 0 都還是白的。整條容器鏈一起清。
-            Self.clearSheetChrome(host.presentationController?.containerView)
+            // 只清系统 sheet 的装饰层，绝不下钻到面板内容视图：面板自己的玻璃
+            // （UIVisualEffectView）就在 presentedView 子树里，旧实现递归把它
+            // effect=nil，拉到全屏就整片全透明、背后正文直接透上来。
+            Self.clearSheetChrome(
+                host.presentationController?.containerView,
+                keepingContentOf: host.presentationController?.presentedView
+            )
             self.installOutsideTapDismiss(
                 for: host,
                 isEnabled: SourceBrowserPresentationConfiguration(
@@ -2821,8 +2832,8 @@ final class CoreTextPageViewController: UIViewController, ReaderBookmarkRibbonHo
 
     /// 點面板外收起段評面板。
     ///
-    /// `largestUndimmedDetentIdentifier = .medium` 把系統那層遮罩（連同它自帶的「點擊
-    /// 關閉」）一併去掉了，透明就靠這個換來。這裡補一層透明視圖墊在面板下面：它蓋住整屏，
+    /// `largestUndimmedDetentIdentifier = .large` 把系統那層遮罩（連同它自帶的「點擊
+    /// 關閉」）在半屏與全屏都去掉了，透明就靠這個換來；全屏也不再補白底。這裡補一層透明視圖墊在面板下面：它蓋住整屏，
     /// 面板自己的區域仍由面板接收，落在面板外的點按才到它，於是 dismiss。比往 window 上
     /// 掛手勢可靠：閱讀頁的翻頁手勢掛得更深，UIKit 會把識別機會讓給它。
     private func installOutsideTapDismiss(for controller: UIViewController, isEnabled: Bool) {
@@ -2869,9 +2880,36 @@ final class CoreTextPageViewController: UIViewController, ReaderBookmarkRibbonHo
         host.dismiss(animated: true)
     }
 
-    /// 把 sheet 容器上所有系統材質與底色清成透明，只留內容本身。
-    private static func clearSheetChrome(_ view: UIView?) {
+    /// 半屏/全屏切換時 UIKit 會重建系統材質視圖（`UIVisualEffectView`），
+    /// 只在彈出時清一次不夠；這裡在每次檔位變化後再清一遍，並補一幀後清算動畫。
+    func sheetPresentationControllerDidChangeSelectedDetentIdentifier(
+        _ sheetPresentationController: UISheetPresentationController
+    ) {
+        clearPresentedSheetChrome()
+        // 用 Task 回到主 actor，避开 Swift 6 严格并发下 GCD 闭包的隔离检查。
+        Task { @MainActor [weak self] in self?.clearPresentedSheetChrome() }
+    }
+
+    private func clearPresentedSheetChrome() {
+        guard let host = reviewSheetHost else { return }
+        host.view.backgroundColor = .clear
+        host.view.isOpaque = false
+        host.view.layer.isOpaque = false
+        Self.clearSheetChrome(
+            host.presentationController?.containerView,
+            keepingContentOf: host.presentationController?.presentedView
+        )
+    }
+
+    /// 把 sheet 容器上的系統材質與底色清成透明，只留內容本身。
+    ///
+    /// `protected` 是被呈現的面板視圖（連同它自己的玻璃層）：整棵跳過。
+    /// 半屏/全屏切換時 UIKit 會重建容器上的材質視圖，需要再清一次；但面板
+    /// 自己那層玻璃也在容器鏈上，舊實作遞迴把它 `effect = nil`，拉到 large
+    /// 就變成全透明、背後正文直接透上來。現在只清系統裝飾層。
+    private static func clearSheetChrome(_ view: UIView?, keepingContentOf protected: UIView?) {
         guard let view else { return }
+        if let protected, view === protected || view.isDescendant(of: protected) { return }
         if let effect = view as? UIVisualEffectView {
             effect.effect = nil
         }
@@ -2879,7 +2917,7 @@ final class CoreTextPageViewController: UIViewController, ReaderBookmarkRibbonHo
         view.isOpaque = false
         view.layer.isOpaque = false
         for sub in view.subviews {
-            clearSheetChrome(sub)
+            clearSheetChrome(sub, keepingContentOf: protected)
         }
     }
 

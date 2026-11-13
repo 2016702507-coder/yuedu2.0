@@ -1480,7 +1480,9 @@ final class TTSCoordinator: ObservableObject {
     /// Stopping touches UIKit and the now-playing center, so it runs on main. Every owner
     /// releases its last reference there anyway (`@StateObject` in `ReaderView` and
     /// `TTSSettingsView`, `NowPlayingHub` holds it weakly), so this runs inline; a release
-    /// anywhere else is moved to main rather than racing. Swift 6.4 back-deploys this for
-    /// the main actor (`swift_task_deinitOnExecutorMainActorBackDeploy`), so iOS 17 has it.
-    isolated deinit { stop(reason: "coordinator deinit") }
+    /// anywhere else is moved to main rather than racing. NOTE: the Swift 6.4 back-deploy of
+    /// `isolated deinit` for the main actor (`swift_task_deinitOnExecutorMainActorBackDeploy`)
+    /// crashes on iOS 17.0 inside `swift_task_dealloc`, so this is now a plain `deinit`
+    /// guarded by `MainActor.assumeIsolated`. See JsBridgeBrowserView for the same fix.
+    deinit { MainActor.assumeIsolated { stop(reason: "coordinator deinit") } }
 }
