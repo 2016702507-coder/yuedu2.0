@@ -32,6 +32,11 @@ final class ReaderViewportFragmentHost: UIView {
         let owner: ObjectIdentifier
         let fragment: FragmentID
     }
+    /// 仅用于把非 Sendable 的局部闭包标成"已知同隔离域、不跨线程"，
+    /// 避免 Swift 6.3 的 sending 检查误判；不引入任何并发执行。
+    private struct UncheckedSendableBox<Value>: @unchecked Sendable {
+        let value: Value
+    }
     @MainActor private final class CoreTextState {
         let owner: CoreTextChunk
         let view = UIView()
@@ -228,8 +233,12 @@ final class ReaderViewportFragmentHost: UIView {
                    prepare: @escaping (Entry) -> Void) {
             let inPaintWindow = global.intersects(paintWindow)
             guard let entry = entries[key] ?? (inPaintWindow ? makeEntry(key, in: ownerView) : nil) else {
+                // Swift 6.3 (Xcode 26.4) 的 region-based isolation 会把这里捕获的
+                // 非 Sendable 闭包判为 sending 数据竞争。用 unchecked Sendable 盒子
+                // 切断 region 追踪；闭包仍在同一个 MainActor 上执行，语义不变。
+                let boxedPrepare = UncheckedSendableBox(value: prepare)
                 prepaintCandidates.append((global, backingPixels(renderingRect) * 4,
-                                           { prepare(makeEntry(key, in: ownerView)) }))
+                                           { boxedPrepare.value(makeEntry(key, in: ownerView)) }))
                 return
             }
             prepare(entry)
