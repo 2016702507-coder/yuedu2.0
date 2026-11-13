@@ -3,6 +3,8 @@ import WebKit
 import Combine
 import ObjectiveC
 import UIKit
+import CoreImage
+import CoreImage.CIFilterBuiltins
 
 /// Paragraph-review sheets deliberately use only the source page's own UI.
 /// Login and other source browsers keep `JsBridgeBrowserView`'s normal toolbar.
@@ -101,21 +103,58 @@ struct ReviewSheetGlassBackground: View {
     }
 }
 
-/// 段评面板的玻璃底：把「背后的书页」自己拍下来当底，半屏/全屏都长一个样、绝不白板。
+/// 段评面板的玻璃底：弹出前拍下的书页截图（已预模糊），铺在面板内容最底层。
 ///
-/// 之前的 `GlassBlurView`（`UIVisualEffectView`）实时采背后书页：半屏时背后露出了书页、
-/// 能采到 → 玻璃；一旦拖到 `.large` 满屏，书页被 sheet 整个盖住、窗口里背后再没有
-/// 可采内容，磨砂层就退化成它自己的浅色底 → 白板。这正是「半屏玻璃、全屏白底」的根因，
-/// 跟滑杆、tint 都没关系。
+/// 为什么不用「实时采样」：`UIVisualEffectView` / `.ultraThinMaterial` 依赖系统对
+/// 面板背后内容的实时采样，而 sheet 拖到 `.large` 满屏档时这条采样链路拿不到书页，
+/// 会退化成刺眼白板——这正是「半屏玻璃、全屏白底」反复修不掉的根因。
+/// 为什么不用 `.presentationBackground`：它在部分呈现链路上不生效，而且系统档位
+/// 切换时的 chrome 行为不可控。
 ///
-/// 修法：面板弹出时把当前窗口（含背后书页）截图，模糊后铺在 `.presentationBackground`
-/// 里，并用 `GeometryReader` 按屏幕坐标对齐——半屏只露下半截书页、全屏看到整页，但都是
-/// 同一张模糊书页，所以两档位完全一致。截图抓不到时回落淡玻璃色兜底，仍非白板。
-private struct ReviewSheetBookBackdrop: View {
-    @Environment(\.colorScheme) private var colorScheme
-    @State private var backdrop: UIImage?
-    @State private var captured = false
+/// 所以改成**自己画**：`ReaderView` 在设置 `reviewTarget` 的同一笔状态变更里
+/// （此时 sheet 还没开始上屏）把窗口当前帧——也就是完整的书页——截下来，
+/// 一次性用 CoreImage 预模糊成玻璃底图，交给面板当内容最底层。它是面板自己的
+/// 图层，任何档位、任何呈现路径都稳定渲染：半屏/全屏是同一张图，效果完全一致。
+/// 截图万一失败，回落淡玻璃色兜底，仍不是白板。
+struct ReviewBackdropCapture {
+    /// 抓当前 key window 的最后一帧（`afterScreenUpdates: false`：
+    /// 在 sheet 尚未上屏时调用，拿到的就是完整的书页画面）。
+    static func keyWindowSnapshot() -> UIImage? {
+        guard let window = UIApplication.shared.connectedScenes
+            .compactMap({ $0 as? UIWindowScene })
+            .flatMap({ $0.windows })
+            .first(where: { $0.isKeyWindow }),
+              !window.bounds.isEmpty else { return nil }
+        let bounds = window.bounds
+        let renderer = UIGraphicsImageRenderer(size: bounds.size)
+        return renderer.image { _ in
+            window.drawHierarchy(in: bounds, afterScreenUpdates: false)
+        }
+    }
 
+    /// 把截图一次性糊成玻璃底（CIGaussianBlur + 边缘扩展，避免边缘发白）。
+    /// 预模糊后运行时只是贴一张图，拖动档位也零开销。
+    static func blurredGlass(_ image: UIImage, radius: Double = 22) -> UIImage? {
+        guard let ciImage = CIImage(image: image) else { return nil }
+        let clamped = ciImage.clampedToExtent()
+        guard let filter = CIFilter(name: "CIGaussianBlur") else { return nil }
+        filter.setValue(clamped, forKey: kCIInputImageKey)
+        filter.setValue(radius, forKey: kCIInputRadiusKey)
+        guard let output = filter.outputImage else { return nil }
+        // 裁回原尺寸，去掉 clampedToExtent 的无限延展。
+        let cropped = output.cropped(to: ciImage.extent)
+        let context = CIContext(options: [.useSoftwareRenderer: false])
+        guard let cgImage = context.createCGImage(cropped, from: ciImage.extent) else { return nil }
+        return UIImage(cgImage: cgImage, scale: image.scale, orientation: image.imageOrientation)
+    }
+}
+
+/// 面板最底层的玻璃：屏幕对齐的模糊书页图 + 由滑杆驱动的极淡 tint。
+struct ReviewPanelBackdropLayer: View {
+    /// 弹出前抓下的书页截图（已预模糊）。nil = 回落淡玻璃色。
+    let backdrop: UIImage?
+
+    @Environment(\.colorScheme) private var colorScheme
     private var settings: GlobalSettings { .shared }
 
     private var level: Double {
@@ -145,42 +184,23 @@ private struct ReviewSheetBookBackdrop: View {
                         .resizable()
                         .scaledToFill()
                         .frame(width: windowSize.width, height: windowSize.height)
+                        // 面板可能不满整屏（半屏档）：把图按屏幕坐标往上对齐，
+                        // 面板里露出的永远是「它真正盖住的那段书页」。
                         .offset(y: -(windowSize.height - geo.size.height))
-                        .blur(radius: 22, opaque: false)
                         .clipped()
                 } else {
-                    (colorScheme == .dark ? Color.black : Color.white)
-                        .opacity(0.16 + 0.5 * level)
+                    // 兜底：截图失败的极端情况。磨砂灰而非纯白，档位再变也不是白板。
+                    (colorScheme == .dark ? Color.black : Color(white: 0.86))
+                        .opacity(0.62 + 0.28 * level)
                 }
                 (colorScheme == .dark ? Color.black : Color.white)
                     .opacity(tintOpacity)
             }
+            .frame(width: geo.size.width, height: geo.size.height)
+            .clipped()
             .ignoresSafeArea()
         }
         .ignoresSafeArea()
-        .onAppear { captureIfNeeded() }
-    }
-
-    private func captureIfNeeded() {
-        guard !captured else { return }
-        captured = true
-        // 等 sheet 落定、背后书页稳定后再拍；即便还没落定，书页本身早已渲染。
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
-            backdrop = Self.captureKeyWindow()
-        }
-    }
-
-    private static func captureKeyWindow() -> UIImage? {
-        guard let window = UIApplication.shared.connectedScenes
-            .compactMap({ $0 as? UIWindowScene })
-            .flatMap({ $0.windows })
-            .first(where: { $0.isKeyWindow }),
-              !window.bounds.isEmpty else { return nil }
-        let bounds = window.bounds
-        let renderer = UIGraphicsImageRenderer(size: bounds.size)
-        return renderer.image { _ in
-            window.drawHierarchy(in: bounds, afterScreenUpdates: false)
-        }
     }
 }
 
@@ -521,6 +541,10 @@ struct JsBridgeBrowserView: View {
 /// to call back into their own shared Legado runtime.
 struct LegadoReviewBrowserView: View {
     let target: ReaderHTMLUtilities.ReviewTarget
+    /// 弹出前由呈现方（ReaderView）抓下的书页截图（已预模糊）。
+    /// 面板自己把它铺在最底层当玻璃：任何档位、任何呈现路径都稳定，
+    /// 半屏/全屏同一张图——这是「全屏白板」的最终解法。
+    var backdrop: UIImage?
     let onDismiss: (_ body: String?) -> Void
     @State private var configurationJSON: String
     /// 从书源段评页里抓到的评论。有值就画原生卡片，没有就显示书源页面。
@@ -541,9 +565,11 @@ struct LegadoReviewBrowserView: View {
 
     init(
         target: ReaderHTMLUtilities.ReviewTarget,
+        backdrop: UIImage? = nil,
         onDismiss: @escaping (_ body: String?) -> Void
     ) {
         self.target = target
+        self.backdrop = backdrop
         self.onDismiss = onDismiss
         _configurationJSON = State(initialValue: target.sourceBrowserPage?.configurationJSON ?? "")
     }
@@ -565,7 +591,10 @@ struct LegadoReviewBrowserView: View {
 
     var body: some View {
         ZStack {
-            // ① 书源网页常驻在最底层，绝不因「抓到评论」被移出视图树。
+            // ⓪ 玻璃底：弹出前拍下的模糊书页，铺在最底层。半屏/全屏同一张图。
+            ReviewPanelBackdropLayer(backdrop: backdrop)
+
+            // ① 书源网页常驻在玻璃底之上，绝不因「抓到评论」被移出视图树。
             //    旧实现用 if/else 切换，抓到数据的瞬间 WKWebView 被销毁，
             //    页面里的 setTimeout / MutationObserver / 楼中楼展开请求全部停摆
             //    —— 这正是「新界面楼中楼点不了、切回旧版加载完再切回来才显示」的根因。
@@ -622,19 +651,11 @@ struct LegadoReviewBrowserView: View {
                 .accessibilityLabel(effectiveShowsSourcePage ? localized("用卡片显示") : localized("显示原网页"))
             }
         }
-        // 面板底：一块较实的磨砂玻璃 + 用户滑杆控制的极淡纯色蒙版。
-        // 玻璃由内容自己画（不是系统的 presentationBackground），所以 UIKit
-        // 呈现的那条路径也有玻璃；半屏/全屏切换时 clearSheetChrome 会跳过
-        // presentedView 子树，这层玻璃不会被清掉。
-        .background {
-            // 只留一塊由滑桿驅動的玻璃。以前這裡還額外疊一層純色蒙版
-            // (ParagraphReviewVeil)，兩個設定各自改不同層，怎麼拉都看不到玻璃變化。
-            ReviewSheetGlassBackground()
-        }
-        // 全档位同一块玻璃：presentationBackground 交给内容层，系统不再另画
-        // 一层材质（否则两层互采会糊成白板）；背景交互开到 large，保证玻璃
-        // 始终采样得到背后的书页正文。
-        .presentationBackground { ReviewSheetBookBackdrop() }
+        // 面板玻璃已经由 ZStack 最底层的 ReviewPanelBackdropLayer 自己画好
+        // （弹出前的书页截图，预模糊），不再依赖系统材质/采样，任何档位都一致。
+        // presentationBackground 清空：系统不再另画一层不透明 chrome 盖在玻璃上
+        // （那层 chrome 正是全屏档白板的来源之一）。
+        .presentationBackground { Color.clear }
         .presentationBackgroundInteraction(.enabled(upThrough: .large))
         .presentationDetents(presentationConfiguration.detents)
         .presentationDragIndicator(

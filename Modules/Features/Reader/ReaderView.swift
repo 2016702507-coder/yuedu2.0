@@ -397,6 +397,9 @@ struct ReaderView: View {
     @State var contentDebugTarget: ReaderContentDebugTarget?
     @State private var replaceRuleDraft: ReplaceRule?
     @State var reviewTarget: ReaderHTMLUtilities.ReviewTarget?
+    /// 段评面板弹出前抓下的书页截图（已预模糊）。面板拿它当玻璃底：
+    /// 不依赖系统实时采样，半屏/全屏同一张图，全屏档绝不变白板。
+    @State var reviewBackdropImage: UIImage?
     @State private var coreTextExternalTargetVersion: UInt = 0
     @State var bookDocument: (any BookDocument)? = nil
     @State var contentProvider: (any BookContentProvider)? = nil
@@ -3121,9 +3124,17 @@ struct ReaderView: View {
             }
         }
         .sheet(item: $reviewTarget) { target in
-            LegadoReviewBrowserView(target: target) { _ in
+            LegadoReviewBrowserView(target: target, backdrop: reviewBackdropImage) { _ in
                 reviewTarget = nil
             }
+        }
+        // reviewTarget 被赋值的同一笔状态变更里（sheet 还没开始上屏）抓书页：
+        // `afterScreenUpdates: false` 拿到的正是用户眼前这帧完整书页，
+        // 预模糊后交给面板当玻璃底——这是全屏档不再白板的关键。
+        .onChange(of: reviewTarget) { _, newTarget in
+            guard newTarget != nil else { return }
+            let raw = ReviewBackdropCapture.keyWindowSnapshot()
+            reviewBackdropImage = raw.flatMap { ReviewBackdropCapture.blurredGlass($0) } ?? raw
         }
         .sheetOutsideTapDismiss(
             item: $reviewTarget,

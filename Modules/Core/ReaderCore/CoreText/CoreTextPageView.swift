@@ -2789,7 +2789,12 @@ final class CoreTextPageViewController: UIViewController, ReaderBookmarkRibbonHo
             }
             return
         }
-        let view = LegadoReviewBrowserView(target: target) { [weak self] _ in
+        // 弹出前抓下书页当前帧（此刻 sheet 还没上屏，拿到的就是完整书页），
+        // 预模糊后交给面板当玻璃底：面板自己画玻璃，不依赖系统实时采样，
+        // 半屏/全屏同一张图——这是全屏档白板的最终解法。
+        let rawBackdrop = ReviewBackdropCapture.keyWindowSnapshot()
+        let reviewBackdrop = rawBackdrop.flatMap { ReviewBackdropCapture.blurredGlass($0) } ?? rawBackdrop
+        let view = LegadoReviewBrowserView(target: target, backdrop: reviewBackdrop) { [weak self] _ in
             self?.dismissReviewSheet()
         }
         let host = UIHostingController(rootView: view)

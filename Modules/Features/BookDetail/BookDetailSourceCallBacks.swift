@@ -143,6 +143,8 @@ extension View {
 private struct SourceCallBackTapHost: ViewModifier {
     @Binding var request: SourceCallBackTapRequest?
     @State private var page: ReaderHTMLUtilities.ReviewTarget?
+    /// 面板弹出前抓下的页面截图（已预模糊），交给面板当玻璃底。
+    @State private var reviewBackdropImage: UIImage?
 
     func body(content: Content) -> some View {
         content
@@ -161,9 +163,15 @@ private struct SourceCallBackTapHost: ViewModifier {
                 self.request = nil
             }
             .sheet(item: $page) { target in
-                LegadoReviewBrowserView(target: target) { _ in page = nil }
+                LegadoReviewBrowserView(target: target, backdrop: reviewBackdropImage) { _ in page = nil }
                     .presentationDetents([.medium, .large])
             }
             .sheetOutsideTapDismiss(item: $page, isEnabled: page?.isReviewSheetHideable ?? true)
+            // sheet 上屏前抓当前帧当玻璃底：半屏/全屏同一张图，全屏不变白板。
+            .onChange(of: page) { _, newPage in
+                guard newPage != nil else { return }
+                let raw = ReviewBackdropCapture.keyWindowSnapshot()
+                reviewBackdropImage = raw.flatMap { ReviewBackdropCapture.blurredGlass($0) } ?? raw
+            }
     }
 }

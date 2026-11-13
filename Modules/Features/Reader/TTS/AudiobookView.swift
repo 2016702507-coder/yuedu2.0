@@ -60,6 +60,8 @@ struct AudiobookReaderView: View {
     /// The shelf book a transient session became through 加入书架 on this page.
     @State private var shelvedBookId: UUID?
     @State private var sourcePage: ReaderHTMLUtilities.ReviewTarget?
+    /// 面板弹出前抓下的页面截图（已预模糊），交给面板当玻璃底。
+    @State private var reviewBackdropImage: UIImage?
     // Before iOS 18 a menu cannot launch a sheet or popover; its rows open from these choosers'
     // real `onDismiss` instead (`MenuModalPresentationPolicy`).
     @State private var showsMoreChooser = false
@@ -117,10 +119,16 @@ struct AudiobookReaderView: View {
         }
         .task(id: player.bookId) { shareURL = resolveShareURL() }
         .sheet(item: $sourcePage) { target in
-            LegadoReviewBrowserView(target: target) { _ in sourcePage = nil }
+            LegadoReviewBrowserView(target: target, backdrop: reviewBackdropImage) { _ in sourcePage = nil }
                 .presentationDetents([.medium, .large])
         }
         .sheetOutsideTapDismiss(item: $sourcePage, isEnabled: sourcePage?.isReviewSheetHideable ?? true)
+        // sheet 上屏前抓当前帧当玻璃底：半屏/全屏同一张图，全屏不变白板。
+        .onChange(of: sourcePage) { _, newPage in
+            guard newPage != nil else { return }
+            let raw = ReviewBackdropCapture.keyWindowSnapshot()
+            reviewBackdropImage = raw.flatMap { ReviewBackdropCapture.blurredGlass($0) } ?? raw
+        }
         .sheet(isPresented: $showChapterList) {
             AudiobookChapterListView(player: player)
         }
