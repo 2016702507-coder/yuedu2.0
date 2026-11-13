@@ -2,6 +2,7 @@ import SwiftUI
 import WebKit
 import Combine
 import ObjectiveC
+import UIKit
 
 /// Paragraph-review sheets deliberately use only the source page's own UI.
 /// Login and other source browsers keep `JsBridgeBrowserView`'s normal toolbar.
@@ -73,19 +74,17 @@ struct ReviewSheetGlassBackground: View {
         return min(max(0.7 * sheet + 0.3 * global, 0), 1)
     }
 
-    /// 材質不透明度：0 → 0.16（能清楚看到背後書頁正文的磨砂玻璃），
-    /// 1 → 0.92（接近普通實色面板）。調的是材質本身，不是往上蓋一層白。
-    private var materialOpacity: Double { 0.16 + 0.76 * level }
-
     /// 極淡 tint，只給玻璃一點厚度、保證評論文字對比；不是白板來源。
     private var tintOpacity: Double {
         (colorScheme == .dark ? 0.04 : 0.02) + 0.56 * level
     }
 
+    /// 固定淡玻璃色：跟滑杆走、绝不变白。真正「透出书页」的玻璃由
+    /// `ReviewSheetBookBackdrop` 负责（见下方 `.presentationBackground`）。
     private var glass: some View {
         ZStack {
-            GlassBlurView(blurStyle: .systemUltraThinMaterial)
-                .opacity(materialOpacity)
+            (colorScheme == .dark ? Color.black : Color.white)
+                .opacity(0.06 + 0.40 * level)
             (colorScheme == .dark ? Color.black : Color.white)
                 .opacity(tintOpacity)
         }
@@ -98,6 +97,89 @@ struct ReviewSheetGlassBackground: View {
             } else {
                 glass
             }
+        }
+    }
+}
+
+/// 段评面板的玻璃底：把「背后的书页」自己拍下来当底，半屏/全屏都长一个样、绝不白板。
+///
+/// 之前的 `GlassBlurView`（`UIVisualEffectView`）实时采背后书页：半屏时背后露出了书页、
+/// 能采到 → 玻璃；一旦拖到 `.large` 满屏，书页被 sheet 整个盖住、窗口里背后再没有
+/// 可采内容，磨砂层就退化成它自己的浅色底 → 白板。这正是「半屏玻璃、全屏白底」的根因，
+/// 跟滑杆、tint 都没关系。
+///
+/// 修法：面板弹出时把当前窗口（含背后书页）截图，模糊后铺在 `.presentationBackground`
+/// 里，并用 `GeometryReader` 按屏幕坐标对齐——半屏只露下半截书页、全屏看到整页，但都是
+/// 同一张模糊书页，所以两档位完全一致。截图抓不到时回落淡玻璃色兜底，仍非白板。
+private struct ReviewSheetBookBackdrop: View {
+    @Environment(\.colorScheme) private var colorScheme
+    @State private var backdrop: UIImage?
+    @State private var captured = false
+
+    private var settings: GlobalSettings { .shared }
+
+    private var level: Double {
+        let sheet = min(max(settings.reviewSheetOpacity, 0), 1)
+        let global = 1 - min(max(settings.interfaceGlassTransparency, 0), 1)
+        return min(max(0.7 * sheet + 0.3 * global, 0), 1)
+    }
+
+    private var windowSize: CGSize {
+        if let w = UIApplication.shared.connectedScenes
+            .compactMap({ $0 as? UIWindowScene })
+            .first?.windows.first(where: { $0.isKeyWindow }) {
+            return w.bounds.size
+        }
+        return UIScreen.main.bounds.size
+    }
+
+    private var tintOpacity: Double {
+        (colorScheme == .dark ? 0.04 : 0.02) + 0.56 * level
+    }
+
+    var body: some View {
+        GeometryReader { geo in
+            ZStack {
+                if let backdrop {
+                    Image(uiImage: backdrop)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: windowSize.width, height: windowSize.height)
+                        .offset(y: -(windowSize.height - geo.size.height))
+                        .blur(radius: 22, opaque: false)
+                        .clipped()
+                } else {
+                    (colorScheme == .dark ? Color.black : Color.white)
+                        .opacity(0.16 + 0.5 * level)
+                }
+                (colorScheme == .dark ? Color.black : Color.white)
+                    .opacity(tintOpacity)
+            }
+            .ignoresSafeArea()
+        }
+        .ignoresSafeArea()
+        .onAppear { captureIfNeeded() }
+    }
+
+    private func captureIfNeeded() {
+        guard !captured else { return }
+        captured = true
+        // 等 sheet 落定、背后书页稳定后再拍；即便还没落定，书页本身早已渲染。
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
+            backdrop = Self.captureKeyWindow()
+        }
+    }
+
+    private static func captureKeyWindow() -> UIImage? {
+        guard let window = UIApplication.shared.connectedScenes
+            .compactMap({ $0 as? UIWindowScene })
+            .flatMap({ $0.windows })
+            .first(where: { $0.isKeyWindow }),
+              !window.bounds.isEmpty else { return nil }
+        let bounds = window.bounds
+        let renderer = UIGraphicsImageRenderer(size: bounds.size)
+        return renderer.image { _ in
+            window.drawHierarchy(in: bounds, afterScreenUpdates: false)
         }
     }
 }
@@ -552,7 +634,7 @@ struct LegadoReviewBrowserView: View {
         // 全档位同一块玻璃：presentationBackground 交给内容层，系统不再另画
         // 一层材质（否则两层互采会糊成白板）；背景交互开到 large，保证玻璃
         // 始终采样得到背后的书页正文。
-        .presentationBackground { Color.clear }
+        .presentationBackground { ReviewSheetBookBackdrop() }
         .presentationBackgroundInteraction(.enabled(upThrough: .large))
         .presentationDetents(presentationConfiguration.detents)
         .presentationDragIndicator(
@@ -639,7 +721,7 @@ struct LegadoReviewBrowserView: View {
                 .foregroundStyle(DSColor.textSecondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(GlassBlurView(blurStyle: .systemUltraThinMaterial))
+        .background((colorScheme == .dark ? Color.black : Color.white).opacity(0.35))
     }
 
     private var presentationConfiguration: SourceBrowserPresentationConfiguration {

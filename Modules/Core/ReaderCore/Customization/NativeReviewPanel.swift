@@ -304,9 +304,6 @@ private struct ReviewQuoteGlass: View {
         return min(max(0.7 * sheet + 0.3 * global, 0), 1)
     }
 
-    /// 比面板底略實：0 → 0.20（仍能透出背後書頁）、1 → 0.90。
-    private var materialOpacity: Double { 0.20 + 0.70 * level }
-
     /// 極淡 tint 給玻璃一點厚度；暗色用黑，避免夜間發白。
     private var tintOpacity: Double {
         (colorScheme == .dark ? 0.05 : 0.03) + 0.42 * level
@@ -314,9 +311,9 @@ private struct ReviewQuoteGlass: View {
 
     var body: some View {
         ZStack {
-            GlassBlurView(blurStyle: .systemUltraThinMaterial)
-                .opacity(materialOpacity)
-                .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .fill(colorScheme == .dark ? Color.black : Color.white)
+                .opacity(0.10 + 0.45 * level)
             RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                 .fill(colorScheme == .dark ? Color.black : Color.white)
                 .opacity(tintOpacity)
