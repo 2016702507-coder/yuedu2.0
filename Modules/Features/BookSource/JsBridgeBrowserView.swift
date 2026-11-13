@@ -34,6 +34,24 @@ enum ParagraphReviewVeil {
 ///
 /// 不再受「全局玻璃總閘 / 系統降低透明度」一刀切成不透明純色：那條兜底會把
 /// 使用者明確要的玻璃直接換成實色，正是「怎麼調都沒用」的另一半原因。
+/// 真正的 `UIVisualEffectView` 毛玻璃，而不是 SwiftUI 自带的 `.ultraThinMaterial`。
+///
+/// 段评面板是 UIKit `present()` 出来的页面 sheet，SwiftUI 的材质在拖到 `.large` 满屏档时
+/// 采样不到背后的书页、会退化成刺眼白板（半屏玻璃、全屏白底的根因）。
+/// 原生 `UIVisualEffectView` 直接采窗口里背后那一层（书页），任何档位都稳定出玻璃，
+/// 半屏/全屏完全一致。透明度由外层 `.opacity()` 控制，跟之前语义一致。
+struct GlassBlurView: UIViewRepresentable {
+    var blurStyle: UIBlurEffect.Style = .systemUltraThinMaterial
+
+    func makeUIView(context: Context) -> UIVisualEffectView {
+        UIVisualEffectView(effect: UIBlurEffect(style: blurStyle))
+    }
+
+    func updateUIView(_ uiView: UIVisualEffectView, context: Context) {
+        uiView.effect = UIBlurEffect(style: blurStyle)
+    }
+}
+
 struct ReviewSheetGlassBackground: View {
     /// 設定頁預覽是嵌在列表裡的小卡片，不需要鋪出安全區。
     var fillsSafeArea: Bool = true
@@ -66,8 +84,7 @@ struct ReviewSheetGlassBackground: View {
 
     private var glass: some View {
         ZStack {
-            Rectangle()
-                .fill(.ultraThinMaterial)
+            GlassBlurView(blurStyle: .systemUltraThinMaterial)
                 .opacity(materialOpacity)
             (colorScheme == .dark ? Color.black : Color.white)
                 .opacity(tintOpacity)
@@ -622,7 +639,7 @@ struct LegadoReviewBrowserView: View {
                 .foregroundStyle(DSColor.textSecondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(.ultraThinMaterial)
+        .background(GlassBlurView(blurStyle: .systemUltraThinMaterial))
     }
 
     private var presentationConfiguration: SourceBrowserPresentationConfiguration {
