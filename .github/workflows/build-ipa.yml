@@ -520,10 +520,22 @@ jobs:
             return 1
           }
 
-          # 第 1 档用真正的 -O 优化（不带 -disable-llvm-optzns）：代码段从 97MB 降到
-          # 正常量级，产物约 40MB，第三方重签工具才签得动、系统才装得下。
-          # 若 -O 触发 IRGen 崩溃，自动降级到 -Onone 三档兜底。
+          # iOS 17.0 闪退根因（2026-11-13 用崩溃日志 UUID 验证）：
+          # 12:14 的 .ips 里 slice_uuid=C789EF94-… 与已上架 1.7.3 的 Mach-O UUID
+          # 逐字节相同，说明用户测的就是最新修复版，之前 12 处 deinit 改动没有
+          # 碰到真正的崩溃点。栈固定为 pthread_kill -> abort ->
+          # swift_Concurrency_fatalError -> swift_task_dealloc+128 <-
+          # completeTaskWithClosure，signal=6，是 Swift 6.2.4 (Xcode 26.3)
+          # back-deployed 并发运行时的 task 分配器 LIFO 断言
+          # （swiftlang/swift#84793，部署目标 <18.0 + -O 触发）。
+          # 因此这里把首选档从 -O 换成 -Onone：编译不再重排 Task 的分配/释放
+          # 顺序，切断该断言的触发条件。GitHub runner 最高只有 Xcode 26.3，
+          # 换不了已修复该 issue 的 26.4，只能从编译条件侧规避。
+          # 原 -O / -Osize / -Onone 四档全部保留为兜底，新增档若失败会自动
+          # 退回原来的构建路径，不会让构建挂掉。
           for combo in \
+            "ios17-none|incremental|-Onone|NO|no" \
+            "ios17-safe|incremental|-O|NO|yes" \
             "opt|incremental|-O|NO|no" \
             "opt-size|incremental|-Osize|NO|no" \
             "nobatch-a|incremental|-Onone|NO|no" \
@@ -545,7 +557,7 @@ jobs:
         run: |
           set -eo pipefail
           if [ -z "${BUILD_DIR:-}" ]; then
-            for d in build-opt build-opt-size build-nobatch-a build-nobatch-b build-batch build-fallback build-out; do
+            for d in build-ios17-none build-ios17-safe build-opt build-opt-size build-nobatch-a build-nobatch-b build-batch build-fallback build-out; do
               if [ -d "$d/Build/Products" ]; then BUILD_DIR="$d"; break; fi
             done
           fi
