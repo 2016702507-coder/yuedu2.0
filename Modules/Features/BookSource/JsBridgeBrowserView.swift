@@ -24,32 +24,64 @@ enum ParagraphReviewVeil {
     }
 }
 
-/// 段評面板專用玻璃：比閱讀設定那塊（material 0.30）實得多，能擋住背後正文，
-/// 半屏與全屏用同一塊，不會拉滿就透成一層字。UIKit 呈現與 SwiftUI sheet 兩條
-/// 路徑都由內容自己畫這塊玻璃，所以兩種檔位、兩條路徑完全一致。
-/// 總閘關閉 / 系統要求降低透明度時退成不透明純色，保留 iOS 17 一鍵兜底。
+/// 段評面板專用玻璃：半屏與全屏、UIKit 呈現與 SwiftUI sheet 都共用這一塊，
+/// 由內容自己畫，因此不會被 clearSheetChrome 清掉，兩種檔位、兩條路徑完全一致。
+///
+/// 「段評面板不透明度」/「玻璃濃淡」是同一個 `reviewSheetOpacity`，現在它直接
+/// 驅動這塊**玻璃本身**：0 = 最透的磨砂玻璃（背後書頁正文半清半糊地透上來），
+/// 1 = 接近普通實色面板。以前這裡把材質寫死成 0.90 + 0.22 白，滑桿只改另一層
+/// 純色蒙版，兩者解耦，所以使用者把不透明度拉到 0 看到的仍是一塊灰白實心板。
+///
+/// 不再受「全局玻璃總閘 / 系統降低透明度」一刀切成不透明純色：那條兜底會把
+/// 使用者明確要的玻璃直接換成實色，正是「怎麼調都沒用」的另一半原因。
 struct ReviewSheetGlassBackground: View {
+    /// 設定頁預覽是嵌在列表裡的小卡片，不需要鋪出安全區。
+    var fillsSafeArea: Bool = true
+
     @Bindable private var settings = GlobalSettings.shared
-    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @Environment(\.colorScheme) private var colorScheme
 
-    private var usesGlass: Bool {
-        settings.interfaceFrostedGlass && !reduceTransparency
+    /// 濃度 0 = 最透、1 = 最實。
+    ///
+    /// 兩個設定都真正接到這塊玻璃上，不再是「拉了只改另一層蒙版」：
+    /// - 「外觀 › 界面效果 › 段評面板不透明度」/「段評與互動樣式 › 玻璃濃淡」
+    ///   是同一個 `reviewSheetOpacity`（主權重 0.7）；
+    /// - 「外觀 › 界面效果 › 透明度」`interfaceGlassTransparency`（權重 0.3），
+    ///   1 = 最透、0 = 最實，與全 App 卡片的語義一致。
+    /// 任何一個往「實」的方向拉，玻璃都立刻變濃；兩邊都拉到最透就是最清透的磨砂玻璃。
+    private var level: Double {
+        let sheet = min(max(settings.reviewSheetOpacity, 0), 1)
+        let global = 1 - min(max(settings.interfaceGlassTransparency, 0), 1)
+        return min(max(0.7 * sheet + 0.3 * global, 0), 1)
+    }
+
+    /// 材質不透明度：0 → 0.16（能清楚看到背後書頁正文的磨砂玻璃），
+    /// 1 → 0.92（接近普通實色面板）。調的是材質本身，不是往上蓋一層白。
+    private var materialOpacity: Double { 0.16 + 0.76 * level }
+
+    /// 極淡 tint，只給玻璃一點厚度、保證評論文字對比；不是白板來源。
+    private var tintOpacity: Double {
+        (colorScheme == .dark ? 0.04 : 0.02) + 0.56 * level
+    }
+
+    private var glass: some View {
+        ZStack {
+            Rectangle()
+                .fill(.ultraThinMaterial)
+                .opacity(materialOpacity)
+            (colorScheme == .dark ? Color.black : Color.white)
+                .opacity(tintOpacity)
+        }
     }
 
     var body: some View {
-        ZStack {
-            if usesGlass {
-                Rectangle()
-                    .fill(.ultraThinMaterial)
-                    .opacity(0.90)
-                (colorScheme == .dark ? Color.black : Color.white)
-                    .opacity(colorScheme == .dark ? 0.18 : 0.22)
+        Group {
+            if fillsSafeArea {
+                glass.ignoresSafeArea()
             } else {
-                Rectangle().fill(DSColor.surface)
+                glass
             }
         }
-        .ignoresSafeArea()
     }
 }
 
@@ -496,17 +528,9 @@ struct LegadoReviewBrowserView: View {
         // 呈现的那条路径也有玻璃；半屏/全屏切换时 clearSheetChrome 会跳过
         // presentedView 子树，这层玻璃不会被清掉。
         .background {
-            ZStack {
-                ReviewSheetGlassBackground()
-                Rectangle()
-                    .fill(
-                        ParagraphReviewVeil.color(
-                            for: colorScheme,
-                            opacity: settings.reviewSheetOpacity
-                        )
-                    )
-                    .ignoresSafeArea()
-            }
+            // 只留一塊由滑桿驅動的玻璃。以前這裡還額外疊一層純色蒙版
+            // (ParagraphReviewVeil)，兩個設定各自改不同層，怎麼拉都看不到玻璃變化。
+            ReviewSheetGlassBackground()
         }
         // 全档位同一块玻璃：presentationBackground 交给内容层，系统不再另画
         // 一层材质（否则两层互采会糊成白板）；背景交互开到 large，保证玻璃
