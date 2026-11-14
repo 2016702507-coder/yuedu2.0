@@ -78,9 +78,9 @@ struct ReviewSheetGlassBackground: View {
 
     /// 極淡 tint，只給玻璃一點厚度、保證評論文字對比；不是白板來源。
     private var tintOpacity: Double {
-        // 「玻璃浓淡」真实生效：tint 从 0.02（最透）到 ~0.28（最实）线性摆动，
-        // 拖动滑杆立刻可见；中性白不带色相，颜色交给材质采样。
-        colorScheme == .dark ? 0.02 + 0.24 * level : 0.02 + 0.26 * level
+        // tint 压到 0~0.14：白纸书页上材质自带白纱，tint 再叠白就糊成白板——
+        // 玻璃的辨识度靠模糊采样的文字形状，不靠白底。
+        0.14 * level
     }
 
     /// 固定淡玻璃色：跟滑杆走、绝不变白。真正「透出书页」的玻璃由
@@ -183,9 +183,9 @@ struct ReviewPanelBackdropLayer: View {
     }
 
     private var tintOpacity: Double {
-        // 「玻璃浓淡」真实生效：tint 从 0.02（最透）到 ~0.28（最实）线性摆动，
-        // 拖动滑杆立刻可见；中性白不带色相，颜色交给材质采样。
-        colorScheme == .dark ? 0.02 + 0.24 * level : 0.02 + 0.26 * level
+        // tint 压到 0~0.14：白纸书页上材质自带白纱，tint 再叠白就糊成白板——
+        // 玻璃的辨识度靠模糊采样的文字形状，不靠白底。
+        0.14 * level
     }
 
     var body: some View {
@@ -229,9 +229,9 @@ private struct LiveGlassEffectLayer: UIViewRepresentable {
         return view
     }
     func updateUIView(_ uiView: UIVisualEffectView, context: Context) {
-        // 最透端材质降到 0.25（玻璃清透、背后文字形状可辨），
-        // 最实端全效 1.0（重磨砂）。无动画直改，拖滑杆即时跟手。
-        uiView.alpha = 0.25 + 0.75 * level
+        // 最透端材质降到 0.15（白纸页上也不糊成白板，文字形状清晰可辨），
+        // 最实端 0.75（重磨砂仍有内容透出）。无动画直改，拖滑杆即时跟手。
+        uiView.alpha = 0.15 + 0.60 * level
     }
 }
 
