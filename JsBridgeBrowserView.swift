@@ -78,9 +78,10 @@ struct ReviewSheetGlassBackground: View {
 
     /// 極淡 tint，只給玻璃一點厚度、保證評論文字對比；不是白板來源。
     private var tintOpacity: Double {
-        // 对齐孤岛(Leaflow)面板逆向出的玻璃参数：frostedGlassOpacity≈0.85 档位。
-        // tint 用带色相的暖米色，权重整体抬高：浅色 0.34~0.84、深色 0.10~0.65。
-        colorScheme == .dark ? 0.10 + 0.55 * level : 0.34 + 0.50 * level
+        // 孤岛白页实测：面板 rgb(211~217) vs 背景 rgb(202)——零色偏、整体提亮约 5%。
+        // 玻璃的颜色完全来自材质对背后书页的实时采样（背后是暖纸就显暖、是白页就显白），
+        // tint 只做中性提亮，绝不带自己的色相。
+        colorScheme == .dark ? 0.06 + 0.20 * level : 0.10 + 0.20 * level
     }
 
     /// 固定淡玻璃色：跟滑杆走、绝不变白。真正「透出书页」的玻璃由
@@ -89,15 +90,12 @@ struct ReviewSheetGlassBackground: View {
         ZStack {
             (colorScheme == .dark ? Color.black : Color.white)
                 .opacity(0.06 + 0.40 * level)
-            // tint 用暖米色（孤岛面板同款色相），不再是纯白——纯白只能提亮、
-            // 带不出羊皮纸的暖调，面板会显灰。
-            (colorScheme == .dark ? Color.black : Self.warmCreamTint)
+            // tint 用中性白：孤岛实测面板 R=G=B 零色偏，玻璃颜色全部来自
+            // 材质对背景的采样，自身只做轻微提亮，绝不带固定色相。
+            (colorScheme == .dark ? Color.black : Color.white)
                 .opacity(tintOpacity)
         }
     }
-
-    /// 暖米色 tint：R>G>B 拉开色距，实测孤岛面板 ≈ RGB(231,223,204)。
-    private static let warmCreamTint = Color(red: 0.965, green: 0.915, blue: 0.82)
 
     var body: some View {
         Group {
@@ -180,9 +178,10 @@ struct ReviewPanelBackdropLayer: View {
     }
 
     private var tintOpacity: Double {
-        // 对齐孤岛(Leaflow)面板逆向出的玻璃参数：frostedGlassOpacity≈0.85 档位。
-        // tint 用带色相的暖米色，权重整体抬高：浅色 0.34~0.84、深色 0.10~0.65。
-        colorScheme == .dark ? 0.10 + 0.55 * level : 0.34 + 0.50 * level
+        // 孤岛白页实测：面板 rgb(211~217) vs 背景 rgb(202)——零色偏、整体提亮约 5%。
+        // 玻璃的颜色完全来自材质对背后书页的实时采样（背后是暖纸就显暖、是白页就显白），
+        // tint 只做中性提亮，绝不带自己的色相。
+        colorScheme == .dark ? 0.06 + 0.20 * level : 0.10 + 0.20 * level
     }
 
     var body: some View {
@@ -215,16 +214,6 @@ struct ReviewPanelBackdropLayer: View {
                 // 边缘会显出一条冷白带，暖白即使在极端帧上也与纸色融为一体。
                 (colorScheme == .dark ? Color.black : Self.paperTint)
                     .opacity(tintOpacity)
-                // 顶部提亮：孤岛面板实测上沿 rgb(231,223,204) 比中部 rgb(207,190,169) 亮，
-                // Liquid Glass 的顶光在系统材质上也有类似的高光衰减，这里用淡白渐变补齐。
-                LinearGradient(
-                    colors: [
-                        .white.opacity(colorScheme == .dark ? 0.10 : 0.16),
-                        .white.opacity(0),
-                    ],
-                    startPoint: .top,
-                    endPoint: UnitPoint(x: 0.5, y: 0.42)
-                )
             }
             .frame(width: geo.size.width, height: geo.size.height)
             .clipped()
@@ -233,10 +222,10 @@ struct ReviewPanelBackdropLayer: View {
         .ignoresSafeArea()
     }
 
-    /// 匀光 tint：暖米色（孤岛本章说面板同款），R>G>B 拉开色距出暖纸感。
-    private static let paperTint = Color(red: 0.965, green: 0.915, blue: 0.82)
-    /// 兜底磨砂色：同色系略深，保证无截图时也有厚度。
-    private static let paperFallback = Color(red: 0.94, green: 0.89, blue: 0.79)
+    /// 匀光 tint：中性白（孤岛实测 R=G=B 零色偏），颜色自适应完全交给材质采样。
+    private static let paperTint = Color.white
+    /// 兜底磨砂色：中性浅灰，无截图时不抢色。
+    private static let paperFallback = Color(white: 0.93)
 }
 
 /// 系统实时玻璃的 SwiftUI 桥：UIVisualEffectView + 系统超薄材质。
