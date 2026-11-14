@@ -583,8 +583,10 @@ struct LegadoReviewBrowserView: View {
     /// 右上角小地球的「临时切换」。nil = 跟随设置里的默认显示模式；
     /// 有值 = 用户这一次手动切过，只影响当前面板，不写回设置。
     @State private var sourcePageOverride: Bool?
-    /// 4 秒内没抓到任何评论就回落显示书源原网页，避免一直卡在加载占位。
+    /// 抓取超时后停在玻璃提示态（绝不自动回落书源原网页），可手动重试或切原网页。
     @State private var hasTimedOut = false
+    /// 重试计数：变化即重启 4 秒超时计时（.task(id:) 随之重跑）。
+    @State private var retryToken = 0
     /// 面板底色的浓淡由外观 › 界面效果 的滑杆决定，拖动即时生效。
     private var settings: GlobalSettings { .shared }
     /// 设置页的「显示模式」决定默认显示原生卡片还是书源原网页。
@@ -641,6 +643,14 @@ struct LegadoReviewBrowserView: View {
                     .transition(.opacity)
             }
 
+            // ②′ 抓取超时：脸不变，仍是同一块玻璃，只是换上提示+重试。
+            //    绝不自动切回书源原网页——那块白底网页就是「加载慢闪旧版」的根源。
+            //    WebView 在玻璃底下继续跑抓取脚本，一旦抓到数据会自动跳成原生卡片。
+            if displayMode == .timedOut {
+                timedOutPlaceholder
+                    .transition(.opacity)
+            }
+
             // ③ 抓到评论：原生玻璃卡片盖在最上层。
             if displayMode == .native, let grabbed {
                 NativeReviewPanelView(
@@ -655,13 +665,14 @@ struct LegadoReviewBrowserView: View {
             }
         }
         .animation(.easeInOut(duration: 0.22), value: displayMode)
-        .task {
-            // 超时兜底：抓不到就回到书源原网页（旧版行为），不让用户干等。
+        .task(id: retryToken) {
+            // 超时兜底：抓不到就停在玻璃提示态（脸不变），WebView 继续在
+            // 玻璃底下抓——一旦抓到，grabbed 非空自动跳成原生卡片。
             try? await Task.sleep(for: .seconds(4))
             if grabbed == nil { hasTimedOut = true }
         }
         .overlay(alignment: .topTrailing) {
-            if grabbed != nil {
+            if grabbed != nil || hasTimedOut {
                 Button {
                     withAnimation(.easeInOut(duration: 0.18)) {
                         sourcePageOverride = !effectiveShowsSourcePage
@@ -703,12 +714,13 @@ struct LegadoReviewBrowserView: View {
         case loading
         case native
         case web
+        case timedOut
     }
 
     private var displayMode: DisplayMode {
         if effectiveShowsSourcePage { return .web }
         if grabbed != nil { return .native }
-        if hasTimedOut { return .web }
+        if hasTimedOut { return .timedOut }
         return .loading
     }
 
@@ -776,6 +788,37 @@ struct LegadoReviewBrowserView: View {
         // 不再垫白色实底：玻璃底（ReviewPanelBackdropLayer）已经是完整的面板
         // 外观，加载态直接透出同一块玻璃——加载中/加载完是同一张脸，
         // 杜绝「加载慢时闪现一块实心旧面板」的观感。
+    }
+
+    /// 超时占位：与加载态同一块玻璃、同一张脸，只把 spinner 换成提示与重试。
+    /// 旧实现超时后回落显示书源原网页——书源网页自带白底，整块盖住实时玻璃，
+    /// 看起来就是「旧版面板跳出来一会」。现在超时后脸不变，后台继续抓，
+    /// 抓到评论自动切原生卡片；想看原网页用右上角小地球手动切。
+    private var timedOutPlaceholder: some View {
+        VStack(spacing: 10) {
+            Image(systemName: "hourglass")
+                .font(.system(size: 20, weight: .light))
+                .foregroundStyle(DSColor.textSecondary)
+            Text(localized("评论还在路上，稍等片刻"))
+                .font(.system(size: 12))
+                .foregroundStyle(DSColor.textSecondary)
+            Button {
+                withAnimation(.easeInOut(duration: 0.22)) {
+                    hasTimedOut = false
+                    retryToken += 1
+                }
+            } label: {
+                Text(localized("重新加载"))
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(DSColor.textPrimary)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 6)
+                    .background(.ultraThinMaterial, in: Capsule())
+                    .overlay(Capsule().strokeBorder(Color.white.opacity(0.25), lineWidth: 0.5))
+            }
+            .buttonStyle(.plain)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private var presentationConfiguration: SourceBrowserPresentationConfiguration {
