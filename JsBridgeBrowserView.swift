@@ -214,7 +214,7 @@ struct ReviewPanelBackdropLayer: View {
                 // 也把「糊字叠在评论上」的重影压柔。
                 // 预模糊截图保留在最底层做兜底：实时采样万一在个别系统上拿不到
                 // 背后内容，底下垫着的还是玻璃图，不会退成白板。
-                LiveGlassEffectLayer()
+                LiveGlassEffectLayer(level: level)
                 // 匀光 tint 改用暖白（贴近书页纸色）：纯白 tint 在玻璃层没铺满的
                 // 边缘会显出一条冷白带，暖白即使在极端帧上也与纸色融为一体。
                 (colorScheme == .dark ? Color.black : Self.paperTint)
@@ -236,6 +236,10 @@ struct ReviewPanelBackdropLayer: View {
 /// 系统实时玻璃的 SwiftUI 桥：UIVisualEffectView + 系统超薄材质。
 /// 深浅色自适应；面板后面是什么它就实时糊什么，任何档位/动画帧都对齐。
 private struct LiveGlassEffectLayer: UIViewRepresentable {
+    /// 「玻璃浓淡」0=最透、1=最实：材质层透明度随之摆动。此前材质恒定全效、
+    /// 盖死在截图层之上，滑杆怎么拉都被它抹平——这是「滑杆没变化」的直接根因。
+    var level: Double
+
     func makeUIView(context: Context) -> UIVisualEffectView {
         let view = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterial))
         // 材质视图自身不要落底色：让采样结果直接透出来。
@@ -243,7 +247,11 @@ private struct LiveGlassEffectLayer: UIViewRepresentable {
         view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         return view
     }
-    func updateUIView(_ uiView: UIVisualEffectView, context: Context) {}
+    func updateUIView(_ uiView: UIVisualEffectView, context: Context) {
+        // 最透端材质降到 0.25（玻璃清透、背后文字形状可辨），
+        // 最实端全效 1.0（重磨砂）。无动画直改，拖滑杆即时跟手。
+        uiView.alpha = 0.25 + 0.75 * level
+    }
 }
 
 struct SourceBrowserPresentationConfiguration: Equatable {
@@ -784,7 +792,9 @@ struct LegadoReviewBrowserView: View {
                 .foregroundStyle(DSColor.textSecondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background((colorScheme == .dark ? Color.black : Color.white).opacity(0.35))
+        // 不再垫白色实底：玻璃底（ReviewPanelBackdropLayer）已经是完整的面板
+        // 外观，加载态直接透出同一块玻璃——加载中/加载完是同一张脸，
+        // 杜绝「加载慢时闪现一块实心旧面板」的观感。
     }
 
     private var presentationConfiguration: SourceBrowserPresentationConfiguration {
