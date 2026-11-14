@@ -806,46 +806,63 @@ struct JsBridgeBrowserRepresentable: UIViewRepresentable {
             if (document.getElementById(STYLE_ID)) return;
             var style = document.createElement('style');
             style.id = STYLE_ID;
-            // 只清「页面自己的底板」，绝不动评论卡片、头像、标签、气泡的底色。
-            // 早先这里有一条 `body *:not(img){background:transparent!important}`，
-            // 把书源段评页自带的卡片底、头像圈、等级标签底全刷没了，还连带
-            // `box-shadow:none` 把卡片阴影清掉 —— 那不是「透明」，是把页面拆了。
-            // 孤岛（Cay）的做法是：网页原样显示，只让最底层透出阅读器正文。
+            // 玻璃面板要整块透：页面一切容器的**实心底色**都要清掉——断层
+            // （面板某一段突然变成实心白板）的根源就是页面把白底刷在评论
+            // 列表容器、卡片、甚至后来 ajax 插进来的节点上。
+            // 教训（孤岛/Cay 的回退实验）：`background-image` 与 `box-shadow`
+            // 不能清 —— 头像、等级标签、装饰条全靠 background-image 画，
+            // 阴影清掉卡片层次就没了，那是「把页面拆了」。这里只动底色。
+            // 页面自己带 !important 的白底比 stylesheet 强，由下面的行内
+            // 反盖去处理。
             style.textContent = [
                 'html,body{background:transparent !important;background-color:transparent !important;}',
-                'body::before,body::after{background:transparent !important;background-image:none !important;}'
+                'body *:not(img):not(video):not(canvas):not(svg):not(picture):not(iframe){background-color:transparent !important;}',
+                'body::before,body::after{background-color:transparent !important;}'
             ].join('');
             (document.head || document.documentElement).appendChild(style);
         }
-        // 有些段评页把白底刷在一个铺满视口的 div 上（body 自己反而是透明的），
-        // 只改 html/body 看起来仍旧「不透明」。这里按几何判定画布层：
-        // 占满九成以上视口、又没有背景图、也没有文字的容器，才把它的底色清掉。
-        function clearCanvasLayers() {
-            var root = document.documentElement;
-            if (!root || !document.body) return;
-            var viewport = Math.max((window.innerWidth || root.clientWidth)
-                * (window.innerHeight || root.clientHeight), 1);
-            var nodes = document.body.querySelectorAll('div,section,main,article,form');
+        var SKIP = { img: 1, video: 1, canvas: 1, svg: 1, picture: 1, source: 1, iframe: 1 };
+        function isTransparent(color) {
+            return !color || color === 'transparent' || color === 'rgba(0, 0, 0, 0)';
+        }
+        // 对单个元素按计算样式判定：实心底色就写行内 !important 盖掉。
+        // 行内 !important 是级联里的最强项，页面自己的 !important 规则也打不过它。
+        function clearOpaque(el) {
+            if (!el || el.nodeType !== 1 || el.dataset.yueduBgCleared === '1') return;
+            var tag = (el.tagName || '').toLowerCase();
+            if (SKIP[tag]) return;
+            var computed;
+            try { computed = window.getComputedStyle(el); } catch (error) { return; }
+            if (!computed || isTransparent(computed.backgroundColor)) return;
+            el.style.setProperty('background-color', 'transparent', 'important');
+            el.dataset.yueduBgCleared = '1';
+        }
+        function clearSubtree(root) {
+            if (!root || root.nodeType !== 1) return;
+            clearOpaque(root);
+            var nodes = root.querySelectorAll ? root.querySelectorAll('*') : [];
+            for (var i = 0; i < nodes.length; i++) clearOpaque(nodes[i]);
+        }
+        // 行内 style 直接写着 !important 底色的：stylesheet 永远打不过，
+        // 不管计算结果如何都反盖一层行内 transparent（后写的行内胜出）。
+        function sweepInlineImportant() {
+            if (!document.body) return;
+            var nodes = document.body.querySelectorAll('[style]');
             for (var i = 0; i < nodes.length; i++) {
                 var el = nodes[i];
-                if (el.dataset && el.dataset.yueduCanvasCleared === '1') continue;
-                var rect = el.getBoundingClientRect();
-                if (rect.width * rect.height < viewport * 0.95) continue;
-                // 承载评论内容的容器不是画布：清了它，卡片就全透明了。
-                if (el.children.length > 3) continue;
-                var text = (el.textContent || '').replace(/\\s+/g, '');
-                if (text.length > 0) continue;
-                var computed = window.getComputedStyle(el);
-                if (!computed) continue;
-                if (computed.backgroundImage && computed.backgroundImage !== 'none') continue;
-                var color = computed.backgroundColor || '';
-                if (color === 'transparent' || color === 'rgba(0, 0, 0, 0)') continue;
+                if (SKIP[(el.tagName || '').toLowerCase()]) continue;
+                var raw = el.getAttribute('style') || '';
+                if (raw.indexOf('important') === -1) continue;
+                if (raw.indexOf('background') === -1 && raw.indexOf('bg-color') === -1) continue;
                 el.style.setProperty('background-color', 'transparent', 'important');
-                el.style.setProperty('background-image', 'none', 'important');
-                if (el.dataset) el.dataset.yueduCanvasCleared = '1';
             }
         }
-        function run() { installStyle(); clearCanvasLayers(); }
+        function run() {
+            installStyle();
+            if (!document.body) return;
+            sweepInlineImportant();
+            clearSubtree(document.body);
+        }
         run();
         document.addEventListener('DOMContentLoaded', run, { once: true });
         window.addEventListener('load', function () {
@@ -853,10 +870,38 @@ struct JsBridgeBrowserRepresentable: UIViewRepresentable {
             setTimeout(run, 120);
             setTimeout(run, 600);
         });
+        // 段评列表多半是 java.ajax 回来之后才插进 DOM，也可能过几秒再改样式：
+        // 监听器常驻，DOM 增删与 style/class 属性变化都盯住，只对变动到的
+        // 节点做增量清理，合并到同一帧执行。不再到点 disconnect。
+        var queued = false;
+        function schedule() {
+            if (queued) return;
+            queued = true;
+            requestAnimationFrame(function () {
+                queued = false;
+                try { run(); } catch (error) {}
+            });
+        }
         try {
-            var observer = new MutationObserver(function () { run(); });
-            observer.observe(document.documentElement, { childList: true, subtree: true });
-            setTimeout(function () { observer.disconnect(); }, 4000);
+            var observer = new MutationObserver(function (records) {
+                for (var i = 0; i < records.length; i++) {
+                    var record = records[i];
+                    if (record.type === 'attributes') {
+                        clearOpaque(record.target);
+                    } else {
+                        for (var j = 0; j < record.addedNodes.length; j++) {
+                            if (record.addedNodes[j].nodeType === 1) clearSubtree(record.addedNodes[j]);
+                        }
+                    }
+                }
+                schedule();
+            });
+            observer.observe(document.documentElement, {
+                childList: true,
+                subtree: true,
+                attributes: true,
+                attributeFilter: ['style', 'class']
+            });
         } catch (error) {}
     })();
     """
@@ -1150,6 +1195,30 @@ struct JsBridgeBrowserRepresentable: UIViewRepresentable {
     /// coordinator —— 否则楼中楼增量结果会写进首次创建时的旧闭包快照。
     func updateUIView(_ uiView: WKWebView, context: Context) {
         context.coordinator.commentsGrabHandler = onCommentsGrabbed
+        // 段评模式（transparentBackground）下，sheet 半屏也要能往下翻评论：
+        // 系统默认 prefersScrollingExpandsWhenScrolledToEdge = true，网页的
+        // scrollView 停在顶部时，上滑手势被优先识别成「展开面板」，列表在
+        // 半屏里滚不动，只能先拉到全屏。关掉后半屏内上滑就是纯滚动，
+        // 展开只靠把手 —— 与起点式段评面板的手感一致。
+        // SwiftUI 的 .sheet 没有对应参数，只能在 webView 挂上 window 后沿
+        // presented 链找到末端的 sheetPresentationController 设置；设置是
+        // 幂等的，每次 SwiftUI 更新重跑一次无妨。UIKit 呈现路径（段评面板）
+        // 已在 CoreTextPageView 直接设置同一项。
+        if transparentBackground {
+            Self.disableScrollingExpandsSheet(for: uiView)
+        }
+    }
+
+    /// 沿 presented 链找到末端控制器，把它的 sheet 改成「滚动不展开」。
+    /// 末端控制器就是当前这条 sheet —— 段评面板不会再 present 别的东西。
+    static func disableScrollingExpandsSheet(for webView: WKWebView) {
+        DispatchQueue.main.async {
+            guard var controller = webView.window?.rootViewController else { return }
+            while let presented = controller.presentedViewController {
+                controller = presented
+            }
+            controller.sheetPresentationController?.prefersScrollingExpandsWhenScrolledToEdge = false
+        }
     }
     func makeCoordinator() -> Coordinator { Coordinator() }
 

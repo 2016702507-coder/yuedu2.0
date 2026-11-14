@@ -2812,6 +2812,10 @@ final class CoreTextPageViewController: UIViewController, ReaderBookmarkRibbonHo
             // 不透明变暗层 + 一层白雾材质，半屏的玻璃到全屏就变成白底。
             // 把最大不压暗档位提到 large，全屏也保持透明玻璃。
             sheet.largestUndimmedDetentIdentifier = .large
+            // 半屏也要能往下翻评论：默认 true 时，嵌入网页的 scrollView 只要
+            // 停在顶部，上滑手势就被系统优先识别成「展开面板」，列表滚不动，
+            // 只能先拉到全屏再翻。关掉它，半屏内上滑就是纯滚动，展开只靠把手。
+            sheet.prefersScrollingExpandsWhenScrolledToEdge = false
             // 档位变化时系统会重新挂材质视图，监听后把容器链再清成透明。
             sheet.delegate = self
         }

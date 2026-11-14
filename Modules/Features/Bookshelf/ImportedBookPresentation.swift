@@ -36,17 +36,25 @@ struct ImportedBookPresentation: UIViewControllerRepresentable {
         }
         controller.receive(requestID: request?.id, makeDestination: { scene in
             guard let request else { return nil }
-            let host = UIHostingController(rootView:
-                BookReaderView(bookId: request.bookID)
-                    .id(request.bookID)
-                    .environmentObject(store)
-                    .environmentObject(subscriptionStore)
-                    .environment(\.appDependencies, .live)
-                    .followsScenePhase(of: scene)
-            )
-            // Open In 打开的书也用统一的封面翻开转场；宿主由本流程自己 present。
-            ReaderOpener.attach(to: host, bookID: request.bookID, store: store)
-            return host
+            // 先呈現一個空白佔位，轉場動畫結束後再構建真正的閱讀器。
+            // 導入收尾（書架刷新、存檔）與 present 動畫同幀到達，閱讀器的
+            // SwiftUI 首幀若也擠在這一幀，大 TXT 導入完成的瞬間整屏就會凍住
+            // ——先空屏、後填充，把幾件重活拆開，動畫全程保持響應。
+            let holder = UIHostingController(rootView: AnyView(Color.clear.ignoresSafeArea()))
+            let fill: @MainActor () -> Void = { [weak holder] in
+                guard let holder else { return }
+                holder.rootView = AnyView(
+                    BookReaderView(bookId: request.bookID)
+                        .id(request.bookID)
+                        .environmentObject(store)
+                        .environmentObject(subscriptionStore)
+                        .environment(\.appDependencies, .live)
+                        .followsScenePhase(of: scene)
+                )
+                // Open In 打开的书也用统一的封面翻开转场；宿主由本流程自己 present。
+                ReaderOpener.attach(to: holder, bookID: request.bookID, store: store)
+            }
+            return (holder, fill)
         }, didPresent: didPresent)
     }
 }
@@ -54,10 +62,11 @@ struct ImportedBookPresentation: UIViewControllerRepresentable {
 @MainActor
 final class ImportedBookPresentationController: UIViewController {
     /// What a request turns into once the window can show it: a full-screen destination
-    /// (a book), or a flow of its own presentations (a shared customization file, which
-    /// asks with an alert and reports in a sheet).
+    /// (a book, presented as a placeholder whose real reader fills in after the transition;
+    /// see `updateUIViewController`) or a flow of its own presentations (a shared
+    /// customization file, which asks with an alert and reports in a sheet).
     private enum Work {
-        case destination((UIWindowScene) -> UIViewController?)
+        case destination((UIWindowScene) -> (UIViewController, fill: @MainActor () -> Void)?)
         case flow((UIWindow, @escaping () -> Void) -> SharedCustomizationImportFlow)
     }
 
@@ -81,7 +90,7 @@ final class ImportedBookPresentationController: UIViewController {
         presentPending()
     }
 
-    func receive(requestID: UUID?, makeDestination: @escaping (UIWindowScene) -> UIViewController?,
+    func receive(requestID: UUID?, makeDestination: @escaping (UIWindowScene) -> (UIViewController, fill: @MainActor () -> Void)?,
                  didPresent: @escaping (UUID) -> Void) {
         pendingID = requestID
         pendingWork = .destination(makeDestination)
@@ -139,13 +148,16 @@ final class ImportedBookPresentationController: UIViewController {
             acknowledge?(requestID)
             flow.start()
         case .destination(let makeDestination):
-            guard let scene = window.windowScene, let destination = makeDestination(scene) else { return }
+            guard let scene = window.windowScene,
+                  let (destination, fill) = makeDestination(scene) else { return }
             presentingID = requestID
             destination.coversFullScreen()
             presenter.present(destination, animated: true) { [weak self] in
                 guard let self else { return }
                 self.presentingID = nil
                 if self.pendingID == requestID { self.pendingID = nil }
+                // 转场结束才构建阅读器：占位屏先保证动画全程有响应。
+                fill()
                 acknowledge?(requestID)
                 self.presentPending()
             }
