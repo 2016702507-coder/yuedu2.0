@@ -3123,23 +3123,20 @@ struct ReaderView: View {
                 }
             }
         }
-        .sheet(item: $reviewTarget) { target in
-            LegadoReviewBrowserView(target: target, backdrop: reviewBackdropImage) { _ in
-                reviewTarget = nil
+        // 段評面板：**不用系統 sheet**。系統 sheet 的呈現容器在 iOS 26/27 上掛著
+        // 一層不透明的 Liquid Glass 底，半屏還看得過去，拉到全屏整片渲染成純白
+        // （實測 254,254,254）；面板裡的玻璃採樣到的就是那層白，清理治不好，
+        // 系統每次檔位切換都會重建它。改成直接掛在閱讀頁視圖上的覆蓋層：同一個
+        // 窗口、同一棵渲染樹，玻璃採樣的就是下面那張真實書頁，半屏與全屏同一塊
+        // 玻璃，也不再需要那張「有印子」的書頁截圖。
+        .overlay {
+            if let target = reviewTarget {
+                ReviewPanelOverlayPresenter(target: target) {
+                    reviewTarget = nil
+                }
+                .allowsHitTesting(false)
             }
         }
-        // reviewTarget 被赋值的同一笔状态变更里（sheet 还没开始上屏）抓书页：
-        // `afterScreenUpdates: false` 拿到的正是用户眼前这帧完整书页，
-        // 预模糊后交给面板当玻璃底——这是全屏档不再白板的关键。
-        .onChange(of: reviewTarget) { _, newTarget in
-            guard newTarget != nil else { return }
-            let raw = ReviewBackdropCapture.keyWindowSnapshot()
-            reviewBackdropImage = raw.flatMap { ReviewBackdropCapture.blurredGlass($0) } ?? raw
-        }
-        .sheetOutsideTapDismiss(
-            item: $reviewTarget,
-            isEnabled: reviewTarget?.isReviewSheetHideable ?? true
-        )
         )
         return AnyView(
             mediaPresentationLayers

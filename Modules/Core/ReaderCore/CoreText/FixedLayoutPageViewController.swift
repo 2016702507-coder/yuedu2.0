@@ -35,6 +35,9 @@ private final class FixedLayoutZoomScrollView: UIScrollView {
 @MainActor
 final class FixedLayoutPageViewController: UIViewController, PageIndexProviding {
     private(set) var globalPageIndex: Int = 0
+    /// 当前已上屏内容的签名（html + baseURL）。同一个签名重复要求加载时直接跳过，
+    /// 避免把页内滚动位置和缩放打回起点。
+    private var loadedSignature: String?
 
     private let scrollView: FixedLayoutZoomScrollView = {
         let sv = FixedLayoutZoomScrollView(frame: .zero)
@@ -119,6 +122,15 @@ final class FixedLayoutPageViewController: UIViewController, PageIndexProviding 
     ) {
         self.pageSize = pageSize
         self.requestedAvailableSize = availableSize
+        // 同一页被重复要求加载时绝不重新 load：`loadHTMLString` 会把页内滚动与
+        // 缩放打回起点，并闪一下空白——在翻页途中看起来就是「被刷新、跳页」。
+        // 只重排缩放，位置原地不动。
+        let signature = "\(baseURL.absoluteString)#\(html.count)#\(html.hashValue)"
+        guard signature != loadedSignature else {
+            updateZoomLayout(resetZoom: false)
+            return
+        }
+        loadedSignature = signature
         shouldResetZoomOnNextLayout = true
         webView.loadHTMLString(html, baseURL: baseURL)
         updateZoomLayout(resetZoom: true)

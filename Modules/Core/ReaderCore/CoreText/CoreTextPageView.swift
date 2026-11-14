@@ -2985,7 +2985,11 @@ final class ReviewPanelOverlayController: UIViewController {
     /// 面板外的一层透明接收区：点一下就收起。
     private let dimming = UIControl()
     private let card = UIView()
-    private let blur = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterial))
+    /// 玻璃本体。iOS 26+ 走系统的 Liquid Glass（`UIGlassEffect`）——它与页内段评
+    /// 卡片气泡（`ReviewCardGlassView`）是同一套、同一台设备上实测能实时采样背后
+    /// 书页的实现；旧的 `UIBlurEffect` 材质在这套系统上会渲染成一层实心浅色板，
+    /// 采样不到书页，面板就成了白板。旧系统退回系统材质。
+    private let blur = UIVisualEffectView(effect: ReviewPanelOverlayController.makeGlassEffect())
     private let tint = UIView()
     private let grabber = UIView()
     /// 顶部拖拽区：上拉全屏、下拉收起。只占把手那一带，列表照常滚动。
@@ -3001,6 +3005,13 @@ final class ReviewPanelOverlayController: UIViewController {
     /// 半屏档：约屏幕一半；全屏档：顶到安全区上方。
     private var mediumHeight: CGFloat { max(view.bounds.height * 0.52, 320) }
     private var largeHeight: CGFloat { max(view.bounds.height - view.safeAreaInsets.top - 8, mediumHeight) }
+
+    static func makeGlassEffect() -> UIVisualEffect {
+        if #available(iOS 26.0, *) {
+            return UIGlassEffect(style: .regular)
+        }
+        return UIBlurEffect(style: .systemUltraThinMaterial)
+    }
 
     init(content: LegadoReviewBrowserView, onDismiss: @escaping () -> Void) {
         self.content = UIHostingController(rootView: content)
@@ -3026,7 +3037,9 @@ final class ReviewPanelOverlayController: UIViewController {
         card.layer.cornerRadius = 22
         card.layer.cornerCurve = .continuous
         card.layer.maskedCorners = [.layerMinXMinYCorner, .layerMaxXMinYCorner]
-        card.layer.masksToBounds = true
+        // 不裁 card：给玻璃的祖先加 masksToBounds 会让 UIVisualEffectView 失去
+        // 背景采样（这是「一块死白」最经典的成因）。圆角由玻璃自己和内容层各自裁。
+        card.layer.masksToBounds = false
         view.addSubview(card)
 
         blur.isUserInteractionEnabled = false
@@ -3039,6 +3052,10 @@ final class ReviewPanelOverlayController: UIViewController {
         content.view.backgroundColor = .clear
         content.view.isOpaque = false
         content.view.layer.isOpaque = false
+        content.view.layer.cornerRadius = 22
+        content.view.layer.cornerCurve = .continuous
+        content.view.layer.maskedCorners = [.layerMinXMinYCorner, .layerMaxXMinYCorner]
+        content.view.layer.masksToBounds = true
         card.addSubview(content.view)
         content.didMove(toParent: self)
 
@@ -3075,6 +3092,39 @@ final class ReviewPanelOverlayController: UIViewController {
         } completion: { _ in
             self.isAnimatingLayout = false
         }
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(500))
+            logDiagnostics(tag: "presented")
+            try? await Task.sleep(for: .seconds(1))
+            logDiagnostics(tag: "settled")
+        }
+    }
+
+    /// 一次诊断：把这层玻璃与内容树的实况写进日志，用户导出后就能定位
+    /// 「白到底来自哪一层」，不用再靠截图猜。
+    private func logDiagnostics(tag: String) {
+        guard view.window != nil else { return }
+        let effect = blur.effect.map { "\(type(of: $0))" } ?? "nil"
+        var lines: [String] = []
+        lines.append("tag=\(tag) effect=\(effect) blurAlpha=\(String(format: "%.2f", blur.alpha)) card=\(Int(card.frame.width))x\(Int(card.frame.height))@\(Int(card.frame.origin.y)) tint=\(tint.backgroundColor.map { "\($0)" } ?? "nil")")
+        var count = 0
+        func walk(_ node: UIView, depth: Int) {
+            guard depth <= 8, count < 26 else { return }
+            let bg = node.backgroundColor
+            let alpha = bg?.cgColor.alpha ?? 0
+            let isEffect = node is UIVisualEffectView
+            if alpha > 0.5 || isEffect {
+                var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+                _ = bg?.getRed(&r, green: &g, blue: &b, alpha: &a)
+                let frame = "\(Int(node.frame.width))x\(Int(node.frame.height))"
+                let pad = String(repeating: "·", count: depth)
+                lines.append("\(pad)\(type(of: node))\(isEffect ? " EFFECT" : "") bg=\(String(format: "%.2f/%.2f/%.2f a%.2f", r, g, b, a)) \(frame) op=\(node.isOpaque)")
+                count += 1
+            }
+            for sub in node.subviews { walk(sub, depth: depth + 1) }
+        }
+        walk(content.view, depth: 1)
+        AppLogger.info("⟐ review overlay glass:\n" + lines.joined(separator: "\n"))
     }
 
     override func viewDidAppear(_ animated: Bool) {
@@ -3106,6 +3156,14 @@ final class ReviewPanelOverlayController: UIViewController {
         card.frame = CGRect(x: 0, y: maxHeight - clamped, width: view.bounds.width, height: clamped)
         card.isHidden = clamped < 1
         blur.frame = card.bounds
+        if #available(iOS 26.0, *) {
+            blur.cornerConfiguration = .corners(radius: .fixed(22))
+        } else {
+            blur.layer.cornerRadius = 22
+            blur.layer.cornerCurve = .continuous
+            blur.layer.maskedCorners = [.layerMinXMinYCorner, .layerMaxXMinYCorner]
+            blur.clipsToBounds = true
+        }
         tint.frame = card.bounds
         content.view.frame = card.bounds
         grabber.frame = CGRect(x: (card.bounds.width - 36) / 2, y: 6, width: 36, height: 5)
@@ -3126,10 +3184,12 @@ final class ReviewPanelOverlayController: UIViewController {
         let level = min(max(0.7 * sheet + 0.3 * global, 0), 1)
         guard abs(level - lastLevel) > 0.001 || tint.backgroundColor == nil else { return }
         lastLevel = level
-        blur.alpha = 0.15 + 0.60 * level
+        // 绝不给 UIVisualEffectView 设 alpha：透明度小于 1 时系统会停止绘制玻璃
+        // 本身，只留一层底色 —— 看上去就是「一块死白」。浓淡全部交给上面这层膜。
+        blur.alpha = 1
         let dark = traitCollection.userInterfaceStyle == .dark
         tint.backgroundColor = (dark ? UIColor.black : UIColor.white)
-            .withAlphaComponent(0.02 + 0.10 * level)
+            .withAlphaComponent(0.02 + 0.22 * level)
     }
 
     @objc private func handleTapOutside() {
@@ -3197,6 +3257,108 @@ final class ReviewPanelOverlayController: UIViewController {
             self.removeFromParent()
             self.onDismiss()
         }
+    }
+}
+
+// MARK: - 从 SwiftUI 挂载段评覆盖层
+
+/// 段评面板的 SwiftUI 入口：`reviewTarget` 一有值，就在**窗口最上层**挂一块
+/// 覆盖层，而不是 `.sheet`。
+///
+/// 为什么不能用 `.sheet`：系统 sheet 的呈现容器在 iOS 26/27 上挂着一层不透明的
+/// Liquid Glass 底。半屏还看得过去，拉到全屏整片渲染成纯白（实测 254,254,254），
+/// 面板里的玻璃采样到的就是那层白。清理治不好——系统每次档位切换都会重建它。
+/// 覆盖层直接挂在阅读页自己的视图上：同一个窗口、同一棵渲染树，玻璃采样的就是
+/// 下面那张真实书页，半屏和全屏是同一块玻璃。
+struct ReviewPanelOverlayPresenter: UIViewControllerRepresentable {
+    let target: ReaderHTMLUtilities.ReviewTarget
+    let onDismiss: () -> Void
+
+    func makeUIViewController(context: Context) -> ReviewPanelOverlayAnchor {
+        let anchor = ReviewPanelOverlayAnchor()
+        anchor.target = target
+        anchor.onDismiss = onDismiss
+        return anchor
+    }
+
+    func updateUIViewController(_ anchor: ReviewPanelOverlayAnchor, context: Context) {
+        anchor.target = target
+        anchor.onDismiss = onDismiss
+        anchor.presentIfNeeded()
+    }
+
+    static func dismantleUIViewController(_ anchor: ReviewPanelOverlayAnchor, coordinator: Void) {
+        anchor.tearDown()
+    }
+}
+
+final class ReviewPanelOverlayAnchor: UIViewController {
+    var target: ReaderHTMLUtilities.ReviewTarget?
+    var onDismiss: (() -> Void)?
+
+    private weak var panel: ReviewPanelOverlayController?
+    private var attempts = 0
+
+    override func loadView() {
+        let holder = UIView(frame: .zero)
+        holder.isUserInteractionEnabled = false
+        holder.backgroundColor = .clear
+        view = holder
+    }
+
+    override func didMove(toParent parent: UIViewController?) {
+        super.didMove(toParent: parent)
+        presentIfNeeded()
+    }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        presentIfNeeded()
+    }
+
+    func presentIfNeeded() {
+        guard panel == nil else { return }
+        guard let target else { return }
+        guard let window = view.window else {
+            // 视图刚进树时 window 还是 nil：隔一帧再试，别把面板丢掉。
+            guard attempts < 24 else { return }
+            attempts += 1
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
+                self?.presentIfNeeded()
+            }
+            return
+        }
+        guard let host = Self.topViewController(in: window) else { return }
+        let content = LegadoReviewBrowserView(
+            target: target,
+            backdrop: nil,
+            usesOuterGlass: true
+        ) { [weak self] _ in
+            self?.onDismiss?()
+        }
+        let panel = ReviewPanelOverlayController(content: content) { [weak self] in
+            self?.panel = nil
+            self?.onDismiss?()
+        }
+        self.panel = panel
+        AppLogger.info("⟐ review overlay attach | host=\(type(of: host))")
+        panel.present(in: host)
+    }
+
+    /// SwiftUI 把这块桥接视图移出视图树了（`reviewTarget` 被置空）：面板跟着收。
+    func tearDown() {
+        panel?.dismissPanel()
+        panel = nil
+    }
+
+    /// 沿 presented 链找到真正盖在最上面的控制器——阅读页通常是被 present 出来的，
+    /// 挂在根控制器上会被它整个盖住。
+    private static func topViewController(in window: UIWindow) -> UIViewController? {
+        var top = window.rootViewController
+        while let presented = top?.presentedViewController, !presented.isBeingDismissed {
+            top = presented
+        }
+        return top
     }
 }
 
