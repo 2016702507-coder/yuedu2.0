@@ -191,32 +191,13 @@ struct ReviewPanelBackdropLayer: View {
     var body: some View {
         GeometryReader { geo in
             ZStack {
-                if let backdrop {
-                    Image(uiImage: backdrop)
-                        .resizable()
-                        .scaledToFill()
-                        .frame(width: windowSize.width, height: windowSize.height)
-                        // 面板可能不满整屏（半屏档）：把图按屏幕坐标往上对齐，
-                        // 面板里露出的永远是「它真正盖住的那段书页」。
-                        .offset(y: -(windowSize.height - geo.size.height))
-                        .opacity(backdropOpacity)
-                        .clipped()
-                } else {
-                    // 兜底：截图失败的极端情况。暖纸色磨砂而非纯白，档位再变也不是白板。
-                    (colorScheme == .dark ? Color.black : Self.paperFallback)
-                        .opacity(0.62 + 0.28 * level)
-                }
-                // 系统实时玻璃（第二层）：UIVisualEffectView 实时采样面板背后的书页。
-                // 静态截图只在「呈现那一刻」对齐——detent 拖动/展开的动画帧里
-                // GeometryReader 的尺寸与 sheet 实际 frame 有瞬时差，截图就会错位：
-                // 顶部露出未模糊的生字、底部截图盖不到的地方露出白带（实测录屏两处断层）。
-                // 实时材质逐帧跟着 sheet 走，天生对齐铺满；材质自带 frost 匀光，
-                // 也把「糊字叠在评论上」的重影压柔。
-                // 预模糊截图保留在最底层做兜底：实时采样万一在个别系统上拿不到
-                // 背后内容，底下垫着的还是玻璃图，不会退成白板。
+                // 玻璃底全部交给系统实时材质：sheet 的 presentationBackground
+                // 是透明色，材质能直接采样到背后的真实阅读页——滚动、翻页、
+                // 换书，玻璃实时跟着变，任何档位/动画帧都对齐铺满。
+                // 不再使用弹出瞬间拍的静态截图：那是一张死图，且窗口尺寸
+                // 推算与 sheet 实际 frame 有偏差时会糊出错位的「下半角」。
                 LiveGlassEffectLayer(level: level)
-                // 匀光 tint 改用暖白（贴近书页纸色）：纯白 tint 在玻璃层没铺满的
-                // 边缘会显出一条冷白带，暖白即使在极端帧上也与纸色融为一体。
+                // 匀光 tint：中性白零色偏（孤岛实测），只随玻璃浓淡提亮不染色。
                 (colorScheme == .dark ? Color.black : Self.paperTint)
                     .opacity(tintOpacity)
             }
