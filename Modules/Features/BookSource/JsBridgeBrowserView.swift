@@ -189,11 +189,22 @@ struct ReviewPanelBackdropLayer: View {
                         .offset(y: -(windowSize.height - geo.size.height))
                         .clipped()
                 } else {
-                    // 兜底：截图失败的极端情况。磨砂灰而非纯白，档位再变也不是白板。
-                    (colorScheme == .dark ? Color.black : Color(white: 0.86))
+                    // 兜底：截图失败的极端情况。暖纸色磨砂而非纯白，档位再变也不是白板。
+                    (colorScheme == .dark ? Color.black : Self.paperFallback)
                         .opacity(0.62 + 0.28 * level)
                 }
-                (colorScheme == .dark ? Color.black : Color.white)
+                // 系统实时玻璃（第二层）：UIVisualEffectView 实时采样面板背后的书页。
+                // 静态截图只在「呈现那一刻」对齐——detent 拖动/展开的动画帧里
+                // GeometryReader 的尺寸与 sheet 实际 frame 有瞬时差，截图就会错位：
+                // 顶部露出未模糊的生字、底部截图盖不到的地方露出白带（实测录屏两处断层）。
+                // 实时材质逐帧跟着 sheet 走，天生对齐铺满；材质自带 frost 匀光，
+                // 也把「糊字叠在评论上」的重影压柔。
+                // 预模糊截图保留在最底层做兜底：实时采样万一在个别系统上拿不到
+                // 背后内容，底下垫着的还是玻璃图，不会退成白板。
+                LiveGlassEffectLayer()
+                // 匀光 tint 改用暖白（贴近书页纸色）：纯白 tint 在玻璃层没铺满的
+                // 边缘会显出一条冷白带，暖白即使在极端帧上也与纸色融为一体。
+                (colorScheme == .dark ? Color.black : Self.paperTint)
                     .opacity(tintOpacity)
             }
             .frame(width: geo.size.width, height: geo.size.height)
@@ -202,6 +213,24 @@ struct ReviewPanelBackdropLayer: View {
         }
         .ignoresSafeArea()
     }
+
+    /// 匀光 tint：暖白，贴近书页纸色。
+    private static let paperTint = Color(red: 0.99, green: 0.98, blue: 0.95)
+    /// 兜底磨砂色：同样偏暖。
+    private static let paperFallback = Color(red: 0.965, green: 0.945, blue: 0.895)
+}
+
+/// 系统实时玻璃的 SwiftUI 桥：UIVisualEffectView + 系统超薄材质。
+/// 深浅色自适应；面板后面是什么它就实时糊什么，任何档位/动画帧都对齐。
+private struct LiveGlassEffectLayer: UIViewRepresentable {
+    func makeUIView(context: Context) -> UIVisualEffectView {
+        let view = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterial))
+        // 材质视图自身不要落底色：让采样结果直接透出来。
+        view.backgroundColor = .clear
+        view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        return view
+    }
+    func updateUIView(_ uiView: UIVisualEffectView, context: Context) {}
 }
 
 struct SourceBrowserPresentationConfiguration: Equatable {
@@ -651,8 +680,8 @@ struct LegadoReviewBrowserView: View {
                 .accessibilityLabel(effectiveShowsSourcePage ? localized("用卡片显示") : localized("显示原网页"))
             }
         }
-        // 面板玻璃已经由 ZStack 最底层的 ReviewPanelBackdropLayer 自己画好
-        // （弹出前的书页截图，预模糊），不再依赖系统材质/采样，任何档位都一致。
+        // 面板玻璃由 ZStack 最底层的 ReviewPanelBackdropLayer 自己画好：
+        // 系统实时材质（逐帧对齐）+ 预模糊截图兜底，双层保险，任何档位都不露底。
         // presentationBackground 清空：系统不再另画一层不透明 chrome 盖在玻璃上
         // （那层 chrome 正是全屏档白板的来源之一）。
         .presentationBackground { Color.clear }
