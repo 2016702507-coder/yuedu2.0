@@ -261,6 +261,7 @@ struct HomeView: View {
     /// button reads them when it is tapped; closing the alert leaves them be.
     @State private var showsRenameGroupAlert = false
     @State private var groupToRename = ""
+    @State private var chipPendingDissolve: String?
     @State private var groupRenameText = ""
     /// Pushed rather than presented: a sheet asked for from a menu action can be dropped on iOS 17.
     @State private var showBookshelfOrganizer = false
@@ -1134,6 +1135,22 @@ struct HomeView: View {
                         }
                         .accessibilityIdentifier("home_group_chip")
                         .id(page)
+                        // 长按分组 chip：重命名 / 解散。自动分组生成的分组
+                        // 也能从这里直接改名或删掉，不用先去文件夹的 •••。
+                        .contextMenu {
+                            if !page.isEmpty {
+                                Button {
+                                    beginRenaming(group: page)
+                                } label: {
+                                    Label(localized("重命名分组"), systemImage: "pencil")
+                                }
+                                Button(role: .destructive) {
+                                    chipPendingDissolve = page
+                                } label: {
+                                    Label(localized("解散分组"), systemImage: "folder.badge.minus")
+                                }
+                            }
+                        }
                     }
                 }
                 .padding(.horizontal, DSSpacing.lg).padding(.vertical, 6)
@@ -1143,6 +1160,27 @@ struct HomeView: View {
                 withAnimation(reduceMotion ? nil : DSAnimation.standard) {
                     proxy.scrollTo(page, anchor: .center)
                 }
+            }
+            // 解散分组前确认一次：书会留在书架上、不再属于任何分组。
+            .confirmationDialog(
+                localized("解散分组"),
+                isPresented: Binding(
+                    get: { chipPendingDissolve != nil },
+                    set: { if !$0 { chipPendingDissolve = nil } }
+                ),
+                titleVisibility: .visible
+            ) {
+                Button(localized("解散分组"), role: .destructive) {
+                    if let group = chipPendingDissolve {
+                        withAnimation(reduceMotion ? nil : DSAnimation.standard) {
+                            store.dissolveGroup(group)
+                        }
+                    }
+                    chipPendingDissolve = nil
+                }
+                Button(localized("取消"), role: .cancel) { chipPendingDissolve = nil }
+            } message: {
+                Text(localized("书会留在书架上，不再属于任何分组。"))
             }
         }
     }
