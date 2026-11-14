@@ -220,6 +220,10 @@ struct NativeReviewPanelView: View {
             .padding(.bottom, DSSpacing.xl)
         }
         .scrollIndicators(.hidden)
+        // iOS 26 起 ScrollView 自带系统内容底（Liquid Glass 环境），不显式
+        // 关掉的话评论一加载出来，整块内容区就被这层白材质盖住——玻璃底
+        // 全被糊死，这正是「评论加载完白板」的真根源。
+        .scrollContentBackground(.hidden)
         .background(Color.clear)
     }
 
@@ -306,14 +310,14 @@ private struct ReviewQuoteGlass: View {
 
     /// 極淡 tint 給玻璃一點厚度；暗色用黑，避免夜間發白。
     private var tintOpacity: Double {
-        (colorScheme == .dark ? 0.05 : 0.03) + 0.42 * level
+        (colorScheme == .dark ? 0.05 : 0.03) + 0.16 * level
     }
 
     var body: some View {
         ZStack {
             RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                 .fill(colorScheme == .dark ? Color.black : Color.white)
-                .opacity(0.10 + 0.45 * level)
+                .opacity(0.05 + 0.22 * level)
             RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                 .fill(colorScheme == .dark ? Color.black : Color.white)
                 .opacity(tintOpacity)
@@ -321,7 +325,7 @@ private struct ReviewQuoteGlass: View {
         .overlay(
             RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                 .strokeBorder(
-                    Color.white.opacity(colorScheme == .dark ? 0.16 : 0.72),
+                    Color.white.opacity(colorScheme == .dark ? 0.12 : 0.30),
                     lineWidth: 0.8
                 )
         )
