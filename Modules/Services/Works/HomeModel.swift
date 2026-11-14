@@ -57,6 +57,14 @@ final class HomeModel: ObservableObject {
     private var queueTails: [SourceInstanceKey: Task<Void, Never>] = [:]
     /// Rows queued or loading, so a 重试 or pull to refresh never starts a second load.
     private var active: Set<String> = []
+    /// 同时进行的行加载数 / 上限。
+    ///
+    /// 首页一次能挂十几行，而每行的书源 JS 解析+建卡都在主线程上跑几百毫秒到
+    /// 两秒。全部一起放行时，主线程被这些任务排满：冷启动或切后台回来会连续
+    /// 十几秒点不动（诊断日志里 23:36:29–23:36:33 连打 10 条 `main ⏱ home.row`
+    /// 之后彻底断流）。限到 3 个并行，主线程始终留出空隙处理触摸和滚动。
+    private var runningLoads = 0
+    private let maxConcurrentLoads = 3
     /// Rows a sync changed while they loaded: they start again once that load ends, which
     /// shows nothing (`isCurrent`).
     private var rerun: Set<String> = []
@@ -221,6 +229,24 @@ final class HomeModel: ObservableObject {
         }
     }
 
+    /// 取一个加载槽；槽满就小步让出主线程等待。
+    ///
+    /// 不用 continuation：等待者最多十几个，40ms 轮询的代价可以忽略，而 Task 被
+    /// 取消时能干净退出——不会被挂起的 continuation 把槽位永久漏掉。
+    private func acquireLoadSlot() async -> Bool {
+        while runningLoads >= maxConcurrentLoads {
+            if Task.isCancelled { return false }
+            try? await Task.sleep(for: .milliseconds(40))
+        }
+        if Task.isCancelled { return false }
+        runningLoads += 1
+        return true
+    }
+
+    private func releaseLoadSlot() {
+        runningLoads = max(runningLoads - 1, 0)
+    }
+
     private func start(_ row: Row) {
         guard active.insert(row.id).inserted else { return }
         switch row.policy {
@@ -241,6 +267,9 @@ final class HomeModel: ObservableObject {
             if rerun.remove(rowID) != nil, let current = row(rowID) { start(current) }
         }
         guard let row = row(rowID), let provider = providers[rowID] else { return }
+        // 主线程配额：拿不到槽就让出，等前面几行做完再进。
+        guard await acquireLoadSlot() else { return }
+        defer { releaseLoadSlot() }
         // Only a row with nothing to show yet, or a failure to retry, draws its skeleton. One that
         // has loaded keeps its books, or its nothing, until this load replaces them: coming back
         // to 探索 loads the shelf's rows again, and an empty 系列下一本 drawn as a skeleton for that

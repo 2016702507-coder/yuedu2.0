@@ -152,7 +152,7 @@ struct ReviewBackdropCapture {
 
 /// 面板最底层的玻璃：屏幕对齐的模糊书页图 + 由滑杆驱动的极淡 tint。
 struct ReviewPanelBackdropLayer: View {
-    /// 弹出前抓下的书页截图（已预模糊）。nil = 回落淡玻璃色。
+    /// 弹出前抓下的页面截图（已预模糊）。仅非阅读器入口仍在使用。
     let backdrop: UIImage?
 
     @Environment(\.colorScheme) private var colorScheme
@@ -165,13 +165,23 @@ struct ReviewPanelBackdropLayer: View {
     }
 
     var body: some View {
-        // 阅读器路径的玻璃由 CoreTextPageView 的窗口级 ReviewPanelGlassView 提供
-        // （与阅读页同渲染树，实时采样，全屏也不白）。这里只留一层几乎看不见的
-        // 中性 tint：书城/详情页等其它入口没有窗口级玻璃，靠它给文字补对比。
-        (colorScheme == .dark ? Color.black : Self.paperTint)
-            .opacity(0.04 * level)
-            .ignoresSafeArea()
-            .allowsHitTesting(false)
+        ZStack {
+            // 玻璃本体：系统材质实时模糊面板背后的真实书页。浓度跟「外观 ›
+            // 界面效果」的滑杆走——最透端 0.15（白纸页上也能看清文字形状，
+            // 不会糊成白板），最实端 0.75（重磨砂仍透出内容）。
+            //
+            // 全屏白板不是这一层的问题：是系统 sheet 的呈现容器在全屏时挂了
+            // 一层不透明装饰（Liquid Glass 底 + 白雾），把这一层整个盖住。
+            // 那一层由呈现方清（CoreTextPageView.clearSheetChrome）。
+            Rectangle()
+                .fill(.ultraThinMaterial)
+                .opacity(0.15 + 0.60 * level)
+            // 极淡中性 tint：只给评论文字补对比，颜色完全来自材质对书页的采样。
+            (colorScheme == .dark ? Color.black : Self.paperTint)
+                .opacity(0.02 + 0.10 * level)
+        }
+        .ignoresSafeArea()
+        .allowsHitTesting(false)
     }
 
     /// 匀光 tint：中性白（孤岛实测 R=G=B 零色偏），颜色自适应完全交给材质采样。
@@ -567,8 +577,9 @@ struct LegadoReviewBrowserView: View {
 
     var body: some View {
         ZStack {
-            // ⓪ 玻璃底：弹出前拍下的模糊书页，铺在最底层。半屏/全屏同一张图。
+            // ⓪ 玻璃底
             ReviewPanelBackdropLayer(backdrop: backdrop)
+
 
             // ① 书源网页常驻在玻璃底之上，绝不因「抓到评论」被移出视图树。
             //    旧实现用 if/else 切换，抓到数据的瞬间 WKWebView 被销毁，
