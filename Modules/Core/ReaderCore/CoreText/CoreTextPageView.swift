@@ -2530,6 +2530,15 @@ final class CoreTextPageViewController: UIViewController, ReaderBookmarkRibbonHo
     /// 沿呈現鏈上溯，而閱讀頁本身正是「被呈現的那一層」（首頁與書架都用 fullScreenCover 開
     /// 閱讀頁），於是點一下面板外就把整本書退掉了。
     private weak var reviewSheetHost: UIViewController?
+    /// 段评面板的实时玻璃：挂在阅读页的窗口里、面板 sheet 之下。
+    /// 为什么不能画在 sheet 里：iOS 15+ 的 sheet 是独立 UIWindow，窗口内的
+    /// 模糊材质只能采样自己窗口的内容——全屏时 sheet 盖满屏幕、窗口内又全透明，
+    /// 材质采样不到任何东西，就渲染成默认不透明浅色（整屏白板，真机逐帧实测
+    /// rgb(254,254,254) 零纹理）。材质放进阅读页同一渲染树，实时模糊必然生效，
+    /// 面板盖到哪里就透出哪里的玻璃——半屏、全屏、拖动过程都是同一块玻璃。
+    private weak var reviewGlassView: ReviewPanelGlassView?
+    /// 每帧把玻璃的 frame 对齐到面板的 presentedView（拖动 detent 时天然跟手）。
+    private var reviewGlassLink: CADisplayLink?
     private let pageView = CoreTextPageView()
     private(set) var globalPageIndex: Int = 0
     private(set) var coreTextReadingPosition: CoreTextReadingPosition?
@@ -2821,6 +2830,9 @@ final class CoreTextPageViewController: UIViewController, ReaderBookmarkRibbonHo
             // 档位变化时系统会重新挂材质视图，监听后把容器链再清成透明。
             sheet.delegate = self
         }
+        // 玻璃先铺上（frame 等 presentedView 出现后每帧自动对齐）：
+        // 弹出动画里玻璃跟着面板一起上升，不会在动画结束后突然冒出来。
+        installReviewGlass(for: host)
         present(host, animated: true) {
             // iOS 15+ 的 sheet 背景不是 `backgroundColor`，而是一層系統材質視圖
             // （UIVisualEffectView）。只清 host.view 擋不住它，下面那層「白霧」會一直在，
@@ -2883,6 +2895,7 @@ final class CoreTextPageViewController: UIViewController, ReaderBookmarkRibbonHo
     private func dismissReviewSheet() {
         reviewOutsideTapView?.removeFromSuperview()
         reviewOutsideTapView = nil
+        removeReviewGlass()
         guard let host = reviewSheetHost, host.presentingViewController != nil else {
             reviewSheetHost = nil
             return
@@ -2921,6 +2934,17 @@ final class CoreTextPageViewController: UIViewController, ReaderBookmarkRibbonHo
     private static func clearSheetChrome(_ view: UIView?, keepingContentOf protected: UIView?) {
         guard let view else { return }
         if let protected, view === protected || view.isDescendant(of: protected) { return }
+        // 这一支子树里没有面板内容 —— 是系统加的装饰（Liquid Glass 的玻璃底、
+        // 变暗层、白雾材质）。iOS 26/27 的系统 sheet 背景已经不是
+        // UIVisualEffectView，清 effect / 背景色全都无效，只有整支隐藏才干净。
+        // 这正是「半屏玻璃正常、拉到全屏整片纯白」的根源：全屏时系统重建了
+        // 这层装饰，而旧清理手段对新实现没有作用。
+        if let protected, !protected.isDescendant(of: view) {
+            view.isHidden = true
+            view.backgroundColor = .clear
+            view.isOpaque = false
+            return
+        }
         if let effect = view as? UIVisualEffectView {
             effect.effect = nil
         }
@@ -2930,6 +2954,46 @@ final class CoreTextPageViewController: UIViewController, ReaderBookmarkRibbonHo
         for sub in view.subviews {
             clearSheetChrome(sub, keepingContentOf: protected)
         }
+    }
+
+    // MARK: - 段评面板的窗口级实时玻璃
+
+    /// 在阅读页窗口里铺一层实时模糊玻璃，位置每帧对齐面板的 presentedView。
+    /// 面板 sheet 全透明，盖到哪里就透出哪里的玻璃——半屏、全屏、拖动中
+    /// 都是同一块实时模糊玻璃，这是跨窗口采样做不到的事。
+    private func installReviewGlass(for host: UIViewController) {
+        removeReviewGlass()
+        guard let window = view.window ?? host.view.window else { return }
+        let glass = ReviewPanelGlassView()
+        glass.isUserInteractionEnabled = false
+        window.addSubview(glass)
+        reviewGlassView = glass
+        syncReviewGlass()
+        let tick = ReviewGlassTick(self)
+        let link = CADisplayLink(target: tick, selector: #selector(ReviewGlassTick.tick))
+        link.add(to: .main, forMode: .common)
+        reviewGlassLink = link
+    }
+
+    /// 每帧对齐（拖动 detent 时 presentedView.frame 连续变化，动画天然跟手）。
+    fileprivate func syncReviewGlass() {
+        guard let glass = reviewGlassView,
+              let window = glass.superview as? UIWindow,
+              let host = reviewSheetHost,
+              let presented = host.presentationController?.presentedView else { return }
+        let frame = presented.convert(presented.bounds, to: window)
+        if glass.frame != frame {
+            glass.frame = frame
+            glass.layer.cornerRadius = presented.layer.cornerRadius
+            glass.layer.maskedCorners = presented.layer.maskedCorners
+        }
+    }
+
+    private func removeReviewGlass() {
+        reviewGlassLink?.invalidate()
+        reviewGlassLink = nil
+        reviewGlassView?.removeFromSuperview()
+        reviewGlassView = nil
     }
 
     private func presentReviewFailure(_ error: Error) {
@@ -2944,6 +3008,66 @@ final class CoreTextPageViewController: UIViewController, ReaderBookmarkRibbonHo
 }
 
 extension CoreTextPageViewController: PageIndexProviding {}
+
+// MARK: - 段评面板的窗口级实时玻璃
+
+/// 段评面板的玻璃本体，挂在**阅读页窗口**里、面板 sheet 之下。
+///
+/// 与阅读页同窗口、同一渲染树：模糊材质实时采样真实书页，翻页/滚动/换书
+/// 都实时跟着变。sheet 内容全透明，盖到哪里就透出哪里的玻璃——全屏时就是
+/// 整屏的实时模糊，和半屏是同一块玻璃，不再有白板档。
+final class ReviewPanelGlassView: UIView {
+    private let blur = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterial))
+    private let tint = UIView()
+
+    init() {
+        super.init(frame: .zero)
+        backgroundColor = .clear
+        isOpaque = false
+        layer.masksToBounds = true
+        blur.isUserInteractionEnabled = false
+        tint.isUserInteractionEnabled = false
+        addSubview(blur)
+        addSubview(tint)
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        blur.frame = bounds
+        tint.frame = bounds
+        applyTint()
+    }
+
+    /// 极淡中性 tint：只给评论文字补一点对比，颜色完全来自材质对书页的采样。
+    private func applyTint() {
+        let settings = GlobalSettings.shared
+        let sheet = min(max(settings.reviewSheetOpacity, 0), 1)
+        let global = 1 - min(max(settings.interfaceGlassTransparency, 0), 1)
+        let level = min(max(0.7 * sheet + 0.3 * global, 0), 1)
+        let dark = traitCollection.userInterfaceStyle == .dark
+        tint.backgroundColor = (dark ? UIColor.black : UIColor.white)
+            .withAlphaComponent(0.02 + 0.10 * level)
+    }
+}
+
+/// CADisplayLink 的 target（弱引用持有者，避免循环引用）。
+private final class ReviewGlassTick: NSObject {
+    private weak var owner: CoreTextPageViewController?
+
+    init(_ owner: CoreTextPageViewController) {
+        self.owner = owner
+        super.init()
+    }
+
+    @objc func tick() {
+        owner?.syncReviewGlass()
+    }
+}
 
 final class CoreTextImagePreviewController: UIViewController, UIScrollViewDelegate {
     private let attachment: CoreTextPaginator.RenderedAttachment
