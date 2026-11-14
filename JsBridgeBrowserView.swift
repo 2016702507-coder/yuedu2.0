@@ -78,10 +78,9 @@ struct ReviewSheetGlassBackground: View {
 
     /// 極淡 tint，只給玻璃一點厚度、保證評論文字對比；不是白板來源。
     private var tintOpacity: Double {
-        // 孤岛白页实测：面板 rgb(211~217) vs 背景 rgb(202)——零色偏、整体提亮约 5%。
-        // 玻璃的颜色完全来自材质对背后书页的实时采样（背后是暖纸就显暖、是白页就显白），
-        // tint 只做中性提亮，绝不带自己的色相。
-        colorScheme == .dark ? 0.06 + 0.20 * level : 0.10 + 0.20 * level
+        // 「玻璃浓淡」真实生效：tint 从 0.02（最透）到 ~0.28（最实）线性摆动，
+        // 拖动滑杆立刻可见；中性白不带色相，颜色交给材质采样。
+        colorScheme == .dark ? 0.02 + 0.24 * level : 0.02 + 0.26 * level
     }
 
     /// 固定淡玻璃色：跟滑杆走、绝不变白。真正「透出书页」的玻璃由
@@ -89,7 +88,7 @@ struct ReviewSheetGlassBackground: View {
     private var glass: some View {
         ZStack {
             (colorScheme == .dark ? Color.black : Color.white)
-                .opacity(0.06 + 0.40 * level)
+                .opacity(0.03 + 0.30 * level)
             // tint 用中性白：孤岛实测面板 R=G=B 零色偏，玻璃颜色全部来自
             // 材质对背景的采样，自身只做轻微提亮，绝不带固定色相。
             (colorScheme == .dark ? Color.black : Color.white)
@@ -168,6 +167,12 @@ struct ReviewPanelBackdropLayer: View {
         return min(max(0.7 * sheet + 0.3 * global, 0), 1)
     }
 
+    /// 「玻璃浓淡」对预模糊截图层的权重：0 = 截图淡出到 0.35（系统材质直接
+    /// 实时采样真实书页，最透）；1 = 截图全显（磨砂最实）。两端都有材质玻璃底。
+    private var backdropOpacity: Double {
+        0.35 + 0.65 * level
+    }
+
     private var windowSize: CGSize {
         if let w = UIApplication.shared.connectedScenes
             .compactMap({ $0 as? UIWindowScene })
@@ -178,10 +183,9 @@ struct ReviewPanelBackdropLayer: View {
     }
 
     private var tintOpacity: Double {
-        // 孤岛白页实测：面板 rgb(211~217) vs 背景 rgb(202)——零色偏、整体提亮约 5%。
-        // 玻璃的颜色完全来自材质对背后书页的实时采样（背后是暖纸就显暖、是白页就显白），
-        // tint 只做中性提亮，绝不带自己的色相。
-        colorScheme == .dark ? 0.06 + 0.20 * level : 0.10 + 0.20 * level
+        // 「玻璃浓淡」真实生效：tint 从 0.02（最透）到 ~0.28（最实）线性摆动，
+        // 拖动滑杆立刻可见；中性白不带色相，颜色交给材质采样。
+        colorScheme == .dark ? 0.02 + 0.24 * level : 0.02 + 0.26 * level
     }
 
     var body: some View {
@@ -195,6 +199,7 @@ struct ReviewPanelBackdropLayer: View {
                         // 面板可能不满整屏（半屏档）：把图按屏幕坐标往上对齐，
                         // 面板里露出的永远是「它真正盖住的那段书页」。
                         .offset(y: -(windowSize.height - geo.size.height))
+                        .opacity(backdropOpacity)
                         .clipped()
                 } else {
                     // 兜底：截图失败的极端情况。暖纸色磨砂而非纯白，档位再变也不是白板。

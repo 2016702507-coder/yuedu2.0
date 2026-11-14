@@ -2793,7 +2793,9 @@ final class CoreTextPageViewController: UIViewController, ReaderBookmarkRibbonHo
         // 预模糊后交给面板当玻璃底：面板自己画玻璃，不依赖系统实时采样，
         // 半屏/全屏同一张图——这是全屏档白板的最终解法。
         let rawBackdrop = ReviewBackdropCapture.keyWindowSnapshot()
-        let reviewBackdrop = rawBackdrop.flatMap { ReviewBackdropCapture.blurredGlass($0) } ?? rawBackdrop
+        // 预模糊 22 -> 8：糊太狠会把背后文字形状全部吃掉，玻璃就变成实心卡；
+        // 保留轻模糊让文字形状隐约可见，系统材质再叠自己的实时模糊。
+        let reviewBackdrop = rawBackdrop.flatMap { ReviewBackdropCapture.blurredGlass($0, radius: 8) } ?? rawBackdrop
         let view = LegadoReviewBrowserView(target: target, backdrop: reviewBackdrop) { [weak self] _ in
             self?.dismissReviewSheet()
         }

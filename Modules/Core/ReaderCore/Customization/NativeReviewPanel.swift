@@ -374,6 +374,16 @@ private struct ReviewCommentCard: View {
         }
         .padding(.horizontal, 2)
         .padding(.vertical, isNested ? 8 : 13)
+        // 「卡片不透明度」滑杆真实生效：0 = 卡片无实底（评论直接坐在玻璃上，
+        // 默认）；拉高则在玻璃上铺一层可调实底圆角卡。上限 0.25，任何值下
+        // 文字对比都够、玻璃感不丢。
+        .background {
+            if style.cardOpacity > 0.001 {
+                RoundedRectangle(cornerRadius: CGFloat(style.cornerRadius), style: .continuous)
+                    .fill(colorScheme == .dark ? Color.black : Color.white)
+                    .opacity(style.cardOpacity)
+            }
+        }
         // 照参考图：评论直接排在玻璃底上，不铺卡片实底、不描边、不加阴影，
         // 只留一条极淡的细分隔线；半屏和全屏都是同一块玻璃。
         .overlay(alignment: .bottom) {
