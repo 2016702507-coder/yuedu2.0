@@ -292,14 +292,6 @@ enum TTSAudioPayload {
 protocol TTSAudioProvider: AnyObject, Sendable {
     var displayName: String { get }
     func audioData(for text: String, title: String, rate: Float) async throws -> Data
-    /// True when the provider meters *concurrent generations* instead of request rate — one
-    /// synthesis at a time per account. `HTTPTTSEngine` reads this to keep speculative
-    /// preloads from occupying the only slot while the audible segment waits.
-    var serialisesRequests: Bool { get }
-}
-
-extension TTSAudioProvider {
-    var serialisesRequests: Bool { false }
 }
 
 enum DirectChapterAudioResolver {
@@ -533,33 +525,6 @@ enum TTSAudioProviderError: LocalizedError, CustomStringConvertible {
     var description: String { errorDescription ?? "TTS provider failed" }
 }
 
-/// One in-flight request per imported source.
-///
-/// Preloads are cancelled all the time (`priority == .current`, a chapter jump, a pause), and a
-/// parked continuation does *not* resume when its task is cancelled — queueing waiters that way
-/// leaves the slot held by a request nobody will ever release. Polling costs ≤120 ms per
-/// hand-off and cannot deadlock.
-actor TTSSourceGate {
-    static let shared = TTSSourceGate()
-    private var busy: Set<String> = []
-
-    /// `false` means the caller was cancelled before the slot was granted and must not release
-    /// it — that would free a slot another request is holding.
-    func acquire(_ key: String) async -> Bool {
-        while busy.contains(key) {
-            if Task.isCancelled { return false }
-            try? await Task.sleep(nanoseconds: 120_000_000)
-        }
-        if Task.isCancelled { return false }
-        busy.insert(key)
-        return true
-    }
-
-    func release(_ key: String) {
-        busy.remove(key)
-    }
-}
-
 final class CustomHTTPProvider: TTSAudioProvider {
     /// The source this instance speaks with, or `nil` to follow whichever source the user
     /// selected in settings.
@@ -575,24 +540,6 @@ final class CustomHTTPProvider: TTSAudioProvider {
     }
 
     var displayName: String { overrideSource?.name ?? "网路语音" }
-
-    /// A declared `concurrentRate` is the source author saying "this endpoint meters me", and
-    /// the only such signal available here. BreezeBlue is the case that forced the flag: its
-    /// plan allows **one** concurrent generation, and a second simultaneous request is answered
-    /// with HTTP 429 `GENERATION_CONCURRENCY_EXCEEDED` however politely the two are spaced.
-    /// `concurrentRate` caps how often a request may *start*; a paragraph takes seconds to
-    /// synthesise, so three preloads 800 ms apart are three generations in flight — and the
-    /// audible segment, arriving last, was the one rejected ("第 1 段语音无法下载").
-    var serialisesRequests: Bool {
-        let rate = (overrideSource ?? GlobalSettings.snapshot.activeTTSSource)?.concurrentRate?
-            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        return !rate.isEmpty && rate != "0"
-    }
-
-    /// 429 clears as soon as the other generation finishes — a few seconds for a paragraph.
-    /// Long enough to outlast it, short enough that a plan which is genuinely out of quota still
-    /// fails loudly instead of stalling the session forever.
-    private static let quotaRetryDelays: [Double] = [1.5, 3, 6, 12]
 
     static func buildURL(template: String, text: String, title: String, rate: Float) -> URL? {
         let provider = CustomHTTPProvider()
@@ -657,51 +604,11 @@ final class CustomHTTPProvider: TTSAudioProvider {
         //
         // The cost is real and accepted: a segment can now wait behind queued preloads (≈1s each
         // for "1/1000"), during which the engine plays silence. That is what the source asked for.
-        let sourceKey = activeSource?.id ?? ""
-        if serialisesRequests, !sourceKey.isEmpty {
-            // The slot is held across the retries too. Releasing it between a 429 and its retry
-            // is exactly how the second rejection happened: another preload took the slot back.
-            guard await TTSSourceGate.shared.acquire(sourceKey) else { throw CancellationError() }
-            do {
-                let data = try await fetchAudioDataHonouringQuota(
-                    request: request,
-                    source: activeSource
-                )
-                await TTSSourceGate.shared.release(sourceKey)
-                return data
-            } catch {
-                await TTSSourceGate.shared.release(sourceKey)
-                throw error
-            }
-        }
-        return try await fetchAudioDataHonouringQuota(request: request, source: activeSource)
-    }
-
-    /// `SourceRateLimit` bounds how often a request may start; some providers bound how many may
-    /// be *generating at once* and answer the excess with 429. Retrying under the same rate
-    /// budget is the only way to turn that into a slower segment instead of a dead session.
-    private func fetchAudioDataHonouringQuota(
-        request: URLRequest,
-        source: ImportedTTSSource?
-    ) async throws -> Data {
-        var attempt = 0
-        while true {
-            do {
-                return try await SourceRateLimit.run(
-                    rate: source?.concurrentRate ?? "",
-                    key: source?.id ?? ""
-                ) {
-                    try await fetchAudioData(request: request, source: source)
-                }
-            } catch let error as TTSAudioProviderError {
-                guard case .badStatus(let status, _) = error,
-                      status == 429 || status == 503,
-                      attempt < Self.quotaRetryDelays.count else { throw error }
-                let delay = Self.quotaRetryDelays[attempt]
-                attempt += 1
-                ttsLog("[TTS][Provider] quota busy status=\(status) retry=\(attempt)/\(Self.quotaRetryDelays.count) wait=\(delay)s")
-                try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
-            }
+        return try await SourceRateLimit.run(
+            rate: activeSource?.concurrentRate ?? "",
+            key: activeSource?.id ?? ""
+        ) {
+            try await fetchAudioData(request: request, source: activeSource)
         }
     }
 
