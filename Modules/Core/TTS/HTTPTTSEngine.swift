@@ -366,8 +366,10 @@ final class HTTPTTSEngine: NSObject, TTSPlayable {
         let end = min(segments.count, index + preloadWindow)
         guard index < end else { return }
 
+        // Same budget as `downloadChunk`: a metered provider would reject the second preload.
+        let budget = provider(forSegmentAt: index).serialisesRequests ? 1 : maxConcurrentDownloads
         for preloadIndex in index..<end {
-            guard activeTasks.count < maxConcurrentDownloads else { return }
+            guard activeTasks.count < budget else { return }
             guard audioCache[preloadIndex] == nil, activeTasks[preloadIndex] == nil,
                   !failedPreloads.contains(preloadIndex) else { continue }
             downloadChunk(at: preloadIndex, token: token, priority: .preload)
@@ -426,20 +428,27 @@ final class HTTPTTSEngine: NSObject, TTSPlayable {
             return
         }
 
-        // Give the audible segment a slot before speculative work, including after a
-        // failed preload. Its replacement gets a new ID, so a late completion cannot
-        // remove or populate the replacement request.
-        if priority == .current, activeTasks.count >= maxConcurrentDownloads,
-           let farthest = activeTasks.keys.filter({ $0 != currentIndex }).max() {
-            activeTasks.removeValue(forKey: farthest)?.task.cancel()
-        }
-        guard activeTasks.count < maxConcurrentDownloads else { return }
-
         let requestID = UUID()
         let chunkText = speechChunks[index]
         let title = lastTitle
         let rate = lastRate
         let audioProvider = provider(forSegmentAt: index)
+
+        // A provider that meters concurrent *generations* has one slot for the whole account.
+        // Three preloads used to sit in it, so the audible segment — started last — was the
+        // request the provider rejected with HTTP 429, and playback died on its first paragraph.
+        // Preloading one segment ahead is what such a plan can actually keep up with.
+        let budget = audioProvider.serialisesRequests ? 1 : maxConcurrentDownloads
+
+        // Give the audible segment a slot before speculative work, including after a
+        // failed preload. Its replacement gets a new ID, so a late completion cannot
+        // remove or populate the replacement request.
+        if priority == .current, activeTasks.count >= budget,
+           let farthest = activeTasks.keys.filter({ $0 != currentIndex }).max() {
+            activeTasks.removeValue(forKey: farthest)?.task.cancel()
+        }
+        guard activeTasks.count < budget else { return }
+
         ttsLog("[TTS][HTTPEngine] provider request start index=\(index) provider=\(audioProvider.displayName) priority=\(priority) textCount=\(chunkText.count)")
         let task = Task { [weak self, audioProvider] in
             guard let self else { return }
