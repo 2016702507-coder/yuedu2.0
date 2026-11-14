@@ -2160,6 +2160,8 @@ struct CoreTextPageEngineView: UIViewControllerRepresentable {
                 turnFrameRate.begin()
             }
             stackWriteGate.beginGesture()
+            // 手势期间引擎不得因后台预载改页码（见 setTurnInProgress）。
+            currentEngine.setTurnInProgress(true)
             // The reader's swipe, not an animation of ours, puts the menu away.
             if !stackWriteGate.isAnimatingTransition { onUserPageTurnBegan() }
             if let visible = readingPage(of: pvc) {
@@ -2221,6 +2223,7 @@ struct CoreTextPageEngineView: UIViewControllerRepresentable {
                 turnFrameRate.end()
             }
             stackWriteGate.endGesture()
+            currentEngine.setTurnInProgress(false)
             AppLogger.render("[CurlTrace] didFinish completed=\(completed) visible=\((readingPage(of: pvc) as? (any PageIndexProviding & UIViewController))?.globalPageIndex ?? -1) binding=\(currentPage)")
 
             // Any write owed while UIKit held the stack is replayed on the next

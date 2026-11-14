@@ -265,6 +265,15 @@ final class CoreTextPageEngine: PageRenderingProvider, LinkNavigationProviding, 
     private(set) var totalPages: Int = 0
     private(set) var currentPage: Int = 0
     private var readingAnchor = CoreTextReadingPosition.chapterStart(0)
+    /// 一次用户翻页手势正在进行（手指压着页面）。见 `setTurnInProgress`。
+    /// 存起始时刻而非 Bool：`didFinishAnimating` 未必每次都来（手势中途视图被
+    /// 移除、阅读页被别的全屏页盖住），一个卡住的 true 会让偏移表从此不再对齐
+    /// 当前页 —— 用时间窗自愈，最坏也只是退回到旧行为。
+    private var turnStartedAt: CFAbsoluteTime = 0
+    private static let turnInProgressWindow: CFAbsoluteTime = 3
+    private var isTurnInProgress: Bool {
+        turnStartedAt > 0 && CFAbsoluteTimeGetCurrent() - turnStartedAt < Self.turnInProgressWindow
+    }
 
     private let _layouts = LayoutCache<CoreTextPaginator.ChapterLayout>()
     var layouts: [Int: CoreTextPaginator.ChapterLayout] {
@@ -697,6 +706,15 @@ final class CoreTextPageEngine: PageRenderingProvider, LinkNavigationProviding, 
         if let page = pageIndex(for: position) ?? estimatedGlobalPage(for: position) {
             currentPage = max(0, min(page, max(totalPages - 1, 0)))
         }
+    }
+
+    /// 翻页手势的起止。见 `LayoutLifecycle.setTurnInProgress`。
+    ///
+    /// 手势期间偏移表可能被后台预载重建，但当前页一律不改；手势结束后也**不**在这里
+    /// 补一次重定位 —— 落点由 `didFinishAnimating` 的 settle 用精确 charOffset 写回，
+    /// 抢先对齐只会拿滞后状态再猜一次。
+    func setTurnInProgress(_ inProgress: Bool) {
+        turnStartedAt = inProgress ? CFAbsoluteTimeGetCurrent() : 0
     }
 
     private func cancelPreloadTasks() {
@@ -1770,6 +1788,21 @@ _layouts.removeAll()
         }
         totalPages = offset
 
+        // 手势进行中（手指还压着页面）：只更新偏移表与总页数，**不动当前页**。
+        // 这时 `currentPage` 要等 `didFinishAnimating` 才发布、`readingAnchor`
+        // 要等页面稳定才更新，两个都是滞后的；后台预载上一章恰在此刻完成，
+        // 用滞后状态重定位就会把手指下那一页搬走 —— 往回翻「跳前一张」。
+        // 落点留给手势结束后的 `updateReadingPosition` 用精确 charOffset 对齐。
+        if isTurnInProgress {
+            AppLogger.render(
+                "[FlipTrace] offsetRebase skipped during turn page=\(oldPage) total=\(totalPages) offsetsChanged=\(oldOffsets != spinePageOffsets)"
+            )
+            if !oldOffsets.isEmpty, oldOffsets != spinePageOffsets {
+                onChapterReady?(nil)
+            }
+            return
+        }
+
         if let stableLocal {
             // 首要原则：偏移重建只是把「全局页号」对齐到新的偏移表，
             // 绝不应该改变用户正在看的那一页。readingAnchor 要等页面稳定
@@ -1779,8 +1812,17 @@ _layouts.removeAll()
             // TOC 跳转不受影响：updateReadingPosition 会同步 currentPage，
             // 所以这里的 stableLocal 本身就是目标章。
             let spine = min(max(stableLocal.spineIndex, 0), max(chapterCount - 1, 0))
-            let pages = max(1, estimatedPageCount(forChapter: spine))
-            let local = min(max(stableLocal.localPage, 0), pages - 1)
+            // 只有该章**完整**排版过，才允许按真实页数截断章内页号。
+            // partial / 未布局时 `estimatedPageCount` 是按字节外推的，比真实
+            // 页数小得多（冷启动时尤其悬殊），拿它 clamp 会把读者从本章第
+            // 20 页丢回第 3 页 —— 「跳到很远很远」的另一条路径。页数未知时
+            // 保持原页号，偏移表平移后它仍然指向同一页内容。
+            let local: Int
+            if let layout = _layouts[spine], !layout.isPartial, !layout.pageRanges.isEmpty {
+                local = min(max(stableLocal.localPage, 0), layout.pageRanges.count - 1)
+            } else {
+                local = max(0, stableLocal.localPage)
+            }
             let rebased = spinePageOffsets[spine] + local
             currentPage = max(0, min(rebased, max(totalPages - 1, 0)))
         } else if let exact = pageIndex(for: anchoredPosition) {

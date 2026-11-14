@@ -90,6 +90,15 @@ protocol LayoutLifecycle: AnyObject {
     /// The reader's authoritative stable destination/settled position, before loading.
     func updateReadingPosition(_ position: CoreTextReadingPosition)
 
+    /// 用户的手指正压在页面上（`UIPageViewController` 的 `willTransitionTo` 到
+    /// `didFinishAnimating` 之间）。
+    ///
+    /// 这段时间里 `currentPage` 与 `readingAnchor` 都还没有 settle：手势还没结束，
+    /// 页码要等 `didFinishAnimating` 才发布。后台预载上一章恰好在这时完成，就会让
+    /// 引擎拿一组滞后状态去重定位当前页 —— 往回翻时表现为「跳前一张」，偏移估算
+    /// 偏差大时表现为「跳到很远很远」。引擎据此在偏移表重建时只更新表，不动当前页。
+    func setTurnInProgress(_ inProgress: Bool)
+
     var onChapterReady: ((Int?) -> Void)? { get set }
     var onNavigateToPage: ((Int) -> Void)? { get set }
 
@@ -105,6 +114,9 @@ protocol LayoutLifecycle: AnyObject {
 
 extension LayoutLifecycle {
     func updateReadingPosition(_ position: CoreTextReadingPosition) {}
+
+    /// 不关心手势的引擎（固定版式、纯文本等）默认什么也不做。
+    func setTurnInProgress(_ inProgress: Bool) {}
 
     func notifyChapterDataAvailable(at spineIndex: Int) async -> ChapterLayoutOutcome {
         await preloadChapter(at: spineIndex)

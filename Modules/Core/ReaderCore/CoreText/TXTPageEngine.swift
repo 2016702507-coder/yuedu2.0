@@ -13,6 +13,17 @@ final class TXTPageEngine: PageRenderingProvider {
     private var preloadTasks: [Int: Task<Void, Never>] = [:]
     private var layoutGeneration: Int = 0
 
+    /// 用户翻页手势进行中。见 `LayoutLifecycle.setTurnInProgress`。
+    /// 用时间窗而不是裸 Bool：`didFinishAnimating` 漏一次就会永远跳过对齐。
+    private var turnStartedAt: CFAbsoluteTime = 0
+    private var isTurnInProgress: Bool {
+        turnStartedAt > 0 && CFAbsoluteTimeGetCurrent() - turnStartedAt < 3
+    }
+
+    func setTurnInProgress(_ inProgress: Bool) {
+        turnStartedAt = inProgress ? CFAbsoluteTimeGetCurrent() : 0
+    }
+
     let offsetStore: CharOffsetStore
     private let paginationManager = PaginationManager()
     private let attributedBuilder: any AttributedStringBuilding
@@ -443,6 +454,15 @@ final class TXTPageEngine: PageRenderingProvider {
             return start
         }
         totalPages = offset
+        // 手势进行中：只对齐偏移表，不动当前页（见 `setTurnInProgress`）。
+        // `currentPage` 要等 `didFinishAnimating` 才发布，回翻时拿它反推锚点
+        // 会把读者送回上一页 —— 与 CoreText 引擎同一类跳页。
+        if isTurnInProgress {
+            if !oldOffsets.isEmpty, oldOffsets != spinePageOffsets {
+                onChapterReady?(nil)
+            }
+            return
+        }
         if let correctedPage = pageIndex(for: anchoredPosition) {
             currentPage = max(0, min(correctedPage, max(totalPages - 1, 0)))
         }
