@@ -215,6 +215,16 @@ struct ReviewPanelBackdropLayer: View {
                 // 边缘会显出一条冷白带，暖白即使在极端帧上也与纸色融为一体。
                 (colorScheme == .dark ? Color.black : Self.paperTint)
                     .opacity(tintOpacity)
+                // 顶部提亮：孤岛面板实测上沿 rgb(231,223,204) 比中部 rgb(207,190,169) 亮，
+                // Liquid Glass 的顶光在系统材质上也有类似的高光衰减，这里用淡白渐变补齐。
+                LinearGradient(
+                    colors: [
+                        .white.opacity(colorScheme == .dark ? 0.10 : 0.16),
+                        .white.opacity(0),
+                    ],
+                    startPoint: .top,
+                    endPoint: UnitPoint(x: 0.5, y: 0.42)
+                )
             }
             .frame(width: geo.size.width, height: geo.size.height)
             .clipped()
