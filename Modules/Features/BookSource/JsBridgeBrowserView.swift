@@ -164,66 +164,23 @@ struct ReviewPanelBackdropLayer: View {
         return min(max(0.7 * sheet + 0.3 * global, 0), 1)
     }
 
-    private var windowSize: CGSize {
-        if let w = UIApplication.shared.connectedScenes
-            .compactMap({ $0 as? UIWindowScene })
-            .first?.windows.first(where: { $0.isKeyWindow }) {
-            return w.bounds.size
-        }
-        return UIScreen.main.bounds.size
-    }
-
-    private var tintOpacity: Double {
-        // tint 压到 0~0.14：白纸书页上材质自带白纱，tint 再叠白就糊成白板——
-        // 玻璃的辨识度靠模糊采样的文字形状，不靠白底。
-        0.14 * level
-    }
-
     var body: some View {
-        GeometryReader { geo in
-            ZStack {
-                // 玻璃底全部交给系统实时材质：sheet 的 presentationBackground
-                // 是透明色，材质能直接采样到背后的真实阅读页——滚动、翻页、
-                // 换书，玻璃实时跟着变，任何档位/动画帧都对齐铺满。
-                // 不再使用弹出瞬间拍的静态截图：那是一张死图，且窗口尺寸
-                // 推算与 sheet 实际 frame 有偏差时会糊出错位的「下半角」。
-                LiveGlassEffectLayer(level: level)
-                // 匀光 tint：中性白零色偏（孤岛实测），只随玻璃浓淡提亮不染色。
-                (colorScheme == .dark ? Color.black : Self.paperTint)
-                    .opacity(tintOpacity)
-            }
-            .frame(width: geo.size.width, height: geo.size.height)
-            .clipped()
+        // 玻璃本体已全部移交 presentationBackground 的系统 Material（见 body 尾）。
+        // 这里只留极淡中性 tint 给评论文字补对比：材质在白纸上自带白纱，
+        // tint 叠厚就糊回白板，压到 0.08 上限。
+        //
+        // 为什么删掉 LiveGlassEffectLayer：sheet 内容里的 UIVisualEffectView
+        // 只能采样 sheet 自身层级内的内容——半屏时背后露出阅读页尚可，一旦
+        // 拉到全屏、sheet 盖满窗口，材质下面什么都没有，渲染成默认浅色 =
+        // 整屏白板（录屏逐帧实测 rgb(254,254,254) 零纹理）。系统对 sheet
+        // 背后内容的官方实时模糊通道是 presentationBackground。
+        (colorScheme == .dark ? Color.black : Self.paperTint)
+            .opacity(0.08 * level)
             .ignoresSafeArea()
-        }
-        .ignoresSafeArea()
     }
 
     /// 匀光 tint：中性白（孤岛实测 R=G=B 零色偏），颜色自适应完全交给材质采样。
     private static let paperTint = Color.white
-    /// 兜底磨砂色：中性浅灰。
-    private static let paperFallback = Color(white: 0.93)
-}
-
-/// 系统实时玻璃的 SwiftUI 桥：UIVisualEffectView + 系统超薄材质。
-/// 深浅色自适应；面板后面是什么它就实时糊什么，任何档位/动画帧都对齐。
-private struct LiveGlassEffectLayer: UIViewRepresentable {
-    /// 「玻璃浓淡」0=最透、1=最实：材质层透明度随之摆动。此前材质恒定全效、
-    /// 盖死在截图层之上，滑杆怎么拉都被它抹平——这是「滑杆没变化」的直接根因。
-    var level: Double
-
-    func makeUIView(context: Context) -> UIVisualEffectView {
-        let view = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterial))
-        // 材质视图自身不要落底色：让采样结果直接透出来。
-        view.backgroundColor = .clear
-        view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-        return view
-    }
-    func updateUIView(_ uiView: UIVisualEffectView, context: Context) {
-        // 最透端材质降到 0.15（白纸页上也不糊成白板，文字形状清晰可辨），
-        // 最实端 0.75（重磨砂仍有内容透出）。无动画直改，拖滑杆即时跟手。
-        uiView.alpha = 0.15 + 0.60 * level
-    }
 }
 
 struct SourceBrowserPresentationConfiguration: Equatable {
@@ -684,11 +641,10 @@ struct LegadoReviewBrowserView: View {
                 .accessibilityLabel(effectiveShowsSourcePage ? localized("用卡片显示") : localized("显示原网页"))
             }
         }
-        // 面板玻璃由 ZStack 最底层的 ReviewPanelBackdropLayer 自己画好：
-        // 系统实时材质（逐帧对齐）+ 预模糊截图兜底，双层保险，任何档位都不露底。
-        // presentationBackground 清空：系统不再另画一层不透明 chrome 盖在玻璃上
-        // （那层 chrome 正是全屏档白板的来源之一）。
-        .presentationBackground { Color.clear }
+        // 面板玻璃 = 系统 presentationBackground 实时材质（全屏也正确采样，
+        // 这是 sheet 背后内容实时模糊的唯一可靠通道；内容层自带的
+        // UIVisualEffectView 全屏时采不到东西，会渲染成白板）。
+        .presentationBackground { presentationGlass }
         .presentationBackgroundInteraction(.enabled(upThrough: .large))
         .presentationDetents(presentationConfiguration.detents)
         .presentationDragIndicator(
@@ -810,6 +766,25 @@ struct LegadoReviewBrowserView: View {
         // 不再垫白色实底：玻璃底（ReviewPanelBackdropLayer）已经是完整的面板
         // 外观，加载态直接透出同一块玻璃——加载中/加载完是同一张脸，
         // 杜绝「加载慢时闪现一块实心旧面板」的观感。
+    }
+
+    /// 「玻璃浓淡」0~1：与外观 › 界面效果的滑杆同一公式。
+    private var glassLevel: Double {
+        let sheet = min(max(settings.reviewSheetOpacity, 0), 1)
+        let global = 1 - min(max(settings.interfaceGlassTransparency, 0), 1)
+        return min(max(0.7 * sheet + 0.3 * global, 0), 1)
+    }
+
+    /// sheet 背后的实时玻璃：系统 Material 厚度分三档跟滑杆走。
+    /// Material 由系统直接对 sheet 背后内容做实时模糊——滚动、翻页、
+    /// 拖 detent 全实时，白纸页上也能透出文字影子，不再有白板档。
+    @ViewBuilder
+    private var presentationGlass: some View {
+        switch glassLevel {
+        case ..<0.34: Rectangle().fill(.ultraThinMaterial)
+        case ..<0.67: Rectangle().fill(.thinMaterial)
+        default: Rectangle().fill(.regularMaterial)
+        }
     }
 
     private var presentationConfiguration: SourceBrowserPresentationConfiguration {
