@@ -53,13 +53,18 @@ enum IslandReviewPanel {
                     head.appendChild(style);
                 }
 
-                // 只有这三类规则。结构、层级、卡片底色一律不碰。
+                // 结构、层级、卡片底色一律不碰。
                 var rules = [
                     // 只限制宽度上限：大图不会撑破卡片，小头像也不会被放大。
                     // 不写 `height:auto`：书源若给图片设了固定高度，强改会变形。
                     'img,video{max-width:100% !important;}',
                     // 长链接、长数字不许把卡片顶宽（只作用在滚动容器上，不动排版）。
-                    'body{overflow-x:hidden !important;}'
+                    'body{overflow-x:hidden !important;}',
+                    // 页面底层必须透明：书源段评页几乎都自带白底，那层白把面板
+                    // 玻璃整个盖住——半屏也是白的（跟 detent 无关），而且是
+                    // 「加载完才白」（网页渲染出来之前玻璃是看得见的）。
+                    // 只清 html/body 的底，卡片自己的底色不动。
+                    'html,body{background:transparent !important;background-color:transparent !important;background-image:none !important;}'
                 ];
                 if (CSS && CSS.length) rules.push(CSS);
                 var text = rules.join('\n');
@@ -67,9 +72,38 @@ enum IslandReviewPanel {
                 if (head.lastChild !== style) head.appendChild(style);
             }
 
-            install();
-            document.addEventListener('DOMContentLoaded', install, { once: true });
-            window.addEventListener('load', function () { install(); setTimeout(install, 300); });
+            // html/body 之外，书源页面常在外面再套一层铺满视口的容器
+            // （列表壳、内容容器），那层白同样盖住玻璃。这里只清「几乎铺满
+            // 视口」的大块底：卡片、头像、按钮这类小块元素一律不碰。
+            function clearShellBackdrops() {
+                try {
+                    var vw = window.innerWidth || 375;
+                    var vh = window.innerHeight || 800;
+                    var els = document.querySelectorAll('body, body *');
+                    for (var i = 0; i < els.length; i++) {
+                        var el = els[i];
+                        if (!el || el.id === STYLE_ID) continue;
+                        var r = el.getBoundingClientRect();
+                        if (r.width >= vw * 0.9 && r.height >= vh * 0.3) {
+                            el.style.setProperty('background-color', 'transparent', 'important');
+                            el.style.setProperty('background-image', 'none', 'important');
+                        }
+                    }
+                } catch (e) {}
+            }
+
+            function installAll() {
+                install();
+                clearShellBackdrops();
+            }
+
+            installAll();
+            document.addEventListener('DOMContentLoaded', installAll, { once: true });
+            window.addEventListener('load', function () {
+                installAll();
+                setTimeout(installAll, 300);
+                setTimeout(installAll, 1200);
+            });
         })();
         """#
     }

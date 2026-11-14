@@ -157,6 +157,8 @@ struct ReviewBackdropCapture {
 struct ReviewPanelBackdropLayer: View {
     /// 弹出前抓下的页面截图（已预模糊）。仅非阅读器入口仍在使用。
     let backdrop: UIImage?
+    /// true = 玻璃由外层容器提供（自定义覆盖层），内层不再叠材质。
+    var usesOuterGlass: Bool = false
 
     @Environment(\.colorScheme) private var colorScheme
     private var settings: GlobalSettings { .shared }
@@ -176,9 +178,11 @@ struct ReviewPanelBackdropLayer: View {
             // 全屏白板不是这一层的问题：是系统 sheet 的呈现容器在全屏时挂了
             // 一层不透明装饰（Liquid Glass 底 + 白雾），把这一层整个盖住。
             // 那一层由呈现方清（CoreTextPageView.clearSheetChrome）。
-            Rectangle()
-                .fill(.ultraThinMaterial)
-                .opacity(0.15 + 0.60 * level)
+            if !usesOuterGlass {
+                Rectangle()
+                    .fill(.ultraThinMaterial)
+                    .opacity(0.15 + 0.60 * level)
+            }
             // 极淡中性 tint：只给评论文字补对比，颜色完全来自材质对书页的采样。
             (colorScheme == .dark ? Color.black : Self.paperTint)
                 .opacity(0.02 + 0.10 * level)
@@ -532,6 +536,10 @@ struct LegadoReviewBrowserView: View {
     /// 面板自己把它铺在最底层当玻璃：任何档位、任何呈现路径都稳定，
     /// 半屏/全屏同一张图——这是「全屏白板」的最终解法。
     var backdrop: UIImage?
+    /// true = 玻璃由外层容器提供（自定义覆盖层的 UIVisualEffectView，
+    /// 直接挂在阅读页上实时采样）。此时内层只留极淡 tint，绝不再叠材质——
+    /// 两层材质相叠会把面板糊成一块实心白。
+    var usesOuterGlass: Bool = false
     let onDismiss: (_ body: String?) -> Void
     @State private var configurationJSON: String
     /// 从书源段评页里抓到的评论。有值就画原生卡片，没有就显示书源页面。
@@ -555,10 +563,12 @@ struct LegadoReviewBrowserView: View {
     init(
         target: ReaderHTMLUtilities.ReviewTarget,
         backdrop: UIImage? = nil,
+        usesOuterGlass: Bool = false,
         onDismiss: @escaping (_ body: String?) -> Void
     ) {
         self.target = target
         self.backdrop = backdrop
+        self.usesOuterGlass = usesOuterGlass
         self.onDismiss = onDismiss
         _configurationJSON = State(initialValue: target.sourceBrowserPage?.configurationJSON ?? "")
     }
@@ -581,7 +591,7 @@ struct LegadoReviewBrowserView: View {
     var body: some View {
         ZStack {
             // ⓪ 玻璃底
-            ReviewPanelBackdropLayer(backdrop: backdrop)
+            ReviewPanelBackdropLayer(backdrop: backdrop, usesOuterGlass: usesOuterGlass)
 
 
             // ① 书源网页常驻在玻璃底之上，绝不因「抓到评论」被移出视图树。

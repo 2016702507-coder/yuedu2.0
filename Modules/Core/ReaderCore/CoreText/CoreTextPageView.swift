@@ -2530,6 +2530,8 @@ final class CoreTextPageViewController: UIViewController, ReaderBookmarkRibbonHo
     /// 沿呈現鏈上溯，而閱讀頁本身正是「被呈現的那一層」（首頁與書架都用 fullScreenCover 開
     /// 閱讀頁），於是點一下面板外就把整本書退掉了。
     private weak var reviewSheetHost: UIViewController?
+    /// 当前的段评面板（自定义覆盖层，不是系统 sheet）。
+    private var reviewPanel: ReviewPanelOverlayController?
     private let pageView = CoreTextPageView()
     private(set) var globalPageIndex: Int = 0
     private(set) var coreTextReadingPosition: CoreTextReadingPosition?
@@ -2789,52 +2791,29 @@ final class CoreTextPageViewController: UIViewController, ReaderBookmarkRibbonHo
             }
             return
         }
-        // 不再抓书页截图：静态图带着弹出瞬间的旧帧，滚动/翻页后就成了印子，
-        // 而且尺寸推算与 sheet 实际 frame 有偏差时会糊出错位的半角。
-        // 玻璃由面板内层自己画（系统材质实时采样）；这里只负责把系统装饰层清透明。
-        let view = LegadoReviewBrowserView(target: target, backdrop: nil) { [weak self] _ in
+        // **不用系统 sheet**：系统的呈现容器在真机上挂着一层不透明装饰
+        // （Liquid Glass 底 + 白雾），面板里的材质采样到的是那层白，不是阅读页
+        // ——半屏白、全屏更白、滑杆怎么拉都没变化。系统每次档位切换都会重建
+        // 那层，清理治不好。这里把面板直接挂到阅读页自己的视图上，同一渲染树，
+        // 玻璃采样的就是下面那张真实书页。
+        let view = LegadoReviewBrowserView(
+            target: target,
+            backdrop: nil,
+            usesOuterGlass: true
+        ) { [weak self] _ in
             self?.dismissReviewSheet()
         }
-        let host = UIHostingController(rootView: view)
-        reviewSheetHost = host
-        // SwiftUI 的 `.presentationBackground` 只在 SwiftUI 自己發起的 sheet 裡生效：這條路徑是
-        // UIKit 呈現，sheet 的底色就是 host.view 自己的底色（不透明），段評頁哪怕透明也只透出
-        // 這層白底。清掉它，玻璃由 `LegadoReviewBrowserView` 自己那層 material 畫。
-        host.view.backgroundColor = .clear
-        host.view.isOpaque = false
-        host.view.layer.isOpaque = false
-        if let sheet = host.sheetPresentationController {
-            sheet.detents = [.medium(), .large()]
-            sheet.prefersGrabberVisible = true
-            // 关键：以前只把 medium 设为「不压暗」，拉到 large 时系统会补回
-            // 不透明变暗层 + 一层白雾材质，半屏的玻璃到全屏就变成白底。
-            // 把最大不压暗档位提到 large，全屏也保持透明玻璃。
-            sheet.largestUndimmedDetentIdentifier = .large
-            // 半屏也要能往下翻评论：默认 true 时，嵌入网页的 scrollView 只要
-            // 停在顶部，上滑手势就被系统优先识别成「展开面板」，列表滚不动，
-            // 只能先拉到全屏再翻。关掉它，半屏内上滑就是纯滚动，展开只靠把手。
-            sheet.prefersScrollingExpandsWhenScrolledToEdge = false
-            // 档位变化时系统会重新挂材质视图，监听后把容器链再清成透明。
-            sheet.delegate = self
+        // 上一张面板若还挂着（换源/连续点开），先无动画清掉，避免叠两层玻璃。
+        if let stale = reviewPanel {
+            stale.view.removeFromSuperview()
+            stale.removeFromParent()
+            reviewPanel = nil
         }
-        present(host, animated: true) {
-            // iOS 15+ 的 sheet 背景不是 `backgroundColor`，而是一層系統材質視圖
-            // （UIVisualEffectView）。只清 host.view 擋不住它，下面那層「白霧」會一直在，
-            // 面板不透明度調到 0 都還是白的。整條容器鏈一起清。
-            // 只清系统 sheet 的装饰层，绝不下钻到面板内容视图：面板自己的玻璃
-            // （UIVisualEffectView）就在 presentedView 子树里，旧实现递归把它
-            // effect=nil，拉到全屏就整片全透明、背后正文直接透上来。
-            Self.clearSheetChrome(
-                host.presentationController?.containerView,
-                keepingContentOf: host.presentationController?.presentedView
-            )
-            self.installOutsideTapDismiss(
-                for: host,
-                isEnabled: SourceBrowserPresentationConfiguration(
-                    json: target.sourceBrowserPage?.configurationJSON ?? ""
-                ).isHideable
-            )
+        let panel = ReviewPanelOverlayController(content: view) { [weak self] in
+            self?.reviewPanel = nil
         }
+        reviewPanel = panel
+        panel.present(in: self)
     }
 
     /// 點面板外收起段評面板。
@@ -2879,15 +2858,8 @@ final class CoreTextPageViewController: UIViewController, ReaderBookmarkRibbonHo
     private func dismissReviewSheet() {
         reviewOutsideTapView?.removeFromSuperview()
         reviewOutsideTapView = nil
-        guard let host = reviewSheetHost, host.presentingViewController != nil else {
-            reviewSheetHost = nil
-            return
-        }
-        // 玻璃由面板自己随视图销毁撤掉（dismantleUIView），这里只关面板。
-        host.dismiss(animated: true) { [weak self] in
-            guard let self else { return }
-            if self.reviewSheetHost === host { self.reviewSheetHost = nil }
-        }
+        reviewSheetHost = nil
+        reviewPanel?.dismissPanel()
     }
 
     /// 用户直接把面板往下拖关掉时不会走 dismissReviewSheet，这里收尾：
@@ -2913,10 +2885,35 @@ final class CoreTextPageViewController: UIViewController, ReaderBookmarkRibbonHo
         host.view.backgroundColor = .clear
         host.view.isOpaque = false
         host.view.layer.isOpaque = false
-        Self.clearSheetChrome(
-            host.presentationController?.containerView,
-            keepingContentOf: host.presentationController?.presentedView
-        )
+        let container = host.presentationController?.containerView
+        let presented = host.presentationController?.presentedView
+        Self.clearSheetChrome(container, keepingContentOf: presented)
+        Self.dumpSheetChrome(container, presented: presented)
+    }
+
+    /// 把段评 sheet 的视图层级打进诊断日志。
+    ///
+    /// 面板背景反复是白的，而代码里所有"该透明"的地方都已设透明——只有把系统
+    /// 真正挂上去的那几层（类名、背景色、透明度、是否含材质、frame）打出来，
+    /// 才能确定白是来自哪一层，而不是再猜一轮。层级只在打开面板时打一次。
+    private static func dumpSheetChrome(_ container: UIView?, presented: UIView?) {
+        guard let container else {
+            AppLogger.info("⟐ review sheet chrome: 没有 containerView")
+            return
+        }
+        var lines: [String] = []
+        func walk(_ view: UIView, depth: Int) {
+            guard depth <= 9 else { return }
+            let pad = String(repeating: "·", count: depth)
+            let bg = view.backgroundColor.map { "\($0)" } ?? "nil"
+            let isProtected = presented.map { view === $0 || $0.isDescendant(of: view) } ?? false
+            let effect = view is UIVisualEffectView ? " EFFECT" : ""
+            let frame = "\(Int(view.frame.origin.x)),\(Int(view.frame.origin.y)) \(Int(view.frame.width))x\(Int(view.frame.height))"
+            lines.append("\(pad)\(type(of: view))\(effect) a=\(String(format: "%.2f", view.alpha)) hid=\(view.isHidden) bg=\(bg) \(frame)\(isProtected ? " [含面板]" : "")")
+            for sub in view.subviews { walk(sub, depth: depth + 1) }
+        }
+        walk(container, depth: 0)
+        AppLogger.info("⟐ review sheet chrome dump:\n" + lines.joined(separator: "\n"))
     }
 
     /// 把 sheet 容器上的系統材質與底色清成透明，只留內容本身。
@@ -2967,6 +2964,241 @@ final class CoreTextPageViewController: UIViewController, ReaderBookmarkRibbonHo
 }
 
 extension CoreTextPageViewController: PageIndexProviding {}
+
+// MARK: - 段评面板（自定义覆盖层，不走系统 sheet）
+
+/// 段评面板的呈现容器：**不用系统 sheet**。
+///
+/// 系统的 sheet 会把内容放进它自己的呈现容器，那个容器在真机上挂着一层不透明
+/// 装饰（Liquid Glass 底 + 白雾），而且每次档位切换都会重建。面板里的
+/// `UIVisualEffectView` 采样到的是那层白，不是阅读页 —— 这就是「半屏白、全屏
+/// 更白、滑杆怎么拉都没变化」的唯一真因；往容器上做清理治不好，因为系统会重建。
+///
+/// 这里把面板直接挂到**阅读页自己的视图**上：同一个窗口、同一棵渲染树，玻璃
+/// 采样的就是下面那张真实书页。翻页、滚动、换书都实时跟得上，半屏和全屏用的
+/// 是同一块玻璃。
+final class ReviewPanelOverlayController: UIViewController {
+
+    private let content: UIHostingController<LegadoReviewBrowserView>
+    private let onDismiss: () -> Void
+
+    /// 面板外的一层透明接收区：点一下就收起。
+    private let dimming = UIControl()
+    private let card = UIView()
+    private let blur = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterial))
+    private let tint = UIView()
+    private let grabber = UIView()
+    /// 顶部拖拽区：上拉全屏、下拉收起。只占把手那一带，列表照常滚动。
+    private let dragArea = UIView()
+
+    private var currentHeight: CGFloat = 0
+    private var panStartHeight: CGFloat = 0
+    private var isDismissing = false
+    private var isAnimatingLayout = false
+    private var tintLink: CADisplayLink?
+    private var lastLevel: Double = -1
+
+    /// 半屏档：约屏幕一半；全屏档：顶到安全区上方。
+    private var mediumHeight: CGFloat { max(view.bounds.height * 0.52, 320) }
+    private var largeHeight: CGFloat { max(view.bounds.height - view.safeAreaInsets.top - 8, mediumHeight) }
+
+    init(content: LegadoReviewBrowserView, onDismiss: @escaping () -> Void) {
+        self.content = UIHostingController(rootView: content)
+        self.onDismiss = onDismiss
+        super.init(nibName: nil, bundle: nil)
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        view.backgroundColor = .clear
+
+        dimming.backgroundColor = .clear
+        dimming.accessibilityIdentifier = "review.outsideTap"
+        dimming.addTarget(self, action: #selector(handleTapOutside), for: .touchUpInside)
+        view.addSubview(dimming)
+
+        card.backgroundColor = .clear
+        card.layer.cornerRadius = 22
+        card.layer.cornerCurve = .continuous
+        card.layer.maskedCorners = [.layerMinXMinYCorner, .layerMaxXMinYCorner]
+        card.layer.masksToBounds = true
+        view.addSubview(card)
+
+        blur.isUserInteractionEnabled = false
+        card.addSubview(blur)
+
+        tint.isUserInteractionEnabled = false
+        card.addSubview(tint)
+
+        addChild(content)
+        content.view.backgroundColor = .clear
+        content.view.isOpaque = false
+        content.view.layer.isOpaque = false
+        card.addSubview(content.view)
+        content.didMove(toParent: self)
+
+        grabber.backgroundColor = UIColor.tertiaryLabel.withAlphaComponent(0.45)
+        grabber.layer.cornerRadius = 2.5
+        card.addSubview(grabber)
+
+        dragArea.backgroundColor = .clear
+        card.addSubview(dragArea)
+        dragArea.addGestureRecognizer(
+            UIPanGestureRecognizer(target: self, action: #selector(handlePan(_:)))
+        )
+        dragArea.addGestureRecognizer(
+            UITapGestureRecognizer(target: self, action: #selector(toggleDetent))
+        )
+    }
+
+    /// 挂到阅读页视图上，从底部升到半屏。
+    func present(in parent: UIViewController) {
+        parent.addChild(self)
+        view.frame = parent.view.bounds
+        view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        parent.view.addSubview(view)
+        didMove(toParent: parent)
+
+        currentHeight = 0
+        layoutCard(height: 0)
+        isAnimatingLayout = true
+        UIView.animate(withDuration: 0.36, delay: 0,
+                       usingSpringWithDamping: 0.88, initialSpringVelocity: 0.25,
+                       options: [.curveEaseOut]) {
+            self.currentHeight = self.mediumHeight
+            self.layoutCard(height: self.mediumHeight)
+        } completion: { _ in
+            self.isAnimatingLayout = false
+        }
+    }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        guard tintLink == nil else { return }
+        let link = CADisplayLink(target: self, selector: #selector(tickTint))
+        link.add(to: .main, forMode: .common)
+        tintLink = link
+    }
+
+    override func viewDidDisappear(_ animated: Bool) {
+        super.viewDidDisappear(animated)
+        tintLink?.invalidate()
+        tintLink = nil
+    }
+
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        dimming.frame = view.bounds
+        // 动画进行中不要重设 frame，否则会把动画直接掐到终点。
+        guard !isAnimatingLayout, currentHeight > 0 else { return }
+        currentHeight = min(currentHeight, largeHeight)
+        layoutCard(height: currentHeight)
+    }
+
+    private func layoutCard(height: CGFloat) {
+        let maxHeight = view.bounds.height
+        let clamped = min(max(height, 0), maxHeight)
+        card.frame = CGRect(x: 0, y: maxHeight - clamped, width: view.bounds.width, height: clamped)
+        card.isHidden = clamped < 1
+        blur.frame = card.bounds
+        tint.frame = card.bounds
+        content.view.frame = card.bounds
+        grabber.frame = CGRect(x: (card.bounds.width - 36) / 2, y: 6, width: 36, height: 5)
+        dragArea.frame = CGRect(x: 0, y: 0, width: card.bounds.width, height: 44)
+        applyTint()
+    }
+
+    @objc private func tickTint() {
+        applyTint()
+    }
+
+    /// 玻璃浓淡跟「外观 › 界面效果」的滑杆走：最透端 0.15（白纸页上也能看出
+    /// 文字形状，不会糊成白板），最实端 0.75（重磨砂仍透出内容）。
+    private func applyTint() {
+        let settings = GlobalSettings.shared
+        let sheet = min(max(settings.reviewSheetOpacity, 0), 1)
+        let global = 1 - min(max(settings.interfaceGlassTransparency, 0), 1)
+        let level = min(max(0.7 * sheet + 0.3 * global, 0), 1)
+        guard abs(level - lastLevel) > 0.001 || tint.backgroundColor == nil else { return }
+        lastLevel = level
+        blur.alpha = 0.15 + 0.60 * level
+        let dark = traitCollection.userInterfaceStyle == .dark
+        tint.backgroundColor = (dark ? UIColor.black : UIColor.white)
+            .withAlphaComponent(0.02 + 0.10 * level)
+    }
+
+    @objc private func handleTapOutside() {
+        dismissPanel()
+    }
+
+    /// 点一下把手在半屏 / 全屏之间切换。
+    @objc private func toggleDetent() {
+        let target = currentHeight >= (mediumHeight + largeHeight) / 2 ? mediumHeight : largeHeight
+        currentHeight = target
+        isAnimatingLayout = true
+        UIView.animate(withDuration: 0.32, delay: 0,
+                       usingSpringWithDamping: 0.9, initialSpringVelocity: 0.2) {
+            self.layoutCard(height: target)
+        } completion: { _ in
+            self.isAnimatingLayout = false
+        }
+    }
+
+    @objc private func handlePan(_ gesture: UIPanGestureRecognizer) {
+        let translation = gesture.translation(in: view).y
+        switch gesture.state {
+        case .began:
+            panStartHeight = currentHeight
+        case .changed:
+            // 拖动中直接跟手，不做动画。
+            let proposed = panStartHeight - translation
+            currentHeight = min(max(proposed, 60), largeHeight)
+            layoutCard(height: currentHeight)
+        case .ended, .cancelled:
+            let velocity = gesture.velocity(in: view).y
+            if currentHeight < mediumHeight * 0.8 || velocity > 1100 {
+                dismissPanel()
+                return
+            }
+            let target = (currentHeight > (mediumHeight + largeHeight) / 2 || velocity < -700)
+                ? largeHeight
+                : mediumHeight
+            currentHeight = target
+            isAnimatingLayout = true
+            UIView.animate(withDuration: 0.3, delay: 0,
+                           usingSpringWithDamping: 0.92, initialSpringVelocity: 0.2) {
+                self.layoutCard(height: target)
+            } completion: { _ in
+                self.isAnimatingLayout = false
+            }
+        default:
+            break
+        }
+    }
+
+    func dismissPanel() {
+        guard !isDismissing else { return }
+        isDismissing = true
+        tintLink?.invalidate()
+        tintLink = nil
+        isAnimatingLayout = true
+        UIView.animate(withDuration: 0.26, delay: 0, options: [.curveEaseIn]) {
+            self.layoutCard(height: 0)
+            self.dimming.alpha = 0
+        } completion: { _ in
+            self.isAnimatingLayout = false
+            self.willMove(toParent: nil)
+            self.view.removeFromSuperview()
+            self.removeFromParent()
+            self.onDismiss()
+        }
+    }
+}
 
 final class CoreTextImagePreviewController: UIViewController, UIScrollViewDelegate {
     private let attachment: CoreTextPaginator.RenderedAttachment
